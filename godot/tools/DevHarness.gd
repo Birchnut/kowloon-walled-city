@@ -13,6 +13,7 @@ extends Node
 ##   place=<시설>@x,y,z     시설 배치 모드 + 그 자리 후보
 ##   tap=x,y                화면 좌표 탭(뷰 pick → UI)
 ##   fakeexp=<json 경로>     탐험 질의 대신 이 파일(계약 모양 견본 — B 파트 데이터가 오기 전 지도 확인용)
+##   fakekeep=<json 경로>    연구·정책 질의 대신 이 파일(견본)
 ##   offline=1              자리 비운 사이 창(견본 문장)
 ##   toast=1 banner=<unlock|milestone|floor|power>   피드백 견본
 ##   at=<초>                위 인자들을 적용할 시각(기본 0.6초)
@@ -61,6 +62,17 @@ func _ready() -> void:
 		if j.parse(FileAccess.get_file_as_string(p2)) == OK and j.data is Dictionary:
 			var data: Dictionary = j.data
 			ui.expedition.source = func() -> Dictionary: return data
+
+
+	if args.has("fakekeep") and ui != null:
+		var j2 := JSON.new()
+		var p3 := str(args["fakekeep"])
+		if not p3.contains("/"):
+			p3 = FIX % p3
+		if j2.parse(FileAccess.get_file_as_string(p3)) == OK and j2.data is Dictionary:
+			var kd: Dictionary = j2.data
+			ui.keep.research_source = func() -> Dictionary: return UI.to_dict(kd.get("research", {}))
+			ui.keep.policy_source = func() -> Dictionary: return UI.to_dict(kd.get("policies", {}))
 
 
 func _on_event(n: String, _p: Dictionary) -> void:
