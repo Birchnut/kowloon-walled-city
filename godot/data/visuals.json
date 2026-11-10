@@ -2,13 +2,13 @@
   "_comment": "외형 매핑(VIEW 소유). 콘텐츠 id → 외형 레시피. 없는 id는 _default_* 로 그린다(뷰 코드 수정 불필요). 설명은 docs/VIEW_NOTES.md.",
 
   "materials": {
-    "_comment": "ramp = 밝음→어두움 4톤(그림자 쪽은 색상을 보라/파랑으로 민다). pattern = planks|corrugated|brick|concrete|patch. accent = 얼룩/녹/패치 색. roof = 지붕 톤 2개.",
-    "_default": { "ramp": ["#e2dccf", "#c9c0bb", "#a79ead", "#7d7493"], "pattern": "concrete", "accent": "#8f8aa6", "roof": ["#cfc6bd", "#b3a9ad"] },
-    "scrap":    { "ramp": ["#d8c39a", "#bfa27c", "#977a6c", "#6c566a"], "pattern": "patch",      "accent": "#6fa8a0", "roof": ["#9fb4b8", "#7c8fa2"] },
-    "wood":     { "ramp": ["#eebf82", "#d99f63", "#b0744f", "#7c4d4a"], "pattern": "planks",     "accent": "#8a5a46", "roof": ["#c98f5e", "#a26a4c"] },
-    "sheet":    { "ramp": ["#bfdcd8", "#98bfc4", "#7096aa", "#526c92"], "pattern": "corrugated", "accent": "#c97a55", "roof": ["#a9cbcb", "#84a9b6"] },
-    "brick":    { "ramp": ["#eba283", "#d67f6a", "#ad5a5c", "#7a4058"], "pattern": "brick",      "accent": "#f0d2b4", "roof": ["#d9b9a2", "#b8938c"] },
-    "concrete": { "ramp": ["#ece4d4", "#d2c8c0", "#aea3b2", "#80779a"], "pattern": "concrete",   "accent": "#8b86a8", "roof": ["#d6ccc0", "#b9aeb2"] }
+    "_comment": "ramp = 밝음→어두움 4톤(그림자 쪽은 색상을 보라/파랑으로 민다). pattern = planks|corrugated|brick|concrete|patch. accent = 얼룩/녹/패치 색. roof = 지붕 톤 2개. frames = 이 자재에 어울리는 창틀 색 키(a 크림 b 청록 c 붉은 d 어두운) — 자재마다 창틀을 묶어 덩어리가 깨끗해 보이게. cage = 철망 색(0 초록 1 녹).",
+    "_default": { "ramp": ["#e2dccf", "#c9c0bb", "#a79ead", "#7d7493"], "pattern": "concrete", "accent": "#8f8aa6", "roof": ["#cfc6bd", "#b3a9ad"], "frames": ["a", "b"], "cage": 0 },
+    "scrap":    { "ramp": ["#dcc9a4", "#c7ae8c", "#9f8478", "#705a70"], "pattern": "patch",      "accent": "#6fa8a0", "roof": ["#9fb4b8", "#7c8fa2"], "frames": ["a", "d", "b"], "cage": 1 },
+    "wood":     { "ramp": ["#f3d6aa", "#e4bc8e", "#bd9072", "#88627c"], "pattern": "planks",     "accent": "#9a6a56", "roof": ["#d6a070", "#b47c5c"], "frames": ["a", "c"], "cage": 1 },
+    "sheet":    { "ramp": ["#bfdcd8", "#98bfc4", "#7096aa", "#526c92"], "pattern": "corrugated", "accent": "#c97a55", "roof": ["#a9cbcb", "#84a9b6"], "frames": ["d", "a"], "cage": 0 },
+    "brick":    { "ramp": ["#f0a892", "#de8a7c", "#b3626a", "#7c4462"], "pattern": "brick",      "accent": "#f0d2b4", "roof": ["#d9b9a2", "#b8938c"], "frames": ["a", "a", "b"], "cage": 0 },
+    "concrete": { "ramp": ["#ece4d4", "#d2c8c0", "#aea3b2", "#80779a"], "pattern": "concrete",   "accent": "#8b86a8", "roof": ["#d6ccc0", "#b9aeb2"], "frames": ["b", "b", "a"], "cage": 0 }
   },
 
   "neon": {

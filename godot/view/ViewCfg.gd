@@ -6,6 +6,7 @@ var render: Dictionary = {}
 var visuals: Dictionary = {}
 var _recipe_cache: Dictionary = {}
 var _mat_cache: Dictionary = {}
+static var overrides: Dictionary = {}
 
 # 파생 상수(카메라 수학)
 var cell_half_px: float = 8.0
@@ -23,6 +24,17 @@ func reload() -> void:
 	visuals = Data.file("visuals") if Data.file("visuals") is Dictionary else {}
 	_recipe_cache.clear()
 	_mat_cache.clear()
+	# 개발용 덮어쓰기(Sandbox의 r:경로=값 인자)
+	if not overrides.is_empty():
+		render = render.duplicate(true)
+		for k in overrides:
+			var parts: PackedStringArray = str(k).split(".")
+			var cur: Dictionary = render
+			for i in parts.size() - 1:
+				if not (cur.get(parts[i]) is Dictionary):
+					cur[parts[i]] = {}
+				cur = cur[parts[i]]
+			cur[parts[parts.size() - 1]] = overrides[k]
 	cell_half_px = float(r("pixel.cell_half_px", 8))
 	storey_px = float(r("pixel.storey_px", 8))
 	elev = deg_to_rad(float(r("pixel.elevation_deg", 30.0)))

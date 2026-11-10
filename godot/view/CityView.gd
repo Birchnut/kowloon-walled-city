@@ -724,7 +724,7 @@ func _update_uniforms() -> void:
 	_sky_mat.set_shader_parameter("moon", moonv)
 	_sky_mat.set_shader_parameter("sun_col", _v3((v["lit_top"] as Color).lerp(Color(1, 0.95, 0.8), 0.5)))
 	_outline_mat.set_shader_parameter("strength", float(cfg.r("outline.strength", 0.38)) if bool(cfg.r("outline.enabled", true)) else 0.0)
-	_outline_mat.set_shader_parameter("threshold", float(cfg.r("outline.depth_threshold", 0.35)))
+	_outline_mat.set_shader_parameter("threshold", float(cfg.r("outline.depth_threshold", 0.7)) / float(_zoom_levels[zoom_i]))
 	_screen_mat.set_shader_parameter("quantize", bool(cfg.r("post.quantize", false)))
 	_screen_mat.set_shader_parameter("levels", float(cfg.r("post.levels", 24.0)))
 

@@ -10,7 +10,7 @@ const ORG: Array[Vector3] = [Vector3(1, 0, 1), Vector3(0, 0, 1), Vector3(0, 0, 0
 const UP := Vector3(0, 1, 0)
 const UPI := Vector3i(0, 0, 1)
 const TX := 1.0 / 16.0
-const EPS := 0.008
+const EPS := 0.012
 
 const LAUNDRY: Array[String] = ["#f4f0e6", "#ff6f6f", "#5fa8e6", "#ffd45a", "#7fd08a", "#ff9ac0", "#f4f0e6", "#b58be0", "#ff9a4a", "#6fd0d0"]
 const PIPES: Array[String] = ["#b5654f", "#8fb5d0", "#d8cfc0", "#6a6486", "#7fae8a"]
@@ -93,7 +93,7 @@ func prepare(s: CityState) -> void:
 			var form: String = str(rec.get("form", "box"))
 			hh = float(p.z) + (0.0 if form == "open" else 0.6)
 		col_h[col] = maxf(float(col_h.get(col, 0.0)), hh)
-		if rec.get("chimney", false) and is_box(c):
+		if rec.get("chimney", false) and is_box(c) and ViewCfg.h2(col.x * 37 + col.y, 3) % 3 != 0:
 			chimney_cols[col] = str(rec.get("fx", "smoke"))
 	for z in by_floor.size():
 		by_floor[z].sort()
@@ -303,9 +303,9 @@ func _facade(p: Vector3i, d: int, c: Dictionary, rec: Dictionary, mat: String, s
 	var room2: bool = not state.cells.has(nb + DIR[d])     # 앞에 두 칸 비었나
 	var below_open: bool = p.z > 0 and not state.cells.has(nb - UPI) and float(col_h.get(Vector2i(nb.x, nb.y), 0.0)) < float(p.z) - 0.1
 	var ground := p.z == 0
-	var fk: String = ["a", "b", "c", "d"][ViewCfg.h2(seed_v, 31) % 4]
-	if mat == "wood" or mat == "scrap":
-		fk = ["a", "b", "c"][ViewCfg.h2(seed_v, 31) % 3]
+	# 창틀 색은 자재(=탑)마다 묶는다: 같은 탑은 같은 창틀 → 큰 덩어리가 깨끗하게 읽힌다
+	var frames: Array = cfg.material(mat).get("frames", ["a"])
+	var fk: String = str(frames[ViewCfg.h2(p.x * 5 + p.y * 3 + (p.z / 3), 31) % frames.size()]) if not frames.is_empty() else "a"
 	var owner: int = int(c.get("owner", 0))
 	var lived: bool = kind != "housing" or occupied.has(owner)
 	var wkind := MeshBuf.K_WINDOW if kind == "housing" else MeshBuf.K_BIZ
@@ -427,23 +427,23 @@ func _facade(p: Vector3i, d: int, c: Dictionary, rec: Dictionary, mat: String, s
 	if not lived:
 		return
 	# 가장자리 잡동사니
-	var cage_p := 0.24
+	var cage_p := 0.14
 	match type:
 		"cage":
-			cage_p = 0.8
+			cage_p = 0.7
 		"flat":
-			cage_p = 0.34
+			cage_p = 0.22
 		"shack":
-			cage_p = 0.05
+			cage_p = 0.03
 	if mat == "concrete" or mat == "brick":
-		cage_p += 0.12
+		cage_p += 0.08
 	var has_cage := false
 	if not bay and p.z >= 1 and r2 < cage_p:
 		has_cage = true
 		_cage_balcony(p, d, hs)
-	if r3 > 0.62 and not has_cage and p.z >= 1 and room2:
+	if r3 > 0.74 and not has_cage and p.z >= 1 and room2:
 		_laundry_pole(p, d, hs, w0)
-	elif r3 > 0.5 and r3 <= 0.62 and state.power_level > 0 and not has_cage:
+	elif r3 > 0.62 and r3 <= 0.74 and state.power_level > 0 and not has_cage:
 		_ac(p, d, 0.56, 0.1, w0)
 	if not has_cage and not bay and ViewCfg.h2(hs, 41) % 100 < 14:
 		_awning(p, d, 0.15, 0.85, 0.82, 0.1, 0.2, Color(["#5d9a62", "#d85f5f", "#4f8fb5", "#e0a23c"][hs % 4]))
@@ -458,7 +458,7 @@ func _cage_balcony(p: Vector3i, d: int, hs: int) -> void:
 	var u1 := 0.875
 	var v0 := 0.125
 	var v1 := 0.75
-	var ct := tile("cage_%d" % ((hs / 3) % 2))
+	var ct := tile("cage_%d" % int(cfg.material(cfg.material_key(str(state.cells[p].get("material", "")))).get("cage", 0)))
 	# 바닥판 + 지붕판
 	fbox(p, d, u0, u1, v0 - 0.0625, v0, 0.0, depth, tile("white"), tile("white"), Color("#8f8aa6"), 31)
 	var topc := Color(["#a9cbcb", "#c98f5e", "#8fb5d0", "#d8cfc0"][(hs / 7) % 4])
@@ -543,12 +543,12 @@ func _sign(p: Vector3i, d: int, c: Dictionary, rec: Dictionary, seed_v: int, roo
 	var u := 0.0625 if hs % 2 == 0 else 0.9375
 	var v0 := 0.35 if p.z == 0 else (0.1 - float(hs % 3) * 0.1)
 	var w0 := 0.09
-	if not room2:
-		# 좁은 골목: 벽에 붙인 납작 간판
+	if not room2 or (hs / 7) % 100 >= 72:
+		# 좁은 골목(또는 일부): 벽에 붙인 납작 간판
 		_sign_flat(p, d, tr, col, style, hs)
 		return
 	var neon_style := style == "neon"
-	var board := Color("#2c2646") if neon_style else Color(["#f4ecd8", "#c2463c", "#3f8f6a", "#f4ecd8"][hs % 4])
+	var board := _neon_board(col, hs) if neon_style else Color(["#f4ecd8", "#c2463c", "#3f8f6a", "#f4ecd8"][hs % 4])
 	var tcol := col
 	if not neon_style:
 		tcol = Color("#c2463c") if board.r > 0.9 else Color("#fff6e0")
@@ -567,12 +567,12 @@ func _sign(p: Vector3i, d: int, c: Dictionary, rec: Dictionary, seed_v: int, roo
 	var tw0 := w0 + TX
 	var tw1 := tw0 + tr.size.x * TX
 	# 오른쪽 면(+R을 보는 면): 왼쪽이 바깥
-	mb.quad(fp(p, d, u + th + 0.004, ty1, tw1), fp(p, d, u + th + 0.004, ty1, tw0), fp(p, d, u + th + 0.004, ty0, tw0), fp(p, d, u + th + 0.004, ty0, tw1), RGT[d], tr, tcol, rnd, tk)
-	mb.quad(fp(p, d, u - th - 0.004, ty1, tw0), fp(p, d, u - th - 0.004, ty1, tw1), fp(p, d, u - th - 0.004, ty0, tw1), fp(p, d, u - th - 0.004, ty0, tw0), -RGT[d], tr, tcol, rnd, tk)
+	mb.quad(fp(p, d, u + th + 0.014, ty1, tw1), fp(p, d, u + th + 0.014, ty1, tw0), fp(p, d, u + th + 0.014, ty0, tw0), fp(p, d, u + th + 0.014, ty0, tw1), RGT[d], tr, tcol, rnd, tk)
+	mb.quad(fp(p, d, u - th - 0.014, ty1, tw0), fp(p, d, u - th - 0.014, ty1, tw1), fp(p, d, u - th - 0.014, ty0, tw1), fp(p, d, u - th - 0.014, ty0, tw0), -RGT[d], tr, tcol, rnd, tk)
 	if neon_style:
 		# 네온 테두리 관
 		for sgn in [-1.0, 1.0]:
-			var uu: float = u + sgn * (th + 0.004)
+			var uu: float = u + sgn * (th + 0.014)
 			var nn: Vector3 = RGT[d] * sgn
 			var e := tile("white")
 			var es := sub(e, 0, 0, 2, 2)
@@ -586,17 +586,27 @@ func _sign(p: Vector3i, d: int, c: Dictionary, rec: Dictionary, seed_v: int, roo
 		light(fp(p, d, u, v0 + bh * 0.5, w0 + bw * 0.5), col, float(cfg.r("light.neon_radius", 2.2)))
 
 
+## 네온 간판의 판 색: 낮에도 색이 보이는 어두운 중간톤(글자색과 보색에 가깝게).
+func _neon_board(col: Color, hs: int) -> Color:
+	var opts: Array[String] = ["#9a4a6e", "#3a8580", "#4f62a8", "#a8484a", "#62549a"]
+	var best := Color(opts[hs % opts.size()])
+	# 글자색과 너무 비슷하면 다른 판으로
+	if absf(best.h - col.h) < 0.12:
+		best = Color(opts[(hs + 2) % opts.size()])
+	return best
+
+
 func _sign_flat(p: Vector3i, d: int, tr: Rect2, col: Color, style: String, hs: int) -> void:
 	var neon_style := style == "neon"
 	var bw := (tr.size.x + 2.0) / 16.0
 	var bh := (tr.size.y + 2.0) / 16.0
 	var u0 := 0.0625 if hs % 2 == 0 else 1.0 - 0.0625 - bw
 	var v0 := 0.55 if p.z == 0 else 0.2
-	var board := Color("#2c2646") if neon_style else Color(["#f4ecd8", "#c2463c", "#3f8f6a"][hs % 3])
+	var board := _neon_board(col, hs) if neon_style else Color(["#f4ecd8", "#c2463c", "#3f8f6a"][hs % 3])
 	var tcol := col if neon_style else (Color("#c2463c") if board.r > 0.9 else Color("#fff6e0"))
 	fbox(p, d, u0, u0 + bw, v0, v0 + bh, 0.0, 0.05, tile("white"), tile("white"), board, 15)
 	var rnd := float(hs % 991) / 991.0
-	fquad(p, d, u0 + TX, u0 + TX + tr.size.x / 16.0, v0 + TX, v0 + TX + tr.size.y / 16.0, 0.058, tr, tcol, rnd, MeshBuf.K_NEON if neon_style else MeshBuf.K_PLAIN, false)
+	fquad(p, d, u0 + TX, u0 + TX + tr.size.x / 16.0, v0 + TX, v0 + TX + tr.size.y / 16.0, 0.066, tr, tcol, rnd, MeshBuf.K_NEON if neon_style else MeshBuf.K_PLAIN, false)
 	if neon_style:
 		light(fp(p, d, u0 + bw * 0.5, v0 + bh * 0.5, 0.4), col, 1.6)
 

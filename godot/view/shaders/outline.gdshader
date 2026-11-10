@@ -35,6 +35,9 @@ void fragment() {
 	float edge = step(threshold, e) * step(threshold * 0.6, max(sx, sy));
 	if (d0 > 190.0) { edge = 0.0; }
 	vec3 m = mix(vec3(1.0), mix(vec3(1.0), tint, strength * 2.0), edge);
-	// blend_mul: 선형 공간에서 곱해지므로 감마를 대충 맞춘다
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+	ALBEDO = clamp(m, vec3(0.0), vec3(1.0));
+#else
 	ALBEDO = pow(clamp(m, vec3(0.0), vec3(1.0)), vec3(2.2));
+#endif
 }

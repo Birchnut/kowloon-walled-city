@@ -108,7 +108,12 @@ bool shadowed(vec3 p, vec3 d) {
 }
 
 vec3 to_linear(vec3 c) {
+	// 호환(GLES3) 렌더러는 unshaded 출력을 그대로 내보낸다 → sRGB 값을 그대로 쓴다.
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+	return c;
+#else
 	return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(vec3(0.04045), c));
+#endif
 }
 
 void fragment() {
@@ -120,8 +125,7 @@ void fragment() {
 	bool is_emit = (!is_glass) && t.a < 0.875;
 	vec3 base = t.rgb * COLOR.rgb;
 	vec3 n = wnrm;
-	ivec2 tx = ivec2(floor(UV * 512.0));
-	float dth = bayer4(tx);
+	float dth = bayer4(ivec2(FRAGCOORD.xy));
 
 	// 지면: 부지에서 멀어지면 디더로 사라진다
 	if (kind == 4) {
@@ -142,7 +146,7 @@ void fragment() {
 		sh = shadowed(wpos + n * 0.03, sun_dir);
 	}
 	if (!sh) {
-		light = (n.y > 0.5) ? lit_top : lit_side;
+		light = (n.y > 0.5) ? lit_top : ((ndl > 0.42) ? lit_side : mix(lit_side, shade, 0.45));
 	} else {
 		light = shade;
 		if (n.y > 0.5) { light *= 1.10; }

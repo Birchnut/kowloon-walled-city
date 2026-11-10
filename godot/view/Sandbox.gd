@@ -19,6 +19,14 @@ func _ready() -> void:
 		var kv := a.split("=", true, 1)
 		if kv.size() == 2:
 			_args[kv[0]] = kv[1]
+			if kv[0].begins_with("r:"):
+				# 렌더 설정 덮어쓰기: r:outline.strength=0
+				var val: Variant = kv[1]
+				if kv[1] == "true" or kv[1] == "false":
+					val = kv[1] == "true"
+				elif kv[1].is_valid_float():
+					val = float(kv[1])
+				ViewCfg.overrides[kv[0].substr(2)] = val
 	_preset = str(_args.get("city", _preset))
 	_seed = int(_args.get("seed", 1))
 	Game.autosave = false
@@ -79,6 +87,8 @@ func _process(_dt: float) -> void:
 		Game.event.emit("power_changed", {"level": 1})
 	if _args.has("plane") and _frame == 2:
 		view._plane_next = 0.0
+	if _args.has("dump_atlas") and _frame == 3:
+		view.atlas.img.save_png(str(_args["dump_atlas"]))
 	if _label:
 		var st: CityState = Game.state
 		_label.text = "%s seed %d · %d일 %02d시 · 셀 %d · 각 %d 줌 ×%d 컷 %d\nQ/E 회전  R/F 층  휠 줌  T 시간  1-6 프리셋  P 전기  L 비행기" % [

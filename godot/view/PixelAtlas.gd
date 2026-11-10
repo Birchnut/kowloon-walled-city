@@ -180,9 +180,9 @@ func _wall(pat: String, v: int, c0: Color, c1: Color, c2: Color, c3: Color, acc:
 	match pat:
 		"planks":
 			for p in 4:
-				var tone: Color = [c0, c0, mx(c0, c1, 0.5), c1][_ri(4)]
+				var tone: Color = [c0, c0, mx(c0, c1, 0.25), mx(c0, c1, 0.5)][_ri(4)]
 				_rc(p * 4, 0, 4, 16, tone)
-				_rc(p * 4 + 3, 0, 1, 16, mx(tone, c2, 0.55))
+				_rc(p * 4 + 3, 0, 1, 16, mx(tone, c2, 0.45))
 				if _rnd() < 0.6:
 					_rc(p * 4, 3 + _ri(5) * 2, 3, 1, mx(tone, c2, 0.45))
 				if _rnd() < 0.5:
@@ -193,7 +193,7 @@ func _wall(pat: String, v: int, c0: Color, c1: Color, c2: Color, c3: Color, acc:
 					_rc(x * 2, 16 - hgt * 2, 2, hgt * 2, mx(c1, c2, 0.55))
 			if v == 3:
 				_m(1 + _ri(4), 2 + _ri(2), 3, 2, mx(c0, acc, 0.6))
-			_rc(0, 0, 16, 2, c2)
+			_rc(0, 0, 16, 2, mx(c1, c2, 0.6))
 		"corrugated":
 			var cols := [lt(c0, 0.05), c0, c1, mx(c1, c2, 0.45)]
 			for x in 16:
@@ -217,7 +217,7 @@ func _wall(pat: String, v: int, c0: Color, c1: Color, c2: Color, c3: Color, acc:
 				var off := (row % 2) * 2
 				for b in range(-1, 5):
 					var x0 := b * 4 + off - 2
-					var tone2: Color = [c0, c0, c1, mx(c0, c1, 0.5), c0, mx(c1, c2, 0.4)][_ri(6)]
+					var tone2: Color = [c0, c0, mx(c0, c1, 0.7), mx(c0, c1, 0.4), c0, c1][_ri(6)]
 					_rc(x0, row * 2, 4, 2, tone2)
 					_rc(x0 + 3, row * 2, 1, 2, mx(tone2, c2, 0.4))
 			if v >= 2:
@@ -229,7 +229,6 @@ func _wall(pat: String, v: int, c0: Color, c1: Color, c2: Color, c3: Color, acc:
 					if _rnd() < 0.5:
 						_rc(x * 2, 14 - _ri(2) * 2, 2, 4, mx(c2, c3, 0.4))
 			_rc(0, 0, 16, 2, lt(mx(acc, c0, 0.3), 0.02))
-			_rc(0, 2, 16, 1, mx(c1, c2, 0.6))
 		"patch":
 			_rc(0, 0, 16, 16, c0)
 			var pal := [c0, c1, acc, Color("#c97a55"), Color("#e6cc98"), Color("#6f8fc0"), mx(c1, c2, 0.5), lt(c0, 0.06)]
@@ -266,8 +265,7 @@ func _wall(pat: String, v: int, c0: Color, c1: Color, c2: Color, c3: Color, acc:
 				var cx := 2 + _ri(8)
 				for i in 6:
 					_px(cx + i, 6 + i + _ri(2), mx(c2, c3, 0.5))
-			_rc(0, 0, 16, 2, lt(c0, 0.07))
-			_rc(0, 2, 16, 1, c1)
+			_rc(0, 0, 16, 2, lt(c0, 0.06))
 
 
 func _roof(pat: String, v: int, r0: Color, r1: Color, c2: Color, acc: Color) -> void:
@@ -307,8 +305,8 @@ func _roof(pat: String, v: int, r0: Color, r1: Color, c2: Color, acc: Color) -> 
 
 # ------------------------------------------------------------------ 창·문
 const FRAMES := {"a": "#f6ecd4", "b": "#73b5a6", "c": "#c2604f", "d": "#5c4c72"}
-const GLASS_DAY := "#566a98"
-const GLASS_HI := "#8ea6ca"
+const GLASS_DAY := "#6c84b2"
+const GLASS_HI := "#a3bbdc"
 
 
 func _frame(fc: Color, x: int, y: int, w: int, h: int) -> void:
@@ -399,9 +397,10 @@ func _paint_props() -> void:
 		_begin("cage_" + k)
 		_rc(0, 0, 16, 2, bc)
 		_rc(0, 14, 16, 2, dk(bc, 0.15))
-		for x in [0, 4, 8, 12]:
+		for x in [3, 7, 11]:
 			_rc(x, 0, 1, 16, bc)
-		_rc(15, 0, 1, 16, dk(bc, 0.1))
+		_rc(0, 0, 2, 16, bc)
+		_rc(14, 0, 2, 16, dk(bc, 0.1))
 		_rc(0, 7, 16, 1, bc)
 	# 난간
 	_begin("rail")
@@ -606,15 +605,15 @@ func _paint_ground() -> void:
 		_m(_ri(8), _ri(8), 2, 1, Color("#c4b9b6"))
 	for i in 5:
 		_px(4 + i, 5 + i + _ri(2), Color("#978ca0"))
-	var a0 := Color("#8f8ea6")
-	var a1 := Color("#85849e")
+	var a0 := Color("#aaa5b6")
+	var a1 := Color("#a09bae")
 	for v in 2:
 		_begin("g_asphalt_%d" % v, v)
 		_rc(0, 0, 16, 16, a0)
 		for i in 6:
 			_m(_ri(8), _ri(8), 1 + _ri(2), 1, a1)
 		if v == 1:
-			_m(_ri(6), _ri(6), 2, 2, Color("#7a7994"))
+			_m(_ri(6), _ri(6), 2, 2, Color("#9590a6"))
 	_begin("g_line")
 	_rc(0, 0, 16, 16, a0)
 	_rc(0, 6, 10, 4, Color("#e9e2c8"))
@@ -890,5 +889,5 @@ func _glyph(code: int) -> Variant:
 		var off := f.get_glyph_offset(0, size, gidx)
 		var adv := f.get_glyph_advance(0, px, gidx)
 		var asc := f.get_cache_ascent(0, px)
-		return {"img": gimg, "src": Rect2i(uv), "off": Vector2i(int(round(off.x)), int(round(asc + off.y))), "adv": maxi(int(round(adv.x)), int(uv.size.x))}
+		return {"img": gimg, "src": Rect2i(uv), "off": Vector2i(int(round(off.x)), int(round(asc + off.y)) - (int(round(asc)) - px + 1)), "adv": clampi(int(round(adv.x)), 3, 12)}
 	return null

@@ -45,7 +45,12 @@ float vnoise(vec2 p) {
 }
 
 vec3 to_linear(vec3 c) {
+	// 호환(GLES3) 렌더러는 unshaded 출력을 그대로 내보낸다 → sRGB 값을 그대로 쓴다.
+#if CURRENT_RENDERER == RENDERER_COMPATIBILITY
+	return c;
+#else
 	return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(vec3(0.04045), c));
+#endif
 }
 
 void fragment() {
@@ -119,7 +124,7 @@ void fragment() {
 	if (p.y >= gy) {
 		float g = clamp((p.y - gy) / 26.0, 0.0, 1.0);
 		float gq = clamp(floor(g * 5.0 + dth) / 5.0, 0.0, 1.0);
-		c = mix(sil_near, haze, gq);
+		c = mix(mix(sil_near, haze, 0.55), haze, gq);
 		float g2 = clamp((p.y - gy - 26.0) / max(res.y - gy - 26.0, 1.0), 0.0, 1.0);
 		float g2q = floor(g2 * 6.0 + dth) / 6.0;
 		c = mix(c, mix(haze, sil_near, 0.35), g2q * 0.6);
