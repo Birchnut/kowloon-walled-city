@@ -1,0 +1,31 @@
+{
+  "_comment": "사업체. 허가(group)와 조건이 맞으면 스스로 들어온다. group: farm(농업) make(제조) fun(오락) vice(음성). sign=간판 글자.",
+  "items": {
+    "rooftop_farm":  { "group": "farm", "name": "옥상 농장",   "sign": "",    "desc": "볕 드는 지붕마다 상추와 파.", "tags": ["텃밭"] },
+    "pigeon_loft":   { "group": "farm", "name": "비둘기장",    "sign": "鴿",  "desc": "경주용이라는데, 가끔 식탁에도 오른다.", "tags": ["비둘기"] },
+    "fish_tank":     { "group": "farm", "name": "양어 수조",   "sign": "魚",  "desc": "물탱크 옆에서 잉어가 자란다.", "tags": ["물", "어묵"] },
+    "mushroom_room": { "group": "farm", "name": "버섯방",      "sign": "菇",  "desc": "볕이 안 드는 방이 여기선 명당.", "tags": ["버섯"] },
+    "herb_shop":     { "group": "farm", "name": "약초방",      "sign": "藥",  "desc": "말린 뿌리와 정체 모를 가루.", "tags": ["약초"] },
+
+    "fishball":      { "group": "make", "name": "어묵 공장",   "sign": "魚蛋", "desc": "도시 어묵의 절반이 여기서 나온다. 위생은 묻지 말 것.", "tags": ["어묵"] },
+    "noodle_works":  { "group": "make", "name": "제면소",      "sign": "麵",  "desc": "새벽마다 면발이 창밖에 널린다.", "tags": ["국수"] },
+    "tailor":        { "group": "make", "name": "봉제방",      "sign": "衣",  "desc": "재봉틀 여섯 대, 창가에 걸린 천.", "tags": ["봉제"] },
+    "metal_shop":    { "group": "make", "name": "철공소",      "sign": "鐵",  "desc": "불꽃과 망치 소리. 이웃은 귀마개를 산다.", "tags": ["철공"] },
+    "plastic_works": { "group": "make", "name": "플라스틱 사출집", "sign": "膠", "desc": "조화, 장난감, 슬리퍼. 냄새는 덤.", "tags": ["플라스틱"] },
+    "repair_shop":   { "group": "make", "name": "전파사",      "sign": "電器", "desc": "고장 난 건 뭐든. 안테나가 늘어난다.", "tags": ["안테나"] },
+
+    "noodle_shop":   { "group": "fun",  "name": "국숫집",      "sign": "粉麵", "desc": "첫 손님도 단골도 같은 자리.", "tags": ["국수"] },
+    "teahouse":      { "group": "fun",  "name": "찻집",        "sign": "茶",  "desc": "새장 들고 오는 노인들의 사랑방.", "tags": ["찻집"] },
+    "mahjong":       { "group": "fun",  "name": "마작방",      "sign": "麻雀", "desc": "패 섞는 소리가 자정까지.", "tags": ["마작"] },
+    "karaoke":       { "group": "fun",  "name": "가라오케",    "sign": "卡拉OK", "desc": "방음은 없다. 옆집도 따라 부른다.", "tags": ["가라오케"] },
+    "bathhouse":     { "group": "fun",  "name": "목욕탕",      "sign": "浴",  "desc": "굴뚝 하나, 온 동네의 더운물.", "tags": ["목욕탕"] },
+    "night_stall":   { "group": "fun",  "name": "야시장 좌판", "sign": "夜市", "desc": "해가 지면 펴고, 해가 뜨면 사라진다.", "tags": ["야시장"] },
+
+    "dentist":       { "group": "vice", "name": "무면허 치과", "sign": "牙科", "desc": "본토 면허는 있다. 값은 바깥의 삼분의 일.", "tags": ["치과"] },
+    "loan_office":   { "group": "vice", "name": "일수 사무실", "sign": "貸",  "desc": "서류는 필요 없다. 이자는 필요하다.", "tags": ["일수"] },
+    "gambling_den":  { "group": "vice", "name": "하우스",      "sign": "",    "desc": "간판이 없는 게 간판.", "tags": ["도박"] },
+    "phishing_center": { "group": "vice", "name": "콜센터",    "sign": "客服", "desc": "\"고객님, 검찰청입니다.\" 헤드셋 스무 개, 창문 없음.", "tags": ["콜센터"] },
+    "casino":        { "group": "vice", "name": "카지노",      "sign": "賭場", "desc": "네온이 제일 밝은 곳. 손님은 밖에서 온다.", "tags": ["카지노"] },
+    "fireworks":     { "group": "vice", "name": "화약 가공소", "sign": "炮",  "desc": "폭죽이라고 해 두자. 금연.", "tags": ["화약"] }
+  }
+}

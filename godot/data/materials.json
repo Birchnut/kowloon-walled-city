@@ -1,11 +1,10 @@
 {
-  "_comment": "건축 자재. 레이어 합성의 1축. color는 스프라이트 확정 전 임시 색상(PLACEHOLDER).",
-  "schema_version": 1,
-  "materials": [
-    { "id": "wood",     "name": "목재",   "description": "폐목·합판. 싸고 빠르지만 낡는다.",       "placeholder_color": "#8b5a2b", "decay_per_day": 2 },
-    { "id": "steel",    "name": "철판",   "description": "녹슨 철판과 컨테이너 패널.",             "placeholder_color": "#6b7280", "decay_per_day": 1 },
-    { "id": "concrete", "name": "콘크리트","description": "재개발 잔해를 재활용한 블록.",           "placeholder_color": "#9ca3af", "decay_per_day": 0.5 },
-    { "id": "neon",     "name": "네온",   "description": "간판과 네온관으로 덮인 외벽.",            "placeholder_color": "#d946ef", "decay_per_day": 1 },
-    { "id": "green",    "name": "녹화",   "description": "덩굴과 이끼로 덮인 외벽.",                "placeholder_color": "#16a34a", "decay_per_day": 0.5 }
-  ]
+  "_comment": "자재. name=표시명, tags=명물 태그. 수치는 SIM 담당, 외형은 visuals.json(VIEW 담당).",
+  "items": {
+    "scrap":    { "name": "폐자재", "desc": "주워 온 판자, 비닐, 함석 조각. 공짜지만 오래 못 간다.", "tags": ["판자"] },
+    "wood":     { "name": "목재",   "desc": "따뜻하고 가볍다. 불에 약하다.", "tags": ["목조"] },
+    "sheet":    { "name": "함석",   "desc": "싸고 빠르다. 여름엔 찜통, 비 오면 북소리.", "tags": ["함석"] },
+    "brick":    { "name": "벽돌",   "desc": "튼튼하고 조용하다. 느리고 비싸다.", "tags": ["벽돌"] },
+    "concrete": { "name": "콘크리트", "desc": "높이 올릴 수 있다. 차갑다.", "tags": ["콘크리트"] }
+  }
 }
