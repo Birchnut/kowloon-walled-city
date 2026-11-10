@@ -306,9 +306,13 @@ func _claim(team: Variant) -> void:
 	var rw := Screen.rewards_dict(r.get("rewards", []))
 	if not rw.is_empty():
 		_reward_pop(rw, before)
+	# 발견(거래처·목적지·도면)은 현수막 하나에 모아서
+	var fl: Array = []
 	for f: Variant in UI.to_array(r.get("finds", [])):
 		if str(f) != "":
-			ui.banner.show_banner("탐험대가 찾아 왔다", str(f), "", "gold", 2.6, "探")
+			fl.append(str(f))
+	if not fl.is_empty():
+		ui.banner.show_banner("탐험대가 찾아 왔다", "\n".join(fl), "", "gold", 3.0, "探")
 	refresh()
 
 
