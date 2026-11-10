@@ -71,6 +71,8 @@ var _ghost: Dictionary = {}
 var _spots: Array = []
 var _overlay_dirty := false
 var _prev_kinds: Dictionary = {}
+var _cut_emitters: Array = []
+var _all_emitters: Array = []
 
 
 func _ready() -> void:
@@ -422,9 +424,20 @@ func _refresh_lights() -> void:
 		all.append_array(_floor_data[z]["lights"])
 		em.append_array(_floor_data[z]["emitters"])
 	grid_tex.update_lights(all)
-	if fx != null and fx.has_method("set_emitters"):
-		fx.call("set_emitters", em)
+	_all_emitters = em
+	_push_emitters()
 	_lights_dirty = false
+
+
+func _push_emitters() -> void:
+	if fx == null:
+		return
+	var em: Array = []
+	for z in _floor_data.size():
+		if floor_cut < 0 or z < floor_cut:
+			em.append_array(_floor_data[z]["emitters"])
+	em.append_array(_cut_emitters)
+	fx.call("set_emitters", em)
 
 
 func _apply_cut() -> void:
@@ -432,8 +445,16 @@ func _apply_cut() -> void:
 		(_floor_nodes[z] as MeshInstance3D).visible = floor_cut < 0 or z < floor_cut
 	_cut_node.visible = floor_cut >= 0
 	if floor_cut >= 0:
-		_cut_node.mesh = null
+		var out: Dictionary = mesher.build_cut(floor_cut)
+		_cut_node.mesh = out["mesh"]
+		_cut_emitters = out["emitters"]
+		atlas.flush()
+	else:
+		_cut_emitters = []
 	_mat.set_shader_parameter("hm_clamp", 99.0 if floor_cut < 0 else float(floor_cut) + 0.3)
+	_push_emitters()
+	if people != null:
+		people.call("set_cut", floor_cut)
 
 
 func _on_event(ev: String, payload: Dictionary) -> void:

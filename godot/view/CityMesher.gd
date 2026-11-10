@@ -1024,3 +1024,245 @@ func _build_site(p: Vector3i, c: Dictionary, seed_v: int) -> void:
 			if u1 > u0:
 				mb.quad2(fp(p, d, u0, nh, o + 0.01), fp(p, d, u1, nh, o + 0.01), fp(p, d, u1, 0.06, o + 0.01), fp(p, d, u0, 0.06, o + 0.01), NRM[d], Rect2(nt.position, Vector2((u1 - u0) * 16.0, nh * 16.0)))
 	emitter(b + Vector3(0.5, 0.5 * fh, 0.5), "site")
+
+
+# ================================================================== 층 컷(심즈식 단면)
+# set_floor_cut(n): n층의 천장을 걷어 방 안을 내려다본다. 낮은 벽 + 바닥재 + 가구.
+const CUT_WALL := 0.3125      # 낮춘 벽 높이(층 단위, 5텍셀)
+const CUT_T := 0.125          # 외벽 두께
+const CUT_TP := 0.0625        # 칸막이 반쪽 두께
+const KI := MeshBuf.K_INTERIOR
+
+func build_cut(z: int) -> Dictionary:
+	mb = MeshBuf.new()
+	lights = []
+	emitters = []
+	if z >= 0 and z < by_floor.size():
+		for p in by_floor[z]:
+			var c: Dictionary = state.cells[p]
+			if is_box(c):
+				_cut_cell(p, c)
+			else:
+				_build_cell(p, c)
+	return {"mesh": mb.commit(), "lights": lights, "emitters": emitters}
+
+
+func _same_unit(a: Dictionary, b: Dictionary) -> bool:
+	return int(a.get("owner", 0)) != 0 and int(a.get("owner", 0)) == int(b.get("owner", -1)) and str(a.get("kind", "")) == str(b.get("kind", ""))
+
+
+## 칸 가장자리 d를 따라 [s0,s1] 구간에 벽 상자 하나. inward 두께 t.
+func _edge_box(p: Vector3i, d: int, s0: float, s1: float, t: float, h: float, side: Rect2, top: Rect2, c: Color = MeshBuf.WHITE) -> void:
+	var y0 := float(p.z) * fh
+	var y1 := y0 + h * fh
+	var a := Vector3.ZERO
+	var b := Vector3.ZERO
+	match d:
+		0:
+			a = Vector3(p.x + 1 - t, y0, p.y + s0)
+			b = Vector3(p.x + 1, y1, p.y + s1)
+		1:
+			a = Vector3(p.x + s0, y0, p.y + 1 - t)
+			b = Vector3(p.x + s1, y1, p.y + 1)
+		2:
+			a = Vector3(p.x, y0, p.y + s0)
+			b = Vector3(p.x + t, y1, p.y + s1)
+		_:
+			a = Vector3(p.x + s0, y0, p.y)
+			b = Vector3(p.x + s1, y1, p.y + t)
+	var sr := Rect2(side.position + Vector2(0, 16.0 - h * 16.0), Vector2(side.size.x, h * 16.0))
+	mb.box(a, b, sr, top, fh, c, 31, 0.0, 0.0, MeshBuf.WHITE)
+
+
+func _cut_cell(p: Vector3i, c: Dictionary) -> void:
+	var kind: String = str(c.get("kind", ""))
+	var type: String = str(c.get("type", ""))
+	var rec: Dictionary = cfg.recipe(kind, type)
+	var mat: String = cfg.material_key(str(c.get("material", "")))
+	var seed_v: int = int(c.get("seed", 0)) + p.x * 7 + p.y * 13 + p.z * 29
+	var b := cellv(p)
+	# 바닥
+	var fname := "f_" + str(rec.get("floor", "concrete"))
+	if not atlas.has(fname):
+		fname = "f_concrete"
+	var fr := tile(fname)
+	var y := b.y + 0.004
+	var owner: int = int(c.get("owner", 0))
+	var lived: bool = kind != "housing" or occupied.has(owner)
+	mb.quad(Vector3(b.x, y, b.z), Vector3(b.x + 1, y, b.z), Vector3(b.x + 1, y, b.z + 1), Vector3(b.x, y, b.z + 1), UP, fr, MeshBuf.WHITE if lived else Color(0.8, 0.8, 0.86), 0.0, KI)
+	# 벽
+	var wr := tile("wall_%s_%d" % [mat, _age_variant(c, seed_v) % 3])
+	var cap := tile("cutcap")
+	var plaster := tile("white")
+	for d in 4:
+		var nb: Vector3i = p + DIR[d]
+		if solid.has(nb):
+			var nc: Dictionary = state.cells[nb]
+			if _same_unit(c, nc):
+				continue
+			# 칸막이: 문틈은 두 칸이 같은 자리에 뚫도록 공유 해시로
+			var lo: Vector3i = p if (d == 0 or d == 1) else nb
+			var g := 0.125 + 0.0625 * float(ViewCfg.h3(lo.x * 13 + lo.y, lo.z * 5 + (d % 2), 99) % 8)
+			var has_door := ViewCfg.h3(lo.x * 7 + lo.y * 3, lo.z + (d % 2) * 11, 55) % 100 < 55
+			if has_door:
+				_edge_box(p, d, 0.0, g, CUT_TP, CUT_WALL, plaster, cap, Color("#e9dfcf"))
+				_edge_box(p, d, g + 0.3125, 1.0, CUT_TP, CUT_WALL, plaster, cap, Color("#e9dfcf"))
+			else:
+				_edge_box(p, d, 0.0, 1.0, CUT_TP, CUT_WALL, plaster, cap, Color("#e9dfcf"))
+		else:
+			# 외벽(다리·계단 문이 있으면 틈)
+			var door := bridges.has(fkey(p, d)) or (stairs.has(Vector3i(p.x, p.y, d)) and p.z >= int(stairs[Vector3i(p.x, p.y, d)][0]) and p.z < int(stairs[Vector3i(p.x, p.y, d)][1]))
+			var gdoor := p.z == 0 and kind != "housing" and not state.cells.has(nb) and ViewCfg.h2(seed_v, 3 + d) % 2 == 0
+			if door or gdoor:
+				_edge_box(p, d, 0.0, 0.3125, CUT_T, CUT_WALL, wr, cap)
+				_edge_box(p, d, 0.6875, 1.0, CUT_T, CUT_WALL, wr, cap)
+			else:
+				_edge_box(p, d, 0.0, 1.0, CUT_T, CUT_WALL, wr, cap)
+			# 외벽 바깥면은 아래층 벽과 이어지게 그대로 둔다(상자 바깥면이 그 역할)
+	if lived:
+		_furnish(p, c, rec, seed_v)
+		light(b + Vector3(0.5, 0.4, 0.5), Color(1, 1, 1), 1.1, 0.9)
+
+
+## 칸 안 좌표(0..1)를 k×90° 돌린 상자. h0/h1은 월드 단위 높이.
+func _ib(p: Vector3i, k: int, x0: float, z0: float, x1: float, z1: float, h0: float, h1: float, side: String, top: String, c: Color = MeshBuf.WHITE, tc: Color = Color(-1, 0, 0), kind: float = KI) -> void:
+	var a := Vector2(x0, z0)
+	var b := Vector2(x1, z1)
+	for i in k % 4:
+		a = Vector2(1.0 - a.y, a.x)
+		b = Vector2(1.0 - b.y, b.x)
+	var mn := Vector2(minf(a.x, b.x), minf(a.y, b.y))
+	var mx := Vector2(maxf(a.x, b.x), maxf(a.y, b.y))
+	var o := cellv(p)
+	mb.box(Vector3(o.x + mn.x, o.y + h0, o.z + mn.y), Vector3(o.x + mx.x, o.y + h1, o.z + mx.y), tile(side), tile(top), fh, c, 31, 0.0, kind, tc)
+
+
+func _ipos(p: Vector3i, k: int, x: float, z: float, h: float) -> Vector3:
+	var a := Vector2(x, z)
+	for i in k % 4:
+		a = Vector2(1.0 - a.y, a.x)
+	var o := cellv(p)
+	return Vector3(o.x + a.x, o.y + h, o.z + a.y)
+
+
+const WOODC := Color("#b98562")
+const WOODT := Color("#d9a878")
+const STEEL := Color("#b9bcc8")
+
+func _stool(p: Vector3i, k: int, x: float, z: float, c: Color = Color("#c2604f")) -> void:
+	_ib(p, k, x, z, x + 0.1, z + 0.1, 0.0, 0.1, "white", "white", c.darkened(0.2), c)
+
+
+func _furnish(p: Vector3i, c: Dictionary, rec: Dictionary, seed_v: int) -> void:
+	var hs := ViewCfg.h2(seed_v, 600)
+	var k := hs % 4
+	var what: String = str(rec.get("interior", ""))
+	match what:
+		"bed":
+			_ib(p, k, 0.16, 0.16, 0.5, 0.8, 0.0, 0.14, "white", "bed" if hs % 2 == 0 else "bed_red", Color("#8a6a5a"), MeshBuf.WHITE)
+			_ib(p, k, 0.6, 0.16, 0.84, 0.36, 0.0, 0.2, "white", "white", WOODC, WOODT)
+			_ib(p, k, 0.62, 0.62, 0.84, 0.84, 0.0, 0.18, "white", "tv", Color("#4a4664"), MeshBuf.WHITE)
+			if hs % 3 == 0:
+				_stool(p, k, 0.62, 0.42)
+		"mat":
+			_ib(p, k, 0.16, 0.2, 0.52, 0.8, 0.0, 0.03, "white", "mat", Color("#b0a468"), MeshBuf.WHITE)
+			_ib(p, k, 0.62, 0.16, 0.82, 0.34, 0.0, 0.16, "crate", "crate")
+			_ib(p, k, 0.64, 0.6, 0.82, 0.78, 0.0, 0.1, "white", "stove", Color("#5a5674"), MeshBuf.WHITE)
+		"flat":
+			_ib(p, k, 0.16, 0.16, 0.52, 0.7, 0.0, 0.14, "white", "bed_red", Color("#8a6a5a"), MeshBuf.WHITE)
+			_ib(p, k, 0.6, 0.5, 0.84, 0.74, 0.0, 0.18, "white", "white", WOODC, WOODT)
+			_stool(p, k, 0.66, 0.36)
+			_stool(p, k, 0.66, 0.78, Color("#5f86c4"))
+			_ib(p, k, 0.62, 0.16, 0.84, 0.3, 0.0, 0.2, "white", "tv", Color("#4a4664"), MeshBuf.WHITE)
+			_ib(p, k, 0.16, 0.76, 0.3, 0.86, 0.0, 0.22, "white", "white", Color("#c0714f"), Color("#6fb85a"))
+		"cages":
+			for i in 2:
+				for j in 2:
+					_ib(p, k, 0.16 + 0.4 * float(i), 0.16 + 0.38 * float(j), 0.44 + 0.4 * float(i), 0.44 + 0.38 * float(j), 0.0, 0.34, "bunk", "bunk")
+		"stove":
+			_ib(p, k, 0.16, 0.16, 0.84, 0.36, 0.0, 0.2, "white", "stove", Color("#8f8ea6"), MeshBuf.WHITE)
+			_ib(p, k, 0.2, 0.5, 0.42, 0.72, 0.0, 0.24, "steel_side", "vat")
+			_ib(p, k, 0.56, 0.52, 0.82, 0.8, 0.0, 0.18, "white", "white", WOODC, WOODT)
+			emitter(_ipos(p, k, 0.31, 0.61, 0.3), "steam")
+		"tables":
+			_ib(p, k, 0.16, 0.16, 0.84, 0.32, 0.0, 0.2, "white", "stove", Color("#8f8ea6"), MeshBuf.WHITE)
+			for i in 2:
+				var tx := 0.2 + 0.36 * float(i)
+				_ib(p, k, tx, 0.52, tx + 0.22, 0.74, 0.0, 0.16, "white", "white", WOODC, WOODT)
+				_stool(p, k, tx + 0.06, 0.4)
+				_stool(p, k, tx + 0.06, 0.77)
+			emitter(_ipos(p, k, 0.3, 0.24, 0.3), "steam")
+		"sewing":
+			for i in 3:
+				_ib(p, k, 0.16, 0.16 + 0.24 * float(i), 0.5, 0.32 + 0.24 * float(i), 0.0, 0.18, "white", "sewing", WOODC, MeshBuf.WHITE)
+				_stool(p, k, 0.54, 0.2 + 0.24 * float(i), Color("#5f86c4"))
+			_ib(p, k, 0.68, 0.2, 0.86, 0.5, 0.0, 0.14, "white", "white", Color("#e8a0b8"), Color("#f4b8cc"))
+			_ib(p, k, 0.68, 0.56, 0.86, 0.8, 0.0, 0.2, "white", "white", Color("#6fb4d8"), Color("#8fcbe0"))
+		"mahjong":
+			_ib(p, k, 0.3, 0.3, 0.7, 0.7, 0.0, 0.2, "white", "mj_table", Color("#8a6a5a"), MeshBuf.WHITE)
+			_stool(p, k, 0.45, 0.16)
+			_stool(p, k, 0.45, 0.74)
+			_stool(p, k, 0.16, 0.45)
+			_stool(p, k, 0.74, 0.45)
+		"dentist":
+			_ib(p, k, 0.3, 0.3, 0.56, 0.72, 0.0, 0.2, "white", "chair_dentist", Color("#d6d8de"), MeshBuf.WHITE)
+			_ib(p, k, 0.64, 0.16, 0.84, 0.4, 0.0, 0.3, "white", "white", Color("#eef0ea"), Color("#ffffff"))
+			_ib(p, k, 0.6, 0.48, 0.66, 0.54, 0.0, 0.42, "white", "emit", Color("#b9bcc8"), Color("#fff2d8"))
+			_ib(p, k, 0.16, 0.16, 0.26, 0.5, 0.0, 0.12, "white", "white", WOODC, WOODT)
+		"desks":
+			for i in 2:
+				for j in 3:
+					_ib(p, k, 0.16 + 0.36 * float(i), 0.16 + 0.24 * float(j), 0.42 + 0.36 * float(i), 0.3 + 0.24 * float(j), 0.0, 0.18, "white", "desk", WOODC, MeshBuf.WHITE)
+		"vats":
+			_ib(p, k, 0.16, 0.16, 0.5, 0.5, 0.0, 0.28, "steel_side", "vat")
+			_ib(p, k, 0.54, 0.4, 0.84, 0.7, 0.0, 0.28, "steel_side", "vat")
+			_ib(p, k, 0.16, 0.62, 0.4, 0.84, 0.0, 0.16, "crate", "crate")
+			emitter(_ipos(p, k, 0.33, 0.33, 0.36), "steam")
+			emitter(_ipos(p, k, 0.7, 0.55, 0.36), "steam")
+		"noodles":
+			_ib(p, k, 0.16, 0.16, 0.5, 0.84, 0.0, 0.26, "white", "noodles", WOODC, MeshBuf.WHITE)
+			_ib(p, k, 0.6, 0.16, 0.84, 0.4, 0.0, 0.24, "machine", "machine")
+			_ib(p, k, 0.62, 0.52, 0.82, 0.68, 0.0, 0.14, "white", "white", Color("#e6dcc4"), Color("#f4ecd8"))
+			_ib(p, k, 0.64, 0.7, 0.84, 0.84, 0.0, 0.1, "white", "white", Color("#e6dcc4"), Color("#f4ecd8"))
+		"machine":
+			_ib(p, k, 0.16, 0.16, 0.56, 0.44, 0.0, 0.3, "machine", "machine")
+			_ib(p, k, 0.16, 0.56, 0.44, 0.84, 0.0, 0.2, "white", "white", STEEL, Color("#d6d8de"))
+			_ib(p, k, 0.62, 0.56, 0.84, 0.84, 0.0, 0.16, "crate", "junk")
+			emitter(_ipos(p, k, 0.3, 0.7, 0.26), "sparks")
+		"shelves":
+			_ib(p, k, 0.14, 0.14, 0.86, 0.26, 0.0, 0.36, "shelf", "white", MeshBuf.WHITE, Color("#7a5848"))
+			_ib(p, k, 0.14, 0.4, 0.26, 0.86, 0.0, 0.3, "shelf", "white", MeshBuf.WHITE, Color("#7a5848"))
+			_ib(p, k, 0.46, 0.56, 0.8, 0.72, 0.0, 0.2, "white", "white", WOODC, WOODT)
+		"karaoke":
+			_ib(p, k, 0.14, 0.14, 0.86, 0.3, 0.0, 0.16, "white", "white", Color("#9b3a6e"), Color("#c95a8e"))
+			_ib(p, k, 0.14, 0.3, 0.3, 0.7, 0.0, 0.16, "white", "white", Color("#9b3a6e"), Color("#c95a8e"))
+			_ib(p, k, 0.44, 0.44, 0.68, 0.6, 0.0, 0.12, "white", "white", Color("#3e3a54"), Color("#5c566e"))
+			_ib(p, k, 0.4, 0.78, 0.74, 0.86, 0.0, 0.3, "tv", "white", MeshBuf.WHITE, Color("#3e3a54"))
+		"tub":
+			_ib(p, k, 0.14, 0.14, 0.86, 0.6, 0.0, 0.16, "white", "water", Color("#e6e2d6"), MeshBuf.WHITE)
+			_ib(p, k, 0.16, 0.7, 0.3, 0.84, 0.0, 0.1, "white", "white", WOODC, WOODT)
+			_ib(p, k, 0.5, 0.72, 0.84, 0.84, 0.0, 0.1, "white", "white", WOODC, WOODT)
+			emitter(_ipos(p, k, 0.5, 0.37, 0.25), "steam")
+		"slots":
+			for i in 3:
+				_ib(p, k, 0.16 + 0.24 * float(i), 0.14, 0.34 + 0.24 * float(i), 0.3, 0.0, 0.4, "slot", "white", MeshBuf.WHITE, Color("#b0306a"))
+			_ib(p, k, 0.3, 0.5, 0.7, 0.76, 0.0, 0.2, "white", "mj_table", Color("#8a6a5a"), MeshBuf.WHITE)
+		"crates":
+			_ib(p, k, 0.16, 0.16, 0.44, 0.44, 0.0, 0.26, "crate", "crate")
+			_ib(p, k, 0.2, 0.2, 0.4, 0.4, 0.26, 0.46, "crate", "crate")
+			_ib(p, k, 0.5, 0.16, 0.76, 0.42, 0.0, 0.24, "crate", "crate")
+			_ib(p, k, 0.6, 0.6, 0.8, 0.8, 0.0, 0.3, "white", "white", Color("#c2463c"), Color("#d8695f"))
+		"clinic":
+			_ib(p, k, 0.16, 0.16, 0.46, 0.7, 0.0, 0.16, "white", "bed", Color("#d6d8de"), MeshBuf.WHITE)
+			_ib(p, k, 0.62, 0.16, 0.84, 0.36, 0.0, 0.3, "white", "white", Color("#eef0ea"), Color("#ffffff"))
+			_ib(p, k, 0.6, 0.6, 0.84, 0.78, 0.0, 0.18, "white", "desk", WOODC, MeshBuf.WHITE)
+		"hall":
+			_ib(p, k, 0.3, 0.2, 0.7, 0.8, 0.0, 0.18, "white", "white", WOODC, WOODT)
+			for i in 3:
+				_stool(p, k, 0.16, 0.25 + 0.2 * float(i))
+				_stool(p, k, 0.74, 0.25 + 0.2 * float(i))
+		"altar":
+			_ib(p, k, 0.3, 0.14, 0.7, 0.34, 0.0, 0.3, "altar", "white", MeshBuf.WHITE, Color("#c2463c"))
+		_:
+			_ib(p, k, 0.16, 0.16, 0.84, 0.3, 0.0, 0.2, "white", "white", WOODC, WOODT)
+			_ib(p, k, 0.16, 0.7, 0.34, 0.86, 0.0, 0.3, "shelf", "white", MeshBuf.WHITE, Color("#7a5848"))
