@@ -101,6 +101,21 @@ func _process(_dt: float) -> void:
 		var f := FileAccess.open(str(_args["save_state"]), FileAccess.WRITE)
 		if f:
 			f.store_string(JSON.stringify(Game.state.to_dict()))
+	if _args.has("perf") and _frame == 6:
+		var verts := 0
+		var meshes := 0
+		for n in view._floor_nodes:
+			var m: Mesh = (n as MeshInstance3D).mesh
+			if m != null:
+				verts += m.surface_get_array_len(0)
+				meshes += 1
+		var gm: Mesh = view._ground.mesh
+		print("PERF cells=%d floor_meshes=%d city_verts=%d ground_verts=%d draw_calls=%d primitives=%d objects=%d people=%d" % [
+			Game.state.cells.size(), meshes, verts, gm.surface_get_array_len(0) if gm else 0,
+			RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME),
+			RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME),
+			RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME),
+			view.people.agents.size()])
 	if _args.has("plane") and _frame == 2:
 		view._plane_next = 0.0
 	if _args.has("dump_atlas") and _frame == 3:

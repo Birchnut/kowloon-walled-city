@@ -974,6 +974,11 @@ func _build_open(p: Vector3i, c: Dictionary, rec: Dictionary, seed_v: int) -> vo
 
 
 func _small_sign(p: Vector3i, c: Dictionary, rec: Dictionary, seed_v: int, at: Vector3) -> void:
+	# 같은 좌판이 줄지어 있으면 줄의 첫 칸(과 드문드문)에만 팻말 → 벽지처럼 도배되지 않게
+	var ty: String = str(c.get("type", ""))
+	for nb in [p + Vector3i(-1, 0, 0), p + Vector3i(0, -1, 0)]:
+		if str(state.cells.get(nb, {}).get("type", "")) == ty and ViewCfg.h2(p.x * 11 + p.y * 7, p.z + 3) % 4 != 0:
+			return
 	var text := ViewCfg.sign_text(str(c.get("kind", "")), str(c.get("type", "")))
 	if text == "" or str(rec.get("sign_style", "none")) == "none":
 		return
