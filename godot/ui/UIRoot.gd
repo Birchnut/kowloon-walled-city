@@ -455,7 +455,8 @@ func _start_session() -> void:
 
 func _show_offline(s: Dictionary) -> void:
 	var hours := float(s.get("real_hours", 0.0))
-	var span := ("%d시간 %d분" % [int(hours), int(fmod(hours, 1.0) * 60.0)]) if hours >= 1.0 else ("%d분" % maxi(1, int(round(hours * 60.0))))
+	var mins := int(fmod(hours, 1.0) * 60.0)
+	var span := (("%d시간" % int(hours)) + ((" %d분" % mins) if mins > 0 else "")) if hours >= 1.0 else ("%d분" % maxi(1, int(round(hours * 60.0))))
 	var lines := UI.to_array(s.get("lines", []))
 	# 10분이 안 되는 짧은 공백은 창을 띄우지 않고 한 줄만(통합 결정: 앱을 잠깐 내렸다 올릴 때마다 모달이 뜨면 귀찮다)
 	if hours < 1.0 / 6.0 and not bool(s.get("clamped", false)):
