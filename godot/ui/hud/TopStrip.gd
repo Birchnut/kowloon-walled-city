@@ -61,6 +61,8 @@ func _init() -> void:
 	mc.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_child(mc)
 	money = IconLabel.make("coin", "LabelGold")
+	money.delta_side = true
+	money.short_big = true          # 통합: 변화량이 아래 '+n/일' 줄 위에 겹쳐 그려지던 것
 	mc.add_child(money)
 	_net = UI.label("+0/일", "LabelSmall")
 	_net.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -156,11 +158,13 @@ func refresh(hud: Dictionary) -> void:
 	var gn := str(hud.get("grade_name", ""))
 	var title := str(hud.get("title", "대장"))
 	_grade.text = ("%s · %s" % [gn, title]) if gn != "" else title
-	money.set_value(float(hud.get("money", 0.0)))
 	var net := float(hud.get("net_per_day", 0.0))
-	_net.text = "%s%s/일" % ["+" if net >= 0.0 else "-", UI.num(absf(net))]
+	# 세수처럼 계속 붙는 돈은 떠오르지 않게: 하루 순수지의 1/20(배속이 아주 높을 때만 넘는다)보다 큰 변화만
+	money.delta_min = maxf(10.0, absf(net) / 20.0)
+	money.set_value(float(hud.get("money", 0.0)))
+	_net.text = "%s%s/일" % ["+" if net >= 0.0 else "-", UI.big(absf(net))]
 	_net.add_theme_color_override("font_color", UI.col("jade_hi") if net >= 0.0 else UI.col("red_hi"))
-	_pop.text = UI.num(float(hud.get("pop_total", 0)))
+	_pop.text = UI.big(float(hud.get("pop_total", 0)))
 	_face.set_value(float(hud.get("happiness", 50.0)))
 	for l: Variant in UI.to_array(hud.get("labor", [])):
 		if l is Dictionary and str(l.get("name", "")) != "":

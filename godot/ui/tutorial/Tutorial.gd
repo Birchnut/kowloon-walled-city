@@ -56,26 +56,43 @@ func _seed_key() -> String:
 	return str(st.rng_seed) if st != null else "0"
 
 
+const DONE_STEP := 1000            # 시뮬 flags.tutorial 에 이 값 이상이면 끝난 것(건너뛰기 포함)
+
+
+## 진행 저장(G11): 시뮬 cmd("tutorial",{step}) → hud.tutorial(int, 세이브에 들어간다). 세이브와 함께 움직이므로
+## 다시 불러오면 그 단계부터, 다른 기기에서도 같다. hud 에 tutorial 이 없는 옛 시뮬이면 user://ui_settings.cfg(도시 씨앗별).
+func _sim_step() -> Variant:
+	var hud: Variant = Game.query("hud")
+	if hud is Dictionary and (hud as Dictionary).has("tutorial"):
+		return int(hud["tutorial"])
+	return null
+
+
 func is_done() -> bool:
-	var q: Variant = Game.query("tutorial")
-	if q is Dictionary:
+	var st: Variant = _sim_step()
+	if st != null:
 		_use_sim_store = true
-		return bool(q.get("done", false))
+		if int(st) >= DONE_STEP:
+			return true
+		# 기록이 0인데 이미 며칠 지난 도시(오프닝 이전 세이브 등)면 본 것으로 친다
+		var hud: Variant = Game.query("hud")
+		if int(st) == 0 and hud is Dictionary and int(hud.get("day", 1)) > 1:
+			return true
+		return false
 	_use_sim_store = false
 	var rec: Variant = UISettings.get_value("tutorial", {})
 	if rec is Dictionary and str(rec.get("seed", "")) == _seed_key():
 		return bool(rec.get("done", false))
-	# 기록이 없는데 이미 며칠 지난 도시면(다른 기기의 세이브 등) 본 것으로 친다
-	var hud: Variant = Game.query("hud")
-	if hud is Dictionary and int(hud.get("day", 1)) > 1:
+	var hud2: Variant = Game.query("hud")
+	if hud2 is Dictionary and int(hud2.get("day", 1)) > 1:
 		return true
 	return false
 
 
 func saved_step() -> int:
 	if _use_sim_store:
-		var q: Variant = Game.query("tutorial")
-		return int(q.get("step", 0)) if q is Dictionary else 0
+		var st: Variant = _sim_step()
+		return clampi(int(st), 0, DONE_STEP) if st != null else 0
 	var rec: Variant = UISettings.get_value("tutorial", {})
 	if rec is Dictionary and str(rec.get("seed", "")) == _seed_key():
 		return int(rec.get("step", 0))
@@ -84,7 +101,7 @@ func saved_step() -> int:
 
 func _save(done: bool) -> void:
 	if _use_sim_store:
-		Game.cmd("tutorial", {"step": maxi(_i, 0), "done": done})
+		Game.cmd("tutorial", {"step": DONE_STEP if done else maxi(_i, 0)})
 	else:
 		UISettings.set_value("tutorial", {"seed": _seed_key(), "step": maxi(_i, 0), "done": done})
 
@@ -92,6 +109,7 @@ func _save(done: bool) -> void:
 # ------------------------------------------------------------------ 시작/끝
 ## from_step > 0 이면 그 앞의 set 단계만 조용히 다시 적용하고 이어서 한다.
 func start(from_step: int = 0) -> void:
+	is_done()          # 저장소(시뮬/설정 파일) 고르기
 	var root: Variant = Data.file("tutorial")
 	_steps = UI.to_array(root.get("steps", [])) if root is Dictionary else []
 	_speakers = UI.to_dict(root.get("speakers", {})) if root is Dictionary else {}
@@ -187,6 +205,11 @@ func _say(s: Dictionary) -> void:
 
 func _begin_wait(s: Dictionary) -> void:
 	rain.show_stone(false)
+	# 이미 해 둔 일이면(다시 불러온 도시, 순서를 앞질러 한 플레이어) 기다리지 않는다
+	if str(s.get("type", "")) == "wait_cmd" and _already_done(s):
+		_wait = s
+		_complete_wait_at.call_deferred(_i)
+		return
 	_wait = s
 	_wait_t = 0.0
 	var target := str(s.get("highlight", ""))
@@ -204,6 +227,35 @@ func _begin_wait(s: Dictionary) -> void:
 		_complete_wait()
 
 
+## wait_cmd 의 일이 이미 이뤄졌나(읽기만 한다 — 도시에 그 건물이 있나, 탐험대가 나가 있나).
+func _already_done(s: Dictionary) -> bool:
+	var st: Variant = Game.state
+	if st == null:
+		return false
+	var want := str(s.get("cmd", ""))
+	var m := UI.to_dict(s.get("match", {}))
+	match want:
+		"zone":
+			for b: Variant in st.buildings.values():
+				if b is Dictionary and str(b.get("kind", "")) == "house":
+					return true
+		"build":
+			var t := str(m.get("type", ""))
+			for b2: Variant in st.buildings.values():
+				if b2 is Dictionary and (t == "" or str(b2.get("type", "")) == t):
+					if str(b2.get("kind", "")) != "house":
+						return true
+			# 공사 중(site)도 친다
+			for c: Variant in st.cells.values():
+				if c is Dictionary and str(c.get("kind", "")) == "site" and (t == "" or str(UI.to_dict(c.get("becomes", {})).get("type", "")) == t):
+					return true
+		"expedition_send":
+			for tm: Variant in st.teams:
+				if tm is Dictionary and str(tm.get("state", "")) != "idle":
+					return true
+	return false
+
+
 func _event_names(s: Dictionary) -> Array:
 	var e: Variant = s.get("event", "")
 	return e if e is Array else [str(e)]
@@ -214,6 +266,13 @@ func _event_seen(s: Dictionary) -> bool:
 		if int(_counts.get(n, 0)) > int(_mark.get(n, 0)):
 			return true
 	return false
+
+
+## 미뤄 부른 완료는 그 단계가 아직 지금 단계일 때만(같은 프레임에 이벤트가 여러 번 와도 한 단계만 넘어가게 —
+## 통합: building_changed 가 한 프레임에 여러 번 와서 대사 두 개와 살피기 단계를 통째로 건너뛰던 것).
+func _complete_wait_at(step: int) -> void:
+	if step == _i and not _wait.is_empty():
+		_complete_wait()
 
 
 func _complete_wait(timed_out: bool = false) -> void:
@@ -241,7 +300,7 @@ func _on_event(n: String, _payload: Dictionary) -> void:
 		return
 	_counts[n] = int(_counts.get(n, 0)) + 1
 	if not _wait.is_empty() and str(_wait.get("type", "")) == "wait_event" and n in _event_names(_wait):
-		_complete_wait.call_deferred()
+		_complete_wait_at.call_deferred(_i)
 
 
 ## UIRoot.cmd 가 성공한 명령마다 부른다.
@@ -255,7 +314,7 @@ func on_cmd(cmd_name: String, args: Dictionary, result: Dictionary) -> void:
 		if str(args.get(k, "")) != str(m[k]):
 			return
 	_last_args = args.duplicate()
-	_complete_wait.call_deferred()
+	_complete_wait_at.call_deferred(_i)
 
 
 func _camera(s: Dictionary) -> void:
@@ -285,6 +344,8 @@ func _apply_set(s: Dictionary) -> void:
 			ui.nav.set_enabled(null if screens_on.is_empty() else screens_on)
 	if s.has("build_only"):
 		build_only = UI.to_array(s["build_only"])
+		if ui != null and str(ui.screen) == "build":
+			ui.build.on_filter_changed()
 	if s.has("open") and ui != null:
 		ui.jump(UI.to_dict(s["open"]))
 	if s.has("close") and ui != null:

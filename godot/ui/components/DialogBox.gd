@@ -125,6 +125,17 @@ func hide_box() -> void:
 	set_process(false)
 
 
+## 위쪽에 차지한 영역의 아래 끝(y). 위쪽에 아무것도 없으면 0 — 토스트가 그 아래로 비킨다.
+func occupied_bottom() -> float:
+	if not visible:
+		return 0.0
+	if _mode == "hint" and _hint.visible:
+		return _skip.position.y + _skip.size.y
+	if _mode == "say" and at_top:
+		return _skip.position.y + _skip.size.y
+	return 0.0
+
+
 func is_typing() -> bool:
 	return _typing
 
@@ -154,7 +165,8 @@ func _place() -> void:
 		_hint.position = Vector2(8, top_offset)
 		_skip.position = Vector2(8, top_offset + (_hint.size.y + 6 if _hint.visible else 0.0))
 	else:
-		_skip.position = Vector2(w - _skip.size.x - side, (_box.position.y + _box.size.y + 6) if at_top else (_box.position.y - 62))
+		# 위쪽 상자면 건너뛰기를 왼쪽 아래에(오른쪽 레일 버튼과 겹치지 않게)
+		_skip.position = Vector2(side, _box.position.y + _box.size.y + 6) if at_top else Vector2(w - _skip.size.x - side, _box.position.y - 62)
 
 
 func _process(delta: float) -> void:
@@ -179,8 +191,16 @@ func _finish_typing() -> void:
 
 
 func _on_catch_input(ev: InputEvent) -> void:
-	if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT and ev.pressed:
-		advance()
+	# 터치면 터치 누름으로 넘긴다(흉내 낸 마우스는 먹기만 한다) — 넘기는 손가락이 아래 도시까지 가지 않게.
+	if ev is InputEventScreenTouch:
+		if ev.pressed:
+			advance()
+		accept_event()
+	elif ev is InputEventScreenDrag:
+		accept_event()
+	elif ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT:
+		if ev.pressed and ev.device != InputEvent.DEVICE_ID_EMULATION:
+			advance()
 		accept_event()
 
 

@@ -1,0 +1,362 @@
+{
+ "_comment": "목표(goals.json)마다 '어떻게'를 한두 줄 + 가는 버튼(jump). UI 소유. 성채 › 목표의 지금 단계 카드와 목표 달성 알림에 쓴다. jump 형식은 알림과 같다(build[:id|분류], economy[:tab|상품], expedition, trade, keep[:tab], upgrade). 규칙 수치는 적지 않는다(바뀌면 틀린다) — 어디로 가는지만.",
+ "items": {
+  "g_zone": {
+   "tip": "[짓기] → 주거 구역. 빈 칸을 끌어 칠하고 [짓기].",
+   "go": [
+    {
+     "label": "주거 칠하기",
+     "jump": {
+      "screen": "build",
+      "arg": "house"
+     }
+    }
+   ]
+  },
+  "g_t1_20": {
+   "tip": "떠돌이는 끼니·물·좌판이 다 있어야 들어온다. 집이 좌판 범위 안에 들게.",
+   "go": [
+    {
+     "label": "좌판",
+     "jump": {
+      "screen": "build",
+      "arg": "stall"
+     }
+    },
+    {
+     "label": "텃밭",
+     "jump": {
+      "screen": "build",
+      "arg": "garden"
+     }
+    },
+    {
+     "label": "빗물받이",
+     "jump": {
+      "screen": "build",
+      "arg": "rain_catcher"
+     }
+    }
+   ]
+  },
+  "g_base": {
+   "tip": "탐험 거점을 지으면 탐험대가 생긴다. [탐험]에서 가까운 곳을 골라 보낸다. 근거리는 실제 5~10분.",
+   "go": [
+    {
+     "label": "탐험 거점",
+     "jump": {
+      "screen": "build",
+      "arg": "expedition_base"
+     }
+    },
+    {
+     "label": "탐험",
+     "jump": {
+      "screen": "expedition",
+      "arg": ""
+     }
+    }
+   ]
+  },
+  "g_claim": {
+   "tip": "돌아온 탐험대는 [탐험] 아래 줄에서 [수령]. 늦게 받아도 줄지 않는다.",
+   "go": [
+    {
+     "label": "탐험",
+     "jump": {
+      "screen": "expedition",
+      "arg": ""
+     }
+    }
+   ]
+  },
+  "g_t2_1": {
+   "tip": "만실인 판잣집에 헌 옷과 등불이 돌면 승급할 수 있다. 헌 옷은 교역소 계약으로, 등불은 초 공방이나 계약으로. 집을 눌러 [승급] → 자재 하나.",
+   "go": [
+    {
+     "label": "교역소",
+     "jump": {
+      "screen": "build",
+      "arg": "trade_post"
+     }
+    },
+    {
+     "label": "교역",
+     "jump": {
+      "screen": "trade",
+      "arg": ""
+     }
+    },
+    {
+     "label": "승급",
+     "jump": {
+      "screen": "upgrade",
+      "arg": ""
+     }
+    }
+   ]
+  },
+  "g_trade": {
+   "tip": "교역소를 짓고 [교역]에서 제안을 고른다. 계약은 정해진 시각마다 돈을 내고 물건을 들인다.",
+   "go": [
+    {
+     "label": "교역소",
+     "jump": {
+      "screen": "build",
+      "arg": "trade_post"
+     }
+    },
+    {
+     "label": "교역",
+     "jump": {
+      "screen": "trade",
+      "arg": ""
+     }
+    }
+   ]
+  },
+  "g_t1_50": {
+   "tip": "판잣집을 더 칠한다. 좌판 범위와 끼니·물이 따라가야 사람이 찬다.",
+   "go": [
+    {
+     "label": "주거 칠하기",
+     "jump": {
+      "screen": "build",
+      "arg": "house"
+     }
+    },
+    {
+     "label": "상품",
+     "jump": {
+      "screen": "economy",
+      "arg": ""
+     }
+    }
+   ]
+  },
+  "g_t2_60": {
+   "tip": "세입자는 옷·등불(또는 전기)·생활 시장이 필요하다. 승급할 집이 있으면 위 줄에 뜬다.",
+   "go": [
+    {
+     "label": "승급",
+     "jump": {
+      "screen": "upgrade",
+      "arg": ""
+     }
+    },
+    {
+     "label": "생활 시장",
+     "jump": {
+      "screen": "build",
+      "arg": "market2"
+     }
+    }
+   ]
+  },
+  "g_power": {
+   "tip": "[짓기] → 전력 → 소형 발전기. 고물이 든다.",
+   "go": [
+    {
+     "label": "발전기",
+     "jump": {
+      "screen": "build",
+      "arg": "generator"
+     }
+    }
+   ]
+  },
+  "g_t3_1": {
+   "tip": "전기·종합 시장·의원이 닿는 세입자 집을 올린다. 집을 눌러 무엇이 모자란지 본다.",
+   "go": [
+    {
+     "label": "종합 시장",
+     "jump": {
+      "screen": "build",
+      "arg": "market3"
+     }
+    },
+    {
+     "label": "승급",
+     "jump": {
+      "screen": "upgrade",
+      "arg": ""
+     }
+    }
+   ]
+  },
+  "g_floor2": {
+   "tip": "1층 칸이 80% 차면 2층이 열린다. 오른쪽 레일의 진행 칩이 몇 칸 남았는지 말한다.",
+   "go": [
+    {
+     "label": "주거 칠하기",
+     "jump": {
+      "screen": "build",
+      "arg": "house"
+     }
+    }
+   ]
+  },
+  "g_mid": {
+   "tip": "[탐험]에서 중거리(외곽 창고 지대·부두 뒷골목). 실제로 한 시간 안팎 걸린다.",
+   "go": [
+    {
+     "label": "탐험",
+     "jump": {
+      "screen": "expedition",
+      "arg": ""
+     }
+    }
+   ]
+  },
+  "g_t3_100": {
+   "tip": "토박이 집을 늘린다. 전기와 시장 범위가 따라가야 한다.",
+   "go": [
+    {
+     "label": "승급",
+     "jump": {
+      "screen": "upgrade",
+      "arg": ""
+     }
+    },
+    {
+     "label": "물·전기",
+     "jump": {
+      "screen": "economy",
+      "arg": "utilities"
+     }
+    }
+   ]
+  },
+  "g_research": {
+   "tip": "공부방을 짓고 [성채] › 연구에서 하나를 고른다. 공부방이 돌아야 연구가 나간다.",
+   "go": [
+    {
+     "label": "공부방",
+     "jump": {
+      "screen": "build",
+      "arg": "study"
+     }
+    },
+    {
+     "label": "연구",
+     "jump": {
+      "screen": "keep",
+      "arg": "research"
+     }
+    }
+   ]
+  },
+  "g_far": {
+   "tip": "원거리는 실제 몇 시간 걸린다. 중거리를 다녀오거나 연구 '지도 제작'으로 열린다.",
+   "go": [
+    {
+     "label": "탐험",
+     "jump": {
+      "screen": "expedition",
+      "arg": ""
+     }
+    },
+    {
+     "label": "연구",
+     "jump": {
+      "screen": "keep",
+      "arg": "research"
+     }
+    }
+   ]
+  },
+  "g_t4_1": {
+   "tip": "양주와 공부방이 닿는 토박이 집을 올린다.",
+   "go": [
+    {
+     "label": "교역",
+     "jump": {
+      "screen": "trade",
+      "arg": ""
+     }
+    },
+    {
+     "label": "승급",
+     "jump": {
+      "screen": "upgrade",
+      "arg": ""
+     }
+    }
+   ]
+  },
+  "g_floor3": {
+   "tip": "2층 칸이 80% 차면 3층이 열린다. 레일에서 2F를 고르고 칠한다.",
+   "go": [
+    {
+     "label": "주거 칠하기",
+     "jump": {
+      "screen": "build",
+      "arg": "house"
+     }
+    }
+   ]
+  },
+  "g_t4_60": {
+   "tip": "유지 집을 늘린다. 승급할 집이 있으면 위 줄에 뜬다.",
+   "go": [
+    {
+     "label": "승급",
+     "jump": {
+      "screen": "upgrade",
+      "arg": ""
+     }
+    }
+   ]
+  },
+  "g_t5_1": {
+   "tip": "유지 집을 거물로 올리려면 설비 부품이 든다. 원거리 탐험에서 온다.",
+   "go": [
+    {
+     "label": "탐험",
+     "jump": {
+      "screen": "expedition",
+      "arg": ""
+     }
+    },
+    {
+     "label": "승급",
+     "jump": {
+      "screen": "upgrade",
+      "arg": ""
+     }
+    }
+   ]
+  },
+  "g_hall": {
+   "tip": "성채 회관은 2×2. 세 자재와 설비 부품을 모아 둔다.",
+   "go": [
+    {
+     "label": "성채 회관",
+     "jump": {
+      "screen": "build",
+      "arg": "city_hall"
+     }
+    },
+    {
+     "label": "탐험",
+     "jump": {
+      "screen": "expedition",
+      "arg": ""
+     }
+    }
+   ]
+  },
+  "g_final": {
+   "tip": "거물을 늘린다. 이게 끝이면 그다음은 마음대로다.",
+   "go": [
+    {
+     "label": "승급",
+     "jump": {
+      "screen": "upgrade",
+      "arg": ""
+     }
+    }
+   ]
+  }
+ }
+}

@@ -97,8 +97,22 @@ func _on_event(n: String, _p: Dictionary) -> void:
 		_bot.act(Game.state)
 
 
+var _tut_last := -99
+var _scr_last := "?"
+
+
 func _process(delta: float) -> void:
 	_t += delta
+	if args.has("trace") and ui != null:
+		# 오프닝 단계·화면이 바뀔 때마다 한 줄(통합 확인용)
+		var si: int = ui.tutorial.step_index() if ui.tutorial.running else -1
+		if si != _tut_last:
+			_tut_last = si
+			var st: Dictionary = UI.to_dict(ui.tutorial._steps[si]) if si >= 0 and si < ui.tutorial._steps.size() else {}
+			print("[trace] t=%.1f 오프닝 %d %s %s" % [_t, si, st.get("type", ""), str(st.get("text", st.get("hint", st.get("cmd", "")))).substr(0, 24)])
+		if str(ui.screen) != _scr_last:
+			_scr_last = str(ui.screen)
+			print("[trace] t=%.1f 화면 '%s'" % [_t, _scr_last])
 	if args.has("png") and _applied and _t >= float(args.get("at", 0.6)) + float(args.get("png_wait", 1.6)):
 		var img := get_viewport().get_texture().get_image()
 		img.save_png(str(args["png"]))
@@ -317,6 +331,7 @@ func _step(i: int, s: Dictionary) -> void:
 		var pts2: Array = []
 		for p2: Variant in s["paint"]:
 			pts2.append(_cell_xy(_v3arr(p2), false))
+		print("[script] #%d paint %s" % [i, pts2])
 		await _drag(pts2, int(s.get("steps", 3)))
 	elif s.has("shot"):
 		await RenderingServer.frame_post_draw

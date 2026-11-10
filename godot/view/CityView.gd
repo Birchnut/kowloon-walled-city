@@ -1146,8 +1146,10 @@ func _gui_input(ev: InputEvent) -> void:
 				_pinch_d0 = (k[0] as Vector2).distance_to(k[1])
 				_pinch_a0 = ((k[1] as Vector2) - (k[0] as Vector2)).angle()
 		else:
+			# 누름을 이 뷰가 받지 않은 손가락의 뗌(UI가 누름을 먹고 사라진 경우)은 탭이 아니다(통합: 대화 넘기기가 집을 여는 일)
+			var seen := _touches.has(ev.index)
 			_touches.erase(ev.index)
-			if _touches.is_empty() and not _dragging and _t - _press_t < 0.5:
+			if seen and _touches.is_empty() and not _dragging and _t - _press_t < 0.5:
 				cell_tapped.emit(pick(ev.position))
 		accept_event()
 	elif ev is InputEventScreenDrag:
@@ -1179,8 +1181,9 @@ func _gui_input(ev: InputEvent) -> void:
 				rotate_view(1 if da < 0.0 else -1)
 				_pinch_a0 = ang
 		accept_event()
-	elif _t - _touch_mode_t > 0.6:
-		# 마우스(터치가 흉내 낸 마우스 이벤트는 위에서 이미 처리했으므로 무시)
+	elif _t - _touch_mode_t > 0.6 and ev.device != InputEvent.DEVICE_ID_EMULATION:
+		# 마우스(터치가 흉내 낸 마우스 이벤트는 위에서 이미 처리했으므로 무시).
+		# 통합: 흉내 낸 마우스는 터치보다 먼저 도착한다 → 시각만 보면 첫 누름이 두 번 들어가 칠하기 획이 지우개가 됐다. device 로 거른다.
 		if ev is InputEventMouseButton:
 			if ev.button_index == MOUSE_BUTTON_LEFT:
 				if ev.pressed:

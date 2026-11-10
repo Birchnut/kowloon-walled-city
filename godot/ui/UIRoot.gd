@@ -178,6 +178,10 @@ func _process(delta: float) -> void:
 		_bind_view(v)
 	if Game.state != null:
 		strip.set_time(Game.time_of_day())
+	# 토스트는 위쪽 대화·힌트 아래로 비킨다(겹쳐 읽히지 않게)
+	var t_off := maxf(top_h() + 8.0, tutorial.dialog.occupied_bottom() + 6.0)
+	if absf(toasts.top_offset - t_off) > 0.5:
+		toasts.top_offset = t_off
 	_poll_t -= delta
 	if _poll_t <= 0.0:
 		_poll_t = HUD_POLL
@@ -379,6 +383,8 @@ func _on_event(n: String, p: Dictionary) -> void:
 			_refresh_hud.call_deferred()
 			nav.pulse.call_deferred("expedition")
 			toast("탐험대가 돌아왔다. 탐험에서 수령하자.", "good", "mat")
+		"goal_done":
+			_on_goal_done(p)
 		"contract_done":
 			if not bool(p.get("ok", true)):
 				toast("계약 회차를 건너뛰었다 — %s" % str(p.get("reason", "")), "warn")
@@ -449,6 +455,35 @@ func _show_offline(s: Dictionary) -> void:
 		"title": "%s 동안 경제 시간으로 %s일" % [span, str(snappedf(float(s.get("econ_days", 0.0)), 0.1))],
 		"lines": lines, "bullets": true, "ok_text": "돌아왔다",
 	})
+
+
+## 목표 id → {tip, go:[{label, jump}]}(data/ui/goal_tips.json). 없으면 {}.
+static func goal_tip(id: String) -> Dictionary:
+	var root: Variant = Data.file("goal_tips")
+	if root is Dictionary:
+		return UI.to_dict(UI.to_dict(root.get("items", {})).get(id, {}))
+	return {}
+
+
+## 목표 달성: 현수막(보상) → 토스트(다음 목표). 오프닝이 도는 중이면 현수막만 짧게(대사를 덮지 않게).
+func _on_goal_done(p: Dictionary) -> void:
+	var rw: Array = []
+	for r: Variant in UI.to_array(p.get("rewards", [])):
+		rw.append(str(r))
+	var title := ("보상 " + " · ".join(rw)) if not rw.is_empty() else "해냈다"
+	banner.show_banner("목표 달성", title, str(p.get("text", "")), "jade", 1.8 if tutorial.running else 2.6, "成")
+	_after_goal.call_deferred()
+
+
+func _after_goal() -> void:
+	var h := Q.dict("hud")
+	var ng := UI.to_dict(h.get("next_goal", {}))
+	if str(ng.get("text", "")) != "":
+		var tip := goal_tip(str(ng.get("id", "")))
+		toasts.push("다음 목표: " + str(ng["text"]), "good", "", 5.0)
+		if not tip.is_empty() and not tutorial.running:
+			toasts.push(str(tip.get("tip", "")), "dim", "", 6.0)
+	nav.pulse("keep")
 
 
 func replay_tutorial() -> void:

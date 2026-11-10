@@ -95,6 +95,11 @@ func _goals(g: Dictionary) -> void:
 	hv.add_child(UI.label("성채 등급 · %s" % str(g.get("grade_name", "")), "LabelGoldSmall"))
 	var t := str(g.get("title", ui.title() if ui != null else "대장"))
 	hv.add_child(UI.label("사람들은 당신을 '%s'%s 부른다" % [t, UI.josa(t, "라", "이라").substr(t.length())], "LabelBold", true))
+	if g.has("total"):
+		var prog := "목표 %d / %d" % [int(g.get("done_count", 0)), int(g.get("total", 0))]
+		if bool(g.get("sandbox", false)):
+			prog += " · 이제부터는 마음대로 키운다"
+		hv.add_child(UI.label(prog, "LabelDim"))
 	_body.add_child(head)
 	var steps := UI.to_array(g.get("steps", []))
 	if steps.is_empty():
@@ -124,6 +129,7 @@ func _goals(g: Dictionary) -> void:
 			v.add_child(r)
 			r.add_child(RatioBar.make(pr, "gold", 10))
 			r.add_child(UI.label("%d%%" % int(pr * 100.0), "LabelGoldSmall"))
+			_goal_tip(v, str(s.get("id", "")))
 		var rw := UI.to_array(s.get("rewards", []))
 		if not rw.is_empty() and not done:
 			var flow := HFlowContainer.new()
@@ -136,6 +142,32 @@ func _goals(g: Dictionary) -> void:
 		if done:
 			p.modulate = Color(1, 1, 1, 0.6)
 		_body.add_child(p)
+
+
+## 지금 목표 카드 아래: 어떻게(data/ui/goal_tips.json) + 가는 버튼들.
+func _goal_tip(v: VBoxContainer, id: String) -> void:
+	var tip := UIRoot.goal_tip(id)
+	if tip.is_empty():
+		return
+	var tl := UI.label(str(tip.get("tip", "")), "LabelSmall", true)
+	tl.add_theme_color_override("font_color", UI.col("paper"))
+	v.add_child(tl)
+	var row := HFlowContainer.new()
+	row.add_theme_constant_override("h_separation", 6)
+	row.add_theme_constant_override("v_separation", 6)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(row)
+	for go: Variant in UI.to_array(tip.get("go", [])):
+		if not (go is Dictionary):
+			continue
+		var b := PixelButton.make(str(go.get("label", "")), "chev_r", "ButtonJade")
+		b.small = true
+		b.min_size = Vector2(88, 48)
+		var j: Dictionary = UI.to_dict(go.get("jump", {}))
+		b.pressed.connect(func() -> void:
+			if ui != null:
+				ui.jump(j))
+		row.add_child(b)
 
 
 # ------------------------------------------------------------------ 정책
