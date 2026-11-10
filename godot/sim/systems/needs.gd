@@ -208,6 +208,7 @@ var _hres: PackedInt32Array = PackedInt32Array()
 var _hset: PackedByteArray = PackedByteArray()
 var _aff_last: Array = []
 var _off_last := false
+var _settle_seen := -1
 var _acls_of: PackedInt32Array = PackedInt32Array()   # cls → acls
 var _acls_tab: Array = []                              # acls → {"mkt:g"/"svc:tag": cause}
 var _acls_noise: PackedInt32Array = PackedInt32Array()
@@ -658,6 +659,12 @@ func tick(state: CityState, dt: float) -> void:
 	var offline := sim.offline
 	var aff := _affordable(state)
 	var fast2 := aff == _aff_last and offline == _off_last
+	# settle()(자정·저장)이 주거의 파생 값(세수·충족률…)을 반올림했다 → 이번 스텝은 건너뛰지 않고 다시 쓴다.
+	# 안 그러면 건너뛴 주거만 반올림 값을 들고 있어 캐시 없는 계산과 끝자리가 갈린다(퍼즈로 찾음).
+	var resettled := state.settle_n != _settle_seen
+	if resettled:
+		_settle_seen = state.settle_n
+		fast2 = false
 	_aff_last = aff
 	_off_last = offline
 	var todo2 := PackedInt32Array()   # 2단계를 돌릴 주거 순번(주거 순서 유지)
@@ -817,7 +824,7 @@ func tick(state: CityState, dt: float) -> void:
 			e.p2[1 if rpos else 0] = p
 		var tl: Array = by_tier.get(t, [])
 		var needs: Dictionary = b["needs"]
-		if b.get("nsig", -1) != p.nsig:
+		if resettled or b.get("nsig", -1) != p.nsig:
 			for i: int in tl.size():
 				var rec: Dictionary = needs[tl[i]["id"]]
 				rec["ratio"] = p.ratios[i]

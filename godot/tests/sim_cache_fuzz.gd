@@ -74,7 +74,8 @@ func pick(arr: Array) -> Variant:
 
 # ------------------------------------------------------------------ 비교
 func _clean(st: CityState) -> Dictionary:
-	var d: Dictionary = JSON.parse_string(st.to_json())
+	# 전체 정밀도(settle 없이): 저장 글의 자릿수 밑에 숨은 끝자리 차이까지 잡는다
+	var d: Dictionary = JSON.parse_string(JSON.stringify(st.to_dict(), "", false, true))
 	for b: Variant in (d.get("buildings", {}) as Dictionary).values():
 		if b is Dictionary:
 			for k: String in IGNORE:
@@ -106,14 +107,14 @@ func _diff(a: Variant, b: Variant, path: String) -> String:
 				return r
 		return ""
 	if a != b:
-		return "%s: %s ≠ %s" % [path, str(a).left(80), str(b).left(80)]
+		return "%s: %s ≠ %s" % [path, String.num(a, 17), String.num(b, 17)] if a is float else "%s: %s ≠ %s" % [path, str(a).left(80), str(b).left(80)]
 	return ""
 
 
 func _compare(sa: CityState, sb: CityState) -> String:
 	var ja := _clean(sa)
 	var jb := _clean(sb)
-	if JSON.stringify(ja) == JSON.stringify(jb):
+	if JSON.stringify(ja, "", false, true) == JSON.stringify(jb, "", false, true):
 		return ""
 	var d := _diff(ja, jb, "state")
 	return d if d != "" else "JSON 글이 다름(경로 못 찾음)"
@@ -206,6 +207,10 @@ func run_seed(seed_v: int, days: float, every: int) -> String:
 		if since >= every:
 			since = 0
 			var d := _compare(sa, sb)
+			if d != "" and d.begins_with("state.buildings.i:") and OS.get_environment("FUZZ_DUMP") != "":
+				var bid := int(d.substr(18).split(".")[0])
+				print("A: ", JSON.stringify(sa.buildings.get(bid, {}), "", false, true))
+				print("B: ", JSON.stringify(sb.buildings.get(bid, {}), "", false, true))
 			if d != "":
 				return "%.3f일(스텝 %d)에서 다름: %s | 최근: %s" % [sa.econ_days, step_n, d, str(trail.slice(-8))]
 	var d2 := _compare(sa, sb)

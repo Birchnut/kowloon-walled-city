@@ -237,7 +237,11 @@ func from_json(text: String) -> bool:
 
 ## 모든 float를 "JSON에 썼다 읽은 값"으로 제자리에서 맞춘다 → 저장 후 이어한 게임 = 불러와 이어한 게임.
 ## 성능: 정수가 아닌 float만 모아 JSON 왕복을 한 번에 한다(값마다 따로 하면 1,000채 도시에서 수백 ms).
+var settle_n: int = 0          # 저장 안 함: settle()이 돈 횟수 — 값을 반올림했으니 needs의 "가라앉은 주거" 건너뛰기를 한 번 쉰다(파트 C)
+
+
 func settle() -> void:
+	settle_n += 1
 	var conts: Array = []
 	var keys: Array = []
 	var vals: Array = []
