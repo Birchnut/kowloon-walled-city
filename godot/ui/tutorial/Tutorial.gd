@@ -1,6 +1,7 @@
 class_name Tutorial
 extends Control
-## Tutorial — data/tutorial.json 을 한 단계씩 돌리는 진행기. 대본·순서는 전부 데이터.
+## Tutorial — data/ui/tutorial.json 을 한 단계씩 돌리는 진행기. 대본·순서는 전부 데이터.
+## 단계: say / highlight / wait_cmd(cmd, match{인자}) / wait_event / wait_screen(screen) / camera / set(screens, build_only, open, close, paused, rain)
 ##
 ## 막히지 않게 하는 장치:
 ##  - 기다리는 단계(wait_cmd / wait_event)는 전부 timeout 이 있다(지나면 그냥 다음 단계).
@@ -27,6 +28,8 @@ var _mark: Dictionary = {}          # 직전 기다림이 끝났을 때의 _coun
 var _last_args: Dictionary = {}     # 직전 wait_cmd 가 잡은 명령 인자
 var _saved_speed: float = -1.0
 var _use_sim_store: bool = false
+var screens_on: Array = []          # 비면 전부 허용. ["none"] = 전부 잠금
+var build_only: Array = []          # 비면 짓기 메뉴 전부. 아니면 이 id 들만 보인다
 
 
 func _init() -> void:
@@ -128,9 +131,10 @@ func _end(skipped: bool) -> void:
 	_restore_speed()
 	Game.paused = false
 	Q.vcall("set_time_override", [-1.0])
+	screens_on = []
+	build_only = []
 	if ui != null:
-		ui.verbs.set_enabled(null)
-		ui.plant.only = []
+		ui.nav.set_enabled(null)
 	_i = _steps.size()
 	_save(true)
 	finished.emit(skipped)
@@ -152,7 +156,7 @@ func _next() -> void:
 	match str(s.get("type", "")):
 		"say", "highlight":
 			_say(s)
-		"wait_cmd", "wait_event":
+		"wait_cmd", "wait_event", "wait_screen":
 			_begin_wait(s)
 		"camera":
 			_camera(s)
@@ -177,6 +181,7 @@ func _say(s: Dictionary) -> void:
 		highlight.point_at(ui.target_rect.bind(target), str(s.get("type", "")) == "highlight")
 	else:
 		highlight.clear()
+	dialog.at_top = ui != null and str(ui.screen) != ""
 	dialog.say(str(sp.get("name", "")), _fill(text), str(sp.get("role", "")))
 
 
@@ -224,7 +229,10 @@ func _process(delta: float) -> void:
 	if _wait.is_empty():
 		return
 	_wait_t += delta
-	if _wait_t >= float(_wait.get("timeout", 30.0 if str(_wait.get("type", "")) == "wait_event" else 120.0)):
+	if str(_wait.get("type", "")) == "wait_screen" and ui != null and str(ui.screen) == str(_wait.get("screen", "")):
+		_complete_wait()
+		return
+	if _wait_t >= float(_wait.get("timeout", 30.0 if str(_wait.get("type", "")) != "wait_cmd" else 120.0)):
 		_complete_wait(true)
 
 
@@ -242,6 +250,10 @@ func on_cmd(cmd_name: String, args: Dictionary, result: Dictionary) -> void:
 		return
 	if cmd_name != str(_wait.get("cmd", "")) or not bool(result.get("ok", false)):
 		return
+	var m := UI.to_dict(_wait.get("match", {}))
+	for k: String in m:
+		if str(args.get(k, "")) != str(m[k]):
+			return
 	_last_args = args.duplicate()
 	_complete_wait.call_deferred()
 
@@ -267,13 +279,16 @@ func _apply_set(s: Dictionary) -> void:
 		Game.paused = bool(s["paused"])
 	if s.has("rain"):
 		rain.set_rain(bool(s["rain"]))
-	if ui == null:
-		return
-	if s.has("verbs"):
-		var v := UI.to_array(s["verbs"])
-		ui.verbs.set_enabled(null if v.is_empty() else v)
-	if s.has("plant_only"):
-		ui.plant.only = UI.to_array(s["plant_only"])
+	if s.has("screens"):
+		screens_on = UI.to_array(s["screens"])
+		if ui != null:
+			ui.nav.set_enabled(null if screens_on.is_empty() else screens_on)
+	if s.has("build_only"):
+		build_only = UI.to_array(s["build_only"])
+	if s.has("open") and ui != null:
+		ui.jump(UI.to_dict(s["open"]))
+	if s.has("close") and ui != null:
+		ui.close_screen()
 
 
 func _restore_speed() -> void:
@@ -286,6 +301,24 @@ func _fill(text: String) -> String:
 	var hud: Variant = Game.query("hud")
 	var title := str(hud.get("title", "대장")) if hud is Dictionary else "대장"
 	return text.replace("{title}", title)
+
+
+## 화면 잠금(튜토리얼이 아직 안 가르친 화면).
+func screen_allowed(id: String) -> bool:
+	return screens_on.is_empty() or id in screens_on
+
+
+func build_allowed(id: String) -> bool:
+	return build_only.is_empty() or id in build_only
+
+
+func build_allowed_cat(items: Array) -> bool:
+	if build_only.is_empty():
+		return true
+	for it: Variant in items:
+		if it is Dictionary and str(it.get("id", "")) in build_only:
+			return true
+	return false
 
 
 ## (테스트·스크린샷용) 지금 단계 번호.

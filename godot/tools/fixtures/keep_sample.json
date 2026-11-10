@@ -1,0 +1,20 @@
+{
+ "_comment": "개발용 견본: query('research'), query('policies') 계약 모양. B 파트 전 화면 확인용(DevHarness fakekeep=keep_sample). 숫자·이름은 GDD §10에서 옮겨 적은 자리표시.",
+ "research": {"can": true, "hint": "", "active": {"id": "w2", "name": "야간 교대", "left_days": 1.4},
+  "nodes": [
+   {"id": "l1", "branch": "life", "branch_name": "살림", "name": "공동 배급", "desc": "끼니 소비 -10%", "cost": 200, "days": 1, "state": "done", "lock_hint": ""},
+   {"id": "l2", "branch": "life", "branch_name": "살림", "name": "방음", "desc": "공장 소음 행복 감소 절반", "cost": 400, "days": 2, "state": "ready", "lock_hint": ""},
+   {"id": "l3", "branch": "life", "branch_name": "살림", "name": "옥상 녹화", "desc": "", "cost": 800, "days": 3, "state": "locked", "lock_hint": "방음 먼저"},
+   {"id": "w1", "branch": "work", "branch_name": "일", "name": "작업 정리", "desc": "생산 +10%", "cost": 200, "days": 1, "state": "done", "lock_hint": ""},
+   {"id": "w2", "branch": "work", "branch_name": "일", "name": "야간 교대", "desc": "밤에도 돈다", "cost": 500, "days": 2, "state": "active", "lock_hint": ""},
+   {"id": "w3", "branch": "work", "branch_name": "일", "name": "폐열 회수", "desc": "", "cost": 900, "days": 3, "state": "locked", "lock_hint": "야간 교대 먼저"},
+   {"id": "r1", "branch": "road", "branch_name": "길", "name": "손수레", "desc": "근거리 탐험 -15% 시간", "cost": 150, "days": 1, "state": "ready", "lock_hint": ""},
+   {"id": "r2", "branch": "road", "branch_name": "길", "name": "지도 제작", "desc": "먼 곳이 보인다", "cost": 600, "days": 2, "state": "locked", "lock_hint": "손수레 먼저"}
+  ]},
+ "policies": {"slots": {"used": 1, "max": 2}, "items": [
+   {"id": "ration", "name": "배급제", "desc": "끼니 −20%, 행복 −8", "on": true, "locked": false, "lock_hint": ""},
+   {"id": "overtime", "name": "초과 근무", "desc": "생산 +20%, 행복 −10", "on": false, "locked": false, "lock_hint": ""},
+   {"id": "taxcut", "name": "감세", "desc": "세수 −20%, 행복 +8", "on": false, "locked": false, "lock_hint": ""},
+   {"id": "bribe", "name": "뒷돈", "desc": "단속 위험 증가 −70%, 음성 시설당 유지비", "on": false, "locked": true, "lock_hint": "토박이 100명"}
+ ]}
+}

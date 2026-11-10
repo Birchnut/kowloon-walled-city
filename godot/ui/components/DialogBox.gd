@@ -12,6 +12,7 @@ const CPS := 70.0          # 초당 글자 수(줄바꿈 방지용 폭 0 문자�
 
 var bottom_gap: float = 0.0
 var top_offset: float = 118.0
+var at_top: bool = false            # 시트가 열려 있으면 위쪽에(시트 내용을 가리지 않게)
 var _catch: Control
 var _box: PanelContainer
 var _text: Label
@@ -137,6 +138,8 @@ func _place() -> void:
 	_box.custom_minimum_size = Vector2(w - side * 2, 0)
 	_box.size = Vector2.ZERO
 	var by := size.y - bottom_gap - _box.size.y - 12.0
+	if at_top:
+		by = top_offset + 30.0
 	_box.position = UI.snap(Vector2(side, by))
 	_plaque.reset_size()
 	_plaque.position = _box.position + Vector2(14, -24)
@@ -151,7 +154,7 @@ func _place() -> void:
 		_hint.position = Vector2(8, top_offset)
 		_skip.position = Vector2(8, top_offset + (_hint.size.y + 6 if _hint.visible else 0.0))
 	else:
-		_skip.position = Vector2(w - _skip.size.x - side, _box.position.y - 62)
+		_skip.position = Vector2(w - _skip.size.x - side, (_box.position.y + _box.size.y + 6) if at_top else (_box.position.y - 62))
 
 
 func _process(delta: float) -> void:
