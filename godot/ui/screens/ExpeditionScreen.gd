@@ -443,7 +443,7 @@ func _build_card() -> void:
 	big.add_child(UI.label(fmt_real(float(d.get("seconds", 0))), "LabelBold"))
 	var bonus := str(d.get("bonus_text", ""))
 	if bonus != "":
-		_card_body.add_child(UI.label("덤: " + bonus, "LabelSmall", true))
+		_card_body.add_child(UI.label(bonus if bonus.begins_with("덤") else "덤: " + bonus, "LabelSmall", true))
 	var cost := UI.to_dict(d.get("cost", {}))
 	if float(cost.get("money", 0)) > 0.0:
 		_card_body.add_child(Screen.kv("준비 비용", "₩" + UI.num(float(cost["money"]))))
