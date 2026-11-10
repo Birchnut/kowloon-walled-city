@@ -1,6 +1,7 @@
 class_name Tutorial
 extends Control
-## Tutorial — data/tutorial.json 을 한 단계씩 돌리는 진행기. 대본·순서는 전부 데이터.
+## Tutorial — data/ui/tutorial.json 을 한 단계씩 돌리는 진행기. 대본·순서는 전부 데이터.
+## 단계: say / highlight / wait_cmd(cmd, match{인자}) / wait_event / wait_screen(screen) / camera / set(screens, build_only, open, close, paused, rain)
 ##
 ## 막히지 않게 하는 장치:
 ##  - 기다리는 단계(wait_cmd / wait_event)는 전부 timeout 이 있다(지나면 그냥 다음 단계).
@@ -155,7 +156,7 @@ func _next() -> void:
 	match str(s.get("type", "")):
 		"say", "highlight":
 			_say(s)
-		"wait_cmd", "wait_event":
+		"wait_cmd", "wait_event", "wait_screen":
 			_begin_wait(s)
 		"camera":
 			_camera(s)
@@ -227,7 +228,10 @@ func _process(delta: float) -> void:
 	if _wait.is_empty():
 		return
 	_wait_t += delta
-	if _wait_t >= float(_wait.get("timeout", 30.0 if str(_wait.get("type", "")) == "wait_event" else 120.0)):
+	if str(_wait.get("type", "")) == "wait_screen" and ui != null and str(ui.screen) == str(_wait.get("screen", "")):
+		_complete_wait()
+		return
+	if _wait_t >= float(_wait.get("timeout", 30.0 if str(_wait.get("type", "")) != "wait_cmd" else 120.0)):
 		_complete_wait(true)
 
 
@@ -245,6 +249,10 @@ func on_cmd(cmd_name: String, args: Dictionary, result: Dictionary) -> void:
 		return
 	if cmd_name != str(_wait.get("cmd", "")) or not bool(result.get("ok", false)):
 		return
+	var m := UI.to_dict(_wait.get("match", {}))
+	for k: String in m:
+		if str(args.get(k, "")) != str(m[k]):
+			return
 	_last_args = args.duplicate()
 	_complete_wait.call_deferred()
 

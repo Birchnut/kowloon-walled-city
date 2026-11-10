@@ -26,6 +26,7 @@ var _grid_z: int = -1
 var _erase_stroke: bool = false
 var _move: bool = false
 var _menu_sig: String = ""
+var _spots: Array = []               # 이 층에서 can("build") 이 ok 인 자리(origin) — 배치 도움
 
 
 func _init() -> void:
@@ -62,6 +63,7 @@ func _init() -> void:
 	_bar.confirm.connect(_on_confirm)
 	_bar.cancel.connect(_on_cancel)
 	_bar.menu.connect(func() -> void: _enter("menu"))
+	_bar.wreck.connect(func() -> void: _enter("demolish"))
 	_bar.move_toggled.connect(func(on: bool) -> void:
 		_move = on
 		Q.vcall("set_drag_paint", [mode in ["paint", "place"] and not _move]))
@@ -118,6 +120,8 @@ func _enter(m: String) -> void:
 		"paint", "place":
 			sheet.snap_open(false)
 			_grid_on()
+			if m == "place":
+				_scan_spots()
 			Q.vcall("set_drag_paint", [not _move])
 			_bar.visible = true
 			_update_bar()
@@ -154,7 +158,25 @@ func on_floor_changed() -> void:
 		place_pos = null
 		Q.vcall("clear_overlay")
 		_grid_on()
+		if mode == "place":
+			_scan_spots()
 		_update_bar()
+
+
+## 이 층에서 놓을 수 있는 자리를 can() 에 하나씩 물어 "valid" 칸으로 보여 준다(판정은 시뮬, UI는 묻기만).
+func _scan_spots() -> void:
+	_spots.clear()
+	var id := str(item.get("id", ""))
+	var gw := int(Data.cfg("grid.width", 12))
+	var gh := int(Data.cfg("grid.height", 12))
+	for x in gw:
+		for y in gh:
+			var p := Vector3i(x, y, _grid_z)
+			var c := Q.can_full("build", {"type": id, "pos": p})
+			# 자리 자체는 되는데 돈·자재만 모자란 곳도 "놓을 수 있는 자리"로 보인다(이유 코드가 없어 문장으로 가른다 — UI_NOTES 빈틈)
+			if bool(c.get("ok", false)) or str(c.get("reason", "")).contains("모자란다"):
+				_spots.append(p)
+	Q.vcall("show_cells", [_spots, "valid"])
 
 
 # ------------------------------------------------------------------ 메뉴
@@ -336,7 +358,11 @@ func _update_bar() -> void:
 			if not (place_pos is Vector3i):
 				Q.vcall("show_ghost", [[], true, []])
 				Q.vcall("show_cells", [[], "range"])
-				_bar.show_state(head, "놓을 자리를 누르거나 끈다. " + costs, "", false, "확정")
+				if _spots.is_empty():
+					var sz := int(item.get("size", 1))
+					_bar.show_state(head, costs, "자리 없음 — 이 층에 %s 빈자리가 없다. 다른 층을 고르거나 [철거]로 비운다." % ("2×2" if sz > 1 else "한 칸"), false, "확정")
+				else:
+					_bar.show_state(head, "밝은 칸(%d곳)에 놓을 수 있다. 누르거나 끈다. %s" % [_spots.size(), costs], "", false, "확정")
 				return
 			var p: Vector3i = place_pos
 			var size_n := maxi(1, int(item.get("size", 1)))
@@ -393,6 +419,7 @@ func _on_confirm() -> void:
 			ui.toast("%s 공사를 시작했다." % str(item.get("name", "")), "good")
 			place_pos = null
 			Q.vcall("clear_overlay")
+			_scan_spots()
 			_menu = Q.list("build_menu")
 			var again := _find(str(item.get("id", "")))
 			if not again.is_empty():
@@ -476,11 +503,9 @@ class ItemCard extends Button:
 		for w: Variant in UI.to_array(it.get("workforce", [])):
 			if w is Dictionary:
 				wf.append("%s %d" % [str(w.get("name", "")), int(w.get("n", 0))])
-		var info := UI.hbox(8)
-		v.add_child(info)
-		info.add_child(UI.label(("인력 " + ", ".join(wf)) if not wf.is_empty() else "인력 없음", "LabelSmall"))
+		v.add_child(UI.label(("인력 " + ", ".join(wf)) if not wf.is_empty() else "인력 없음", "LabelSmall", true))
 		if float(it.get("upkeep", 0)) > 0.0:
-			info.add_child(UI.label("유지 ₩%s/일" % str(snappedf(float(it["upkeep"]), 0.1)), "LabelDim"))
+			v.add_child(UI.label("유지비 ₩%s/일" % str(snappedf(float(it["upkeep"]), 0.1)), "LabelDim"))
 		var eff := UI.label(str(it.get("effect_text", "")), "LabelSmall", true)
 		eff.add_theme_color_override("font_color", UI.col("jade_hi") if not locked else UI.col("mute"))
 		v.add_child(eff)
@@ -514,6 +539,7 @@ class PlaceBar extends PanelContainer:
 	signal cancel
 	signal menu
 	signal move_toggled(on: bool)
+	signal wreck
 	var bottom_gap := 80.0:
 		set(v):
 			bottom_gap = v
@@ -523,6 +549,7 @@ class PlaceBar extends PanelContainer:
 	var _why: Label
 	var _ok: PixelButton
 	var _move: PixelButton
+	var _wreck_btn: PixelButton
 
 	func _init() -> void:
 		theme_type_variation = "PanelSheet"
@@ -541,6 +568,11 @@ class PlaceBar extends PanelContainer:
 		mb.small = true
 		mb.pressed.connect(func() -> void: menu.emit())
 		hr.add_child(mb)
+		var wb := PixelButton.make("철거", "wreck", "ButtonChipRed")
+		wb.small = true
+		wb.pressed.connect(func() -> void: wreck.emit())
+		hr.add_child(wb)
+		_wreck_btn = wb
 		_move = PixelButton.make("이동", "move", "ButtonChip")
 		_move.small = true
 		_move.toggle_mode = true
@@ -588,6 +620,7 @@ class PlaceBar extends PanelContainer:
 		_why.text = UI.keep(why)
 		_why.visible = why != ""
 		_ok.visible = not no_ok
+		_wreck_btn.visible = not no_ok
 		_ok.label_text = ok_text
 		_ok.disabled = not ok
 		_ok.theme_type_variation = "ButtonJade" if ok else ""

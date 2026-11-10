@@ -501,6 +501,15 @@ func target_rect(target: String) -> Rect2:
 	if target.begins_with("nav_"):
 		var b := nav.button(target.substr(4))
 		return b.get_global_rect() if b != null else Rect2()
+	if target.begins_with("flow:"):
+		# 짓기 흐름을 따라 강조가 옮겨 다닌다: 바 버튼 → 카드 → 확정
+		var id := target.substr(5)
+		if screen != "build":
+			return nav.button("build").get_global_rect()
+		if build.mode in ["paint", "place"]:
+			return build.target_rect("confirm")
+		var r := build.target_rect(id)
+		return r if r.size.x > 0 else build.sheet.get_global_rect()
 	if target.begins_with("build:"):
 		return build.target_rect(target.substr(6))
 	if target.begins_with("exp:"):

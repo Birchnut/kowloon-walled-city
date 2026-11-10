@@ -38,7 +38,6 @@ func _init() -> void:
 	_scroll = sb[0]
 	_body = sb[1]
 	sheet.body.add_child(_scroll)
-	sheet.header.add_child(UI.label("정기 수출입", "LabelDim"))
 	poll_sec = 1.0
 
 
@@ -62,7 +61,7 @@ func refresh() -> void:
 		return
 	_sig = sig
 	var sl := UI.to_dict(d.get("slots", {}))
-	_slots.text = "계약 %d/%d자리" % [int(sl.get("used", 0)), int(sl.get("max", 0))]
+	_slots.text = "%d/%d자리" % [int(sl.get("used", 0)), int(sl.get("max", 0))]
 	var keep_off := _scroll.offset
 	Screen.clear(_body)
 	if bool(d.get("no_post", false)) and UI.to_array(d.get("active", [])).is_empty():
@@ -118,7 +117,7 @@ func _active_row(c: Dictionary) -> Control:
 	ml.add_theme_color_override("font_color", UI.col("jade_hi") if pm >= 0 else UI.col("red_hi"))
 	h.add_child(ml)
 	v.add_child(UI.label("%d개씩 %d시간마다 · 개당 ₩%s · %s" % [int(c.get("qty", 0)), int(c.get("interval_h", 0)), str(snappedf(float(c.get("price", 0)), 0.01)),
-		"멈춤" if paused else ("다음 회차 %s시간 뒤" % str(snappedf(float(c.get("next_in_h", 0)), 0.1)))], "LabelDim"))
+		"멈춤" if paused else ("다음 회차 %s시간 뒤" % str(snappedf(float(c.get("next_in_h", 0)), 0.1)))], "LabelDim", true))
 	var last := str(c.get("last_text", ""))
 	if last != "":
 		var ll := UI.label("최근: " + last, "LabelSmall", true)
@@ -206,7 +205,7 @@ func _offer_row(o: Dictionary, no_post: bool) -> Control:
 	h.add_child(UI.tag("수출" if exp else "수입", "gold" if exp else "jade"))
 	h.add_child(UI.label(str(o.get("good_name", "")), "LabelBold"))
 	h.add_child(UI.spacer(true))
-	h.add_child(UI.label("우리가 팔고 돈을 받는다" if exp else "우리가 사고 돈을 낸다", "LabelDim"))
+	h.add_child(UI.label("팔고 받는다" if exp else "사고 낸다", "LabelDim"))
 	var sizes := UI.to_array(o.get("sizes", []))
 	var row := HFlowContainer.new()
 	row.add_theme_constant_override("h_separation", 6)

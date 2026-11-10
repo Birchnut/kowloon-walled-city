@@ -131,7 +131,7 @@ func _good_row(g: Dictionary) -> Control:
 	var h := UI.hbox(6)
 	v.add_child(h)
 	var nm := UI.label(str(g.get("name", "")), "LabelSmall")
-	nm.custom_minimum_size.x = 112
+	nm.custom_minimum_size.x = 132
 	nm.clip_text = true
 	h.add_child(nm)
 	var cap := maxf(1.0, float(g.get("cap", 1)))
