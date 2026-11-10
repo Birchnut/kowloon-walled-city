@@ -102,6 +102,14 @@ func _avail(state: CityState, o: Dictionary, mk: Array, sv: Dictionary) -> Strin
 	return "range"
 
 
+## 지금 고른 상품 o보다 넉넉한(지난 스텝 공급률 ≥ ok, 재고 있음, 접근 가능) 대체품이 있나.
+func _has_better(state: CityState, opts: Array, o: Dictionary, mk: Array, sv: Dictionary, fills: Dictionary) -> bool:
+	for a: Dictionary in opts:
+		if a != o and a["kind"] == "good" and float(fills.get(a["good"], 1.0)) >= _ok and _avail(state, a, mk, sv) == "":
+			return true
+	return false
+
+
 func _pick(state: CityState, n: Dictionary, rec: Dictionary, mk: Array, sv: Dictionary, r: float) -> Array:
 	var count := int(n.get("count", 1))
 	var opts: Array = n["options"]
@@ -112,12 +120,18 @@ func _pick(state: CityState, n: Dictionary, rec: Dictionary, mk: Array, sv: Dict
 		by_key[o["key"]] = o
 	var keep: Array = []
 	var failed: Array = []
+	var fills: Dictionary = state.flags.get("fill", {})
 	for k: String in str(rec.get("pick", "")).split(",", false):
 		if by_key.has(k):
-			if _avail(state, by_key[k], mk, sv) == "":
-				keep.append(by_key[k])
+			var o: Dictionary = by_key[k]
+			var bad := _avail(state, o, mk, sv) != ""
+			# 재고가 조금씩만 들어와 매 스텝 바닥나는 상품(지난 스텝 공급률 < ok)도 끊긴 것으로 본다 — 넉넉한 대체품이 있으면 갈아탄다
+			if not bad and o["kind"] == "good" and float(fills.get(o["good"], 1.0)) < _ok:
+				bad = _has_better(state, opts, o, mk, sv, fills)
+			if not bad:
+				keep.append(o)
 			else:
-				failed.append(by_key[k])
+				failed.append(o)
 	for o: Dictionary in opts:
 		if o.get("prefer", false) and not (o in keep) and _avail(state, o, mk, sv) == "":
 			if o["kind"] == "utility":
@@ -130,7 +144,13 @@ func _pick(state: CityState, n: Dictionary, rec: Dictionary, mk: Array, sv: Dict
 	for o: Dictionary in opts:
 		if keep.size() >= count:
 			break
-		if not (o in keep) and not (o.get("prefer", false) and o["kind"] == "utility") and _avail(state, o, mk, sv) == "":
+		if not (o in keep) and not (o in failed) and not (o.get("prefer", false) and o["kind"] == "utility") and _avail(state, o, mk, sv) == "" \
+				and (o["kind"] != "good" or float(fills.get(o["good"], 1.0)) >= _ok):
+			keep.append(o)
+	for o: Dictionary in opts:
+		if keep.size() >= count:
+			break
+		if not (o in keep) and not (o in failed) and not (o.get("prefer", false) and o["kind"] == "utility") and _avail(state, o, mk, sv) == "":
 			keep.append(o)
 	for o: Dictionary in failed + opts:
 		if keep.size() >= count:
@@ -179,15 +199,18 @@ func tick(state: CityState, dt: float) -> void:
 		work.append([b, rows])
 	# 재고/수요 비율로 공평하게 나눠 소비
 	var fill := {}
+	var fills_saved := {}
 	for g: String in demand:
 		var dmd: float = demand[g]
 		var have := float(state.stock.get(g, 0.0))
 		var f := 1.0 if have >= dmd else have / dmd
 		fill[g] = f
+		fills_saved[g] = snappedf(f, 0.0001)
 		var used := dmd * f
 		state.stock[g] = maxf(0.0, have - used)
 		sim.flow_add(g, "cons", used)
 		state.stat_add("cons." + g, used)
+	state.flags["fill"] = fills_saved
 	# 2단계: 충족도 · 인원 · 행복 · 세수
 	var P := "population."
 	var grace := float(sim.cfg(P + "grace_days", 3))

@@ -29,7 +29,8 @@
    "unlocks": [
     "noodle_mill",
     "candle_shop",
-    "trade_post"
+    "trade_post",
+    "scrapyard"
    ],
    "grade_name": "판자촌"
   },
@@ -46,8 +47,7 @@
     "tailor",
     "distillery",
     "teahouse",
-    "water_tower",
-    "scrapyard"
+    "water_tower"
    ]
   },
   "t2_1": {

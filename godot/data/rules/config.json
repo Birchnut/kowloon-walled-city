@@ -30,7 +30,7 @@
  },
  "start": {
   "_status": "실험값. 세 계열 자재 12씩(GDD §8)",
-  "money": 600,
+  "money": 1000,
   "stock": {
    "wood": 12,
    "metal": 12,
@@ -103,7 +103,7 @@
   "_broke": "파산(돈 0)으로 멈춘 시설은 유지비 1일치가 모이면 다시 켠다"
  },
  "contracts": {
-  "base_slots": 0,
+  "base_slots": 1,
   "slots_per_post": 2,
   "first_delay_h": 1,
   "_status": "실험값"

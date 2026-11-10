@@ -41,7 +41,7 @@
    "priority": "service",
    "size": 2,
    "cost": {
-    "money": 200,
+    "money": 160,
     "goods": {
      "scrap": 10
     }
@@ -420,7 +420,7 @@
    "priority": "goods",
    "size": 1,
    "cost": {
-    "money": 150,
+    "money": 120,
     "goods": {
      "scrap": 10
     }
@@ -447,7 +447,7 @@
    "priority": "goods",
    "size": 1,
    "cost": {
-    "money": 150,
+    "money": 120,
     "goods": {}
    },
    "upkeep": 5,
@@ -652,7 +652,7 @@
    "priority": "service",
    "size": 1,
    "cost": {
-    "money": 150,
+    "money": 120,
     "goods": {}
    },
    "upkeep": 5,
@@ -926,7 +926,7 @@
    "priority": "other",
    "size": 1,
    "cost": {
-    "money": 150,
+    "money": 100,
     "goods": {}
    },
    "upkeep": 4,
