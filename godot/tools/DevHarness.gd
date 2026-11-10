@@ -22,7 +22,7 @@ extends Node
 ##   script=<json 경로>     시간 순서 동작 목록을 진짜 입력(Input.parse_input_event)으로 몬다 — 아래 _run_script 참고.
 ##   out=<폴더>             script 의 shot 이 PNG 를 남길 곳(기본: script 파일 옆 shots/)
 ##   save_at=<경로>  ago=<초>  현재 상태를 last_saved_unix = 지금 - ago 로 저장하고 끝(미접속 시험용 세이브 만들기)
-##   load_save=<경로>        Game.load_game 과 같은 길(미접속 정산 포함)로 그 파일을 읽는다
+##   load_save=<경로>        Game.load_game 과 같은 길(미접속 정산 포함)로 그 파일을 읽는다. load_ago=<초> 면 마지막 정산을 그만큼 전으로
 
 const FIX := "res://tools/fixtures/%s.json"
 
@@ -49,6 +49,8 @@ func _ready() -> void:
 		if s0.from_json(FileAccess.get_file_as_string(str(args["load_save"]))):
 			# Game.load_game 과 같은 순서: 상태 → 미접속 정산 → 교체 알림
 			Game.state = s0
+			if args.has("load_ago"):
+				s0.last_saved_unix = Game._now() - int(args["load_ago"])
 			Game.sim.now_unix = Game._now()
 			Game._last_frame_unix = Game.sim.now_unix
 			Game._offline_catch_up()
@@ -313,6 +315,46 @@ func _step(i: int, s: Dictionary) -> void:
 		for p: Variant in s["drag"]:
 			pts.append(_xy(p))
 		await _drag(pts, int(s.get("steps", 6)))
+	elif s.has("press_in"):
+		# 글자 c 를 품은 라벨이 든 판(가장 가까운 PanelContainer) 안의 n번째 버튼. 끌기 목록이면 먼저 그 판이 보이게 굴린다.
+		var lab := _find_ctrl(str(s["press_in"]), int(s.get("nth", 0)), s.get("region"), true)
+		if lab == null:
+			print("[script] #%d press_in 못 찾음: %s" % [i, s["press_in"]])
+			return
+		# 행 = 끌기 목록 내용(DragScroll 의 자식)의 바로 아래 자식. 목록 밖이면 가장 가까운 PanelContainer
+		var panel: Node = lab
+		while panel != null and panel.get_parent() != null and not (panel.get_parent().get_parent() is DragScroll):
+			panel = panel.get_parent()
+		if panel == null or panel.get_parent() == null:
+			panel = lab
+			while panel != null and not (panel is PanelContainer):
+				panel = panel.get_parent()
+		var ds: Node = panel
+		while ds != null and not (ds is DragScroll):
+			ds = ds.get_parent()
+		if ds != null:
+			var d: DragScroll = ds
+			var rel := (panel as Control).get_global_rect().position.y - d.get_global_rect().position.y
+			d.scroll_to(d.offset + rel - 8.0)
+			await get_tree().process_frame
+			await get_tree().process_frame
+		var bs: Array = []
+		_buttons_in(panel, bs)
+		var want := str(s.get("button", ""))
+		var pick: Control = null
+		var k := 0
+		for b: Control in bs:
+			var bt := _plain((b as PixelButton).label_text if b is PixelButton else (b as Button).text)
+			if want == "" or bt.contains(want):
+				if k == int(s.get("bn", 0)):
+					pick = b
+					break
+				k += 1
+		if pick == null:
+			print("[script] #%d press_in '%s' 안에 버튼 없음(%d개)" % [i, s["press_in"], bs.size()])
+			return
+		print("[script] #%d press_in '%s' → '%s' @ %s" % [i, s["press_in"], _plain((pick as PixelButton).label_text if pick is PixelButton else (pick as Button).text), pick.get_global_rect().get_center()])
+		await _touch(pick.get_global_rect().get_center())
 	elif s.has("press"):
 		var c := _find_ctrl(str(s["press"]), int(s.get("nth", 0)), s.get("region"))
 		if c == null:
@@ -375,6 +417,39 @@ func _step(i: int, s: Dictionary) -> void:
 		print("[script] #%d until %s → %s (%.1f초)" % [i, JSON.stringify(u), "됨" if t0 < mx else "시간 초과", t0])
 	elif s.has("speed"):
 		Game.speed = float(s["speed"])
+	elif s.has("expr"):
+		# 개발 확인용: Expression 으로 값 찍기(입력 이름: ui, view, game)
+		var e := Expression.new()
+		if e.parse(str(s["expr"]), ["ui", "view", "game"]) == OK:
+			print("[script] #%d expr %s = %s" % [i, s["expr"], e.execute([ui, view, Game], self)])
+		else:
+			print("[script] #%d expr 해석 실패: %s" % [i, e.get_error_text()])
+	elif s.has("tod"):
+		Q.vcall("set_time_override", [float(s["tod"])])
+	elif s.has("view"):
+		# 뷰 조작: {"view": "rotate", "n": 1} / {"view": "zoom", "n": 1} / {"view": "cut", "n": 2}
+		match str(s["view"]):
+			"rotate":
+				Q.vcall("rotate_view", [int(s.get("n", 1))])
+			"zoom":
+				Q.vcall("zoom_step", [int(s.get("n", 1))])
+			"cut":
+				Q.vcall("set_floor_cut", [int(s.get("n", -1))])
+				ui.rail.set_cut(int(s.get("n", -1)))
+	elif s.has("jump"):
+		# 알림 jump 와 같은 길(UIRoot.jump) — 알림 줄은 돌아가며 바뀌어 터치로 고르기 어렵다
+		ui.jump(UI.to_dict(s["jump"]))
+		print("[script] #%d jump %s → 화면 '%s'" % [i, JSON.stringify(s["jump"]), ui.screen])
+	elif s.has("save"):
+		# 지금 상태를 파일로(ago 초 전에 저장한 것처럼). load_save= 로 다시 연다
+		var st: CityState = Game.state
+		var keep := st.last_saved_unix
+		st.last_saved_unix = Game._now() - int(s.get("ago", 0))
+		var f := FileAccess.open(str(s["save"]), FileAccess.WRITE)
+		f.store_string(st.to_json())
+		f.close()
+		st.last_saved_unix = keep
+		print("[script] #%d save %s" % [i, s["save"]])
 	elif s.has("say"):
 		print("[script] #%d %s" % [i, s["say"]])
 	elif s.has("dump"):
@@ -503,11 +578,11 @@ func _drag(pts: Array, steps: int) -> void:
 
 
 ## 보이는 컨트롤 중 글자를 품은 것(버튼 먼저, 그다음 라벨). region 이 있으면 그 안의 것만.
-func _find_ctrl(text: String, nth: int, region: Variant) -> Control:
+func _find_ctrl(text: String, nth: int, region: Variant, labels_only: bool = false) -> Control:
 	var buttons: Array = []
 	var labels: Array = []
 	_collect(get_tree().root, text, buttons, labels, region)
-	var pool := buttons if not buttons.is_empty() else labels
+	var pool := buttons if not buttons.is_empty() and not labels_only else labels
 	return pool[nth] if nth < pool.size() else null
 
 
@@ -539,6 +614,13 @@ static func _plain(t: String) -> String:
 	for z: String in ["\u200b", "\u2060", "\u200d", "\ufeff", "\u00a0"]:
 		t = t.replace(z, "" if z != "\u00a0" else " ")
 	return t
+
+
+func _buttons_in(n: Node, out: Array) -> void:
+	if n is BaseButton and not (n as BaseButton).disabled and (n as Control).is_visible_in_tree():
+		out.append(n)
+	for ch in n.get_children():
+		_buttons_in(ch, out)
 
 
 func _in_region(c: Control, region: Variant) -> bool:

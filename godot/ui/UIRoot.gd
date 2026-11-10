@@ -452,11 +452,18 @@ func _show_offline(s: Dictionary) -> void:
 	var hours := float(s.get("real_hours", 0.0))
 	var span := ("%d시간 %d분" % [int(hours), int(fmod(hours, 1.0) * 60.0)]) if hours >= 1.0 else ("%d분" % maxi(1, int(round(hours * 60.0))))
 	var lines := UI.to_array(s.get("lines", []))
+	# 10분이 안 되는 짧은 공백은 창을 띄우지 않고 한 줄만(통합 결정: 앱을 잠깐 내렸다 올릴 때마다 모달이 뜨면 귀찮다)
+	if hours < 1.0 / 6.0 and not bool(s.get("clamped", false)):
+		var last := str(lines[lines.size() - 1]) if not lines.is_empty() else ""
+		toast("자리를 비운 %s 사이%s" % [span, (" — " + last) if last != "" else ""], "dim")
+		return
 	if lines.is_empty():
 		lines = ["별일 없었다. 그게 제일 수상하다."]
+	var ed := float(s.get("econ_days", 0.0))
+	var etxt := ("%s일" % str(snappedf(ed, 0.1))) if ed >= 1.0 else ("%d시간" % maxi(1, int(round(ed * 24.0))))
 	Modal.notice(modals, {
 		"kicker": "자리를 비운 사이",
-		"title": "%s 동안 경제 시간으로 %s일" % [span, str(snappedf(float(s.get("econ_days", 0.0)), 0.1))],
+		"title": "%s 동안 경제 시간으로 %s" % [span, etxt],
 		"lines": lines, "bullets": true, "ok_text": "돌아왔다",
 	})
 

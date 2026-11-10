@@ -186,6 +186,16 @@ func _offers(rows: Array, no_post: bool) -> void:
 	if order.is_empty():
 		_body.add_child(UI.label("제안이 없다.", "LabelMute"))
 		return
+	# 집들이 지금 못 받는 상품의 수입 제안을 맨 위에(통합: 헌 옷을 찾느라 목록 끝까지 굴려야 했다)
+	var want := _wanted()
+	var top: Array = []
+	for o2: Variant in rows:
+		if o2 is Dictionary and bool(o2.get("known", true)) and str(o2.get("dir", "")) == "import" and want.has(str(o2.get("good_name", ""))):
+			top.append(o2)
+	if not top.is_empty():
+		_body.add_child(Screen.section("집들이 찾는 것"))
+		for o3: Dictionary in top:
+			_body.add_child(_offer_row(o3, no_post, str(o3.get("partner_name", ""))))
 	for pn: String in order:
 		var known := bool((by[pn][0] as Dictionary).get("known", true))
 		_body.add_child(Screen.section(pn if known else pn + " (모름)"))
@@ -197,7 +207,29 @@ func _offers(rows: Array, no_post: bool) -> void:
 			_body.add_child(_offer_row(o, no_post))
 
 
-func _offer_row(o: Dictionary, no_post: bool) -> Control:
+## 집들이 지금 모자란 상품 이름(계층마다 한 채씩 info 를 물어 비율 < 1 인 수요의 '쓰는 것'). 읽기만 한다.
+func _wanted() -> Dictionary:
+	var out := {}
+	var st: Variant = Game.state
+	if st == null:
+		return out
+	var seen := {}
+	for b: Variant in st.buildings.values():
+		if not (b is Dictionary) or str(b.get("kind", "")) != "house":
+			continue
+		var t := int(b.get("tier", 1))
+		if seen.has(t):
+			continue
+		seen[t] = true
+		var inf := Q.dict("info", {"bid": int(b.get("id", -1))})
+		for n: Variant in UI.to_array(inf.get("needs", [])):
+			if n is Dictionary and float(n.get("ratio", 1.0)) < 0.99 and str(n.get("role", "")) != "luxury":
+				for u: String in str(n.get("using", "")).split("·"):
+					out[u.strip_edges()] = true
+	return out
+
+
+func _offer_row(o: Dictionary, no_post: bool, partner: String = "") -> Control:
 	var v := UI.vbox(4)
 	var exp := str(o.get("dir", "")) == "export"
 	var h := UI.hbox(6)
@@ -205,7 +237,7 @@ func _offer_row(o: Dictionary, no_post: bool) -> Control:
 	h.add_child(UI.tag("수출" if exp else "수입", "gold" if exp else "jade"))
 	h.add_child(UI.label(str(o.get("good_name", "")), "LabelBold"))
 	h.add_child(UI.spacer(true))
-	h.add_child(UI.label("팔고 받는다" if exp else "사고 낸다", "LabelDim"))
+	h.add_child(UI.label(((partner + " · ") if partner != "" else "") + ("팔고 받는다" if exp else "사고 낸다"), "LabelDim"))
 	var sizes := UI.to_array(o.get("sizes", []))
 	var row := HFlowContainer.new()
 	row.add_theme_constant_override("h_separation", 6)

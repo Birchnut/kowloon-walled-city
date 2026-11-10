@@ -105,50 +105,75 @@ func _goals(g: Dictionary) -> void:
 	if steps.is_empty():
 		_body.add_child(UI.label("목표가 아직 없다.", "LabelMute"))
 		return
-	var current_found := false
+	# 순서: 지금 목표(방법·가는 버튼) → 앞으로 → 끝낸 것. 열자마자 할 일이 맨 위에 보이게(통합 결정).
+	var cur_s: Dictionary = {}
+	var ahead: Array = []
+	var done_l: Array = []
 	for s: Variant in steps:
 		if not (s is Dictionary):
 			continue
-		var done := bool(s.get("done", false))
-		var cur := not done and not current_found
-		if cur:
-			current_found = true
-		var p := UI.panel("PanelInset" if not cur else "PanelGold")
-		var v := UI.vbox(4)
-		p.add_child(v)
-		var h := UI.hbox(6)
-		v.add_child(h)
-		h.add_child(UI.icon_rect("check" if done else ("chev_r" if cur else "lock"), UI.col("jade_hi") if done else (UI.col("gold") if cur else UI.col("mute"))))
-		var tl := UI.label(str(s.get("text", "")), "LabelBold" if cur else "LabelSmall", true)
-		if not cur and not done:
-			tl.add_theme_color_override("font_color", UI.col("dim"))
-		h.add_child(tl)
-		if cur:
-			var pr := float(s.get("progress", 0))
-			var r := UI.hbox(6)
-			v.add_child(r)
-			r.add_child(RatioBar.make(pr, "gold", 10))
-			r.add_child(UI.label("%d%%" % int(pr * 100.0), "LabelGoldSmall"))
-			_goal_tip(v, str(s.get("id", "")))
-		var rw := UI.to_array(s.get("rewards", []))
-		if not rw.is_empty() and not done:
-			var flow := HFlowContainer.new()
-			flow.add_theme_constant_override("h_separation", 4)
-			flow.add_theme_constant_override("v_separation", 4)
-			flow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			v.add_child(flow)
-			for x: Variant in rw:
-				var xs := str(x)
-				if xs.length() > 16:
-					# 긴 보상(열리는 건물 목록)은 꼬리표 대신 줄바꿈 글자로 — 꼬리표는 한 줄이라 카드를 화면 밖으로 밀어냈다
-					var ll := UI.label("· " + xs, "LabelSmall", true)
-					ll.add_theme_color_override("font_color", UI.col("gold"))
-					v.add_child(ll)
-				else:
-					flow.add_child(UI.tag(xs, "gold" if xs.begins_with("성채 등급") else ""))
-		if done:
-			p.modulate = Color(1, 1, 1, 0.6)
-		_body.add_child(p)
+		if bool(s.get("done", false)):
+			done_l.append(s)
+		elif cur_s.is_empty():
+			cur_s = s
+		else:
+			ahead.append(s)
+	if not cur_s.is_empty():
+		_body.add_child(_goal_card(cur_s, "cur"))
+	if not ahead.is_empty():
+		_body.add_child(Screen.section("앞으로 %d개" % ahead.size()))
+		for s2: Dictionary in ahead:
+			_body.add_child(_goal_card(s2, "ahead"))
+	if not done_l.is_empty():
+		_body.add_child(Screen.section("끝낸 목표 %d개" % done_l.size()))
+		done_l.reverse()
+		for s3: Dictionary in done_l:
+			_body.add_child(_goal_card(s3, "done"))
+
+
+func _goal_card(s: Dictionary, kind: String) -> Control:
+	var done := kind == "done"
+	var cur := kind == "cur"
+	var p := UI.panel("PanelInset" if not cur else "PanelGold")
+	var v := UI.vbox(4)
+	p.add_child(v)
+	var h := UI.hbox(6)
+	v.add_child(h)
+	h.add_child(UI.icon_rect("check" if done else ("chev_r" if cur else "lock"), UI.col("jade_hi") if done else (UI.col("gold") if cur else UI.col("mute"))))
+	var tl := UI.label(str(s.get("text", "")), "LabelBold" if cur else "LabelSmall", true)
+	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if not cur and not done:
+		tl.add_theme_color_override("font_color", UI.col("dim"))
+	h.add_child(tl)
+	if cur:
+		var pr := float(s.get("progress", 0))
+		var r := UI.hbox(6)
+		v.add_child(r)
+		r.add_child(RatioBar.make(pr, "gold", 10))
+		r.add_child(UI.label("%d%%" % int(pr * 100.0), "LabelGoldSmall"))
+		_goal_tip(v, str(s.get("id", "")))
+	var rw := UI.to_array(s.get("rewards", []))
+	if not rw.is_empty() and not done:
+		var flow := HFlowContainer.new()
+		flow.add_theme_constant_override("h_separation", 4)
+		flow.add_theme_constant_override("v_separation", 4)
+		flow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		v.add_child(flow)
+		for x: Variant in rw:
+			var xs := str(x)
+			if xs.length() > 16:
+				# 긴 보상(열리는 건물 목록)은 꼬리표 대신 줄바꿈 글자로 — 꼬리표는 한 줄이라 카드를 화면 밖으로 밀어냈다
+				var ll := UI.label("· " + xs, "LabelSmall", true)
+				ll.add_theme_color_override("font_color", UI.col("gold"))
+				v.add_child(ll)
+			else:
+				flow.add_child(UI.tag(xs, "gold" if xs.begins_with("성채 등급") else ""))
+	if done:
+		p.modulate = Color(1, 1, 1, 0.6)
+		var dd := float(s.get("done_day", 0))
+		if dd >= 0.0 and s.has("done_day"):
+			h.add_child(UI.label("%d일" % (int(dd) + 1), "LabelMute"))
+	return p
 
 
 ## 지금 목표 카드 아래: 어떻게(data/ui/goal_tips.json) + 가는 버튼들.

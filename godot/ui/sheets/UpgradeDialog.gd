@@ -63,17 +63,20 @@ func _init() -> void:
 	v.add_child(_tier_row)
 	_cards = UI.hbox(8)
 	v.add_child(_cards)
-	_same = UI.label("", "LabelSmall", true)
-	_same.custom_minimum_size.x = 100
-	_same.add_theme_color_override("font_color", UI.col("gold"))
-	v.add_child(_same)
+	# 줄바꿈 글자(같은 값 한 줄·막힌 이유)는 끌기 목록 안에 둔다 — 밖에 두면 판이 글자 높이만큼 늘어나
+	# 승급 버튼이 화면 아래로 밀려 사라졌다(통합). 버튼은 늘 판 맨 아래에 보인다.
 	var sb := Screen.scroll_body(4)
 	_scroll = sb[0]
-	_body = sb[1]
+	var inner: VBoxContainer = sb[1]
 	v.add_child(_scroll)
+	_same = UI.label("", "LabelSmall", true)
+	_same.add_theme_color_override("font_color", UI.col("gold"))
+	inner.add_child(_same)
 	_why = UI.label("", "LabelSmall", true)
 	_why.add_theme_color_override("font_color", UI.col("red_hi"))
-	v.add_child(_why)
+	inner.add_child(_why)
+	_body = UI.vbox(4)
+	inner.add_child(_body)
 	_go = PixelButton.make("승급", "up", "ButtonJade")
 	_go.pressed.connect(_on_go)
 	v.add_child(_go)
@@ -89,7 +92,7 @@ func _place() -> void:
 	if not is_inside_tree():
 		return
 	var vh := size.y
-	var h := clampf(vh * (0.72 if _groups.size() > 1 else 0.64), 560.0, vh - _bar - _top - 40.0)
+	var h := clampf(vh * (0.72 if _groups.size() > 1 else 0.64), 560.0, maxf(560.0, vh - _bar - _top - 40.0))
 	_panel.position = Vector2(0, vh - _bar - h)
 	_panel.size = Vector2(size.x, h)
 	_scrim.position = Vector2(0, _top)
@@ -262,9 +265,28 @@ func _refresh() -> void:
 		if mt is Dictionary and str(mt.get("id", "")) == mat:
 			mname = str(mt.get("name", mat))
 	_go.label_text = "승급 — ₩%s · %s %d" % [UI.num(float(cost.get("money", 0))), mname, qty] if mname != "" else "자재를 고른다"
+	# 여러 채가 다 안 되면, 되는 만큼(앞에서부터 k채)을 시뮬에 물어 버튼을 "k채만"으로 바꾼다(판정은 upgrade_preview)
+	_fit_k = 0
+	if not ok and _batch and mat != "":
+		_fit_k = _fit_count()
+		if _fit_k > 0:
+			var q2: Variant = Game.query("upgrade_preview", {"bids": bids.slice(0, _fit_k), "material": mat})
+			var c2 := UI.to_dict(UI.to_dict(q2).get("cost", {}))
+			_go.label_text = "%d채만 승급 — ₩%s · %s %d" % [_fit_k, UI.num(float(c2.get("money", 0))), mname, int(c2.get("qty", 0))]
+			ok = true
 	_go.disabled = not ok or mat == ""
 	_go.theme_type_variation = "ButtonJade" if not _go.disabled else ""
 	_scroll.adopt_buttons()
+	_fit_size.call_deferred()
+
+
+## 내용이 바뀌는 동안 판이 늘어난 채로 남지 않게 높이만 다시 맞춘다(위치 트윈은 건드리지 않는다).
+func _fit_size() -> void:
+	if not visible:
+		return
+	var vh := size.y
+	var h := clampf(vh * (0.72 if _groups.size() > 1 else 0.64), 560.0, maxf(560.0, vh - _bar - _top - 40.0))
+	_panel.size = Vector2(size.x, h)
 
 
 func _preview(pv: Dictionary) -> void:
@@ -305,10 +327,28 @@ func _preview(pv: Dictionary) -> void:
 			_body.add_child(UI.label("· " + str(s), "LabelSmall", true))
 
 
+var _fit_k: int = 0
+
+
+## 앞에서부터 몇 채까지 지금 승급되나(0 = 한 채도 안 됨). 이분 탐색으로 upgrade_preview 를 몇 번만 묻는다.
+func _fit_count() -> int:
+	var lo := 0
+	var hi := bids.size() - 1
+	while lo < hi:
+		var mid := (lo + hi + 1) / 2
+		var q: Variant = Game.query("upgrade_preview", {"bids": bids.slice(0, mid), "material": mat})
+		if q is Dictionary and bool(q.get("ok", false)):
+			lo = mid
+		else:
+			hi = mid - 1
+	return lo
+
+
 func _on_go() -> void:
 	if mat == "" or ui == null:
 		return
-	var r: Dictionary = ui.cmd("upgrade", {"bids": bids, "material": mat})
+	var go_bids: Array = bids.slice(0, _fit_k) if _fit_k > 0 else bids
+	var r: Dictionary = ui.cmd("upgrade", {"bids": go_bids, "material": mat})
 	if not bool(r.get("ok", false)):
 		ui.toast(str(r.get("reason", "승급할 수 없다.")), "warn")
 		_refresh()
