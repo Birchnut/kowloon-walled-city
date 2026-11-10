@@ -584,7 +584,7 @@ func _send(args: Dictionary) -> void:
 	if not bool(r.get("ok", false)):
 		ui.toast(str(r.get("reason", "보낼 수 없다.")), "warn")
 		return
-	ui.toast("탐험대가 떠났다. %s 뒤에 돌아온다." % fmt_real(float(_dest(_sel).get("seconds", 0))).replace("실제 ", ""), "good")
+	# 떠났다는 말은 시뮬 일지 한 줄("탐험대 1이 …로 떠났다(10분).")이 토스트로 뜬다 — 같은 말을 한 번 더 띄우지 않는다.
 	_on_dest("")
 	refresh()
 
