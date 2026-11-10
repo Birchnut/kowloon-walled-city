@@ -29,8 +29,9 @@ func tick(state: CityState, dt: float) -> void:
 	var due := 0.0
 	var full := 0.0
 	var stopped := false
+	var uk := sim.mod(state, "upkeep.all")   # 연구: 시설 유지비 배수
 	for b: Dictionary in fac:
-		var u := float(sim.bdef(str(b["type"])).get("upkeep", 0.0))
+		var u := float(sim.bdef(str(b["type"])).get("upkeep", 0.0)) * uk
 		full += u
 		if b.get("money_stop", false):
 			stopped = true
@@ -52,7 +53,7 @@ func tick(state: CityState, dt: float) -> void:
 			var b: Dictionary = state.buildings.get(bid, {})
 			if b.get("kind", "") != "facility" or b.get("paused", false) or b.get("money_stop", false):
 				continue
-			var u := float(sim.bdef(str(b["type"])).get("upkeep", 0.0))
+			var u := float(sim.bdef(str(b["type"])).get("upkeep", 0.0)) * uk
 			if u <= 0.0:
 				continue
 			b["money_stop"] = true
@@ -95,7 +96,7 @@ func augment(state: CityState, name: String, _args: Dictionary, out: Variant) ->
 			elif b["kind"] == "facility":
 				rate += float(b.get("vice_rate", 0.0))
 				if not b.get("paused", false) and not b.get("money_stop", false):
-					rate -= float(sim.bdef(str(b["type"])).get("upkeep", 0.0))
+					rate -= float(sim.bdef(str(b["type"])).get("upkeep", 0.0)) * sim.mod(state, "upkeep.all")
 		out["net_per_day"] = snappedf(rate, 0.1)
 		var stopped := 0
 		for b: Dictionary in state.buildings.values():

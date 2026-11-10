@@ -69,6 +69,7 @@ func tick(state: CityState, dt: float) -> void:
 ## 생산식 한 스텝. 반환 = 실제 효율.
 func _produce(state: CityState, b: Dictionary, d: Dictionary, x: float, dt: float) -> float:
 	var rec: Dictionary = d["recipe"]
+	dt *= sim.mod(state, "prod.all")    # 연구·정책: 처리량(원료와 산출을 함께) 배수
 	var eff := x
 	if eff <= 0.0:
 		return 0.0

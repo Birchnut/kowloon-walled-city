@@ -427,6 +427,8 @@ func can(state: CityState, name: String, args: Dictionary) -> Dictionary:
 	for s: SimSystem in systems:
 		var r: Variant = s.can(state, name, args)
 		if r != null:
+			if r is Dictionary and r.get("reason", "") is String:
+				r["reason"] = kr(r["reason"])   # 조사 "이(가)" 등을 앞말에 맞춘다
 			return r
 	return {"ok": false, "reason": "지금은 할 수 없는 일이다 (%s)" % name}
 
@@ -445,6 +447,8 @@ func apply(state: CityState, name: String, args: Dictionary) -> Dictionary:
 				break
 	if res == null:
 		return {"ok": false, "reason": "지금은 할 수 없는 일이다 (%s)" % name}
+	if res is Dictionary and res.get("reason", "") is String:
+		res["reason"] = kr(res["reason"])
 	if res.get("ok", false):
 		for s: SimSystem in systems:
 			s.on_command(state, name, args, res)

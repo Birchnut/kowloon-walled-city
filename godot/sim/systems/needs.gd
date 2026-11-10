@@ -53,6 +53,13 @@ func setup(s: Sim) -> void:
 				_gidx[str(o["good"])] = _ngoods.size()
 				_ngoods.append(str(o["good"]))
 	_uidx = {"water": _ngoods.size(), "power": _ngoods.size() + 1}
+	_food.clear()
+	for id: String in sim.items("needs"):
+		if id.ends_with("_meal"):
+			for o: Dictionary in sim.item("needs", id).get("options", []):
+				if o.has("good"):
+					_food[str(o["good"])] = true
+	_mrev = ""
 	by_tier.clear()
 	for id: String in sim.items("needs"):
 		var n: Dictionary = sim.item("needs", id).duplicate(true)
@@ -179,6 +186,14 @@ var _last_used: Array = []
 var _ngoods: Array = []            # 수요에 나오는 상품
 var _pgen: int = 0                 # _pents를 비울 때마다 +1
 var _stepno: int = 0
+var _mrev: String = ""
+var _food_k := 1.0                 # 수정치(연구·정책): 끼니 소비, 전체 소비, 행복 가산, 소음 배수, 세수, 입주
+var _all_k := 1.0
+var _hap_add := 0.0
+var _noise_k := 1.0
+var _tax_k := 1.0
+var _movein_k := 1.0
+var _food: Dictionary = {}         # 끼니 상품(수요 id가 _meal로 끝나는 수요의 상품)
 var _env: PackedByteArray = PackedByteArray()   # 상품(재고 있음·공급률 충분) + 물·전기(0.5 이상·충분) 비트
 var _gidx: Dictionary = {}
 var _uidx: Dictionary = {}
@@ -556,11 +571,11 @@ func _phase2(state: CityState, e: Ent, rpos: bool, fill: Dictionary, noise: int)
 	p.nsig = [p.ratios, p.dcauses].hash()
 	var td := sim.tier(t)
 	p.target = mini(int(td.get("cap", 4)), int(floorf(target_f + 1e-6)))
-	var hp: float = _c["happiness_base"] + float(lux_met) * _c["happiness_per_luxury"] \
-		+ float(basic_short) * _c["happiness_basic_short"] - float(noise) * _c["noise_penalty"]
+	var hp: float = _c["happiness_base"] + _hap_add + float(lux_met) * _c["happiness_per_luxury"] \
+		+ float(basic_short) * _c["happiness_basic_short"] - float(noise) * _c["noise_penalty"] * maxf(0.0, _noise_k)
 	p.hp = clampf(hp, 0.0, 100.0)
 	var hm := lerpf(_c["tax_mult_min"], _c["tax_mult_max"], p.hp / 100.0)
-	p.taxk = float(td.get("tax", 0.0)) * (1.0 + float(adv_met) * _c["advance_tax_bonus"] + float(lux_met) * _c["luxury_tax_bonus"]) * hm
+	p.taxk = float(td.get("tax", 0.0)) * (1.0 + float(adv_met) * _c["advance_tax_bonus"] + float(lux_met) * _c["luxury_tax_bonus"]) * hm * _tax_k
 	return p
 
 
@@ -602,6 +617,18 @@ func tick(state: CityState, dt: float) -> void:
 		e.hr0 = 0.0
 		e.hr1 = 0.0
 	_stepno += 1
+	var mrev := "%d:%d" % [state.get_instance_id(), int(state.flags.get("mods_rev", 0))]
+	if mrev != _mrev:      # 연구·정책이 바뀌면 묶음 캐시를 버린다(행복·세수·소비 수정치가 2단계 결과에 들어 있다)
+		_mrev = mrev
+		_pents.clear()
+		_hent.fill(null)
+		_hset.fill(0)
+		_food_k = sim.mod(state, "cons.food")
+		_all_k = sim.mod(state, "cons.all")
+		_hap_add = sim.mod_sum(state, "happy.base")
+		_noise_k = sim.mod(state, "happy.noise")
+		_tax_k = sim.mod(state, "tax.all")
+		_movein_k = sim.mod(state, "movein")
 	var fills: Dictionary = state.flags.get("fill", {})
 	_env.resize(_ngoods.size() + 2)
 	for gi: int in _ngoods.size():
@@ -737,7 +764,7 @@ func tick(state: CityState, dt: float) -> void:
 	for g: String in _ngoods:     # 상품 순서를 데이터 순서로 고정(묶음 캐시 이력과 무관하게 같은 순서 → 저장·불러오기 결정론)
 		if not demand.has(g):
 			continue
-		var dmd: float = demand[g]
+		var dmd: float = demand[g] * _all_k * (_food_k if _food.has(g) else 1.0)
 		var have := float(state.stock.get(g, 0.0))
 		var f := 1.0 if have >= dmd else have / dmd
 		fill[g] = f
@@ -825,7 +852,7 @@ func tick(state: CityState, dt: float) -> void:
 		var res := old_res
 		if res < target:
 			b["leave"] = 0.0
-			b["grow"] = float(b.get("grow", 0.0)) + mi * (0.5 + hp / 100.0) * dt
+			b["grow"] = float(b.get("grow", 0.0)) + mi * _movein_k * (0.5 + hp / 100.0) * dt
 			while float(b["grow"]) >= 1.0 and res < target:
 				res += 1
 				b["grow"] = float(b["grow"]) - 1.0

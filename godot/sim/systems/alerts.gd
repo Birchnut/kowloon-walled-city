@@ -38,7 +38,7 @@ func tick(state: CityState, dt: float) -> void:
 
 
 func _al(id: String, text: String, tone: String, screen: String, arg: Variant = "") -> Dictionary:
-	return {"id": id, "text": text, "tone": tone, "jump": {"screen": screen, "arg": arg}}
+	return {"id": id, "text": Sim.kr(text), "tone": tone, "jump": {"screen": screen, "arg": arg}}
 
 
 func _compute(state: CityState) -> Dictionary:

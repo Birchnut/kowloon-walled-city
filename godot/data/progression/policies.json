@@ -1,0 +1,56 @@
+{
+ "_comment": "정책(GDD §10). 칸 수 = 열린 feature:policy_slot_N 수(unlocks.json). effects = 수정치(research와 같은 키). upkeep = 켜져 있는 동안 ₩/경제일, upkeep_per_vice = 음성 시설 하나당 ₩/경제일. group이 같은 정책은 하나만. 장부 'upkeep'. 실험값.",
+ "status": "구조 제안 / 수치 실험값",
+ "items": {
+  "rations": {
+   "name": "배급제",
+   "desc": "끼니를 줄여 나눈다. 끼니 소비 −20%, 행복 −8.",
+   "effects": {
+    "cons.food": -0.2,
+    "happy.base": -8
+   }
+  },
+  "overtime": {
+   "name": "초과 근무",
+   "desc": "밤까지 돌린다. 생산 처리량 +20%, 행복 −10.",
+   "effects": {
+    "prod.all": 0.2,
+    "happy.base": -10
+   }
+  },
+  "tax_cut": {
+   "name": "감세",
+   "group": "tax",
+   "desc": "세금을 깎아 준다. 세수 −20%, 행복 +8.",
+   "effects": {
+    "tax.all": -0.2,
+    "happy.base": 8
+   }
+  },
+  "tax_hike": {
+   "name": "중과세",
+   "group": "tax",
+   "desc": "골목마다 걷는다. 세수 +25%, 행복 −12.",
+   "effects": {
+    "tax.all": 0.25,
+    "happy.base": -12
+   }
+  },
+  "bribes": {
+   "name": "뒷돈",
+   "desc": "경찰서에 봉투를 돌린다. 단속 위험이 쌓이는 속도 −70%, 음성 시설 하나당 ₩/일.",
+   "effects": {
+    "heat.gain": -0.7
+   },
+   "upkeep_per_vice": 25
+  },
+  "welcome": {
+   "name": "입주 장려",
+   "desc": "이삿짐 수레를 보낸다. 입주 속도 2배, 유지비 ₩/일.",
+   "effects": {
+    "movein": 1.0
+   },
+   "upkeep": 60
+  }
+ }
+}

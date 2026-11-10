@@ -37,6 +37,7 @@ func tick(state: CityState, _dt: float) -> void:
 				res[u] = float(res.get(u, 0.0)) + r * float(ex[u])
 	res["water"] += rw
 	res["power"] += rp
+	res["water"] *= sim.mod(state, "water.demand")   # 연구: 주민 물 수요 배수
 	var cov := sim.cover(state)
 	var groups: Array = cov["groups"]
 	var sw := 0.0
@@ -68,7 +69,7 @@ func tick(state: CityState, _dt: float) -> void:
 				fdp += ap
 		gtw.append(tw)
 		gtp.append(tp)
-	var supply := {"water": sw, "power": sp}
+	var supply := {"water": sw, "power": sp * sim.mod(state, "power.supply")}   # 연구: 전기 공급 배수
 	var fac_dem := {"water": fdw, "power": fdp}
 	var out := {}
 	for u: String in U:

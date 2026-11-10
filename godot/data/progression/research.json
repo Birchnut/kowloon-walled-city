@@ -1,0 +1,159 @@
+{
+ "_comment": "연구(GDD §10, Jin 요청의 '우리 쪽 추가'). 공부방이 하나 이상 가동 중일 때만 진행, 한 번에 하나. cost = ₩(시작할 때 냄), days = 경제일(공부방이 멈추면 진행도 멈춤). requires = 앞 단계. effects = {수정치 키: 비율}(sim.mod = 1 + Σ, happy.base는 더하는 점수). reveals = 끝나면 알게 되는 목적지. 후반 돈 싱크라 값이 크다(실험값). 키 목록: docs/SIM_NOTES.md §수정치.",
+ "status": "구조 제안 / 수치 실험값",
+ "branches": {
+  "living": "살림",
+  "work": "일",
+  "road": "길"
+ },
+ "items": {
+  "rationing": {
+   "branch": "living",
+   "tier": 1,
+   "name": "공동 배급",
+   "desc": "골목마다 솥을 건다. 끼니 소비 −15%.",
+   "cost": 600,
+   "days": 1.0,
+   "effects": {
+    "cons.food": -0.15
+   }
+  },
+  "soundproof": {
+   "branch": "living",
+   "tier": 2,
+   "name": "방음",
+   "desc": "공장 벽에 솜을 채운다. 소음으로 깎이는 행복이 사라진다.",
+   "cost": 1600,
+   "days": 1.5,
+   "requires": "rationing",
+   "effects": {
+    "happy.noise": -1.0
+   }
+  },
+  "greening": {
+   "branch": "living",
+   "tier": 3,
+   "name": "옥상 녹화",
+   "desc": "지붕마다 화분. 모든 주거 행복 +5.",
+   "cost": 4000,
+   "days": 2.5,
+   "requires": "soundproof",
+   "effects": {
+    "happy.base": 5
+   }
+  },
+  "high_water": {
+   "branch": "living",
+   "tier": 4,
+   "name": "고층 급수",
+   "desc": "물탱크와 펌프를 층마다. 주민 물 수요 −20%.",
+   "cost": 9000,
+   "days": 3.5,
+   "requires": "greening",
+   "effects": {
+    "water.demand": -0.2
+   }
+  },
+  "workflow": {
+   "branch": "work",
+   "tier": 1,
+   "name": "작업 정리",
+   "desc": "공구를 벽에 건다. 생산 시설 처리량 +10%.",
+   "cost": 800,
+   "days": 1.0,
+   "effects": {
+    "prod.all": 0.1
+   }
+  },
+  "night_shift": {
+   "branch": "work",
+   "tier": 2,
+   "name": "야간 교대",
+   "desc": "불이 꺼지지 않는 작업장. 처리량 +15% 더.",
+   "cost": 2000,
+   "days": 1.5,
+   "requires": "workflow",
+   "effects": {
+    "prod.all": 0.15
+   }
+  },
+  "waste_heat": {
+   "branch": "work",
+   "tier": 3,
+   "name": "폐열 회수",
+   "desc": "발전기 열로 물을 데운다. 전기 공급 +20%.",
+   "cost": 5000,
+   "days": 2.5,
+   "requires": "night_shift",
+   "effects": {
+    "power.supply": 0.2
+   }
+  },
+  "precision": {
+   "branch": "work",
+   "tier": 4,
+   "name": "정밀 공정",
+   "desc": "덜 버리고 덜 고친다. 시설 유지비 −15%.",
+   "cost": 12000,
+   "days": 3.5,
+   "requires": "waste_heat",
+   "effects": {
+    "upkeep.all": -0.15
+   }
+  },
+  "handcart": {
+   "branch": "road",
+   "tier": 1,
+   "name": "손수레",
+   "desc": "탐험대에 바퀴를. 탐험 시간 −15%.",
+   "cost": 600,
+   "days": 1.0,
+   "effects": {
+    "exp.time": -0.15
+   }
+  },
+  "mapping": {
+   "branch": "road",
+   "tier": 2,
+   "name": "지도 제작",
+   "desc": "다녀온 길을 그려 둔다. 원거리 목적지를 모두 알게 되고 수확 +5%.",
+   "cost": 1500,
+   "days": 1.5,
+   "requires": "handcart",
+   "effects": {
+    "exp.yield": 0.05
+   },
+   "reveals": [
+    "timber_yard",
+    "industrial_park",
+    "megasite",
+    "old_plant"
+   ]
+  },
+  "truck": {
+   "branch": "road",
+   "tier": 3,
+   "name": "화물차",
+   "desc": "고물 트럭 한 대. 탐험 수확 +20%.",
+   "cost": 4500,
+   "days": 2.5,
+   "requires": "mapping",
+   "effects": {
+    "exp.yield": 0.2
+   }
+  },
+  "regulars": {
+   "branch": "road",
+   "tier": 4,
+   "name": "단골 거래",
+   "desc": "얼굴을 아는 거래처. 수입 단가 −10%, 수출 단가 +10%.",
+   "cost": 10000,
+   "days": 3.5,
+   "requires": "truck",
+   "effects": {
+    "trade.buy": -0.1,
+    "trade.sell": 0.1
+   }
+  }
+ }
+}

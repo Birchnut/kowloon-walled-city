@@ -95,7 +95,7 @@ func tick(state: CityState, _dt: float) -> void:
 func _run(state: CityState, c: Dictionary) -> void:
 	var g := str(c["good"])
 	var qty := float(c["qty"])
-	var price := float(c["price"])
+	var price := float(c["price"]) * sim.mod(state, "trade.buy" if c["dir"] == "import" else "trade.sell")   # 연구: 단골 거래
 	var tr := float(c.get("transport", 0.0))
 	var ok := true
 	var reason := ""
