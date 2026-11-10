@@ -1266,3 +1266,19 @@ func _furnish(p: Vector3i, c: Dictionary, rec: Dictionary, seed_v: int) -> void:
 		_:
 			_ib(p, k, 0.16, 0.16, 0.84, 0.3, 0.0, 0.2, "white", "white", WOODC, WOODT)
 			_ib(p, k, 0.16, 0.7, 0.34, 0.86, 0.0, 0.3, "shelf", "white", MeshBuf.WHITE, Color("#7a5848"))
+
+
+## 공사가 끝날 때 떨어져 나갈 비계만 따로(연출용).
+func build_scaffold(p: Vector3i) -> ArrayMesh:
+	var keep := mb
+	mb = MeshBuf.new()
+	var sc := tile("scaffold")
+	var nt := tile("net")
+	var o := 0.07
+	for d in 4:
+		mb.quad2(fp(p, d, -o, 1.2, o), fp(p, d, 1 + o, 1.2, o), fp(p, d, 1 + o, 0, o), fp(p, d, -o, 0, o), NRM[d], Rect2(sc.position, Vector2(16, 16)))
+		if d % 2 == 0:
+			mb.quad2(fp(p, d, 0, 0.9, o + 0.01), fp(p, d, 1, 0.9, o + 0.01), fp(p, d, 1, 0.06, o + 0.01), fp(p, d, 0, 0.06, o + 0.01), NRM[d], Rect2(nt.position, Vector2(16, 14)))
+	var m := mb.commit()
+	mb = keep
+	return m

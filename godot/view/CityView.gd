@@ -72,6 +72,7 @@ var _spots: Array = []
 var _overlay_dirty := false
 var _prev_kinds: Dictionary = {}
 var _cut_emitters: Array = []
+var _drops: Array = []
 var _all_emitters: Array = []
 
 
@@ -484,6 +485,14 @@ func _on_event(ev: String, payload: Dictionary) -> void:
 			for z in [pos.z - 1, pos.z, pos.z + 1]:
 				if z >= 0 and z < cfg.grid.z + 2:
 					_dirty[z] = true
+			# 공사 끝: 비계가 떨어져 나가고 먼지가 인다
+			var now_kind := str(Game.state.cells.get(pos, {}).get("kind", ""))
+			if str(_prev_kinds.get(pos, "")) == "site" and now_kind != "site" and now_kind != "":
+				_drop_scaffold(pos)
+			if now_kind == "":
+				_prev_kinds.erase(pos)
+			else:
+				_prev_kinds[pos] = now_kind
 		"power_changed":
 			var lv: int = int(payload.get("level", Game.state.power_level))
 			if _last_power <= 0 and lv > 0:
@@ -491,6 +500,16 @@ func _on_event(ev: String, payload: Dictionary) -> void:
 			_last_power = lv
 		"zone_changed":
 			_overlay_dirty = true
+
+
+func _drop_scaffold(pos: Vector3i) -> void:
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesher.build_scaffold(pos)
+	mi.material_override = _mat
+	_world.add_child(mi)
+	_drops.append({"node": mi, "t": 0.0})
+	if fx != null:
+		fx.call("add_dust", Vector3(pos.x + 0.5, pos.z * cfg.floor_h + 0.1, pos.y + 0.5), _t)
 
 
 func _start_power_wave() -> void:
@@ -810,6 +829,19 @@ func _process(delta: float) -> void:
 			_plane_next = period * (0.7 + 0.6 * fposmod(_t * 0.618, 1.0))
 			_shake = Vector2.ZERO
 			cam_dirty = true
+	# 떨어지는 비계
+	if not _drops.is_empty():
+		var keep: Array = []
+		for dr in _drops:
+			dr["t"] = float(dr["t"]) + delta
+			var tt: float = dr["t"]
+			var node: MeshInstance3D = dr["node"]
+			node.position.y = -floor(tt * tt * 5.0 * 16.0) / 16.0
+			if tt > 0.75:
+				node.queue_free()
+			else:
+				keep.append(dr)
+		_drops = keep
 	# 바뀐 층만 다시 짓는다
 	if not _dirty.is_empty():
 		var st: CityState = Game.state

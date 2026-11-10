@@ -85,6 +85,22 @@ func _process(_dt: float) -> void:
 		# 첫 전기의 밤 연출 시험
 		Game.state.power_level = 1
 		Game.event.emit("power_changed", {"level": 1})
+	if _args.has("sitedone") and _frame == int(_args["sitedone"]):
+		# 공사 완료 연출 시험: 모든 공사 칸을 방으로 바꾸고 cell_changed를 쏜다
+		for p in Game.state.cells.keys():
+			var c: Dictionary = Game.state.cells[p]
+			if str(c.get("kind", "")) == "site":
+				var b: Dictionary = c.get("becomes", {})
+				c["kind"] = str(b.get("kind", "housing"))
+				c["type"] = str(b.get("type", "room"))
+				c["material"] = str(b.get("material", c.get("material", "")))
+				c.erase("progress")
+				c.erase("becomes")
+				Game.event.emit("cell_changed", {"pos": p})
+	if _args.has("save_state") and _frame == 2:
+		var f := FileAccess.open(str(_args["save_state"]), FileAccess.WRITE)
+		if f:
+			f.store_string(JSON.stringify(Game.state.to_dict()))
 	if _args.has("plane") and _frame == 2:
 		view._plane_next = 0.0
 	if _args.has("dump_atlas") and _frame == 3:
