@@ -263,6 +263,7 @@ func _vecs(d: Dictionary) -> Dictionary:
 ##   {"click": [x, y]}                    마우스 왼쪽 클릭
 ##   {"drag": [[x,y],[x,y]…], "steps": n}  한 손가락 끌기(점 사이를 n등분)
 ##   {"press": "글자", "nth": 0, "region": [x0,y0,x1,y1]}   보이는 버튼(없으면 라벨) 중 글자를 품은 것의 가운데를 터치
+##   {"target": "exp:dest:<id>"}         UIRoot.target_rect 이름의 가운데를 터치
 ##   {"cell": [x,y,z]}                    뷰가 그 칸을 그린 화면 좌표를 터치
 ##   {"paint": [[x,y,z]…]}                칸들의 화면 좌표를 잇는 끌기(칠하기 모드에서 쓴다)
 ##   {"shot": "이름"}                      out/이름.png
@@ -322,6 +323,12 @@ func _step(i: int, s: Dictionary) -> void:
 		var at := c.get_global_rect().get_center()
 		print("[script] #%d press '%s' @ %s (%s)" % [i, s["press"], at, c.get_class()])
 		await _touch(at)
+	elif s.has("target"):
+		# 튜토리얼 강조 대상 이름(UIRoot.target_rect)의 가운데를 터치: exp:dest:<id>, exp:claim, nav_build, alert …
+		var r: Rect2 = ui.target_rect(str(s["target"]))
+		print("[script] #%d target %s → %s" % [i, s["target"], r])
+		if r.size.x > 0:
+			await _touch(r.get_center())
 	elif s.has("cell"):
 		var p := _v3arr(s["cell"])
 		var sp := _cell_xy(p, bool(s.get("top", true)))
@@ -371,7 +378,7 @@ func _step(i: int, s: Dictionary) -> void:
 	elif s.has("say"):
 		print("[script] #%d %s" % [i, s["say"]])
 	elif s.has("dump"):
-		_dump()
+		_dump(str(s["dump"]) == "labels")
 	elif s.has("quit"):
 		get_tree().quit()
 
@@ -541,10 +548,16 @@ func _in_region(c: Control, region: Variant) -> bool:
 	return p.x >= float(region[0]) and p.y >= float(region[1]) and p.x <= float(region[2]) and p.y <= float(region[3])
 
 
-func _dump() -> void:
+func _dump(with_labels: bool = false) -> void:
 	var b: Array = []
 	var l: Array = []
 	_collect(get_tree().root, "", b, l, null)
+	if with_labels:
+		for c: Control in l:
+			var r := c.get_global_rect()
+			# 화면 밖으로 삐져나간 글자만 표시(잘림 찾기)
+			var flag := " <<잘림?" if r.end.x > get_viewport().get_visible_rect().size.x + 0.5 or r.position.x < -0.5 else ""
+			print("  [lbl] '%s' %s%s" % [_plain((c as Label).text).replace("\n", "/").substr(0, 40), r, flag])
 	for c: Control in b:
 		var t: String = _plain((c as PixelButton).label_text if c is PixelButton else (c as Button).text)
 		if t.strip_edges() != "":

@@ -138,7 +138,14 @@ func _goals(g: Dictionary) -> void:
 			flow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			v.add_child(flow)
 			for x: Variant in rw:
-				flow.add_child(UI.tag(str(x), "gold" if str(x).begins_with("성채 등급") else ""))
+				var xs := str(x)
+				if xs.length() > 16:
+					# 긴 보상(열리는 건물 목록)은 꼬리표 대신 줄바꿈 글자로 — 꼬리표는 한 줄이라 카드를 화면 밖으로 밀어냈다
+					var ll := UI.label("· " + xs, "LabelSmall", true)
+					ll.add_theme_color_override("font_color", UI.col("gold"))
+					v.add_child(ll)
+				else:
+					flow.add_child(UI.tag(xs, "gold" if xs.begins_with("성채 등급") else ""))
 		if done:
 			p.modulate = Color(1, 1, 1, 0.6)
 		_body.add_child(p)

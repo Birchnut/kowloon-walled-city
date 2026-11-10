@@ -4,7 +4,7 @@ extends Control
 ##
 ##   toasts.push("자릿세 +12", "good", "coin")
 
-const MAX_TOASTS := 4
+const MAX_TOASTS := 3          # 통합: 넷이면 탐험 머리·시트 제목을 다 덮었다
 const LIFE := 3.0
 
 var top_offset: float = 118.0:

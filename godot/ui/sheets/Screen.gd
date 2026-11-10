@@ -168,3 +168,16 @@ static func goods_text(goods: Dictionary, names: Dictionary) -> String:
 	for g in goods:
 		parts.append("%s %s" % [str(names.get(g, g)), UI.num(float(goods[g]))])
 	return " · ".join(parts)
+
+
+## 보상 모양을 {상품 id: 수량}으로 맞춘다: [{good, name, n}](G6 확정) 또는 {good: n}(옛 모양) 모두 받는다.
+static func rewards_dict(v: Variant) -> Dictionary:
+	var out := {}
+	if v is Dictionary:
+		for k: Variant in v:
+			out[str(k)] = float(v[k])
+	elif v is Array:
+		for e: Variant in v:
+			if e is Dictionary and str(e.get("good", "")) != "":
+				out[str(e["good"])] = float(out.get(str(e["good"]), 0.0)) + float(e.get("n", 0))
+	return out

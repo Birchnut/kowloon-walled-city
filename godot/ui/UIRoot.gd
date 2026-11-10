@@ -365,8 +365,12 @@ func _on_event(n: String, p: Dictionary) -> void:
 	match n:
 		"log":
 			var tone := str(p.get("tone", ""))
+			var tx := str(p.get("text", ""))
+			# 목표 달성은 현수막이 말한다(같은 말을 두 번 하지 않게). 일지에는 남는다.
+			if tx.begins_with("목표 달성"):
+				return
 			if tone != "debug" or bool(Data.cfg("debug.enabled", false)):
-				toasts.push(str(p.get("text", "")), tone)
+				toasts.push(tx, tone)
 		"unlock":
 			_banner_unlock(p)
 		"milestone":
@@ -382,7 +386,7 @@ func _on_event(n: String, p: Dictionary) -> void:
 			refresh_soon()
 			_refresh_hud.call_deferred()
 			nav.pulse.call_deferred("expedition")
-			toast("탐험대가 돌아왔다. 탐험에서 수령하자.", "good", "mat")
+			# 문장은 시뮬 기록 줄("탐험대 n이 …에서 돌아왔다")이 토스트로 이미 띄운다 — 배지·알림 줄로 충분
 		"goal_done":
 			_on_goal_done(p)
 		"contract_done":
@@ -479,10 +483,7 @@ func _after_goal() -> void:
 	var h := Q.dict("hud")
 	var ng := UI.to_dict(h.get("next_goal", {}))
 	if str(ng.get("text", "")) != "":
-		var tip := goal_tip(str(ng.get("id", "")))
-		toasts.push("다음 목표: " + str(ng["text"]), "good", "", 5.0)
-		if not tip.is_empty() and not tutorial.running:
-			toasts.push(str(tip.get("tip", "")), "dim", "", 6.0)
+		toasts.push("다음 목표: " + str(ng["text"]) + " — [성채]에 방법", "good", "", 5.0)
 	nav.pulse("keep")
 
 
