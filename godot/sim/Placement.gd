@@ -4,7 +4,7 @@ extends RefCounted
 ## 후보 = 비움(keep)이 아닌 기둥의 맨 위 칸(지상 또는 완공된 칸 바로 위, 층 한도·자재 강도 안쪽,
 ##        하늘을 열어 둬야 하는 칸 위는 제외) + (해금되면) 옆 건물에 매달리는 허공 증축 한 칸.
 ## 점수 = 앵커와의 거리 + 옆벽에 기대기 + 같은 업종 모이기 + 구획 맞춤 + 자리 취향(prefer) + 볕(주거)
-##        − 소음·먼지 이웃 − 혼자 툭 튀어나오기 − 높이 + 무작위 흔들림.  가중치: data/economy.json "growth.score".
+##        − 소음·먼지 이웃 − 혼자 툭 튀어나오기 − 높이 + 기둥의 타고난 성격(column_bias) + 무작위 흔들림.  가중치: data/economy.json "growth.score".
 ## 가장 크게 기여한 항이 그 칸의 "왜 여기에"(why)가 된다.
 
 const N8: Array[Vector3i] = [Vector3i(1, 0, 0), Vector3i(-1, 0, 0), Vector3i(0, 1, 0), Vector3i(0, -1, 0),
@@ -134,6 +134,8 @@ static func _score(sim: Sim, state: CityState, spec: Dictionary, pos: Vector3i, 
 	mean = mean / float(cnt) if cnt > 0 else 0.0
 	parts["step"] = -float(S.get("step", 0.9)) * maxf(0.0, float(pos.z) - mean)
 	parts["height"] = -float(S.get("height", {}).get("housing" if housing else group, 0.3)) * float(pos.z)
+	# 기둥마다 타고난 성격(씨앗에서 나온 고정값): 어떤 자리는 탑이 되고 어떤 자리는 끝내 낮게 남는다.
+	parts["bias"] = float(S.get("column_bias", 2.0)) * (col_bias(state.rng_seed, pos.x, pos.y) - 0.5) * (1.0 + float(pos.z) * float(S.get("column_bias_z", 0.4)))
 	if zone != "":
 		var fits: bool = (zone == "housing") == housing
 		parts["zone"] = float(S.get("zone_match", 2.5)) if fits else -float(S.get("zone_clash", 5.0))
@@ -166,3 +168,11 @@ static func _score(sim: Sim, state: CityState, spec: Dictionary, pos: Vector3i, 
 			why_v = parts[key]
 			why = key
 	return {"pos": pos, "score": score, "why_key": why, "near": near, "anchor": a_name, "zone": zone}
+
+
+## 기둥의 타고난 성격 0..1 (게임 씨앗과 좌표만으로 정해지는 고정값).
+static func col_bias(seed_value: int, x: int, y: int) -> float:
+	var h: int = ((x * 73856093) ^ (y * 19349663) ^ (seed_value * 83492791)) & 0x7fffffff
+	h = ((h ^ (h >> 13)) * 1274126177) & 0x7fffffff
+	h = h ^ (h >> 16)
+	return float(h % 10007) / 10007.0

@@ -7,7 +7,7 @@ extends SimSystem
 ##  · 수금함은 cap까지 찬다(cap = 하루 수입 × cap_days, 최소 base_cap). ready_ratio를 넘기면 `collect_ready`.
 ##    skim_threshold를 넘긴 채 skim_grace_hours가 지나면 수금원이 시간당 skim_rate씩 떼어 뒷골목 금고(alley_fund)로 옮긴다.
 ##    떼인 만큼 악명이 오른다(skim_notoriety). 자경단 초소가 있으면 덜 떼인다(skim_guard).
-##  · collect {point}: 쌓인 돈을 금고로. 상납(flags.tribute)이 있으면 그만큼 윗선 몫. 찬 만큼 확률이 오르는 덤(data/loot.json) 굴림.
+##  · collect {point}: 쌓인 돈을 금고로. 상납(flags.tribute)이 있으면 그만큼 윗선 몫. 찬 만큼 확률이 오르는 덤(data/loot.json) 굴림(하루 loot_per_day번까지).
 ## 수치: data/economy.json "collection".
 
 
@@ -179,7 +179,12 @@ func apply(state: CityState, name: String, args: Dictionary) -> Variant:
 		p["skimmed"] = 0.0
 		p["over_hours"] = 0.0
 		p["ready"] = false
-		if sim.roll(state) < sim.num("collection.loot_chance", 0.5) * minf(ratio, 1.0):
+		var today: Dictionary = state.flags.get("loot_day", {"day": 0, "count": 0})
+		if int(today["day"]) != state.day:
+			today = {"day": state.day, "count": 0}
+		if int(today["count"]) < int(sim.num("collection.loot_per_day", 3)) and sim.roll(state) < sim.num("collection.loot_chance", 0.3) * minf(ratio, 1.0):
+			today["count"] = int(today["count"]) + 1
+			state.flags["loot_day"] = today
 			var item := _roll_loot(state)
 			if not item.is_empty():
 				loot.append(item)

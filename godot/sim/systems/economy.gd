@@ -2,8 +2,9 @@ extends SimSystem
 ## 살림 — 식량·자재·일자리의 하루 흐름(매시 1/24씩).
 ##  · 일자리: 집이 있는 일할 수 있는 가구를 빈 일자리에 붙인다(households.json job_pref가 높은 업종 먼저). 가구 1 = 일손 1.
 ##  · 생산: 시설·가게의 produces × 일손 비율. 볕을 먹는 것(sun)은 그 칸의 볕만큼만(최소 sun_floor). 돈 생산은 바로 금고로.
-##  · 소비: 집 있는 사람 1명당 eat. 공동부엌 하나마다 food_save만큼 덜 든다. 모자라면 돈으로 사 온다(food_price).
-##    돈도 없으면 굶는다 → state.flags.food_short(0..1)에 적힌다(민심·이탈은 다른 시스템이 읽는다).
+##  · 소비: 집 있는 사람 1명당 eat. 공동부엌 하나마다 food_save만큼 덜 든다. 창고가 food_buffer_days치의 절반 아래로 내려가면
+##    돈으로 사 온다(food_price). 돈이 없으면 뒷골목 금고가 alley_food_markup배 값에 대신 사 온다(악명↑, stats.alley_fed).
+##    그것도 없으면 굶는다 → state.flags.food_short(0..1)에 적힌다(민심·이탈은 다른 시스템이 읽는다).
 ##  · 유지비: 시설 upkeep + 카드가 건 일일 요금(flags.daily_fee). 빚은 max_debt까지.
 ##  · 하루 끝: 자재가 목표보다 적으면 남는 돈(money_reserve 초과분)의 materials_buy_share까지 써서 사들인다. 일손 0으로 close_days를 버틴 가게, 금지된 업종의 가게는 문을 닫는다.
 ## 수치: data/economy.json "economy" · 생산량은 facilities.json / businesses.json.
@@ -50,15 +51,25 @@ func on_hour(state: CityState, _hour: int) -> void:
 			need += float(h["size"]) * float(sim.item("households", str(h["type"])).get("eat", 1.0))
 	need *= sim.mod(state, "food.eat") * (1.0 - minf(0.3, float(m.get("count.kitchen", 0.0)) * float(sim.item("facilities", "kitchen").get("food_save", 0.0)))) / 24.0
 	state.food -= need
+	# 창고가 buffer 아래로 내려가면 사 온다. 금고가 비면 뒷골목 금고가 (비싸게) 대신 낸다 — 굶지는 않지만 주도권이 넘어간다.
 	var unmet := 0.0
-	if state.food < 0.0:
+	var buffer := need * 24.0 * sim.num("economy.food_buffer_days", 0.5)
+	if state.food < buffer * 0.5:
 		var price := sim.num("economy.food_price", 0.4)
-		var buy: float = minf(-state.food, maxf(0.0, state.money) / price)
+		var want := buffer - state.food
+		var buy: float = minf(want, maxf(0.0, state.money) / price)
 		state.money -= buy * price
 		state.food += buy
 		state.stats["food_bought"] = float(state.stats.get("food_bought", 0.0)) + buy * price
+		if state.food < 0.0 and state.alley_fund > 0.0:
+			var alley_price := price * sim.num("economy.alley_food_markup", 1.5)
+			var fed: float = minf(-state.food, state.alley_fund / alley_price)
+			state.alley_fund -= fed * alley_price
+			state.food += fed
+			state.stats["alley_fed"] = float(state.stats.get("alley_fed", 0.0)) + fed
+			state.notoriety = clampf(state.notoriety + fed * sim.num("economy.alley_food_notoriety", 0.01), 0.0, 100.0)
 		unmet = maxf(0.0, -state.food)
-		state.food = 0.0
+		state.food = maxf(0.0, state.food)
 	state.flags["food_need_today"] = float(state.flags.get("food_need_today", 0.0)) + need
 	state.flags["food_unmet_today"] = float(state.flags.get("food_unmet_today", 0.0)) + unmet
 	state.stats["food_made_rate"] = made * 24.0
@@ -196,3 +207,6 @@ func fast_forward(state: CityState, _hours: float, before: Dictionary, lines: Ar
 		lines.append("먹을 게 떨어졌다. 사람들이 굶고 있다.")
 	elif bought >= 1.0:
 		lines.append("식량이 모자라 ₩%d어치를 사들였다." % int(bought))
+	var fed := float(state.stats.get("alley_fed", 0.0)) - float(before.get("stat.alley_fed", 0.0))
+	if fed >= 1.0:
+		lines.append("금고가 비어 뒷골목 금고가 쌀을 풀었다. 사람들은 누가 먹여 줬는지 기억한다.")

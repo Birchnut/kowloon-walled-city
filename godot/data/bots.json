@@ -1,0 +1,106 @@
+{
+  "_comment": "자동 플레이어(합격 기준 D7 확인용). 사람이 할 수 있는 명령만 쓴다. 규칙은 sim/Bot.gd 맨 위 주석. plants의 at = [x, y] 목표 좌표(대문은 [5, 11]), when = 조건식, count = 몇 개까지, wait = 돈이 모일 때까지 다음 항목으로 안 넘어감.",
+  "items": {
+    "farmer": {
+      "name": "성실한 농부", "desc": "농업 장려, 공동부조, 목재·녹화. 마당을 비워 두고 제때 거둔다.",
+      "online_hours": 24, "plant_reserve": 15,
+      "policies": { "permit.farm": "promote", "permit.make": "allow", "permit.fun": "allow", "permit.vice": "ban",
+                    "intake": "open", "care": "mutual", "tax": "mid", "invest": "living", "material": "wood", "look": "green" },
+      "policy_rules": [ { "when": [["waiting", ">=", 8]], "set": { "invest": "growth" } } ],
+      "plants": [
+        { "facility": "garden", "at": [5, 7] },
+        { "facility": "well", "at": [4, 8], "wait": true },
+        { "facility": "garden", "at": [8, 4], "ground": true },
+        { "facility": "shrine", "at": [6, 9] },
+        { "facility": "kitchen", "at": [4, 6] },
+        { "facility": "garden", "at": [2, 3], "ground": true },
+        { "facility": "scrapyard", "at": [10, 9], "ground": true },
+        { "facility": "water_tank", "at": [5, 5] },
+        { "facility": "clinic", "at": [7, 7] },
+        { "facility": "well", "at": [8, 3] },
+        { "facility": "garden", "at": [9, 9], "ground": true },
+        { "facility": "hall", "at": [3, 9] },
+        { "facility": "garden", "at": [2, 8], "ground": true },
+        { "facility": "generator", "at": [11, 10], "when": [["population", ">=", 150]] },
+        { "facility": "water_tank", "at": [8, 5], "when": [["population", ">=", 120]] },
+        { "facility": "well", "at": [2, 5], "when": [["water_left", "<=", 20]], "count": 3 },
+        { "facility": "shrine", "at": [9, 2], "when": [["population", ">=", 200]] }
+      ],
+      "zones": [
+        { "zone": "keep", "cols": [[5, 6], [6, 6], [6, 7], [4, 7], [8, 5], [9, 4], [2, 2], [3, 3], [1, 6], [6, 2], [10, 7], [8, 9], [3, 10]] }
+      ],
+      "collect": { "ratio": 0.5 },
+      "cards": { "prefer": ["care", "green", "farm", "clean", "order"], "avoid": ["vice", "cage", "debt"] }
+    },
+    "merchant": {
+      "name": "방임하는 장사꾼", "desc": "오락 장려, 음성은 열리는 대로 허가. 세금은 낮게, 수금은 사흘에 한 번.",
+      "online_hours": 24, "plant_reserve": 10,
+      "policies": { "permit.farm": "allow", "permit.make": "allow", "permit.fun": "promote", "permit.vice": "allow",
+                    "intake": "open", "care": "none", "tax": "low", "invest": "growth", "material": "any", "look": "neon" },
+      "policy_rules": [ { "when": [["group.vice", ">=", 4]], "set": { "permit.vice": "promote" } } ],
+      "plants": [
+        { "facility": "stall", "at": [5, 10] },
+        { "facility": "well", "at": [6, 8], "wait": true },
+        { "facility": "stall", "at": [2, 10], "ground": true },
+        { "facility": "generator", "at": [9, 8], "wait": true },
+        { "facility": "stall", "at": [8, 10], "ground": true },
+        { "facility": "water_tank", "at": [6, 8] },
+        { "facility": "stall", "at": [5, 5], "ground": true },
+        { "facility": "well", "at": [3, 5] },
+        { "facility": "water_tank", "at": [4, 6], "when": [["population", ">=", 120]] },
+        { "facility": "stall", "at": [9, 3], "ground": true },
+        { "facility": "well", "at": [9, 5], "when": [["water_left", "<=", 20]], "count": 3 },
+        { "facility": "water_tank", "at": [8, 6], "when": [["population", ">=", 250]] }
+      ],
+      "zones": [
+        { "zone": "work", "rect": [2, 10, 9, 11] }
+      ],
+      "collect": { "every_days": 3 },
+      "cards": { "prefer": ["money", "vice", "fun", "growth"], "avoid": ["clean", "refuse"], "delay_days": 1 }
+    },
+    "factory": {
+      "name": "공장주", "desc": "제조 장려, 일꾼 우선, 함석에서 벽돌·콘크리트로. 높이 올린다.",
+      "online_hours": 24, "plant_reserve": 15,
+      "policies": { "permit.farm": "allow", "permit.make": "promote", "permit.fun": "allow", "permit.vice": "ban",
+                    "intake": "workers", "care": "none", "tax": "mid", "invest": "growth", "material": "sheet", "look": "none" },
+      "policy_rules": [
+        { "when": [["unlocked.masonry", ">=", 1], ["materials", ">=", 25]], "set": { "material": "masonry" } },
+        { "when": [["unlocked.masonry", ">=", 1], ["day", ">=", 8]], "set": { "material": "masonry", "invest": "utility" } },
+        { "when": [["waiting", ">=", 10]], "set": { "invest": "growth" } }
+      ],
+      "plants": [
+        { "facility": "scrapyard", "at": [3, 8] },
+        { "facility": "well", "at": [5, 7], "wait": true },
+        { "facility": "scrapyard", "at": [8, 8], "ground": true },
+        { "facility": "generator", "at": [2, 5], "wait": true },
+        { "facility": "water_tank", "at": [5, 7] },
+        { "facility": "scrapyard", "at": [6, 3], "ground": true },
+        { "facility": "well", "at": [8, 5] },
+        { "facility": "water_tank", "at": [7, 6] },
+        { "facility": "watch_post", "at": [5, 10] },
+        { "facility": "water_tank", "at": [4, 5], "when": [["max_height", ">=", 6]] },
+        { "facility": "scrapyard", "at": [10, 3], "ground": true },
+        { "facility": "well", "at": [3, 3], "when": [["water_left", "<=", 20]], "count": 3 },
+        { "facility": "water_tank", "at": [8, 3], "when": [["max_height", ">=", 8]] }
+      ],
+      "zones": [
+        { "zone": "work", "rect": [1, 6, 4, 10] },
+        { "zone": "work", "rect": [7, 7, 10, 10] },
+        { "zone": "housing", "rect": [4, 1, 8, 5] }
+      ],
+      "collect": { "ratio": 0.6 },
+      "cards": { "prefer": ["make", "growth", "order", "money"], "avoid": ["care", "green", "vice"] }
+    },
+    "absent": {
+      "name": "자리 비운 대장", "desc": "첫 앵커만 심고, 하루에 한 번 저녁에 잠깐 들른다.",
+      "online_hours": 2, "online_from": 20, "first_session_hours": 1, "plant_reserve": 0,
+      "policies": {},
+      "plants": [
+        { "facility": "stall", "at": [5, 9] }
+      ],
+      "zones": [],
+      "collect": { "every_days": 1 },
+      "cards": { "prefer": ["money"], "avoid": [], "delay_days": 0 }
+    }
+  }
+}

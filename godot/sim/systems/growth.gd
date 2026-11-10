@@ -146,7 +146,10 @@ func _next_build(state: CityState, g: Dictionary) -> bool:
 		if float(demand[grp]) >= 1.0:
 			groups.append(grp)
 			gw.append(float(demand[grp]))
-	var i := sim.pick(state, [float(need.size()) * sim.num("growth.housing_bias", 1.5), float(groups.size())])
+	var biz_w := 0.0
+	for x: float in gw:
+		biz_w += floorf(x)
+	var i := sim.pick(state, [float(need.size()) * sim.num("growth.housing_bias", 1.5), biz_w])
 	if i == 0:
 		if GrowthUpgrade.cage_wanted(sim, state, need.size()) and int(g["cage_today"]) < int(sim.num("growth.cage.per_day", 2)) and GrowthUpgrade.densify(sim, state):
 			g["cage_today"] = int(g["cage_today"]) + 1

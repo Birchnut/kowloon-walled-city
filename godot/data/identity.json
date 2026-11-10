@@ -43,7 +43,7 @@
     { "word": "모퉁이", "cond": [] }
   ],
   "patterns": [
-    { "text": "천 개의 {noun1}", "cond": [["id.top1", ">=", 12], ["id.lead", ">=", 1.8]] },
+    { "text": "천 개의 {noun1}", "cond": [["id.top1", ">=", 25], ["id.lead", ">=", 2.5]] },
     { "text": "{noun1}과(와) {noun2}의 {form}", "cond": [["id.top2", ">=", 4], ["id.lead", "<=", 1.6]] },
     { "text": "{adj1} {mat} {form}", "cond": [["id.top1", ">=", 2]] },
     { "text": "{mat} {form}", "cond": [] }
