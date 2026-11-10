@@ -59,6 +59,10 @@ func cmd(state: CityState, name: String, args: Dictionary) -> Dictionary:
 # ------------------------------------------------------------------ 탐험(진짜)
 func _family_need(state: CityState) -> String:
 	var fam := str(c("family", ""))
+	var mats0: Array = sim.db["upgrade_costs"]["materials"]
+	for m: String in mats0:
+		if _hall_keep(state, m) > float(state.stock.get(m, 0.0)) and (fam == "" or m != fam):
+			return m
 	if fam != "":
 		return fam
 	var mats: Array = sim.db["upgrade_costs"]["materials"]
@@ -660,7 +664,7 @@ func _upgrades(state: CityState) -> void:
 		for m: String in mats:
 			if fam != "" and m != fam:
 				continue
-			if float(state.stock.get(m, 0.0)) >= float(cost["qty"]) and (best == "" or float(state.stock[m]) > float(state.stock[best])):
+			if float(state.stock.get(m, 0.0)) >= float(cost["qty"]) + _hall_keep(state, m) and (best == "" or float(state.stock[m]) > float(state.stock[best])):
 				best = m
 		if best == "":
 			_block("자재가 모자라 승급 보류(T%d→T%d)" % [t, t + 1])
@@ -691,6 +695,13 @@ func _goal_pop(state: CityState, t: int) -> float:
 			if cnd is Array and str(cnd[0]) == "pop.t%d" % t:
 				g = maxf(g, float(cnd[2]))
 	return g
+
+
+## 성채 회관(최종 목표)이 열렸는데 아직 없으면 그 자재를 남겨 둔다(집중형도 회관에는 세 계열이 다 든다).
+func _hall_keep(state: CityState, m: String) -> float:
+	if not sim.is_unlocked(state, "city_hall") or _count(state, "city_hall") > 0:
+		return 0.0
+	return float(sim.bdef("city_hall").get("cost", {}).get("goods", {}).get(m, 0))
 
 
 ## 세 계열 자재가 모자라고 돈이 넉넉하면 건재상 계약(비싸게, 소량)을 맺는다. 넘치면 끊는다.
@@ -744,17 +755,19 @@ func _zone(state: CityState) -> void:
 			vacant += maxi(0, int(b.get("target", b["cap"])) - int(b["residents"]))
 			if int(b["residents"]) == 0:
 				vacant += 2
-	if vacant > int(c("zone_when_vacancy_below", 6)):
+	# 복구: 떠돌이 일손이 모자라면(과속 승급 등) 다른 조건을 따지지 않고 판잣집을 더 칠한다
+	var l1: Dictionary = state.labor.get(1, {"have": 0, "need": 0.0})
+	var t1_short := float(l1["have"]) < float(l1["need"]) - 0.5
+	if vacant > int(c("zone_when_vacancy_below", 6)) and not t1_short:
 		return
 	# 떠돌이 노동력이 이미 크게 남으면 더 칠하지 않는다(승급으로 쓰게)
-	var l1: Dictionary = state.labor.get(1, {"have": 0, "need": 0.0})
 	if houses > 40 and float(l1["have"]) - float(l1["need"]) > float(c("t1_spare_stop", 40)):
 		_block("떠돌이 노동력이 남아 주거 확장 보류")
 		return
 	# 먹을 것이 모자라거나 돈이 없으면 칠하지 않는다
 	var dem := _demand(state)
 	var meal_sup := _supply(state, "veg") + _supply(state, "noodles") + _supply(state, "fishball")
-	if houses > 0 and meal_sup < float(dem.get("meal", 0.0)) * 1.05:
+	if houses > 0 and meal_sup < float(dem.get("meal", 0.0)) * 1.05 and not t1_short:
 		_block("끼니 생산이 모자라 주거 확장 보류")
 		return
 	if state.money - _save < float(c("zone_money", 120)):
