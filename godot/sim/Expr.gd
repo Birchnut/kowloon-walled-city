@@ -1,15 +1,11 @@
 class_name Expr
 extends RefCounted
-## Expr — JSON으로 쓰는 조건·가중합·효과의 아주 작은 해석기. 카드·해금·명물·유입·지표가 같이 쓴다.
+## Expr — JSON으로 쓰는 조건·가중합의 아주 작은 해석기(해금 조건 등). 지표는 Metrics.compute.
 ##
 ## 조건  : ["population", ">=", 40]  /  {"all":[..]}  {"any":[..]}  {"not": ..}  / 잎의 배열 = all
 ##         값 자리에 "$이름"을 쓰면 다른 지표와 비교. 없는 지표는 0(문자 비교면 "").
 ## 가중합: [["jobs_open", 0.3], ["prestige", 0.01, 2.0]]  → Σ 지표×가중치 (셋째 값 = 그 항의 절댓값 상한)
-## 효과  : [["money","+",200], ["unlock","night_market"], ["log","..."], ["spawn_business","loan_office"], …]
-##         전체 목록은 apply() 아래 match 문을 볼 것. 시스템을 직접 부르지 않고 state.flags의 요청 큐에 쌓는다.
 
-const FIELDS := ["money", "food", "materials", "prestige", "notoriety", "morale", "alley_fund"]
-const METERS := ["prestige", "notoriety", "morale"]
 
 
 static func value(m: Dictionary, key: Variant) -> Variant:
@@ -85,100 +81,3 @@ static func linear(terms: Variant, m: Dictionary, base: float = 0.0) -> float:
 			x = clampf(x, -cap, cap)
 		sum += x
 	return sum
-
-
-## 효과 목록을 적용. sim은 RNG·지표·데이터 접근용(시스템을 부르지 않는다).
-static func apply(sim: Sim, state: CityState, effects: Variant) -> void:
-	if not (effects is Array):
-		return
-	for e: Variant in effects:
-		if not (e is Array) or e.is_empty():
-			continue
-		var op := str(e[0])
-		if op in FIELDS and e.size() >= 3:
-			_field(state, op, str(e[1]), float(e[2]))
-			continue
-		match op:
-			"unlock":
-				if not state.unlocked.has(str(e[1])):
-					state.unlocked[str(e[1])] = state.day
-					state.emit("unlock", {"id": str(e[1])})
-			"log":
-				state.add_log(sim.fmt(state, str(e[1])), str(e[2]) if e.size() > 2 else "")
-			"flag":
-				state.flags[str(e[1])] = e[2] if e.size() > 2 else 1
-			"flag+":
-				state.flags[str(e[1])] = float(state.flags.get(str(e[1]), 0.0)) + float(e[2] if e.size() > 2 else 1)
-			"policy":
-				state.policies[str(e[1])] = str(e[2])
-			"power":
-				state.flags["power_contract"] = int(e[1])
-			"title":
-				state.flags["forced_title"] = str(e[1])
-			"spawn_business":
-				for i: int in int(e[2] if e.size() > 2 else 1):
-					_push(state, "build_requests", {"type": str(e[1])})
-			"spawn_household":
-				for i: int in int(e[2] if e.size() > 2 else 1):
-					_push(state, "arrival_requests", {"type": str(e[1])})
-			"leave":
-				_push(state, "leave_requests", {"type": str(e[1]), "count": int(e[2] if e.size() > 2 else 1),
-					"reason": str(e[3]) if e.size() > 3 else "card"})
-			"close_business":
-				_push(state, "close_requests", {"match": str(e[1]), "count": int(e[2] if e.size() > 2 else 1)})
-			"queue_card":
-				_push(state, "card_queue", {"card": str(e[1]), "day": state.day + int(e[2] if e.size() > 2 else 0)})
-			"mission":
-				_push(state, "mission_requests", {"mission": str(e[1])})
-			"transfer":
-				# ["transfer", "alley_fund", "money", 0.5] — 앞 재고의 일부를 뒤 재고로 옮긴다
-				var part := float(state.get(str(e[1]))) * clampf(float(e[3] if e.size() > 3 else 1.0), 0.0, 1.0)
-				state.set(str(e[1]), float(state.get(str(e[1]))) - part)
-				state.set(str(e[2]), float(state.get(str(e[2]))) + part)
-			"zone_clear":
-				_zone_clear(sim, state, str(e[1]), int(e[2] if e.size() > 2 else 1))
-			"if":
-				if test(e[1], sim.metrics(state)):
-					apply(sim, state, e[2])
-				elif e.size() > 3:
-					apply(sim, state, e[3])
-			"chance":
-				if sim.roll(state) < float(e[1]):
-					apply(sim, state, e[2])
-				elif e.size() > 3:
-					apply(sim, state, e[3])
-			_:
-				push_warning("[Expr] 모르는 효과: %s" % op)
-	sim.touch()
-
-
-static func _field(state: CityState, f: String, op: String, x: float) -> void:
-	var v := float(state.get(f))
-	match op:
-		"+": v += x
-		"-": v -= x
-		"*": v *= x
-		"=": v = x
-	if f in METERS:
-		v = clampf(v, 0.0, 100.0)
-	elif f != "money":
-		v = maxf(v, 0.0)
-	state.set(f, v)
-
-
-static func _push(state: CityState, queue: String, item: Dictionary) -> void:
-	if not state.flags.has(queue):
-		state.flags[queue] = []
-	state.flags[queue].append(item)
-
-
-static func _zone_clear(sim: Sim, state: CityState, zone: String, n: int) -> void:
-	var cols: Array = []
-	for c: Variant in state.zones:
-		if state.zones[c] == zone:
-			cols.append(c)
-	for i: int in mini(n, cols.size()):
-		var col: Vector2i = cols[sim.roll_range(state, 0, cols.size() - 1)]
-		cols.erase(col)
-		state.zones.erase(col)
-		state.emit("zone_changed", {"col": col})

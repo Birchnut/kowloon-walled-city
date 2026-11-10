@@ -1,0 +1,51 @@
+{
+ "_comment": "시나리오 봇 설정(tools/sim_run.gd). expedition_per_day = 탐험(B 파트)을 흉내 내 디버그로 넣는 세 계열 자재 합계/경제일(근거리 2팀이 접속 중 계속 돌린다고 가정 ≈ 실제 10분에 2~3회). money_reserve = 건설·승급 뒤 남길 돈(계층마다 곱).",
+ "status": "실험값",
+ "items": {
+  "balanced": {
+   "name": "균형형 운영자",
+   "expedition_per_day": 30,
+   "money_reserve": 40,
+   "labor_margin": 2,
+   "upgrades_per_hour": 3,
+   "zone_batch": 12,
+   "zone_when_vacancy_below": 12,
+   "houses_per_floor": 100,
+   "power_before_t3_at_t2": 40,
+   "water_order": [
+    "water_plant",
+    "water_tower",
+    "rain_catcher",
+    "water_ext"
+   ],
+   "power_order": [
+    "power_plant",
+    "generator",
+    "power_ext"
+   ],
+   "imports": [
+    "flour",
+    "fat",
+    "oldclothes",
+    "cloth",
+    "fishmeat",
+    "elec",
+    "liquor"
+   ],
+   "produce": [
+    "candle",
+    "clothes",
+    "soap",
+    "moonshine",
+    "radio",
+    "suit",
+    "appliance",
+    "fakelux"
+   ],
+   "luxury": true,
+   "max_tier": 5,
+   "zone_money": 60,
+   "t1_spare_stop": 80
+  }
+ }
+}

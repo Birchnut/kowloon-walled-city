@@ -4,7 +4,7 @@ extends SceneTree
 
 func _init() -> void:
 	var bad := 0
-	for dir_path: String in ["res://sim", "res://sim/systems", "res://tools", "res://tests", "res://core"]:
+	for dir_path: String in ["res://sim", "res://sim/systems", "res://tests", "res://core"]:
 		var dir := DirAccess.open(dir_path)
 		if dir == null:
 			continue

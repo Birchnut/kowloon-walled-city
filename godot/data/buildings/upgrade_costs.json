@@ -1,0 +1,51 @@
+{
+ "_comment": "주거 승급 비용. money = ₩, qty = 고른 한 계열 자재 수량 — 세 계열(materials)이 반드시 같은 수량(확정). extra = 추가 상품, days = 비계 공사 경제일(주민은 그대로 산다).",
+ "status": "구조 확정 / 수치 실험값",
+ "materials": [
+  "wood",
+  "metal",
+  "concrete"
+ ],
+ "items": {
+  "1to2": {
+   "from": 1,
+   "to": 2,
+   "money": 40,
+   "qty": 4,
+   "extra": {},
+   "days": 0.05
+  },
+  "2to3": {
+   "from": 2,
+   "to": 3,
+   "money": 120,
+   "qty": 8,
+   "extra": {},
+   "days": 0.05
+  },
+  "3to4": {
+   "from": 3,
+   "to": 4,
+   "money": 400,
+   "qty": 12,
+   "extra": {},
+   "days": 0.08
+  },
+  "4to5": {
+   "from": 4,
+   "to": 5,
+   "money": 1000,
+   "qty": 16,
+   "extra": {
+    "parts": 2
+   },
+   "days": 0.1
+  }
+ },
+ "material_names": {
+  "common": "판자·양철",
+  "wood": "목재",
+  "metal": "철제",
+  "concrete": "콘크리트"
+ }
+}
