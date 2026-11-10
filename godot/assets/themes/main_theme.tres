@@ -1,0 +1,38 @@
+[gd_resource type="Theme" load_steps=4 format=3]
+
+[ext_resource type="FontFile" path="res://assets/fonts/Galmuri11.ttf" id="1_font"]
+
+[sub_resource type="StyleBoxFlat" id="panel_dark"]
+bg_color = Color(0.09, 0.08, 0.12, 0.92)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.55, 0.3, 0.6, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+
+[sub_resource type="StyleBoxFlat" id="button_flat"]
+bg_color = Color(0.2, 0.14, 0.26, 1)
+border_width_bottom = 2
+border_color = Color(0.85, 0.35, 0.75, 1)
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+
+[resource]
+default_font = ExtResource("1_font")
+default_font_size = 16
+Button/styles/normal = SubResource("button_flat")
+Button/styles/hover = SubResource("button_flat")
+Button/styles/pressed = SubResource("button_flat")
+Button/colors/font_color = Color(0.95, 0.9, 1, 1)
+Label/colors/font_color = Color(0.95, 0.92, 0.98, 1)
+PanelContainer/styles/panel = SubResource("panel_dark")

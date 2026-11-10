@@ -1,0 +1,7 @@
+assets_raw/
+tools/godot/
+*.zip
+godot/.godot/
+godot/build/
+work/
+.DS_Store

@@ -1,0 +1,11 @@
+{
+  "_comment": "건축 자재. 레이어 합성의 1축. color는 스프라이트 확정 전 임시 색상(PLACEHOLDER).",
+  "schema_version": 1,
+  "materials": [
+    { "id": "wood",     "name": "목재",   "description": "폐목·합판. 싸고 빠르지만 낡는다.",       "placeholder_color": "#8b5a2b", "decay_per_day": 2 },
+    { "id": "steel",    "name": "철판",   "description": "녹슨 철판과 컨테이너 패널.",             "placeholder_color": "#6b7280", "decay_per_day": 1 },
+    { "id": "concrete", "name": "콘크리트","description": "재개발 잔해를 재활용한 블록.",           "placeholder_color": "#9ca3af", "decay_per_day": 0.5 },
+    { "id": "neon",     "name": "네온",   "description": "간판과 네온관으로 덮인 외벽.",            "placeholder_color": "#d946ef", "decay_per_day": 1 },
+    { "id": "green",    "name": "녹화",   "description": "덩굴과 이끼로 덮인 외벽.",                "placeholder_color": "#16a34a", "decay_per_day": 0.5 }
+  ]
+}

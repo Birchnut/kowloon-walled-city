@@ -1,0 +1,80 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/Main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/world/IsoGrid.gd" id="2_grid"]
+[ext_resource type="Script" path="res://scripts/world/IsoCamera.gd" id="3_cam"]
+[ext_resource type="Script" path="res://scripts/world/DayNight.gd" id="4_daynight"]
+[ext_resource type="PackedScene" path="res://scenes/ui/HUD.tscn" id="5_hud"]
+[ext_resource type="Script" path="res://scripts/debug/DebugPanel.gd" id="6_debug"]
+[ext_resource type="Theme" path="res://assets/themes/main_theme.tres" id="7_theme"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_main")
+
+[node name="SkyLayer" type="CanvasLayer" parent="."]
+layer = -10
+
+[node name="Sky" type="ColorRect" parent="SkyLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.5, 0.7, 0.85, 1)
+
+[node name="World" type="Node2D" parent="."]
+
+[node name="DayTint" type="CanvasModulate" parent="World"]
+color = Color(1, 1, 1, 1)
+
+[node name="IsoGrid" type="Node2D" parent="World"]
+script = ExtResource("2_grid")
+
+[node name="Camera" type="Camera2D" parent="."]
+script = ExtResource("3_cam")
+
+[node name="DayNight" type="Node" parent="." node_paths=PackedStringArray("modulate_node", "sky_node")]
+script = ExtResource("4_daynight")
+modulate_node = NodePath("../World/DayTint")
+sky_node = NodePath("../SkyLayer/Sky")
+
+[node name="UI" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="HUD" parent="UI" instance=ExtResource("5_hud")]
+
+[node name="SectionStub" type="PanelContainer" parent="UI"]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -260.0
+offset_bottom = -72.0
+grow_horizontal = 2
+grow_vertical = 0
+theme = ExtResource("7_theme")
+
+[node name="Margin" type="MarginContainer" parent="UI/SectionStub"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 6
+
+[node name="VBox" type="VBoxContainer" parent="UI/SectionStub/Margin"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="UI/SectionStub/Margin/VBox"]
+layout_mode = 2
+text = "구역 단면 (스텁)"
+
+[node name="Body" type="Label" parent="UI/SectionStub/Margin/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "셀을 탭하세요"
+autowrap_mode = 3
+
+[node name="Debug" type="CanvasLayer" parent="."]
+layer = 100
+script = ExtResource("6_debug")

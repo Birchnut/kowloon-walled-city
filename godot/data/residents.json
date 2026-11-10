@@ -1,0 +1,53 @@
+{
+  "_comment": "주민 데이터. DECISIONS: 가구/사업체 단위 + 이름 있는 대표인물 소수. 이름·대사는 PLACEHOLDER(톤 확인용).",
+  "schema_version": 1,
+  "tastes": [
+    { "id": "plain",  "name": "소박",   "description": "실용 우선. 장식 없음." },
+    { "id": "neon",   "name": "네온",   "description": "번쩍이는 간판과 LED." },
+    { "id": "tinker", "name": "괴짜 기술", "description": "안테나·파이프·자작 기계." },
+    { "id": "commune","name": "기묘한 공동체", "description": "공동 제단, 깃발, 벽화." }
+  ],
+  "household_types": [
+    { "id": "family",  "name": "가족 가구",   "size_min": 2, "size_max": 5, "worker_ratio": 0.6 },
+    { "id": "single",  "name": "1인 가구",    "size_min": 1, "size_max": 1, "worker_ratio": 1.0 },
+    { "id": "business","name": "사업체",      "size_min": 2, "size_max": 8, "worker_ratio": 1.0 }
+  ],
+  "named_residents": [
+    {
+      "id": "granny_bok",
+      "name": "복 할매",
+      "role": "첫 입주민",
+      "taste": "plain",
+      "can_work": false,
+      "intro": "\"여기 비 안 새나? 안 새면 됐다.\"",
+      "arrives_day": 0
+    },
+    {
+      "id": "mr_choi",
+      "name": "최 기사",
+      "role": "전기·배선 담당",
+      "taste": "tinker",
+      "can_work": true,
+      "intro": "\"전선은 내가 만져. 너는 돈만 세.\"",
+      "arrives_day": 1
+    },
+    {
+      "id": "sister_lin",
+      "name": "린 언니",
+      "role": "마작방 사장",
+      "taste": "neon",
+      "can_work": true,
+      "intro": "\"간판은 크게. 사람은 밤에 모인다.\"",
+      "arrives_day": 2
+    }
+  ],
+  "player_titles": {
+    "_comment": "DECISIONS: 플레이어 호칭은 도시 성향 따라 변함. 조건은 PLACEHOLDER.",
+    "default": "대장",
+    "by_condition": [
+      { "title": "따거", "when": { "dominant_category": "underground" } },
+      { "title": "회장", "when": { "dominant_category": "manufacturing", "min_population": 60 } },
+      { "title": "촌장", "when": { "dominant_category": "agriculture" } }
+    ]
+  }
+}

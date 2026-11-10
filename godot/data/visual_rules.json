@@ -1,0 +1,60 @@
+{
+  "_comment": "레이어 합성 규칙 (DECISIONS 승인: 자재 × 업종 × 설비수준 × 주민취향 × 건물나이 → 스프라이트 레이어 키). 규칙은 위에서부터 평가하며, when 조건이 모두 맞으면 layers를 누적한다. 'any'는 와일드카드. layer 키는 아직 텍스처가 없고 CellRenderer가 PLACEHOLDER 색상으로 그린다.",
+  "schema_version": 1,
+  "layer_order": ["base", "wall", "window", "sign", "utility", "decor", "wear"],
+  "age_bands": [
+    { "id": "new",  "name": "신축", "max_days": 5 },
+    { "id": "worn", "name": "낡음", "max_days": 20 },
+    { "id": "old",  "name": "노후", "max_days": 999999 }
+  ],
+  "utility_levels": [
+    { "level": 0, "name": "무설비" },
+    { "level": 1, "name": "전기" },
+    { "level": 2, "name": "전기+수도" },
+    { "level": 3, "name": "완비" }
+  ],
+  "rules": [
+    { "when": { "material": "wood" },     "layers": { "base": "base_wood",     "wall": "wall_wood_plank" } },
+    { "when": { "material": "steel" },    "layers": { "base": "base_steel",    "wall": "wall_steel_panel" } },
+    { "when": { "material": "concrete" }, "layers": { "base": "base_concrete", "wall": "wall_concrete" } },
+    { "when": { "material": "neon" },     "layers": { "base": "base_concrete", "wall": "wall_concrete", "sign": "sign_neon_strip" } },
+    { "when": { "material": "green" },    "layers": { "base": "base_concrete", "wall": "wall_concrete", "decor": "decor_vines" } },
+
+    { "when": { "industry_category": "agriculture" },    "layers": { "decor": "decor_planters" } },
+    { "when": { "industry_category": "manufacturing" },  "layers": { "window": "window_industrial", "utility": "util_vent" } },
+    { "when": { "industry_category": "entertainment" },  "layers": { "sign": "sign_neon_big" } },
+    { "when": { "industry_category": "underground" },    "layers": { "window": "window_barred", "sign": "sign_none" } },
+
+    { "when": { "utility_level_min": 1 }, "layers": { "utility": "util_wires" } },
+    { "when": { "utility_level_min": 2 }, "layers": { "utility": "util_pipes_wires" } },
+    { "when": { "utility_level_min": 3 }, "layers": { "utility": "util_ac_unit" } },
+
+    { "when": { "taste": "neon" },    "layers": { "sign": "sign_neon_small" } },
+    { "when": { "taste": "tinker" },  "layers": { "decor": "decor_antenna" } },
+    { "when": { "taste": "commune" }, "layers": { "decor": "decor_flags" } },
+
+    { "when": { "age_band": "worn" }, "layers": { "wear": "wear_stains" } },
+    { "when": { "age_band": "old" },  "layers": { "wear": "wear_rust_cracks" } }
+  ],
+  "placeholder_layer_colors": {
+    "_comment": "텍스처 확정 전 CellRenderer가 쓰는 임시 색. 키가 없으면 회색.",
+    "wall_wood_plank": "#8b5a2b",
+    "wall_steel_panel": "#6b7280",
+    "wall_concrete": "#9ca3af",
+    "sign_neon_strip": "#d946ef",
+    "sign_neon_big": "#f472b6",
+    "sign_neon_small": "#c084fc",
+    "decor_vines": "#16a34a",
+    "decor_planters": "#65a30d",
+    "decor_antenna": "#e5e7eb",
+    "decor_flags": "#f59e0b",
+    "window_industrial": "#1f2937",
+    "window_barred": "#111827",
+    "util_wires": "#374151",
+    "util_pipes_wires": "#4b5563",
+    "util_ac_unit": "#d1d5db",
+    "util_vent": "#6b7280",
+    "wear_stains": "#00000055",
+    "wear_rust_cracks": "#7c2d1266"
+  }
+}

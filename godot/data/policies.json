@@ -1,0 +1,57 @@
+{
+  "_comment": "정책 축 4개 (DECISIONS 확정). 각 축은 옵션 중 하나를 선택. effects 수치는 PLACEHOLDER — CityState가 읽어 적용.",
+  "schema_version": 1,
+  "axes": [
+    {
+      "id": "industry_permit",
+      "name": "산업 허가",
+      "description": "어떤 업종의 입점을 허용할지.",
+      "multi_select": true,
+      "default": ["agriculture", "manufacturing"],
+      "options": [
+        { "id": "agriculture",   "name": "농업",  "effects": {} },
+        { "id": "manufacturing", "name": "제조",  "effects": {} },
+        { "id": "entertainment", "name": "오락",  "effects": {} },
+        { "id": "underground",   "name": "음성",  "effects": { "prestige_per_day": -1 } }
+      ]
+    },
+    {
+      "id": "housing_care",
+      "name": "입주·돌봄",
+      "description": "누구를 받아들이고 비노동 인구를 어떻게 다룰지.",
+      "multi_select": false,
+      "default": "anyone",
+      "options": [
+        { "id": "anyone",        "name": "누구나",     "effects": { "inflow_mult": 1.2, "nonworker_ratio": 0.2 } },
+        { "id": "workers_first", "name": "노동 우선",  "effects": { "inflow_mult": 1.0, "nonworker_ratio": 0.1 } },
+        { "id": "expel",         "name": "추방",       "effects": { "inflow_mult": 0.8, "nonworker_ratio": 0.0, "prestige_per_day": -2 } },
+        { "id": "mutual_aid",    "name": "공동 부조",  "effects": { "inflow_mult": 1.1, "nonworker_ratio": 0.2, "upkeep_per_nonworker": 1, "prestige_per_day": 1 } }
+      ]
+    },
+    {
+      "id": "tax_invest",
+      "name": "세금·투자 우선순위",
+      "description": "징수한 돈을 어디에 먼저 쓸지.",
+      "multi_select": false,
+      "default": "expand",
+      "options": [
+        { "id": "expand",      "name": "증축",      "effects": { "growth_mult": 1.3 } },
+        { "id": "livability",  "name": "생활환경",  "effects": { "prestige_per_day": 1, "growth_mult": 0.9 } },
+        { "id": "facilities",  "name": "설비",      "effects": { "utility_growth": 1, "growth_mult": 0.9 } }
+      ]
+    },
+    {
+      "id": "material_look",
+      "name": "자재·외관",
+      "description": "자동 증축 시 우선 사용하는 자재/외관 방향.",
+      "multi_select": false,
+      "default": "wood_first",
+      "options": [
+        { "id": "wood_first",  "name": "목재 우선",  "effects": { "preferred_material": "wood" } },
+        { "id": "steel_plate", "name": "철판",       "effects": { "preferred_material": "steel" } },
+        { "id": "neon_scape",  "name": "네온 경관",  "effects": { "preferred_material": "neon", "prestige_per_day": 1 } },
+        { "id": "green_wall",  "name": "외벽 녹화",  "effects": { "preferred_material": "green", "prestige_per_day": 2 } }
+      ]
+    }
+  ]
+}
