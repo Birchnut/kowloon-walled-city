@@ -1,101 +1,124 @@
-# SIM 노트 — 코어 도시경제(파트 A)
+# SIM 노트 — 도시경제(파트 A 코어 + 파트 B 시간·탐험·진행)
 
-기준: `docs/GDD.md` v0.3 + 디렉터 수정 4건(아래 §6) · 브랜치 `sim3`. 수치 변경 이력은 `docs/BALANCE_CHANGELOG.md`, 검토용 표는 `docs/data_tables/`(자동 생성), 봇 결과는 `simulation/reports/core_balanced.md`.
+기준: `docs/GDD.md` v0.3 + 디렉터 수정 · 브랜치 `simb`. 수치 변경 이력은 `docs/BALANCE_CHANGELOG.md`, 검토용 표는 `docs/data_tables/`(자동 생성, `python3 godot/tools/data_tables.py`),
+시나리오 결과는 `simulation/reports/SUMMARY.md`(+ 봇마다 `<봇>.md`), 파트 A의 계속 접속 리포트는 `simulation/reports/core_balanced.md`.
+UI 계약에 덧붙인 것(키 이름 변경 없음)은 `docs/ARCHITECTURE.md` 끝 "파트 B 추가" 절.
 
 ## 1. 구조 한눈에
 
 - **순수 규칙 층**: `godot/sim/**`는 노드·오토로드·`Time.*`를 쓰지 않는다. 경제 시간은 `Sim.tick(state, dt_경제일)`로만, 실제 시간은 `sim.now_unix`(Game이 매 프레임 = 시스템 시각 + `state.clock_offset`)로만 들어온다.
-- **고정 스텝**: `config time.step_days` = 1/48 경제일(실제 12.5초). `tick`은 남는 조각을 `state.flags.step_acc`에 쌓고 스텝 단위로만 규칙을 돌린다. `econ_days`는 스텝 격자로 반올림 → 결정론·저장 왕복.
-- **RNG**: xorshift32 하나, 상태는 `state.rng_state`(지금은 외형 씨앗에만 쓰임).
-- **시스템 = 파일 하나** (`sim/systems/<id>.gd`, 공통 `SimSystem`): `config.json systems`의 순서대로 매 스텝 실행. 하나를 빼도 게임이 돈다(시험으로 확인). 시스템끼리 직접 부르지 않고 `CityState`로만 말한다.
-- **공용 도우미(규칙 아님)**: `Cover.gd`(배치 파생 캐시: 주거별 시장·서비스 접근 목록, 소음 이웃, 창고·교역소 수, 시설 우선순위 순서 — `state.layout_rev`가 바뀔 때만 다시 계산, 저장 안 함), `Queries.gd`(hud·info·economy·build_menu 등의 뼈대, 시스템은 `augment()`로 보탬), `Metrics.gd`(조건식용 지표), `Validate.gd`(데이터 검증 + 순환 잠금 정적 검사), `Debug.gd`, `Expr.gd`(조건식).
-- **성능(측정)**: 매 스텝 O(주거 × 수요 수), 시장·서비스 범위는 배치가 바뀔 때만 다시 계산. 데스크톱 헤드리스에서 주거 1,008채 = **스텝당 약 120ms**(그중 needs 110ms), 300채면 약 40ms. 접속 중엔 12.5초에 한 번이라 평균 부하는 작지만 큰 도시에선 한 프레임 끊김이 생길 수 있다. 미접속 8시간(=12경제일=576스텝)은 1,000채에서 약 70초 → **B 파트 과제**: 오프라인 전용 큰 스텝(예: 1/12일), 또는 needs의 1단계(선택) 결과를 여러 스텝 재사용. needs.gd의 남은 비용은 수요마다 만드는 작은 배열·딕셔너리(GDScript 할당)다.
+- **고정 스텝**: `config time.step_days` = 1/48 경제일(실제 12.5초). 미접속 빨리감기는 그 12배(1/4경제일) 큰 스텝 — 경제 시계 격자는 그대로(`econ_days`는 늘 1/48의 배수).
+- **RNG**: xorshift32 하나, 상태는 `state.rng_state`(외형 씨앗, 탐험 보상 굴림, 단속 대상).
+- **시스템 = 파일 하나** (`sim/systems/<id>.gd`): `config.json systems` 순서대로 매 스텝. 하나를 빼도 돈다(시험). 시스템끼리 부르지 않고 `CityState`와 Sim의 공용 도우미만 쓴다.
+- **공용 도우미(규칙 아님)**: `Cover.gd`(배치 파생 캐시: 주거·시설 목록, 덮임 등급, 우선순위 묶음, 층별 목록 — `layout_rev`가 바뀔 때만), `Queries.gd`, `Metrics.gd`, `Validate.gd`(파트 B 데이터 검사 `check_b` 포함), `Debug.gd`, `Expr.gd`.
+- **수정치 접근자 하나**: `sim.mod(state, "키")` = 1 + Σ(켜진 정책 + 끝난 연구의 effects[키]), `sim.mod_sum`은 합만. 연구·정책이 바뀌면 `state.flags.mods_rev` +1 → 캐시 갱신.
 
 ### 한 스텝의 실행 순서
-`progression → space → contracts → workforce → utilities → production → upgrades → needs → finance` → (Sim) 상품 흐름 접기 → 시계 전진 → 정시 `hour` → 자정이면 `on_day_end`(장부 마감·떠남 요약) → `day_ended` → `on_day_start` → `day_started` → `state.settle()`.
-
-순환이 있는 곳은 **직전 스텝 값**을 쓴다: 공급 시설이 전기를 쓰면 직전 `p_ratio`, 수요의 물·전기 비율은 직전 `state.util`, 시장 가동 여부는 같은 스텝의 production 결과.
+`progression → goals → space → contracts → expeditions → research → policies → workforce → utilities → production → needs → upgrades → vice → finance → alerts`
+→ (Sim) 상품 흐름 접기 → 시계 전진 → 정시 `hour` → 자정이면 `on_day_end` → `day_ended` → `on_day_start` → `day_started` → `state.settle()`(빨리감기 중에는 끝에서 한 번).
+순환이 있는 곳은 직전 스텝 값(전기 비율, 수요의 물·전기 비율). 알림·목표 검사는 2·4스텝 주기의 경계(`sim.every`) — 스텝 크기·저장과 무관하게 econ_days로만 정해진다.
 
 ## 2. 시스템과 조절 키
 
 | 시스템 | 하는 일 | 조절 키(데이터) | 끄면 |
 |---|---|---|---|
-| progression | `unlocks.json` 단계를 순서대로 검사(Expr 조건), 시설을 영구 해금, 등급·호칭, `unlock`·`milestone` 이벤트 | unlocks.json cond/unlocks/features/grade_name/title | 모든 시설이 처음부터 열림 |
-| space | zone/build/demolish/pause, 공사(site) 진행, 자동 골조, 80% 층 해금, `range_preview` | config zone.shack_cost, floors.*, buildings.json cost·size·build_days·open_sky·blueprint | 못 짓고 층이 안 열림 |
-| contracts | 서명·변경·취소, 경제 시계 `next_at`에 원자적 실행(부분 이행), `contract_done`, `contracts` 질의 | partners.json, config contracts.* | 교역 없음 |
-| workforce | 계층별 풀(T1 = floor(합×0.75)), 순위별·비율 배분 → `b.staff`, `state.labor` | tiers.json labor, buildings.json workforce·priority, config workforce.priority | 모든 시설 인력 100% |
-| utilities | 물·전기 공급/수요(주민 몫 먼저 → 시설 순위별), `state.util`, `b.w_ratio/p_ratio`, `power_changed` | tiers.json water/power, buildings.json supply/water/power | 늘 충분 |
-| production | 가동 판정(x = min(인력, 물, 전기)), 생산식(원료·저장 한도), 시장·서비스 켜짐 이력(60%/50%), 음성 수입률 | buildings.json recipe·vice, config workforce.service_on/off, storage.* | 생산·시장 없음 |
-| upgrades | `upgrade` 명령(묶음 원자적), 비계 공사, 완공 시 계층 전환, 정원 감소 이주·대기·떠남, `upgradable`·`upgrade_preview` 질의, info 미리보기 | upgrade_costs.json, config upgrade.waiting_days | 승급 없음 |
-| needs | 수요 선택(대체 묶음 sticky), 도시 재고 공평 배분·소비, 충족도, 입주·퇴거(유예), 행복, 세수율 | needs.json, tiers.json, config population.* | 사람이 안 움직이고 세수 0 |
-| finance | 세수·음성 수입 적립, 유지비, 파산 정지(우선순위 낮은 것부터)·재가동, 장부 마감(14일) | buildings.json upkeep, config finance.* | 세수·유지비 없음 |
+| progression | 해금 단계(영구), 등급·호칭, `unlock`·`milestone` | unlocks.json | 모든 시설이 열림 |
+| **goals** | 단계 목표 21개(order), 보상(돈→장부 reward·상품·목적지 공개), `goal_done`, `goals` 질의·`hud.next_goal`, 마지막 뒤 샌드박스, `tutorial` 명령 | goals.json | goals 질의는 해금 단계로 만든 기본 모양 |
+| space | 칠하기·짓기·철거·공사·골조·층 해금, `range_preview`, **`demolish_preview`**, can `code` | config zone/floors, buildings cost·size | 못 짓는다 |
+| contracts | 정기 계약(경제 시계) | partners.json, config contracts.* | 교역 없음 |
+| **expeditions** | 팀(거점당 1, 최대 3) · 출발 때 보상 굴림 · 실제 시계 완료 · 멱등 수령 · 발견(거래처·도면·목적지) | destinations.json, 수정치 exp.yield/exp.time/exp.cost | 탐험 없음(빈 모양) |
+| **research** | 3×4 노드, 공부방 필요(가동 중일 때만 진행), 한 번에 하나, 돈은 시작 때, 취소 시 절반 환불 | research.json | 연구 없음, 수정치에서 빠짐 |
+| **policies** | 칸 = 열린 policy_slot 수, 같은 group 하나, 유지비(못 내면 저절로 꺼짐) | policies.json | 정책 없음 |
+| workforce | 계층별 풀·우선순위 배분(단속 폐쇄 시설은 사람을 받지 않음) | tiers.json, buildings workforce·priority | 인력 100% |
+| utilities | 물·전기 공급/수요 | tiers water/power, 수정치 water.demand·power.supply | 늘 충분 |
+| production | 가동·생산(처리량 × prod.all), cause raid | buildings recipe | 생산 없음 |
+| needs | 수요 선택·소비·충족·입주·퇴거·행복·세수 + **묶음 캐시**(§5) | needs.json, config population.*, 수정치 cons.food·cons.all·happy.base·happy.noise·tax.all·movein | 사람이 안 움직임 |
+| upgrades | 승급(묶음 원자적), 비계, 이주·대기(미접속 중 대기 시계 정지) | upgrade_costs.json | 승급 없음 |
+| **vice** | 단속 위험(오름·식음), 80에서 하나 2일 폐쇄 + 벌금 + 한 줄, `vice` 질의 | buildings vice.heat·raid_line, config heat.* | 위험 없음 |
+| finance | 세수·유지비(× upkeep.all)·파산 정지·장부(줄 reward·fine 추가, net) | buildings upkeep | 돈 흐름 없음 |
+| **alerts** | hud.alerts 모음: 1경제시간 유지(깜빡임 방지), 최대 4, 급한 순 | config alerts.* | 다른 시스템이 붙인 알림만 |
 
-## 3. 핵심 규칙 요약(구현 기준)
+수정치 키: `prod.all`, `cons.food`, `cons.all`, `happy.base`(점수 합), `happy.noise`, `tax.all`, `movein`, `water.demand`, `power.supply`, `upkeep.all`, `exp.yield`, `exp.time`, `exp.cost`, `trade.buy`, `trade.sell`, `heat.gain`.
 
-- **거리** `|dx|+|dy|+2|dz|`, 층 차 ≤ 2, 2×2는 가장 가까운 칸.
-- **상품 수요**: (1) 범위 안에 그 상품 등급 이상을 취급하는 **가동 중** 시장 (2) 도시 재고. 원인 코드: `range` 시장 범위 밖 / `grade` 취급 등급 부족 / `staff` 인력 부족 / `power` 전기 부족 / `stock` 재고 없음 / `water`. 도시 전체 수요를 먼저 모으고 재고/수요 비율로 모두에게 같은 비율을 준다 → 시장이 겹쳐도 한 번, 시장별 상한 없음, 재고 음수 없음.
-- **대체 묶음**: 고른 품목(`needs[id].pick`, 여러 종이면 쉼표)을 유지. 바꾸는 때: 그 품목이 끊김(접근·재고 0) 또는 **지난 스텝 공급률 < 0.9이고 넉넉한 대체품이 있을 때**(`state.flags.fill`). 새로 고를 땐 재고가 가장 많은 것부터. `prefer` 유틸리티(세입자 등불 → 전기)는 남는 전기가 그 집 몫만큼 있을 때만 갈아탐(같은 스텝 안에서 남는 양을 깎아 쏠림 방지).
-- **N-of-M**(끼니 2종): 충족도 = 고른 종류 각각의 공급률 합 / N. 한 종류만 있으면 50%.
-- **목표 인원** = Σ 기본 수요 몫 × min(1, 충족도/0.9). 모자라면 `move_in_per_day × (0.5 + 행복/100)`로 차고, 넘치면 **기본 수요 하나라도 부족 일수 ≥ 3경제일**일 때만 `move_out_per_day`로 떠난다. 부족 일수는 충족되면 2배 속도로 줄어든다.
-- **승급 가능(upgradable)** = 만실 + 기본·승급 수요 전부 충족 + 공사 중 아님 + 다음 단계 비용 데이터 있음.
-- **세수**/일 = 주민 × 세율 × (1 + 0.10×충족 승급 수요 + 0.15×충족 여유 수요) × 행복 배수(0.85~1.15).
-- **층 해금**: 맨 위 열린 층의 쓰이는 칸 ≥ ceil(0.8×144)=116 → 다음 층. 쓰이는 칸 = 주민 ≥1 주거 + 완공 시설(2×2 = 4). 순차·영구.
-- **골조**: 짓는 칸 아래로 첫 셀/골조/땅까지 빈 칸마다 생성(명령과 함께 원자적, 비용 config). 골조는 그 칸의 건설을 막지 않는다. 철거 시 위에 셀·골조가 있으면 그 칸에 골조를 남기고, 위에 셀이 하나도 없는 골조는 정리한다.
-- **파산**: 유지비를 낼 수 없으면 순위가 낮은 시설부터 `money_stop`(원인 "money", 유지비 0)으로 멈춤. 멈춘 것 포함 유지비 1일치가 모이면 모두 재가동.
-- **계약**: 수입 = min(qty, 저장 자리, 살 수 있는 수), 수출 = min(qty, 재고 − reserve). 0이면 건너뜀(벌금 없음, 이유 기록). 회차는 `next_at += interval`. 장부 import/export에 한 번.
+## 3. 파트 B 규칙 요약
 
-## 4. 상태(CityState v3)
+- **탐험**: `expedition_send {team, dest, provision, pick?}` — 팀이 쉬는 중·목적지를 앎·출발비·보급(끼니 10, 채소·국수·어묵 중 많은 것부터)을 확인하고, **출발 때** 보장 주력(min~max) + 덤(확률) + 발견을 결정론 RNG로 굴려 팀에 저장. `completes_unix = now + seconds × exp.time`. `now ≥ completes`면 done(`expedition_done` 한 번). 수령은 done인 팀만 정확히 한 번(재고 한도를 넘겨도 넣는다 — "결과는 사라지지 않는다"). 근거리는 처음부터, 중거리는 첫 근거리 수령·목표 `g_claim`, 원거리는 중거리 수령·연구 `지도 제작`으로. 거점을 허물면 쉬는 팀부터 없애고, 나가 있는 팀은 은퇴 표시 → 수령 뒤 해산.
+- **목표**: goals.json 순서로 하나씩 보이지만 먼저 이룬 것도 그때 끝난다. 마지막 `g_final`(거물 40 + 성채 회관) 뒤 샌드박스.
+- **알림**: 물·전기 부족, 일손 부족(계층별), 재고 하루 안에 바닥/없음, 계약 건너뜀, 탐험 귀환, 승급 가능, 층 해금 12칸 이내, 대기 주민 곧 떠남, 주민 잃는 주거, 파산 정지, 단속 위험 50, 단속 폐쇄. 조건이 꺼져도 1경제시간 남긴다. 4개까지(bad → warn → good, 같은 tone은 고정 순서).
+- **미접속**(`Sim.catch_up`): 실제 경과(마지막 정산 → 지금, 음수면 0 + 한 줄, 8시간 상한 + 한 줄) × 0.25 / 600 → 경제일, `fast_forward`(offline 표시) — 유예 시계·대기 시계 정지(아무도 안 떠남), 재고 0이면 그 소비·생산만 멈춤, 계약·연구는 경제 시계, 탐험은 실제 시계로 완료. 요약: 금고 변화, 많이 만든·쓴 것, 처음 모자란 때(떠난 지 몇 시간째), 계약 이행/건너뜀과 이유, 연구 완료, 단속, 돌아온 탐험대. Game은 불러올 때 + 프레임 사이 공백이 60초를 넘을 때(앱 복귀) 부른다. 디버그 `skip_real`은 공백으로 치지 않는다.
+- **연구·정책**: §2 표. 연구는 공부방이 하나도 가동하지 않으면 멈춘다.
+- **음성·단속**: 가동 중인 음성 시설 vice.heat × 가동률 × heat.gain/경제일, −6/경제일. 80에서 기여만큼의 확률로 하나 골라 2경제일 폐쇄(`raided`, `raid_until`, cause raid, 인력 0), 벌금 max(₩100, 수입 2일치)(금고를 넘지 않음), 위험 −40. 닫힌 동안에도 멈추기·허물기는 된다.
+- **승급 표시**: `upgradable` = 지금 바로 승급 가능(조건 + 돈 + 한 계열 이상 자재 + 추가 상품) — 뷰의 ▲가 넘치지 않게(디렉터 요청). 비용을 뺀 조건 충족은 `ready`(봇·UI용). `upgrade` 명령은 `ready`와 실제 비용으로 판정.
 
-ARCHITECTURE.md의 필드 이름 그대로. **SIM이 보탠 필드**(저장됨): `util`(물·전기 공급/수요/비율), `labor`(계층별 have/need/used), `next_id`. 건물 인스턴스에 보탠 키: 주거 `grow, leave, target, tax(₩/일), util_extra`, 시설 `w_ratio, p_ratio, money_stop, vice_rate, built`. 공사 중 건물은 `buildings[bid].kind == "site"`(`type, pos, size, progress`). `flags`에 쓰는 키: `step_acc, layout_rev, fill, unlock_steps, left_today, power_on, power_seen, blueprints, bot`.
-`needs[id]`에는 계약의 `{ratio, short_days, pick}` 외에 `cause`가 있다. 저장 버전 3(`user://save_v3.json`, 옛 파일은 건드리지 않음). `to_json/from_json` 왕복이 글자 단위로 같고, 저장 후 이어 돌린 결과가 비트 단위로 같다(시험).
+## 4. 상태(CityState v3) 추가
 
-## 5. B 파트가 할 일과 이음새
+필드 이름은 ARCHITECTURE 그대로. 파트 B가 쓰는 것: `teams[]`(id, state, dest, started_unix, completes_unix, provision, reward{상품: float}, finds[], pick, retired?), `dests{id: {known, visits, new}}`, `research{done{}, active{id, left, done_at}}`, `policies{id: true}`, `heat`.
+`flags`: `goals{id: econ_days}`, `alerts{id: 알림+off}`, `tutorial`, `mods_rev`. `stats`: `start_unix`, `first_send_unix/day`, `first_claim_unix/day`, `exp_sent(_near/_mid/_far)`, `exp_claims(_band)`, `exp.<상품>`, `goal_<id>_day`, `research_<id>_day`, `raids`, `fines`, `contract_skips`, `policy_upkeep`.
+주거: `ready`, 캐시 `psig`(현재 선택 서명), `nsig`(충족 표시 서명), `sdm`/`sdc`(부족 일수 > 0 / 유예에 닿은 수요 비트). 시설: `raided`, `raid_until`. 저장 왕복·결정론 시험 통과.
 
-| 할 일 | 이음새 |
-|---|---|
-| 탐험(팀·목적지·실제 시간·보상 수령) | `state.teams`, `state.dests`, `sim.now_unix`(실제 시간), 시설 `expedition_base`의 `teams` 수는 `Cover.build()`의 `teams`. `expeditions` 질의는 지금 빈 모양(`Queries.gd`) — 새 시스템이 `query("expeditions")`를 소유하면 그쪽이 먼저 답한다. 보상은 `state.stock`에 넣고 `sim.flow_add(g, "imp", n)` 대신 별도 키를 원하면 `flow` 키를 추가해도 된다. 발견: `state.partners[id] = true`(계약 제안이 바로 열림), 도면 `state.flags.blueprints[id] = true`(열병합). |
-| 연구·정책 | `state.research`, `state.policies`. 정책 칸 해금은 `state.unlocked["feature:policy_slot_N"]`. 효과를 넣을 자리: 세율·소비량·생산량은 지금 데이터에서 직접 읽으므로, 정책 시스템이 `state.flags.mods = {key: 배수}`를 쓰고 needs/production/finance에서 곱하는 한 줄씩 추가하는 방식을 권한다(지금은 없음). |
-| 음성 산업·단속(heat) | 음성 시설은 `vice.income`만 번다(`b.vice_rate` → 장부 vice). `tags`에 `vice`, `stub`. 단속 폐쇄는 `b.cause = "raid"` 문구가 이미 있다 — 폐쇄를 `b.paused`와 다른 플래그(예: `b.raid_until`)로 두고 production에서 `eff = 0`, `cause = "raid"`로 처리하면 된다. `state.heat` 필드 있음. |
-| 목표 문구(milestones) | `goals` 질의는 해금 단계로 임시 채움(`Queries._goals`). 등급 이벤트는 progression이 이미 낸다. |
-| 미접속 정산 | `Game._offline_catch_up()`(표시된 스텁): 실제 경과 ≤ 8시간 × 0.25 → `sim.fast_forward`. 할 일: 유예 시계 정지(needs의 `short_days` 증가를 `sim.offline`일 때 막기), 재고 0이면 그 소비만 정지(이미 그렇다), 요약 줄(`SimSystem.fast_forward` 훅), 음수·과도 도약 방어. `fast_forward`는 지금 같은 고정 스텝을 그대로 돈다(오프라인 = 온라인 결과 동일). |
-| 시나리오 묶음(브리프 §20.1) | `tools/sim_run.gd`(봇 이름 인자) + `data/sim/bots.json`. `Bot.gd`는 균형형 하나 — 설정값으로 다른 봇을 만들 수 있다(자재 집중형: 자재 선택 규칙만 바꾸면 됨). |
-| 일괄 승급 UI | `upgradable {tier?}` → [{tier, tier_name, count, bids}], `upgrade_preview {bids, material}` → info.upgrade.preview와 같은 키(합산) + {ok, blockers, cost{money, qty, extra}} 구현됨. |
+## 5. 성능
 
-## 6. 내가 정한 것(사양 밖) — 번호, 이유
+측정: `godot --headless --path godot -s res://tools/sim_perf.gd -- [houses=1000] [steps=96] [topup=1] [offline=1]` — 주거 1,000채(층마다 2×2 시설 자리 여섯 곳, 계층 층마다 다름, 정수장 30·열병합 12), topup=1은 생산 시설 없는 상품을 매 스텝 채움(정상 운영), topup=0은 끼니가 바닥나는 위기 도시.
 
-1. **공사 중 건물을 `buildings`에 kind "site"로 둔다.** 계약은 house/facility만 적었지만 진행률을 셀 넷에 따로 두면 2×2가 어긋난다. 완공 시 같은 bid로 facility가 된다.
-2. **주거 승급도 짧은 공사(0.05~0.1경제일, 30~60초)**: 브리프의 "비계(scaffold) 동안 주민은 그대로" 연출을 경제 상태로 보여 주려고. 계층 전환과 이주는 완공 순간에 일어난다. 데이터 `days`를 0으로 하면 즉시.
-3. **물·전기를 쓰는 생산식의 물은 재고 상품이 아니라 유틸리티 부하**(GDD 표의 "물 6"). 물 저장 개념을 만들지 않기 위해.
-4. **"헌 옷"은 생산 시설 없이 수입 전용**: GDD 표에 떠돌이 승급 수요로만 있고 만드는 곳이 없었다. 봉제방은 세입자 인력이 필요해 떠돌이 승급 전에 못 돌리므로(순환 잠금) 도매상 수입으로 해결.
-5. **교역소 인력 세입자 2 → 떠돌이 2**: 떠돌이 승급 수요(헌 옷·초 원료)가 계약을 필요로 하는데 교역소가 세입자를 요구하면 순환 잠금.
-6. **기본 계약 자리 2**(교역소 없이 길 건너 도매상과 둘, `contracts.base_slots`): 첫 접속에서 헌 옷·유지(떠돌이 승급)를 바로 사게. 교역소는 자리 +2. 계약 자리는 완공 교역소 수로만 세고 교역소 인력과는 무관.
-7. **도매상이 전자 부품·양주를 비싸게 판다**, **건재상이 설비 부품·고물도 판다**: 순환 잠금 검사 규칙("아는 거래처나 해금된 시설로 얻을 수 있어야")을 지키려고. 부두 암시장이 더 싸다(탐험 발견의 가치).
-8. **고물 작업장 해금 떠돌이 50 → 20**: 시설 건설 재료(고물)가 시작 30개로 막혔다.
-9. **세입자 등불: 전기가 남으면 전기로 갈아탄다(prefer)**: GDD "등불은 전기가 닿으면 전기로 대체". 남는 전기 몫 확인으로 쏠림·깜빡임 방지.
-10. **바닥나는 상품에서 대체품으로 갈아타기**(지난 스텝 공급률 < 0.9 + 넉넉한 대체품): 순수 sticky는 "조금씩 들어와 매 스텝 0이 되는" 채소에 모든 집이 묶여 국수가 남아도는데도 굶는 버그를 만들었다.
-11. **시장·서비스는 전기도 켜짐 이력에 포함**(x = min(인력, 전기) ≥ 0.6이면 켜짐, 0.5 밑이면 꺼짐). 전기 필요 시장이 비율만큼 "부분 가동"하는 모델은 범위 서비스에 어울리지 않아 이진 가동.
-12. **공급 시설(발전기 등)의 출력 = 정격 × 인력 비율**, 전기를 쓰는 공급 시설(정수장)은 × 직전 전기 비율.
-13. **철거는 환불 없음**, 주거 철거 시 주민은 대기 주민(3일)으로 — 사라지지 않게.
-14. **창고 한도는 상품마다**(공유 총량이 아니라 상품별 한도). 디렉터 수정 2의 "3일치"를 상품별로 맞추기 쉬움.
-15. **세 계열 자재 이외 '설비 부품'은 승급 추가 상품과 상급 시설 비용에만** — 탐험 원거리 보상(B)과 건재상 소량 구매.
-16. **`offline_summary`는 없을 때 null 대신 빈 모양**(작업 지시: UI가 null을 받지 않게). Game이 정산 직후 한 번 실제 요약을 돌려준다.
-17. **봇 전용**: 탐험이 없어 세 계열 자재를 하루 30개 `debug add_stock`으로 넣는다(근거리 2팀 상시 가동 가정). 리포트 첫머리에 명시.
-18. **해금 조건의 계층 인구에는 대기 주민도 포함**(노동력과 같은 기준).
-19. **소음 이웃**: 같은 층 거리 1(옆 칸, 위아래 아님)의 `noise` 태그 시설 하나당 행복 −6.
+| | 파트 A | 지금 |
+|---|---|---|
+| 1,000채 스텝 평균(정상) | **약 120ms**(파트 A 측정) · 이 탐침 267ms(needs 250) | **약 7.7~8.3ms**(중앙값 6.8~7.5, 하루 경계의 settle 포함) |
+| 1,000채 스텝(위기: 매 스텝 고르기가 뒤집힘) | — | 약 15ms |
+| 하루 경계 settle | 32~37ms | 30ms(한 번의 JSON 왕복) |
+| 미접속 8시간(12경제일) 정산 | 약 70초(576스텝) | **약 0.9초**(48 큰 스텝 + 끝 settle 한 번) |
+| 시험 묶음 | 13.8초 | 약 17초(시험 수 2배) |
 
-## 7. 약한 곳(알고 있는 것)
+어떻게(결과는 같다 — 균형형 봇 30경제일 결과가 파트 A와 숫자 하나 다르지 않았다, 탐침 지문 동일):
+1. **덮임 등급 → 접근 등급**: Cover가 주거마다 (시장 목록, 서비스 목록, 소음)을 등급으로 묶고, needs가 범위 시설의 가동 상태가 바뀔 때만 등급별 "시장 등급·서비스별 원인" 표를 만들어 같은 것끼리 다시 묶는다(1,000채 → 642 → 158).
+2. **묶음(Ent)**: (계층, 접근 등급, 현재 선택 서명 psig, prefer 판정 비트)가 같은 주거는 1단계 결과가 같다 → 한 번만 계산하고 주거마다 주민 수만 더한다. 묶음은 기댄 환경 비트(상품 재고 있음·공급률 충분, 물·전기 0.5/충분)가 그대로면 다음 스텝에도 쓴다. 재고 양으로 정렬해 고른 묶음은 그 스텝만.
+3. **2단계 결과(P2)** 도 묶음마다(공급률·물·전기 값이 그대로면 재사용). **가라앉은 주거**(같은 묶음·같은 P2·같은 주민 수·부족 일수 변화 없음·입주/퇴거 없음)는 2단계를 통째로 건너뛴다.
+4. 소비는 소비 묶음(dem)별 주민 합 × 1인 소비, 상품 순서는 데이터 순서로 고정 — 캐시 이력과 무관하게 결정론. 도시 행복도 묶음 순서로 더한다.
+5. Cover의 우선순위 묶음(시설 정보 배열)으로 workforce·utilities가 사전 조회 없이 돌고, Metrics·finance·upgrades·space가 주거·시설 목록만 돈다. `Sim.cfg` 경로 캐시, `bdef/good/tier` 빠른 길.
+6. settle은 정수 아닌 float만 모아 JSON 왕복 한 번. 빨리감기 중에는 끝에서 한 번.
 
-- 행복은 단순식(기본 50 + 여유 ×12 − 기본 부족 ×5 − 소음 ×6). 명소·정원 범위 보너스, 정책은 아직 없음.
-- 시장·서비스는 이진 가동 — 인력 55%인 시장은 이전 상태에 따라 켜져 있거나 꺼져 있다(의도한 이력).
-- 생산식 처리 순서(우선순위 → bid 순)대로 원료를 먼저 가져간다. 원료가 모자라면 앞 순위 시설이 먼저 쓴다(같은 순위 안 비율 배분은 아님).
-- 봇은 "괜찮은 플레이어" 흉내일 뿐이다: 서비스 과잉 건설, 자리 선정이 단순. 리포트의 "막힌 것"은 봇의 한계와 게임의 병목이 섞여 있다.
-- 계약 회차는 스텝 경계에서 실행된다(최대 1/48일 늦음). 한 스텝에 한 계약은 한 번만.
-- 2층 이상 2×2 시설 자리는 플레이어가 비워 둬야 한다(봇은 층마다 2×2 자리 네 곳을 남긴다).
-- `Data.gd`는 디렉터 소유라 바꾸지 않았다. 데이터 검증 오류는 Sim.setup에서 `push_error` + `sim.errors`로 나온다(UI가 보여 주면 좋다).
+휴대폰(5~10배 느림) 예상: 정상 스텝 40~80ms(×16이면 실제 0.78초에 한 번 → 프레임 하나), 미접속 8시간 5~9초 — 로딩 화면이 필요할 수 있다(§9 열린 질문).
 
-## 8. 실행 방법
-- 시험: `godot/tests/sim_test.sh` (헤드리스, 약 15초, 마지막 줄 `RESULT: PASS`).
-- 봇 리포트: `KOWLOON_NOSAVE=1 godot --headless --path godot -s res://tools/sim_run.gd -- bot=balanced days=30 seed=1` → `simulation/reports/core_balanced.md` + `.json`(약 45초).
-- 검토 표: `python3 godot/tools/data_tables.py` → `docs/data_tables/*.md`.
-- Game 부팅 탐침(UI 없이 오토로드만): `KOWLOON_NOSAVE=1 godot --headless --path godot res://tools/sim_game_probe.tscn`.
-- 컴파일 확인: `godot --headless --path godot -s res://tools/sim_check.gd` (core/Game.gd는 -s 모드에서 Data 오토로드가 없어 실패로 나오는 게 정상 — 탐침으로 확인).
+## 6. 실행 방법
+- 시험: `godot/tests/sim_test.sh` (마지막 줄 `RESULT: PASS`).
+- 시나리오 하나: `KOWLOON_NOSAVE=1 godot --headless --path godot -s res://tools/sim_run.gd -- bot=balanced real_days=7 seed=1` → `simulation/reports/balanced.md` + `.json`(약 1~4분).
+- 전부 + 요약: 봇 12종을 돌린 뒤 `python3 simulation/make_summary.py` → `simulation/reports/SUMMARY.md`(해석은 `simulation/summary_notes.md`).
+- 옛 계속 접속 리포트: `... sim_run.gd -- mode=econ bot=balanced days=30` → `core_balanced.md`.
+- 성능: `... -s res://tools/sim_perf.gd`. 검토 표: `python3 godot/tools/data_tables.py`.
+- Game 부팅 탐침: `KOWLOON_NOSAVE=1 godot --headless --path godot res://tools/sim_game_probe.tscn`.
+
+## 7. 내가 정한 것(사양 밖) — 번호, 이유
+
+파트 A의 1~19는 그대로 유효(아래는 파트 B, 20부터).
+
+20. **부족 일수(유예 시계)는 유예(3경제일)에서 멈춘다.** 원래는 끝없이 쌓였다. 쌓인 값은 "회복 뒤 다시 끊기면 얼마나 빨리 떠나나"에만 영향을 주는데, 상한이 있어야 오래 굶은 집도 회복 뒤 다시 유예를 온전히 받고(더 너그러움), 묶음 캐시가 "변화 없음"을 알아볼 수 있다.
+21. **`upgradable`에 비용을 넣고 `ready`를 따로 둠**(디렉터 요청을 따르되 봇·UI가 "조건은 됐는데 돈/자재가 없음"을 알 수 있게). `upgrade` 명령은 ready + 실제 비용으로 판정.
+22. **탐험 보상은 출발 때 굴리고, 발견(거래처·도면·새 목적지)은 수령할 때 적용.** 보상이 미리 정해져 있어야 저장·불러오기·시계 조작으로 다시 굴릴 수 없고, 발견은 플레이어가 짐을 풀 때 보여 주는 게 자연스럽다.
+23. **수령은 재고 한도를 넘겨도 넣는다.** "결과는 사라지지 않는다"(확정)를 지키려고. 넘친 만큼 생산·수입이 멈출 뿐.
+24. **세 근거리 목적지의 실제 1분당 자재를 같게(2.0)**: 가구 골목 5분·10, 고철 7분·14, 철거 공사장 10분·20(GDD는 10/10/12). 어느 계열도 정답이 아니게(브리프 요구), 대신 짧은 곳은 손이 더 간다.
+25. **출발비**: 근거리 0, 중거리 ₩30, 원거리 ₩80. 작은 돈 싱크 + 원거리를 공짜 무한 수확으로 만들지 않으려고.
+26. **거점을 허물면 쉬는 팀부터 없애고, 나가 있는 팀은 돌아와 짐을 푼 뒤 해산.** 팀 수 = 거점 수를 지키면서 보상을 잃지 않게.
+27. **목표 보상에 돈·설비 부품·목적지 공개**를 넣고, 등급·호칭은 해금 단계(unlocks.json)에 그대로 둠. 목표는 "다음에 할 일" 안내, 등급은 성장 결과.
+28. **알림은 상태(flags.alerts)에 기억해 1경제시간 유지**, 최대 4개. 탐험 귀환처럼 실제 시계에 따르는 것만 질의 때 바로.
+29. **미접속 큰 스텝 1/4경제일**(접속 중 1/48). 계약 주기(12시간 이상)·공사(0.04일)·입주 속도에서 결과가 거의 같고(시험: 37분씩 나눠도 ±2%), 1,000채 8시간을 1초 안에.
+30. **앱이 60초 넘게 멈췄다 돌아와도 미접속 규칙**으로 정산(접속 중 속도로 몇 시간을 몰아 돌리지 않게). `last_saved_unix`를 "마지막 정산 시각"으로도 씀.
+31. **연구는 공부방이 하나도 가동하지 않으면 멈추고, 취소하면 절반 환불.** "공부방 필요"를 진행 조건으로 읽었다.
+32. **정책 유지비를 못 내면 그 정책이 저절로 꺼진다**(금고 음수 금지 규칙과 맞춤).
+33. **단속 대상은 위험 기여만큼의 확률로**(결정론 RNG), 벌금은 금고를 넘지 않는다. "권한을 빼앗지 않는다": 폐쇄 중에도 멈추기·허물기 가능, 위험은 공개(hud.heat, vice 질의, 알림 50).
+34. **무면허 치과·짝퉁 공방도 위험을 조금 올린다**(1·4). GDD §11의 음성 여섯 곳을 그대로.
+35. **봇 전용: 꼭 필요한 시설 자리가 없으면 낮은 계층 주거(최대 세입자)를 허물어 2×2 자리를 낸다.** 알려진 약점(층이 차면 2×2를 못 놓음)을 플레이어가 하는 방식으로 — 주거 철거는 무료, `can("build")`가 "이 층에는 빈 2×2 자리가 없다 — 주거 한 칸을 허물면…"이라고 말한다.
+36. **목표 `g_trade`의 계약 3건, `g_mid`(중거리에서 거래처)** 등 목표 문구·순서는 내가 썼다(goals.json).
+37. 초반 현금(시작 ₩1,200, 초반 목표 보상↑), 후반 싱크(세율·승급 돈·연구·회관) — BALANCE_CHANGELOG에 이유와 함께.
+
+## 8. 약한 곳(알고 있는 것)
+
+- **경제 시간이 실제 하루에 30~45일 흐른다**(접속 10분 = 1일 + 미접속 0.25배 × 8시간 상한이 하루 여러 번). 그래서 GDD의 "거물 ≈ 30경제일"이 보통 접속자에게는 실제 반나절~하루다. 실시간 속도를 정하는 손잡이는 탐험(자재)뿐이다 — §9 질문 1.
+- 후반 돈은 결국 쌓인다(샌드박스). 1회성 싱크(연구·회관·승급)는 넣었지만 도시가 클수록 커지는 싱크는 없다.
+- 위기(끼니가 도시 전체에서 바닥)에서는 고르기가 매 스텝 뒤집혀 needs가 느려진다(1,000채 15ms).
+- 봇은 "괜찮은 플레이어" 흉내다: 접속당 명령이 사람보다 훨씬 많고(1분마다 손), 자리 선정이 단순하다. 리포트의 "막힌 것"은 봇의 한계와 게임 병목이 섞여 있다.
+- `docs/data_tables`와 GDD 표는 데이터와 다를 수 있다(데이터가 맞다).
+
+## 9. 오너에게 물어야 할 것(정말 필요한 것만)
+
+1. **미접속 0.25배의 실시간 속도**: 지금 보통 접속(하루 4번, 2시간 20분)이면 실제 하루에 경제 약 45일 → 거물·성채 회관까지 실제 1~2일. 이 속도가 좋은가?
+   1) 그대로(탐험 자재로만 실시간 속도 조절) 2) 미접속 0.1배(하루 약 25경제일) 3) 미접속 상한 8시간을 하루 합계 8시간으로 4) 다른 안.
+2. **미접속 정산이 휴대폰에서 5~9초**(1,000채, 8시간) 걸릴 수 있다: 1) 로딩 화면 + 요약 2) 상한을 4시간으로 3) 큰 도시만 더 거친 스텝(결과 오차 ↑).
