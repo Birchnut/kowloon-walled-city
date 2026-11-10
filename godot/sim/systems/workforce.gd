@@ -12,9 +12,15 @@ func tick(state: CityState, _dt: float) -> void:
 	var raw := {}
 	for t: int in range(1, tiers + 1):
 		raw[t] = 0.0
-	for b: Dictionary in state.buildings.values():
-		if b["kind"] == "house":
-			raw[int(b["tier"])] += float(b["residents"])
+	var rawp := PackedFloat64Array()
+	rawp.resize(tiers + 1)
+	rawp.fill(0.0)
+	for b: Dictionary in sim.cover(state)["houses"]:
+		var ti: int = b["tier"]
+		var ri: int = b["residents"]
+		rawp[ti] += float(ri)
+	for t: int in range(1, tiers + 1):
+		raw[t] = rawp[t]
 	for t: Variant in state.waiting:
 		raw[int(t)] = float(raw.get(int(t), 0.0)) + float(state.waiting[t].get("count", 0))
 	var left := {}
@@ -24,48 +30,33 @@ func tick(state: CityState, _dt: float) -> void:
 		left[t] = float(have)
 		labor[t] = {"have": have, "need": 0.0, "used": 0.0}
 	var cov := sim.cover(state)
-	var prio: Array = sim.cfg("workforce.priority", [])
-	# 순위별로 묶는다(cover.by_prio는 이미 순위 순서).
-	var groups := {}
-	var order: Array = []
-	for bid: int in cov["by_prio"]:
-		if not state.buildings.has(bid):
-			continue
-		var b: Dictionary = state.buildings[bid]
-		var d := sim.bdef(str(b["type"]))
-		var p := str(d.get("priority", "other"))
-		if not groups.has(p):
-			groups[p] = []
-			order.append(p)
-		groups[p].append(bid)
-	for p: String in order:
-		var members: Array = groups[p]
+	for g: Array in cov["groups"]:
+		var members: Array = g[1]
 		var demand := {}
-		for bid: int in members:
-			var b: Dictionary = state.buildings[bid]
-			var wf: Dictionary = sim.bdef(str(b["type"])).get("workforce", {})
-			for tk: String in wf:
-				var t := int(tk.substr(1))
-				labor[t]["need"] += float(wf[tk])
-				if b.get("paused", false) or b.get("money_stop", false):
+		for f: Array in members:
+			var b: Dictionary = f[0]
+			var off: bool = b.get("paused", false) or b.get("money_stop", false) or b.get("raided", false)
+			for tn: Array in f[5]:
+				var t: int = tn[0]
+				labor[t]["need"] += float(tn[1])
+				if off:
 					continue
-				demand[t] = float(demand.get(t, 0.0)) + float(wf[tk])
+				demand[t] = float(demand.get(t, 0.0)) + float(tn[1])
 		var frac := {}
 		for t: int in demand:
 			var give := minf(float(left.get(t, 0.0)), float(demand[t]))
 			frac[t] = give / float(demand[t]) if demand[t] > 0.0 else 1.0
 			left[t] = float(left.get(t, 0.0)) - give
 			labor[t]["used"] += give
-		for bid: int in members:
-			var b: Dictionary = state.buildings[bid]
-			var wf: Dictionary = sim.bdef(str(b["type"])).get("workforce", {})
-			var s := 1.0
-			if b.get("paused", false) or b.get("money_stop", false):
-				s = 0.0
+		for f: Array in members:
+			var b: Dictionary = f[0]
+			var st := 1.0
+			if b.get("paused", false) or b.get("money_stop", false) or b.get("raided", false):
+				st = 0.0
 			else:
-				for tk: String in wf:
-					s = minf(s, float(frac.get(int(tk.substr(1)), 0.0)))
-			b["staff"] = s
+				for tn: Array in f[5]:
+					st = minf(st, float(frac.get(int(tn[0]), 0.0)))
+			b["staff"] = st
 	state.labor = labor
 
 

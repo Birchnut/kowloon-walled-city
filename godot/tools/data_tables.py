@@ -130,6 +130,74 @@ def main():
         L.append(f"| {oid} | {partners['partners'][o['partner']]['name']} | {gname(o['good'])} | {'수입' if o['dir'] == 'import' else '수출'} | {sz} | {n(o.get('transport', 0))} |")
     files["offers.md"] = L
 
+    # ---- 파트 B: 탐험·목표·연구·정책
+    dest = load("exploration/destinations.json")
+    band = {"near": "근", "mid": "중", "far": "원"}
+    L = header("탐험 목적지", "exploration/destinations.json", dest.get("status", ""))
+    pv = dest.get("provision", {})
+    L += [f"팀: 탐험 거점 하나당 1팀, 최대 {dest.get('teams', {}).get('max', 3)}. 보급: 끼니 {pv.get('n', 10)}({'·'.join(gname(g) for g in pv.get('goods', []))}) → 수확 +{int(pv.get('bonus', 0.25) * 100)}%.", ""]
+    L += ["| id | 이름 | 거리 | 실제 시간 | 비용 ₩ | 보장 주력 | 주력/시간 | 덤 | 발견 | 처음부터 앎 |", "|---|---|---|---|---|---|---|---|---|---|"]
+    for did, d in dest["items"].items():
+        pr = d.get("primary", {})
+        pg = pr.get("good", "")
+        pname = gname(pg) if pg else "고른 자재(" + "·".join(gname(g) for g in d.get("picks", [])) + ")"
+        sec = d.get("seconds", 0)
+        tm = f"{sec // 3600}시간 {sec % 3600 // 60}분" if sec >= 3600 else f"{sec // 60}분"
+        per_h = (pr.get("min", 0) + pr.get("max", 0)) / 2 * 3600 / max(1, sec)
+        bon = ", ".join(f"{gname(b['good'])} {b['min']}~{b['max']}" + (f"({int(b.get('chance', 1) * 100)}%)" if b.get("chance", 1) < 1 else "") for b in d.get("bonus", []))
+        finds = ", ".join(f"{f['type']}:{f['id']}" for f in d.get("finds", [])) + ((" / 공개: " + ", ".join(dest["items"][r]["name"] for r in d.get("reveals", []))) if d.get("reveals") else "")
+        L.append(f"| {did} | {d['name']} | {band.get(d.get('band'), d.get('band'))} | {tm} | {n(d.get('cost', {}).get('money', 0))} | {pname} {pr.get('min', 0)}~{pr.get('max', 0)} | {per_h:.1f} | {bon} | {finds} | {'예' if d.get('known') else '아니오 — ' + d.get('reveal_hint', '')} |")
+    files["destinations.md"] = L
+
+    goals = load("progression/goals.json")
+    L = header("단계 목표", "progression/goals.json", goals.get("status", ""))
+    L += ["| 순서 | id | 문구 | 조건 | 보상 | 해금 단계 |", "|---|---|---|---|---|---|"]
+    for gid, g in sorted(goals["items"].items(), key=lambda kv: kv[1].get("order", 0)):
+        cond = " + ".join(f"{c[0]} {c[1]} {c[2]}" for c in g.get("cond", []))
+        rw = g.get("rewards", {})
+        parts = []
+        if rw.get("money"):
+            parts.append(f"₩{rw['money']}")
+        for k, v in rw.get("stock", {}).items():
+            parts.append(f"{gname(k)} {v}")
+        for r in rw.get("reveal", []):
+            parts.append("목적지 " + dest["items"].get(r, {}).get("name", r))
+        L.append(f"| {g.get('order', 0)} | {gid} | {g['text']} | {cond} | {', '.join(parts)} | {g.get('unlock', '')}{' (최종)' if g.get('final') else ''} |")
+    files["goals.md"] = L
+
+    res = load("progression/research.json")
+    br = res.get("branches", {})
+    L = header("연구", "progression/research.json", res.get("status", ""))
+    L += ["| 갈래 | 단계 | id | 이름 | 비용 ₩ | 경제일 | 앞 단계 | 효과 | 설명 |", "|---|---|---|---|---|---|---|---|---|"]
+    tot = 0
+    for rid, r in sorted(res["items"].items(), key=lambda kv: (list(br).index(kv[1]["branch"]), kv[1].get("tier", 0))):
+        tot += r.get("cost", 0)
+        fx = ", ".join(f"{k} {'+' if v >= 0 else ''}{n(v)}" for k, v in r.get("effects", {}).items())
+        if r.get("reveals"):
+            fx += " · 목적지 공개 " + ", ".join(dest["items"][x]["name"] for x in r["reveals"])
+        L.append(f"| {br.get(r['branch'], r['branch'])} | {r.get('tier', 0)} | {rid} | {r['name']} | {n(r.get('cost', 0))} | {n(r.get('days', 0))} | {res['items'].get(r.get('requires', ''), {}).get('name', '')} | {fx} | {r.get('desc', '')} |")
+    L += ["", f"전부 합계 ₩{tot}."]
+    files["research.md"] = L
+
+    pol = load("progression/policies.json")
+    L = header("정책", "progression/policies.json", pol.get("status", ""))
+    L += ["칸 수 = 열린 `feature:policy_slot_N`(해금 표 참고).", "", "| id | 이름 | 효과 | 유지비 ₩/일 | 음성 시설당 ₩/일 | 같이 못 켬 | 설명 |", "|---|---|---|---|---|---|---|"]
+    for pid, p in pol["items"].items():
+        fx = ", ".join(f"{k} {'+' if v >= 0 else ''}{n(v)}" for k, v in p.get("effects", {}).items())
+        L.append(f"| {pid} | {p['name']} | {fx} | {n(p.get('upkeep', 0))} | {n(p.get('upkeep_per_vice', 0))} | {p.get('group', '')} | {p.get('desc', '')} |")
+    files["policies.md"] = L
+
+    L = header("음성 시설과 단속 위험", "buildings/buildings.json(vice), rules/config.json(heat)", "실험값")
+    cfg = load("rules/config.json")
+    h = cfg.get("heat", {})
+    L += [f"위험은 가동 중인 음성 시설마다 하루 heat만큼 오르고 하루 {h.get('decay_per_day')}씩 식는다. {h.get('warn')}에서 알림, {h.get('raid')}에서 단속(하나 {h.get('close_days')}일 폐쇄, 벌금 = max({h.get('fine_min')}, 수입 × {h.get('fine_days_income')}), 위험 −{h.get('after_raid_drop')}).", ""]
+    L += ["| 시설 | 수입 ₩/일 | 위험/일 | 단속 문구 |", "|---|---|---|---|"]
+    for bid, b in B.items():
+        v = b.get("vice")
+        if v:
+            L.append(f"| {b['name']} | {n(v.get('income', 0))} | {n(v.get('heat', 0))} | {v.get('raid_line', '')} |")
+    files["vice.md"] = L
+
     for name, lines in files.items():
         with open(os.path.join(OUT, name), "w", encoding="utf-8") as f:
             f.write("\n".join(lines) + "\n")

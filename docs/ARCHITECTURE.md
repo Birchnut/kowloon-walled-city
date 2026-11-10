@@ -158,3 +158,24 @@ Game은 매 프레임 `sim.now_unix = 시스템 시각 + state.clock_offset`을 
 
 ## 화면 확인
 `tools/shot.sh <scene|""> <out_dir> [frames] [WxH] [key=value…]` — 인자는 `godot/tools/DevHarness.gd` 참고.
+
+## 파트 B 추가(SIM, 2026-11-11) — 모두 덧붙이기만(기존 키·명령 이름은 그대로)
+
+**시스템**(config `systems` 순서): progression → goals → space → contracts → expeditions → research → policies → workforce → utilities → production → needs → upgrades → vice → finance → alerts.
+**데이터**: `exploration/destinations.json`, `progression/goals.json`, `progression/research.json`, `progression/policies.json`, config `heat.*`, `alerts.*`, `time.offline_step_mult`, `time.offline_min_gap_seconds`, buildings `vice.heat`·`vice.raid_line`.
+
+| 추가 | 내용 |
+|---|---|
+| 명령 | `expedition_send`/`expedition_claim`(claim 결과 `{ok, rewards:[{good,name,n}], finds:[String], teams}`), `research_start {id}`, `research_cancel {}`(절반 환불), `policy_set {id, on}`, `tutorial {step:int}` → `state.flags.tutorial` |
+| can 결과 | `code` 추가 — build/zone: `ok`·`occupied`·`locked_floor`·`money`·`goods`·`locked`·`sky`·`bounds`; 탐험: `busy`·`claim`·`unknown`·`money`·`provision`·`nothing`; 연구: `study`·`busy`·`locked`·`money`; 정책: `slots`·`group` |
+| 질의 | `demolish_preview {pos}` → `{ok, title, lines}` · `vice` → `{heat, warn, raid, gain_per_day, decay_per_day, items[]}` · `goals`에 `next, sandbox, done_count, total`, step에 `final, done_day` · `research`에 `done, total`, node에 `tier, affordable` · `policies` item에 `upkeep, group` · `expeditions` team에 `state_name, rewards, provision, retired`, dest에 `per_hour`, `now_unix` |
+| hud | `floor_progress.text`, `tutorial`, `heat`, `research{id,name,left_days}`, `next_goal{id,text,progress,rewards}`, `alerts_total` |
+| info | 주거 수요 행에 `jump_alt:[{screen,arg,label}]`(원인 "재고 없음"일 때 그 상품을 얻는 곳), 시설에 `size`, `footprint:[Vector3i]`, 원인 `raid` |
+| economy | `finance.today.net`, `finance.avg.net`, 장부 줄 `reward`(목표 보상)·`fine`(벌금) |
+| offline_summary | 보여 줄 것이 없으면 **null**. 있으면 `{real_hours, econ_days, lines[], clamped}` 한 번 |
+| 주거 필드 | `upgradable` = **지금** 승급할 수 있음(만실·수요 + 돈 + 세 계열 중 하나 이상 + 추가 상품) — 뷰의 ▲ 표시용. `ready` = 비용만 빼고 조건 충족. 성능 캐시 `psig`·`nsig`·`sdm`·`sdc`(저장됨, 읽지 말 것) |
+| 시설 필드 | `raided`, `raid_until`(단속 폐쇄) |
+| 이벤트 | `goal_done{id,text,rewards}`, `research_done{id,name}`, `raid{bid,type,until,fine}`, `raid_end{bid}`, `alert{id,text,tone}`(새로 뜬 알림) |
+
+**알림 jump 화면**(G12): `build[:시설 id|cat]` · `economy[:tab|상품 id]` · `expedition` · `trade` · `keep[:tab]`(성채 화면: goals·policies·research·log) · `upgrade`(일괄 승급 열기) · `inspect:<bid>`(그 건물 정보, arg = bid).
+**미접속**: Game이 불러올 때와 앱이 60초 넘게 멈췄다 돌아올 때 `Sim.catch_up(state, now)`을 부른다. `state.last_saved_unix`는 "마지막으로 정산한 실제 시각"으로도 쓰인다.

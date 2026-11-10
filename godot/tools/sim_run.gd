@@ -5,21 +5,41 @@ extends SceneTree
 ## 봇은 경제 1시간마다 한 번 손을 댄다(접속 중 계속 플레이 가정).
 
 
+const Pattern := preload("res://tools/sim_pattern.gd")
+
+
+## 기본: 접속 패턴 시뮬(실제 일수). mode=econ이면 옛 방식(계속 접속, 경제일 수 = days).
+##   godot --headless --path godot -s res://tools/sim_run.gd -- bot=balanced real_days=7 seed=1 [out=<md>] [quiet]
+##   godot --headless --path godot -s res://tools/sim_run.gd -- mode=econ bot=balanced days=30
+## 출력: ../simulation/reports/<bot>.md + .json(요약 행·일별 행)
 func _init() -> void:
-	var args := {"bot": "balanced", "days": "30", "seed": "1", "out": ""}
+	var args := {"bot": "balanced", "days": "30", "real_days": "7", "seed": "1", "out": "", "mode": "pattern"}
 	for a: String in OS.get_cmdline_user_args():
 		var kv := a.split("=", true, 1)
 		args[kv[0]] = kv[1] if kv.size() > 1 else "1"
 	var out := str(args["out"])
-	if out == "":
-		out = ProjectSettings.globalize_path("res://").path_join("../simulation/reports/core_%s.md" % args["bot"]).simplify_path()
-	var r := run(str(args["bot"]), int(args["days"]), int(args["seed"]), not args.has("quiet"))
-	if r["ok"]:
-		SimIO.write_text(out, report(r))
-		SimIO.write_text(out.get_basename() + ".json", JSON.stringify({"rows": r["rows"], "timeline": r["timeline"], "blocked": r["bot"].blocked}, " "))
+	var ok := false
+	if args["mode"] == "econ":
+		if out == "":
+			out = ProjectSettings.globalize_path("res://").path_join("../simulation/reports/core_%s.md" % args["bot"]).simplify_path()
+		var r := run(str(args["bot"]), int(args["days"]), int(args["seed"]), not args.has("quiet"))
+		ok = r["ok"]
+		if ok:
+			SimIO.write_text(out, report(r))
+			SimIO.write_text(out.get_basename() + ".json", JSON.stringify({"rows": r["rows"], "timeline": r["timeline"], "blocked": r["bot"].blocked}, " "))
+		(r["sim"] as Sim).systems.clear()
+	else:
+		if out == "":
+			out = ProjectSettings.globalize_path("res://").path_join("../simulation/reports/%s.md" % args["bot"]).simplify_path()
+		var r := Pattern.run(str(args["bot"]), int(args["real_days"]), int(args["seed"]), not args.has("quiet"))
+		ok = r["ok"]
+		if ok:
+			SimIO.write_text(out, Pattern.report_md(r, per_cell(r["sim"], r["state"])))
+			SimIO.write_text(out.get_basename() + ".json", JSON.stringify(Pattern.summary_row(r), " "))
+		(r["sim"] as Sim).systems.clear()
+	if ok:
 		print("report: ", out)
-	(r["sim"] as Sim).systems.clear()
-	quit(0 if r["ok"] else 1)
+	quit(0 if ok else 1)
 
 
 static func run(bot_id: String, days: int, seed_value: int, verbose: bool = true, db_override: Dictionary = {}) -> Dictionary:

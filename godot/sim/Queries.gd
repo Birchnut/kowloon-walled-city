@@ -31,7 +31,7 @@ static func run(sim: Sim, state: CityState, name: String, args: Dictionary) -> V
 			return {"ok": false, "blockers": ["승급 시스템이 꺼져 있다."], "cost": {"money": 0, "qty": 0, "extra": {}}, "cap_from": 0, "cap_to": 0,
 				"movers": 0, "vacancies": 0, "labor": [], "tax_now": 0.0, "tax_after_now": 0.0, "tax_full": 0.0, "tax_delta": 0.0, "demand_text": []}
 		"offline_summary":
-			return {"real_hours": 0.0, "econ_days": 0.0, "lines": []}
+			return null   # G1: 보여 줄 것이 없으면 null(Game이 정산 직후 한 번만 실제 요약을 돌려준다)
 	return null
 
 
@@ -91,9 +91,10 @@ static func _hud(sim: Sim, state: CityState) -> Dictionary:
 	var h := {"day": state.day, "hour": state.hour, "money": state.money, "net_per_day": 0.0, "pop_total": state.population(), "pop": pop,
 		"happiness": snappedf(state.happiness, 0.1), "title": state.identity.get("title", "대장"), "grade_name": state.identity.get("grade_name", "공터"),
 		"floors_unlocked": state.floors_unlocked,
-		"floor_progress": {"z": z, "used": Cover.used_cells(state, z), "need": need},
+		"floor_progress": _floor_progress(sim, state, z, need),
 		"water": {"supply": 0.0, "demand": 0.0}, "power": {"supply": 0.0, "demand": 0.0}, "labor": [], "alerts": [],
-		"teams_done": 0, "teams_idle": 0, "contracts_failed": 0, "next_goal": goal}
+		"teams_done": 0, "teams_idle": 0, "contracts_failed": 0, "next_goal": goal, "tutorial": int(state.flags.get("tutorial", 0)),
+		"heat": snappedf(state.heat, 0.1)}
 	var wait := 0
 	for t: Variant in state.waiting:
 		wait += int(state.waiting[t].get("count", 0))
@@ -106,6 +107,19 @@ static func _hud(sim: Sim, state: CityState) -> Dictionary:
 	if up > 0:
 		h["alerts"].append({"id": "upgradable", "text": "승급할 수 있는 주거 %d채" % up, "tone": "good", "jump": {"screen": "upgrade", "arg": ""}})
 	return h
+
+
+## G2: 층 진행 + 문장.
+static func _floor_progress(sim: Sim, state: CityState, z: int, need: int) -> Dictionary:
+	var used := Cover.used_cells_fast(sim, state, z)
+	var text := ""
+	if state.floors_unlocked >= sim.F:
+		text = "모든 층이 열렸다"
+	elif used >= need:
+		text = "%d층이 곧 열린다" % (z + 2)
+	else:
+		text = "%d층이 열리려면 %d층에 %d칸 더" % [z + 2, z + 1, need - used]
+	return {"z": z, "used": used, "need": need, "text": text}
 
 
 static func _effect_text(sim: Sim, d: Dictionary) -> String:
@@ -169,7 +183,7 @@ static func _build_menu(sim: Sim, state: CityState) -> Array:
 	var house_cost := float(sim.cfg("zone.shack_cost", 5))
 	var hl := not sim.is_unlocked(state, "house")
 	by["house"] = [{"id": "house", "name": "주거 구역", "desc": "칠한 칸마다 판잣집이 선다(1칸 = 1주거, %s %d명)." % [sim.tname(1), int(sim.tier(1).get("cap", 4))],
-		"sign": "", "size": 1, "cost": {"money": house_cost, "goods": {}}, "workforce": [], "upkeep": 0, "range": 0,
+		"sign": "住", "size": 1, "cost": {"money": house_cost, "goods": {}}, "workforce": [], "upkeep": 0, "range": 0,
 		"effect_text": "주민이 살며 세금을 낸다", "locked": hl, "lock_hint": "", "affordable": state.money >= house_cost}]
 	for id: String in sim.items("buildings"):
 		var d := sim.bdef(id)
@@ -233,12 +247,13 @@ static func _info(sim: Sim, state: CityState, args: Dictionary) -> Dictionary:
 	for u: String in d.get("supply", {}):
 		io.append("%s 공급 %s/일 (지금 %s)" % ["물" if u == "water" else "전기", _n(d["supply"][u]), _n(snappedf(float(d["supply"][u]) * eff, 0.1))])
 	if d.has("vice"):
-		io.append("음성 수입 ₩%s/일 (지금 ₩%s) [단속은 B 파트]" % [_n(d["vice"].get("income", 0)), _n(snappedf(float(b.get("vice_rate", 0.0)), 0.1))])
+		io.append("음성 수입 ₩%s/일 (지금 ₩%s) · 열려 있는 동안 단속 위험 +%s/일" % [_n(d["vice"].get("income", 0)), _n(snappedf(float(b.get("vice_rate", 0.0)), 0.1)), _n(d["vice"].get("heat", 0))])
 	var cause := str(b.get("cause", ""))
 	var ct: String = {"": "가동 중", "staff": "인력 부족", "input": "원료 부족", "water": "물 부족", "power": "전기 부족",
 		"money": "돈이 없어 멈춤", "storage": "창고가 가득", "paused": "일시 정지", "raid": "단속으로 폐쇄"}.get(cause, cause)
 	var served := int(sim.cover(state).get("served", {}).get(bid, 0))
-	return {"bid": bid, "kind": "facility", "pos": b["pos"], "title": d.get("name", b["type"]), "type": b["type"], "desc": d.get("desc", ""), "sign": d.get("sign", ""),
+	return {"bid": bid, "kind": "facility", "pos": b["pos"], "size": int(b.get("size", 1)), "footprint": Cover.footprint(b["pos"], int(b.get("size", 1))),
+		"title": d.get("name", b["type"]), "type": b["type"], "desc": d.get("desc", ""), "sign": d.get("sign", ""),
 		"active": b.get("active", false), "paused": b.get("paused", false),
 		"staff": {"ratio": snappedf(sim.staff_of(b), 0.01), "lines": staff_lines}, "io_lines": io, "eff": snappedf(eff, 0.01),
 		"cause": cause, "cause_text": ct, "upkeep": float(d.get("upkeep", 0)), "range": int(d.get("range", 0)), "served_houses": served,

@@ -5,7 +5,7 @@ extends SimSystem
 ##  시장·서비스: x ≥ 0.6이면 켜지고 0.5 밑으로 내려가야 꺼진다(깜빡임 방지, config workforce.service_on/off). 켜지면 eff 1.
 ##  공급 시설(물·전기): eff = x(공급량은 utilities가 같은 식으로 계산).
 ##  음성 시설: vice.income × x → b.vice_rate(₩/경제일, finance가 장부 'vice'로 넣는다). [단속·위험은 B 파트]
-##  cause: "" | staff | input | water | power | money | storage | paused
+##  cause: "" | staff | input | water | power | money | storage | paused | raid(vice 시스템의 단속 폐쇄)
 ## 끄면: 아무것도 생산하지 않는다(시장·서비스도 꺼진다).
 
 const CAUSE_TEXT := {"": "가동 중", "staff": "인력 부족", "input": "원료 부족", "water": "물 부족", "power": "전기 부족",
@@ -45,6 +45,9 @@ func tick(state: CityState, dt: float) -> void:
 		elif b.get("money_stop", false):
 			eff = 0.0
 			cause = "money"
+		elif b.get("raided", false):
+			eff = 0.0
+			cause = "raid"
 		elif d.has("market") or d.has("services"):
 			var on := x >= (off_th if was else on_th) - 1e-9
 			eff = 1.0 if on else 0.0
@@ -69,6 +72,7 @@ func tick(state: CityState, dt: float) -> void:
 ## 생산식 한 스텝. 반환 = 실제 효율.
 func _produce(state: CityState, b: Dictionary, d: Dictionary, x: float, dt: float) -> float:
 	var rec: Dictionary = d["recipe"]
+	dt *= sim.mod(state, "prod.all")    # 연구·정책: 처리량(원료와 산출을 함께) 배수
 	var eff := x
 	if eff <= 0.0:
 		return 0.0

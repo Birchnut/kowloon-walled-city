@@ -33,10 +33,21 @@ func _now() -> int:
 	return int(Time.get_unix_time_from_system()) + (state.clock_offset if state != null else 0)
 
 
+var _last_frame_unix: int = 0
+
+
 func _process(delta: float) -> void:
 	if state == null:
 		return
 	sim.now_unix = _now()
+	# 앱이 백그라운드에 있다 돌아오면(프레임 사이 실제 공백이 길면) 접속 중 속도가 아니라 미접속 규칙으로 정산한다.
+	var gap := sim.now_unix - _last_frame_unix
+	_last_frame_unix = sim.now_unix
+	if gap > int(Data.cfg("time.offline_min_gap_seconds", 60)) and state.last_saved_unix > 0:
+		state.last_saved_unix = sim.now_unix - gap
+		_offline_catch_up()
+		_drain()
+		return
 	if paused:
 		return
 	var spd: float = float(Data.cfg("time.seconds_per_day", 600.0))
@@ -63,7 +74,9 @@ func new_game(seed_value: int = -1) -> void:
 	if seed_value < 0:
 		seed_value = int(Time.get_unix_time_from_system()) & 0x7fffffff
 	sim.now_unix = int(Time.get_unix_time_from_system())
+	_last_frame_unix = sim.now_unix
 	sim.new_game(state, seed_value)
+	state.last_saved_unix = sim.now_unix
 	_offline_summary = null
 	state.events.clear()
 	state_replaced.emit()
@@ -81,6 +94,7 @@ func cmd(cmd_name: String, args: Dictionary = {}) -> Dictionary:
 		return {"ok": true, "reason": ""}
 	sim.now_unix = _now()
 	var r: Dictionary = sim.apply(state, cmd_name, args)
+	_last_frame_unix = _now()   # 디버그 skip_real 같은 시계 이동을 "앱이 멈췄다 돌아옴"으로 오해하지 않게
 	_drain()
 	return r
 
@@ -124,25 +138,20 @@ func load_game() -> bool:
 		return false
 	state = s
 	sim.now_unix = _now()
+	_last_frame_unix = sim.now_unix
 	_offline_catch_up()
 	state.events.clear()
 	state_replaced.emit()
 	return true
 
 
-## ── [B 파트 이음새] 미접속 따라잡기 ──────────────────────────────────────────
-## 지금은 최소 구현: 실제 경과(최대 config time.offline_max_real_hours) × offline_speed → 경제일, sim.fast_forward 한 번.
-## B 파트가 할 일: 보호 장치(유예 시계 정지·재고 0이면 그 소비만 정지), 복귀 요약(생산·소비·계약·부족 시점·탐험 완료),
-## 음수 시간·과도한 도약 방어. 결과는 _offline_summary {real_hours, econ_days, lines[]}로 둔다(query offline_summary가 한 번 돌려줌).
+## ── 미접속 따라잡기(파트 B) ─────────────────────────────────────────────
+## 규칙은 Sim.catch_up(느리게 + 보호, 시계 방어, 요약). 불러올 때 + 앱이 오래 멈췄다 돌아올 때(_process의 큰 공백) 부른다.
+## 결과는 _offline_summary {real_hours, econ_days, lines[]} — query("offline_summary")가 한 번 돌려주고 비운다(없으면 null).
 func _offline_catch_up() -> void:
-	if state.last_saved_unix <= 0:
-		return
-	var real_s := clampf(float(sim.now_unix - state.last_saved_unix), 0.0, float(Data.cfg("time.offline_max_real_hours", 8)) * 3600.0)
-	var econ := real_s * float(Data.cfg("time.offline_speed", 0.25)) / maxf(float(Data.cfg("time.seconds_per_day", 600)), 1.0)
-	if econ < sim.step_days:
-		return
-	var r := sim.fast_forward(state, econ)
-	_offline_summary = {"real_hours": snappedf(real_s / 3600.0, 0.01), "econ_days": snappedf(econ, 0.01), "lines": r.get("lines", [])}
+	var r: Variant = sim.catch_up(state, _now())
+	if r != null:
+		_offline_summary = r
 
 
 func delete_save() -> void:

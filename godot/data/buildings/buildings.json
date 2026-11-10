@@ -580,7 +580,12 @@
    "tags": [
     "vice"
    ],
-   "desc": "로고는 진짜보다 크다."
+   "desc": "로고는 진짜보다 크다.",
+   "vice": {
+    "income": 0,
+    "heat": 4,
+    "raid_line": "짝퉁 공방이 압수됐다. 압수품 목록에 '진짜'라고 적힌 상자가 있었다."
+   }
   },
   "shrine": {
    "name": "사당",
@@ -667,7 +672,12 @@
    "tags": [
     "vice"
    ],
-   "desc": "면허는 본토에 있다."
+   "desc": "면허는 본토에 있다.",
+   "vice": {
+    "income": 0,
+    "heat": 1,
+    "raid_line": "무면허 치과에 단속. 면허는 여전히 본토에 있다고 한다."
+   }
   },
   "bathhouse": {
    "name": "목욕탕",
@@ -779,7 +789,9 @@
    ],
    "range": 5,
    "vice": {
-    "income": 30
+    "income": 30,
+    "heat": 3,
+    "raid_line": "하우스 문에 경찰 테이프가 붙었다. 판돈은 증거물이 되었다."
    },
    "tags": [
     "vice",
@@ -805,7 +817,9 @@
    "build_days": 0.04,
    "power": 15,
    "vice": {
-    "income": 160
+    "income": 160,
+    "heat": 8,
+    "raid_line": "'고객님, 검찰청입니다' — 이번엔 진짜 검찰청이 전화를 받았다. 콜센터 문이 닫혔다."
    },
    "tags": [
     "vice",
@@ -837,7 +851,9 @@
    "range": 8,
    "power": 30,
    "vice": {
-    "income": 500
+    "income": 500,
+    "heat": 12,
+    "raid_line": "카지노에 단속이 들이닥쳤다. 손님들은 다들 지나가던 길이었다고 한다."
    },
    "tags": [
     "vice",
@@ -873,7 +889,12 @@
     "noise",
     "stub"
    ],
-   "desc": "폭죽을 말아 수출한다. [사고 위험은 B 파트]"
+   "desc": "폭죽을 말아 수출한다. [사고 위험은 B 파트]",
+   "vice": {
+    "income": 0,
+    "heat": 5,
+    "raid_line": "화약 가공소가 봉인됐다. 이웃들은 처음으로 조용한 밤을 보낸다."
+   }
   },
   "scrapyard": {
    "name": "고물 작업장",
@@ -960,7 +981,7 @@
    "priority": "service",
    "size": 2,
    "cost": {
-    "money": 5000,
+    "money": 25000,
     "goods": {
      "wood": 40,
      "metal": 40,

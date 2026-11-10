@@ -95,7 +95,7 @@ func tick(state: CityState, _dt: float) -> void:
 func _run(state: CityState, c: Dictionary) -> void:
 	var g := str(c["good"])
 	var qty := float(c["qty"])
-	var price := float(c["price"])
+	var price := float(c["price"]) * sim.mod(state, "trade.buy" if c["dir"] == "import" else "trade.sell")   # 연구: 단골 거래
 	var tr := float(c.get("transport", 0.0))
 	var ok := true
 	var reason := ""
@@ -134,9 +134,30 @@ func _run(state: CityState, c: Dictionary) -> void:
 			reason = ("%d/%d개만 보냄" % [int(n), int(qty)]) if n < qty else ("%d개 보냄 (₩%d)" % [int(n), int(got)])
 	c["last"] = {"ok": ok, "reason": reason, "at": state.econ_days, "n": n}
 	state.stat_add("contract_rounds", 1.0)
+	if not ok:
+		state.stat_add("contract_skips", 1.0)
+		if sim.offline:
+			var fr: Dictionary = sim.offline_log.get("cfail", {})
+			fr["%s %s" % [_pname(c["partner"]), sim.gname(g)]] = reason
+			sim.offline_log["cfail"] = fr
 	state.emit("contract_done", {"id": int(c["id"]), "ok": ok, "reason": reason})
 	if not ok:
 		sim.say(state, "계약(%s %s): %s." % [_pname(c["partner"]), sim.gname(g), reason], "warn")
+
+
+func fast_forward(state: CityState, _econ_days: float, before: Dictionary, lines: Array) -> void:
+	var bs: Dictionary = before.get("stats", {})
+	var rounds := int(float(state.stats.get("contract_rounds", 0.0)) - float(bs.get("contract_rounds", 0.0)))
+	var skips := int(float(state.stats.get("contract_skips", 0.0)) - float(bs.get("contract_skips", 0.0)))
+	if rounds > 0:
+		var t := "계약 %d회 이행" % (rounds - skips)
+		if skips > 0:
+			var why: Array = []
+			var cf: Dictionary = sim.offline_log.get("cfail", {})
+			for k: String in cf:
+				why.append("%s: %s" % [k, cf[k]])
+			t += ", %d회 건너뜀(%s)" % [skips, "; ".join(why.slice(0, 2))]
+		lines.append(t + ".")
 
 
 # ------------------------------------------------------------------ 질의

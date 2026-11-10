@@ -185,7 +185,7 @@ const _FIELDS := [
 const _INT_FIELDS := ["rng_seed", "rng_state", "day", "floors_unlocked", "milestone", "next_id", "clock_offset", "last_saved_unix"]
 ## JSON 왕복 후 float가 된 정수 값을 키 이름으로 되돌린다(재귀). 새 정수 키는 여기에 추가.
 const _INT_KEYS := ["id", "bid", "tier", "residents", "cap", "size", "seed", "count", "day", "visits", "to", "have",
-	"layout_rev", "milestone", "grade", "started_unix", "completes_unix", "built", "floor", "target"]
+	"layout_rev", "milestone", "grade", "started_unix", "completes_unix", "built", "floor", "target", "nsig", "sdm", "sdc"]
 
 
 func to_dict() -> Dictionary:
@@ -236,13 +236,49 @@ func from_json(text: String) -> bool:
 
 
 ## 모든 float를 "JSON에 썼다 읽은 값"으로 제자리에서 맞춘다 → 저장 후 이어한 게임 = 불러와 이어한 게임.
+## 성능: 정수가 아닌 float만 모아 JSON 왕복을 한 번에 한다(값마다 따로 하면 1,000채 도시에서 수백 ms).
 func settle() -> void:
+	var conts: Array = []
+	var keys: Array = []
+	var vals: Array = []
 	for f: String in _FIELDS:
 		var v: Variant = get(f)
 		if v is float:
 			set(f, _settle_f(v))
 		elif v is Dictionary or v is Array:
-			_settle_in(v)
+			_collect(v, conts, keys, vals)
+	if vals.is_empty():
+		return
+	var back: Variant = JSON.parse_string(JSON.stringify(vals))
+	if not (back is Array) or (back as Array).size() != vals.size():
+		return
+	for i: int in vals.size():
+		var y: float = back[i]
+		if y != vals[i]:
+			conts[i][keys[i]] = y
+
+
+static func _collect(v: Variant, conts: Array, keys: Array, vals: Array) -> void:
+	if v is Dictionary:
+		for k: Variant in v:
+			var x: Variant = v[k]
+			if x is float:
+				if x != floorf(x) or absf(x) >= 1.0e15:
+					conts.append(v)
+					keys.append(k)
+					vals.append(x)
+			elif x is Dictionary or x is Array:
+				_collect(x, conts, keys, vals)
+	elif v is Array:
+		for i: int in v.size():
+			var x: Variant = v[i]
+			if x is float:
+				if x != floorf(x) or absf(x) >= 1.0e15:
+					conts.append(v)
+					keys.append(i)
+					vals.append(x)
+			elif x is Dictionary or x is Array:
+				_collect(x, conts, keys, vals)
 
 
 static func _settle_f(x: float) -> float:

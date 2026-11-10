@@ -7,9 +7,9 @@ extends SimSystem
 
 # ------------------------------------------------------------------ 틱: 공사 진행 · 층 해금
 func tick(state: CityState, dt: float) -> void:
-	for bid: int in state.buildings.keys():
-		var b: Dictionary = state.buildings[bid]
-		if b["kind"] != "site":
+	for bid: int in (sim.cover(state)["sites"] as Array).duplicate():
+		var b: Dictionary = state.buildings.get(bid, {})
+		if b.get("kind", "") != "site":
 			continue
 		var d := sim.bdef(str(b["type"]))
 		b["progress"] = minf(1.0, float(b["progress"]) + dt / maxf(float(d.get("build_days", 0.05)), 1e-6))
@@ -46,7 +46,7 @@ func _check_floor(state: CityState) -> void:
 	if state.floors_unlocked >= sim.F:
 		return
 	var z := state.floors_unlocked - 1
-	if Cover.used_cells(state, z) >= floor_need():
+	if Cover.used_cells_fast(sim, state, z) >= floor_need():
 		state.floors_unlocked += 1
 		state.emit("floor_unlocked", {"z": z + 1})
 		state.stats["floor_%d_day" % (z + 2)] = state.econ_days
@@ -148,15 +148,17 @@ func _plan_zone(state: CityState, cells: Array) -> Dictionary:
 	var sup_all: Array = []
 	if not sim.is_unlocked(state, "house"):
 		for p: Vector3i in cells:
-			skipped.append({"pos": p, "reason": "아직 주거를 지정할 수 없다."})
+			skipped.append({"pos": p, "reason": "아직 주거를 지정할 수 없다.", "code": "locked"})
 		return {"good": good, "skipped": skipped, "supports": sup_all, "money": 0.0}
 	var spent := 0.0
 	for p: Vector3i in cells:
 		var r := _free_reason(state, p)
+		var code := _free_code(state, p)
 		if r == "" and p in good:
 			r = "같은 칸을 두 번 골랐다."
+			code = "occupied"
 		if r != "":
-			skipped.append({"pos": p, "reason": r})
+			skipped.append({"pos": p, "reason": r, "code": code})
 			continue
 		var sup := supports_for(state, good + [p])
 		var extra: Array = []
@@ -165,7 +167,7 @@ func _plan_zone(state: CityState, cells: Array) -> Dictionary:
 				extra.append(q)
 		var c := unit + _support_cost(extra.size())
 		if spent + c > money + 1e-9:
-			skipped.append({"pos": p, "reason": "돈이 모자란다(₩%d 필요)." % int(ceilf(c))})
+			skipped.append({"pos": p, "reason": "돈이 모자란다(₩%d 필요)." % int(ceilf(c)), "code": "money"})
 			continue
 		spent += c
 		good.append(p)
@@ -176,11 +178,14 @@ func _plan_zone(state: CityState, cells: Array) -> Dictionary:
 func _can_zone(state: CityState, args: Dictionary) -> Dictionary:
 	var cells := _cells_arg(args)
 	if cells.is_empty():
-		return {"ok": false, "reason": "칸을 고르지 않았다.", "supports": 0, "cost": {}}
+		return {"ok": false, "reason": "칸을 고르지 않았다.", "code": "bounds", "supports": 0, "cost": {}}
 	var plan := _plan_zone(state, cells)
 	var ok := not (plan["good"] as Array).is_empty()
 	var reason := "" if ok else str(plan["skipped"][0]["reason"])
-	return {"ok": ok, "reason": reason, "supports": (plan["supports"] as Array).size(), "cost": {"money": plan["money"], "goods": {}},
+	var code := "ok"
+	if not ok:
+		code = str(plan["skipped"][0].get("code", "occupied"))
+	return {"ok": ok, "reason": reason, "code": code, "supports": (plan["supports"] as Array).size(), "cost": {"money": plan["money"], "goods": {}},
 		"built": (plan["good"] as Array).size(), "skipped": plan["skipped"], "support_cells": plan["supports"]}
 
 
@@ -188,36 +193,64 @@ func _can_build(state: CityState, args: Dictionary) -> Dictionary:
 	var type := str(args.get("type", ""))
 	var d := sim.bdef(type)
 	var pos: Variant = args.get("pos", null)
-	var fail := func(r: String) -> Dictionary: return {"ok": false, "reason": r, "supports": 0, "cost": d.get("cost", {})}
+	var fail := func(r: String, code: String) -> Dictionary: return {"ok": false, "reason": r, "code": code, "supports": 0, "cost": d.get("cost", {})}
 	if d.is_empty():
-		return fail.call("모르는 시설이다.")
+		return fail.call("모르는 시설이다.", "locked")
 	if not (pos is Vector3i):
-		return fail.call("자리를 고르지 않았다.")
+		return fail.call("자리를 고르지 않았다.", "bounds")
 	if not sim.is_unlocked(state, type):
-		return fail.call("아직 지을 수 없다 — %s" % _lock_hint(type))
+		return fail.call("아직 지을 수 없다 — %s" % _lock_hint(type), "locked")
 	if d.has("blueprint") and not state.flags.get("blueprints", {}).has(str(d["blueprint"])):
-		return fail.call("도면이 있어야 짓는다(탐험에서 찾는다).")
+		return fail.call("도면이 있어야 짓는다(탐험에서 찾는다).", "locked")
 	var size := int(d.get("size", 1))
 	var cells := Cover.footprint(pos, size)
 	for p: Vector3i in cells:
 		var r := _free_reason(state, p)
 		if r != "":
-			return fail.call(r if size == 1 else "2×2 자리 중 한 칸: " + r)
+			var code := _free_code(state, p)
+			if size == 1:
+				return fail.call(r, code)
+			var msg := "2×2 자리 중 한 칸: " + r
+			if code == "occupied" and _free2_count(state, pos.z) == 0:
+				msg += " 이 층에는 빈 2×2 자리가 없다 — 주거 한 칸을 허물면(무료, 주민은 빈집을 찾는다) 자리가 생긴다."
+			return fail.call(msg, code)
 	if d.get("open_sky", false):
 		for p: Vector3i in cells:
 			for z: int in range(p.z + 1, sim.F):
 				if state.cells.has(Vector3i(p.x, p.y, z)):
-					return fail.call("하늘이 열린 자리여야 한다(위에 건물이 있다).")
+					return fail.call("하늘이 열린 자리여야 한다(위에 건물이 있다).", "sky")
 	var sup := supports_for(state, cells)
 	var money := float(d.get("cost", {}).get("money", 0)) + _support_cost(sup.size())
 	var goods: Dictionary = d.get("cost", {}).get("goods", {})
 	var cost := {"money": money, "goods": goods}
 	if state.money + 1e-9 < money:
-		return {"ok": false, "reason": "돈이 모자란다(₩%d 필요, 지금 ₩%d)." % [int(money), int(state.money)], "supports": sup.size(), "cost": cost, "support_cells": sup}
+		return {"ok": false, "reason": "돈이 모자란다(₩%d 필요, 지금 ₩%d)." % [int(money), int(state.money)], "code": "money", "supports": sup.size(), "cost": cost, "support_cells": sup}
 	for g: String in goods:
 		if float(state.stock.get(g, 0.0)) + 1e-9 < float(goods[g]):
-			return {"ok": false, "reason": "%s이(가) 모자란다(%d 필요, 지금 %d)." % [sim.gname(g), int(goods[g]), int(state.stock.get(g, 0.0))], "supports": sup.size(), "cost": cost, "support_cells": sup}
-	return {"ok": true, "reason": "", "supports": sup.size(), "cost": cost, "support_cells": sup}
+			return {"ok": false, "reason": "%s이(가) 모자란다(%d 필요, 지금 %d)." % [sim.gname(g), int(goods[g]), int(state.stock.get(g, 0.0))], "code": "goods", "supports": sup.size(), "cost": cost, "support_cells": sup}
+	return {"ok": true, "reason": "", "code": "ok", "supports": sup.size(), "cost": cost, "support_cells": sup}
+
+
+## _free_reason의 기계 코드: bounds | locked_floor | occupied | ok
+func _free_code(state: CityState, p: Vector3i) -> String:
+	if not _inside(p):
+		return "bounds"
+	if p.z >= state.floors_unlocked:
+		return "locked_floor"
+	if state.cells.has(p):
+		return "occupied"
+	return "ok"
+
+
+## z층의 빈 2×2 자리 수(겹쳐 세지 않는 대략값이 아니라 가능한 origin 수).
+func _free2_count(state: CityState, z: int) -> int:
+	var n := 0
+	for x: int in sim.W - 1:
+		for y: int in sim.H - 1:
+			if not state.cells.has(Vector3i(x, y, z)) and not state.cells.has(Vector3i(x + 1, y, z)) \
+					and not state.cells.has(Vector3i(x, y + 1, z)) and not state.cells.has(Vector3i(x + 1, y + 1, z)):
+				n += 1
+	return n
 
 
 func _lock_hint(id: String) -> String:
@@ -319,6 +352,8 @@ func _demolish(state: CityState, pos: Variant) -> Dictionary:
 
 # ------------------------------------------------------------------ 질의
 func query(state: CityState, name: String, args: Dictionary) -> Variant:
+	if name == "demolish_preview":
+		return _demolish_preview(state, args.get("pos"))
 	if name != "range_preview":
 		return null
 	var type := str(args.get("type", ""))
@@ -335,3 +370,42 @@ func query(state: CityState, name: String, args: Dictionary) -> Variant:
 			n += 1
 	var md := int(sim.cfg("distance.max_floor_delta", 2))
 	return {"cells": cells, "houses": n, "text": "범위 %d칸(위아래 %d층까지, 한 층 = 2칸) · 닿는 주거 %d채" % [rng, md, n]}
+
+
+## 철거 미리보기(G4): {ok, title, lines:[String]} — 밀려나는 주민, 잃는 것, 골조가 남는지.
+func _demolish_preview(state: CityState, pos: Variant) -> Dictionary:
+	if not (pos is Vector3i) or not state.cells.has(pos):
+		return {"ok": false, "title": "철거할 건물이 없다", "lines": []}
+	var b: Dictionary = state.buildings.get(int(state.cells[pos]["bid"]), {})
+	if b.is_empty():
+		return {"ok": false, "title": "철거할 건물이 없다", "lines": []}
+	var lines: Array = []
+	var title := ""
+	if b["kind"] == "house":
+		var t := int(b["tier"])
+		title = "%s의 집 철거" % sim.tname(t)
+		if int(b["residents"]) > 0:
+			lines.append("%s %d명이 빈집을 찾는다(%d일 안에 못 찾으면 떠난다)." % [sim.tname(t), int(b["residents"]), int(sim.cfg("upgrade.waiting_days", 3))])
+		if t > 1:
+			lines.append("%s 계층 집과 그 자재(환불 없음)를 잃는다." % sim.tname(t))
+		lines.append("주거 철거는 돈이 들지 않는다.")
+	else:
+		var d := sim.bdef(str(b["type"]))
+		title = "%s 철거" % d.get("name", b["type"])
+		var cost: Dictionary = d.get("cost", {})
+		var parts: Array = ["₩%d" % int(cost.get("money", 0))]
+		for g: String in cost.get("goods", {}):
+			parts.append("%s %d" % [sim.gname(g), int(cost["goods"][g])])
+		lines.append("건설비(%s)는 돌려받지 못한다." % ", ".join(parts))
+		if d.has("range"):
+			lines.append("범위 안 주거 %d채가 이 시설을 잃는다." % int(sim.cover(state).get("served", {}).get(int(b["id"]), 0)))
+		if d.has("teams"):
+			lines.append("탐험대 한 팀이 줄어든다(나가 있는 팀은 돌아와 짐을 푼 뒤 해산).")
+		if d.has("contract_slots"):
+			lines.append("계약 자리 %d개가 줄어든다." % int(d["contract_slots"]))
+	var above := false
+	for p: Vector3i in Cover.footprint(b["pos"], int(b.get("size", 1))):
+		if state.cells.has(p + Vector3i(0, 0, 1)) or state.supports.has(p + Vector3i(0, 0, 1)):
+			above = true
+	lines.append("위층이 있어 그 자리에 골조가 남는다." if above else "위에 아무것도 없어 빈 칸이 된다.")
+	return {"ok": true, "title": title, "lines": lines}

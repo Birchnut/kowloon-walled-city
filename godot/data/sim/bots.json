@@ -1,10 +1,10 @@
 {
- "_comment": "시나리오 봇 설정(tools/sim_run.gd). expedition_per_day = 탐험(B 파트)을 흉내 내 디버그로 넣는 세 계열 자재 합계/경제일(근거리 2팀이 접속 중 계속 돌린다고 가정 ≈ 실제 10분에 2~3회). money_reserve = 건설·승급 뒤 남길 돈(계층마다 곱).",
+ "_comment": "시나리오 봇(tools/sim_run.gd). pattern = 접속 패턴(patterns). 디버그 자재 없음: 세 계열 자재는 탐험과 건재상 계약으로만. family = 승급에 쓰는 자재를 하나로 고정(집중형). teams = 지을 탐험 거점 수. builder_money = 이 돈 이상이고 자재가 모자라면 건재상 계약. vice = 음성 시설(하우스·콜센터·카지노)과 뒷돈 정책. 나머지 키는 Bot.gd 참고. act_rounds = 한 손길(실제 1분)에 계획을 몇 바퀴 돌리나 — 접속이 짧은 패턴은 밀린 일을 몰아서 한다고 본다.",
  "status": "실험값",
  "items": {
   "balanced": {
    "name": "균형형 운영자",
-   "expedition_per_day": 30,
+   "expedition_per_day": 0,
    "money_reserve": 40,
    "labor_margin": 2,
    "upgrades_per_hour": 3,
@@ -45,7 +45,685 @@
    "luxury": true,
    "max_tier": 5,
    "zone_money": 60,
-   "t1_spare_stop": 80
+   "t1_spare_stop": 80,
+   "pattern": "regular",
+   "teams": 3,
+   "family": "",
+   "provision": true,
+   "parts_value": 10,
+   "research": true,
+   "vice": true,
+   "vice_max": 1,
+   "builder_money": 3000,
+   "base_money": 400
+  },
+  "rush_upgrade": {
+   "name": "승급 과속형",
+   "expedition_per_day": 0,
+   "money_reserve": 10,
+   "labor_margin": -20,
+   "upgrades_per_hour": 12,
+   "zone_batch": 12,
+   "zone_when_vacancy_below": 12,
+   "houses_per_floor": 100,
+   "power_before_t3_at_t2": 40,
+   "water_order": [
+    "water_plant",
+    "water_tower",
+    "rain_catcher",
+    "water_ext"
+   ],
+   "power_order": [
+    "power_plant",
+    "generator",
+    "power_ext"
+   ],
+   "imports": [
+    "flour",
+    "fat",
+    "oldclothes",
+    "cloth",
+    "fishmeat",
+    "elec",
+    "liquor"
+   ],
+   "produce": [
+    "candle",
+    "clothes",
+    "soap",
+    "moonshine",
+    "radio",
+    "suit",
+    "appliance",
+    "fakelux"
+   ],
+   "luxury": true,
+   "max_tier": 5,
+   "zone_money": 60,
+   "t1_spare_stop": 80,
+   "pattern": "regular",
+   "teams": 3,
+   "family": "",
+   "provision": true,
+   "parts_value": 10,
+   "research": true,
+   "vice": true,
+   "vice_max": 1,
+   "builder_money": 3000,
+   "base_money": 400,
+   "pilot_houses": 999,
+   "spare_cap": 999
+  },
+  "export_specialist": {
+   "name": "수출 특화형",
+   "expedition_per_day": 0,
+   "money_reserve": 40,
+   "labor_margin": 2,
+   "upgrades_per_hour": 3,
+   "zone_batch": 12,
+   "zone_when_vacancy_below": 12,
+   "houses_per_floor": 100,
+   "power_before_t3_at_t2": 40,
+   "water_order": [
+    "water_plant",
+    "water_tower",
+    "rain_catcher",
+    "water_ext"
+   ],
+   "power_order": [
+    "power_plant",
+    "generator",
+    "power_ext"
+   ],
+   "imports": [
+    "flour",
+    "fat",
+    "oldclothes",
+    "cloth",
+    "fishmeat",
+    "elec",
+    "liquor"
+   ],
+   "produce": [
+    "candle",
+    "clothes",
+    "soap",
+    "moonshine",
+    "radio",
+    "suit",
+    "appliance",
+    "fakelux"
+   ],
+   "luxury": true,
+   "max_tier": 5,
+   "zone_money": 60,
+   "t1_spare_stop": 80,
+   "pattern": "regular",
+   "teams": 3,
+   "family": "",
+   "provision": true,
+   "parts_value": 10,
+   "research": true,
+   "vice": true,
+   "vice_max": 1,
+   "builder_money": 3000,
+   "base_money": 400,
+   "export_extra": true,
+   "exports_free_slots": 1,
+   "max_trade_posts": 10
+  },
+  "self_sufficient": {
+   "name": "내부 생산형",
+   "expedition_per_day": 0,
+   "money_reserve": 40,
+   "labor_margin": 2,
+   "upgrades_per_hour": 3,
+   "zone_batch": 12,
+   "zone_when_vacancy_below": 12,
+   "houses_per_floor": 100,
+   "power_before_t3_at_t2": 40,
+   "water_order": [
+    "water_plant",
+    "water_tower",
+    "rain_catcher"
+   ],
+   "power_order": [
+    "power_plant",
+    "generator"
+   ],
+   "imports": [
+    "flour",
+    "fat",
+    "cloth",
+    "elec",
+    "oldclothes"
+   ],
+   "produce": [
+    "candle",
+    "clothes",
+    "soap",
+    "moonshine",
+    "radio",
+    "suit",
+    "appliance",
+    "fakelux"
+   ],
+   "luxury": true,
+   "max_tier": 5,
+   "zone_money": 60,
+   "t1_spare_stop": 80,
+   "pattern": "regular",
+   "teams": 3,
+   "family": "",
+   "provision": true,
+   "parts_value": 10,
+   "research": true,
+   "vice": false,
+   "vice_max": 1,
+   "builder_money": 3000,
+   "base_money": 400,
+   "meal_order": [
+    "garden",
+    "noodle_mill",
+    "fishball_factory"
+   ]
+  },
+  "wood_focus": {
+   "name": "목재 집중형",
+   "expedition_per_day": 0,
+   "money_reserve": 40,
+   "labor_margin": 2,
+   "upgrades_per_hour": 3,
+   "zone_batch": 12,
+   "zone_when_vacancy_below": 12,
+   "houses_per_floor": 100,
+   "power_before_t3_at_t2": 40,
+   "water_order": [
+    "water_plant",
+    "water_tower",
+    "rain_catcher",
+    "water_ext"
+   ],
+   "power_order": [
+    "power_plant",
+    "generator",
+    "power_ext"
+   ],
+   "imports": [
+    "flour",
+    "fat",
+    "oldclothes",
+    "cloth",
+    "fishmeat",
+    "elec",
+    "liquor"
+   ],
+   "produce": [
+    "candle",
+    "clothes",
+    "soap",
+    "moonshine",
+    "radio",
+    "suit",
+    "appliance",
+    "fakelux"
+   ],
+   "luxury": true,
+   "max_tier": 5,
+   "zone_money": 60,
+   "t1_spare_stop": 80,
+   "pattern": "regular",
+   "teams": 3,
+   "family": "wood",
+   "provision": true,
+   "parts_value": 10,
+   "research": true,
+   "vice": true,
+   "vice_max": 1,
+   "builder_money": 3000,
+   "base_money": 400
+  },
+  "metal_focus": {
+   "name": "철제 집중형",
+   "expedition_per_day": 0,
+   "money_reserve": 40,
+   "labor_margin": 2,
+   "upgrades_per_hour": 3,
+   "zone_batch": 12,
+   "zone_when_vacancy_below": 12,
+   "houses_per_floor": 100,
+   "power_before_t3_at_t2": 40,
+   "water_order": [
+    "water_plant",
+    "water_tower",
+    "rain_catcher",
+    "water_ext"
+   ],
+   "power_order": [
+    "power_plant",
+    "generator",
+    "power_ext"
+   ],
+   "imports": [
+    "flour",
+    "fat",
+    "oldclothes",
+    "cloth",
+    "fishmeat",
+    "elec",
+    "liquor"
+   ],
+   "produce": [
+    "candle",
+    "clothes",
+    "soap",
+    "moonshine",
+    "radio",
+    "suit",
+    "appliance",
+    "fakelux"
+   ],
+   "luxury": true,
+   "max_tier": 5,
+   "zone_money": 60,
+   "t1_spare_stop": 80,
+   "pattern": "regular",
+   "teams": 3,
+   "family": "metal",
+   "provision": true,
+   "parts_value": 10,
+   "research": true,
+   "vice": true,
+   "vice_max": 1,
+   "builder_money": 3000,
+   "base_money": 400
+  },
+  "concrete_focus": {
+   "name": "콘크리트 집중형",
+   "expedition_per_day": 0,
+   "money_reserve": 40,
+   "labor_margin": 2,
+   "upgrades_per_hour": 3,
+   "zone_batch": 12,
+   "zone_when_vacancy_below": 12,
+   "houses_per_floor": 100,
+   "power_before_t3_at_t2": 40,
+   "water_order": [
+    "water_plant",
+    "water_tower",
+    "rain_catcher",
+    "water_ext"
+   ],
+   "power_order": [
+    "power_plant",
+    "generator",
+    "power_ext"
+   ],
+   "imports": [
+    "flour",
+    "fat",
+    "oldclothes",
+    "cloth",
+    "fishmeat",
+    "elec",
+    "liquor"
+   ],
+   "produce": [
+    "candle",
+    "clothes",
+    "soap",
+    "moonshine",
+    "radio",
+    "suit",
+    "appliance",
+    "fakelux"
+   ],
+   "luxury": true,
+   "max_tier": 5,
+   "zone_money": 60,
+   "t1_spare_stop": 80,
+   "pattern": "regular",
+   "teams": 3,
+   "family": "concrete",
+   "provision": true,
+   "parts_value": 10,
+   "research": true,
+   "vice": true,
+   "vice_max": 1,
+   "builder_money": 3000,
+   "base_money": 400
+  },
+  "space_starved": {
+   "name": "공간 부족형(외부 물·전기)",
+   "expedition_per_day": 0,
+   "money_reserve": 40,
+   "labor_margin": 2,
+   "upgrades_per_hour": 3,
+   "zone_batch": 12,
+   "zone_when_vacancy_below": 12,
+   "houses_per_floor": 118,
+   "power_before_t3_at_t2": 40,
+   "water_order": [
+    "water_ext",
+    "water_tower",
+    "rain_catcher"
+   ],
+   "power_order": [
+    "power_ext",
+    "generator"
+   ],
+   "imports": [
+    "flour",
+    "fat",
+    "oldclothes",
+    "cloth",
+    "fishmeat",
+    "elec",
+    "liquor"
+   ],
+   "produce": [
+    "candle",
+    "clothes",
+    "soap",
+    "moonshine",
+    "radio",
+    "suit",
+    "appliance",
+    "fakelux"
+   ],
+   "luxury": true,
+   "max_tier": 5,
+   "zone_money": 60,
+   "t1_spare_stop": 80,
+   "pattern": "regular",
+   "teams": 3,
+   "family": "",
+   "provision": true,
+   "parts_value": 10,
+   "research": true,
+   "vice": true,
+   "vice_max": 1,
+   "builder_money": 3000,
+   "base_money": 400
+  },
+  "short_frequent": {
+   "name": "짧은 빈번 접속형",
+   "expedition_per_day": 0,
+   "money_reserve": 40,
+   "labor_margin": 2,
+   "upgrades_per_hour": 3,
+   "zone_batch": 12,
+   "zone_when_vacancy_below": 12,
+   "houses_per_floor": 100,
+   "power_before_t3_at_t2": 40,
+   "water_order": [
+    "water_plant",
+    "water_tower",
+    "rain_catcher",
+    "water_ext"
+   ],
+   "power_order": [
+    "power_plant",
+    "generator",
+    "power_ext"
+   ],
+   "imports": [
+    "flour",
+    "fat",
+    "oldclothes",
+    "cloth",
+    "fishmeat",
+    "elec",
+    "liquor"
+   ],
+   "produce": [
+    "candle",
+    "clothes",
+    "soap",
+    "moonshine",
+    "radio",
+    "suit",
+    "appliance",
+    "fakelux"
+   ],
+   "luxury": true,
+   "max_tier": 5,
+   "zone_money": 60,
+   "t1_spare_stop": 80,
+   "pattern": "short_frequent",
+   "teams": 3,
+   "family": "",
+   "provision": true,
+   "parts_value": 10,
+   "research": true,
+   "vice": true,
+   "vice_max": 1,
+   "builder_money": 3000,
+   "base_money": 400,
+   "act_rounds": 2
+  },
+  "twice_a_day": {
+   "name": "하루 2회 접속형",
+   "expedition_per_day": 0,
+   "money_reserve": 40,
+   "labor_margin": 2,
+   "upgrades_per_hour": 3,
+   "zone_batch": 12,
+   "zone_when_vacancy_below": 12,
+   "houses_per_floor": 100,
+   "power_before_t3_at_t2": 40,
+   "water_order": [
+    "water_plant",
+    "water_tower",
+    "rain_catcher",
+    "water_ext"
+   ],
+   "power_order": [
+    "power_plant",
+    "generator",
+    "power_ext"
+   ],
+   "imports": [
+    "flour",
+    "fat",
+    "oldclothes",
+    "cloth",
+    "fishmeat",
+    "elec",
+    "liquor"
+   ],
+   "produce": [
+    "candle",
+    "clothes",
+    "soap",
+    "moonshine",
+    "radio",
+    "suit",
+    "appliance",
+    "fakelux"
+   ],
+   "luxury": true,
+   "max_tier": 5,
+   "zone_money": 60,
+   "t1_spare_stop": 80,
+   "pattern": "twice_a_day",
+   "teams": 3,
+   "family": "",
+   "provision": true,
+   "parts_value": 10,
+   "research": true,
+   "vice": true,
+   "vice_max": 1,
+   "builder_money": 3000,
+   "base_money": 400,
+   "act_rounds": 3
+  },
+  "long_absence": {
+   "name": "장기 부재 복귀형",
+   "expedition_per_day": 0,
+   "money_reserve": 40,
+   "labor_margin": 2,
+   "upgrades_per_hour": 3,
+   "zone_batch": 12,
+   "zone_when_vacancy_below": 12,
+   "houses_per_floor": 100,
+   "power_before_t3_at_t2": 40,
+   "water_order": [
+    "water_plant",
+    "water_tower",
+    "rain_catcher",
+    "water_ext"
+   ],
+   "power_order": [
+    "power_plant",
+    "generator",
+    "power_ext"
+   ],
+   "imports": [
+    "flour",
+    "fat",
+    "oldclothes",
+    "cloth",
+    "fishmeat",
+    "elec",
+    "liquor"
+   ],
+   "produce": [
+    "candle",
+    "clothes",
+    "soap",
+    "moonshine",
+    "radio",
+    "suit",
+    "appliance",
+    "fakelux"
+   ],
+   "luxury": true,
+   "max_tier": 5,
+   "zone_money": 60,
+   "t1_spare_stop": 80,
+   "pattern": "long_absence",
+   "teams": 3,
+   "family": "",
+   "provision": true,
+   "parts_value": 10,
+   "research": true,
+   "vice": true,
+   "vice_max": 1,
+   "builder_money": 3000,
+   "base_money": 400
+  },
+  "t3_to_t5_rush": {
+   "name": "T3→T4→T5 집중형",
+   "expedition_per_day": 0,
+   "money_reserve": 40,
+   "labor_margin": 2,
+   "upgrades_per_hour": 8,
+   "zone_batch": 12,
+   "zone_when_vacancy_below": 4,
+   "houses_per_floor": 80,
+   "power_before_t3_at_t2": 40,
+   "water_order": [
+    "water_plant",
+    "water_tower",
+    "rain_catcher",
+    "water_ext"
+   ],
+   "power_order": [
+    "power_plant",
+    "generator",
+    "power_ext"
+   ],
+   "imports": [
+    "flour",
+    "fat",
+    "oldclothes",
+    "cloth",
+    "fishmeat",
+    "elec",
+    "liquor"
+   ],
+   "produce": [
+    "candle",
+    "clothes",
+    "soap",
+    "moonshine",
+    "radio",
+    "suit",
+    "appliance",
+    "fakelux"
+   ],
+   "luxury": true,
+   "max_tier": 5,
+   "zone_money": 60,
+   "t1_spare_stop": 80,
+   "pattern": "regular",
+   "teams": 3,
+   "family": "",
+   "provision": true,
+   "parts_value": 10,
+   "research": true,
+   "vice": true,
+   "vice_max": 1,
+   "builder_money": 3000,
+   "base_money": 400,
+   "pilot_houses": 999,
+   "spare_cap": 999
+  }
+ },
+ "patterns": {
+  "_comment": "접속 패턴(실제 시간). sessions = 하루 안의 [시작 시각(시), 길이(분)]. act_s = 접속 중 봇이 손대는 간격(실제 초). away = [시작 실제일, 끝 실제일) 동안 접속하지 않음. 접속 중 1경제일 = 600초, 그 밖은 미접속 규칙(Sim.catch_up).",
+  "regular": {
+   "name": "보통(하루 4번, 2시간 20분)",
+   "sessions": [
+    [
+     8,
+     30
+    ],
+    [
+     12.5,
+     20
+    ],
+    [
+     19,
+     60
+    ],
+    [
+     22.5,
+     30
+    ]
+   ],
+   "act_s": 60
+  },
+  "short_frequent": {
+   "name": "짧게 자주(30분마다 5분, 14시간)",
+   "every_min": 30,
+   "from_h": 8,
+   "to_h": 22,
+   "len_min": 5,
+   "act_s": 60
+  },
+  "twice_a_day": {
+   "name": "하루 2번 10분",
+   "sessions": [
+    [
+     8,
+     10
+    ],
+    [
+     20,
+     10
+    ]
+   ],
+   "act_s": 60
+  },
+  "long_absence": {
+   "name": "2일 보통 → 3일 부재 → 복귀",
+   "base": "regular",
+   "away": [
+    2,
+    5
+   ]
   }
  }
 }

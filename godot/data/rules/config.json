@@ -3,14 +3,20 @@
  "status": "제안",
  "systems": [
   "progression",
+  "goals",
   "space",
   "contracts",
+  "expeditions",
+  "research",
+  "policies",
   "workforce",
   "utilities",
   "production",
   "needs",
   "upgrades",
-  "finance"
+  "vice",
+  "finance",
+  "alerts"
  ],
  "grid": {
   "width": 12,
@@ -26,11 +32,14 @@
   "start_hour": 6,
   "offline_speed": 0.25,
   "offline_max_real_hours": 8,
-  "_offline": "B 파트가 구현. 확정: 느리게 + 보호(최대 8시간). 0.25배속은 실험값"
+  "_offline": "확정: 느리게 + 보호(최대 8시간). 0.25배속은 실험값. 미접속 중 유예 시계·대기 주민 시계 정지, 아무도 떠나지 않음. 앱이 60초 넘게 멈췄다 돌아와도 같은 규칙",
+  "offline_step_mult": 12,
+  "_offline_step_mult": "미접속 빨리감기는 이 배수의 큰 스텝(6 × 1/48 = 1/8경제일)으로 돈다 — 8시간 정산이 1,000채에서 1초 안팎. 실험값",
+  "offline_min_gap_seconds": 60
  },
  "start": {
   "_status": "실험값. 세 계열 자재 12씩(GDD §8)",
-  "money": 1000,
+  "money": 1200,
   "stock": {
    "wood": 12,
    "metal": 12,
@@ -124,5 +133,21 @@
    6
   ],
   "_status": "확정 값의 검증 기준. 실험 브랜치에서 정원을 바꾸려면 여기도 같이 바꾼다(의도적 변경만)."
+ },
+ "alerts": {
+  "max": 4,
+  "linger_days": 0.041666666666666664,
+  "floor_cells": 12,
+  "_status": "제안: 최대 4개, 조건이 꺼져도 1경제시간 유지(깜빡임 방지), 층 해금까지 12칸 이하면 알림"
+ },
+ "heat": {
+  "_status": "실험값(GDD §11, 확정: 직설 풍자 유지). 음성 시설(가동 중)마다 vice.heat/경제일을 더하고 decay_per_day로 식는다. warn에서 알림, raid에서 단속: 음성 시설 하나(가동 기여만큼의 확률)를 close_days 닫고 벌금 = max(fine_min, 그 시설 수입 × fine_days_income), 그 뒤 위험 −after_raid_drop.",
+  "decay_per_day": 6.0,
+  "warn": 50,
+  "raid": 80,
+  "close_days": 2.0,
+  "fine_min": 100,
+  "fine_days_income": 2.0,
+  "after_raid_drop": 40.0
  }
 }
