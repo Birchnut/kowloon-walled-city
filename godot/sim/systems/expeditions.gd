@@ -80,7 +80,14 @@ func _update(state: CityState) -> void:
 			state.stat_add("exp_returns", 1.0)
 
 
+var _sync_key := ""
+
+
 func tick(state: CityState, _dt: float) -> void:
+	var k := "%d:%d" % [state.get_instance_id(), state.layout_rev()]
+	if k != _sync_key:
+		_sync_key = k
+		_sync(state)
 	_update(state)
 
 

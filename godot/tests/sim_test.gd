@@ -26,6 +26,15 @@ func _init() -> void:
 	_round_trip()
 	_disable_each()
 	_circular()
+	_exp_claim_rules()
+	_exp_teams_follow_posts()
+	_exp_save_load()
+	_labor_separate()
+	_offline_consistency()
+	_offline_guards()
+	_policy_research()
+	_raid()
+	_alerts_goals()
 	print("")
 	if fails.is_empty():
 		print("SIM TEST: ALL PASS (%.1f초)" % (float(Time.get_ticks_msec() - t0) / 1000.0))
@@ -500,3 +509,273 @@ func _circular() -> void:
 	bad2["unlocks"]["items"]["t1_20"]["unlocks"].erase("candle_shop")
 	bad2["unlocks"]["items"]["t2_1"]["unlocks"].append("candle_shop")
 	_ok(not Validate.lock_check(bad2).is_empty(), "초 공방을 세입자 1로 미루면 → 떠돌이 승급 수요(등불) 순환 잠금 검출")
+
+
+# ------------------------------------------------------------------ 파트 B
+func _base_lab() -> Array:
+	var L := _lab()
+	var sim: Sim = L[0]
+	var st: CityState = L[1]
+	sim.now_unix = 2_000_000
+	return L
+
+
+func _exp_claim_rules() -> void:
+	print("탐험: 완료 전 수령 불가 · 두 번 수령 없음 · 나가 있는 팀은 다시 못 보냄")
+	var L := _base_lab()
+	var sim: Sim = L[0]
+	var st: CityState = L[1]
+	_fac(sim, st, "expedition_base", Vector3i(0, 0, 0))
+	_steps(sim, st, 1)
+	var q: Dictionary = sim.query(st, "expeditions")
+	_ok((q["teams"] as Array).size() == 1, "거점 1 → 팀 1")
+	var r := sim.apply(st, "expedition_send", {"team": 1, "dest": "scrap_yard", "provision": false})
+	_ok(r.get("ok", false), "근거리 파견")
+	var wood0 := float(st.stock.get("metal", 0.0))
+	var c := sim.apply(st, "expedition_claim", {"team": 1})
+	_ok(not c.get("ok", false) and float(st.stock.get("metal", 0.0)) == wood0, "완료 전 수령 불가(재고 그대로)")
+	var again := sim.apply(st, "expedition_send", {"team": 1, "dest": "furniture_alley", "provision": false})
+	_ok(not again.get("ok", false) and str(again.get("code", "")) == "busy", "나가 있는 팀은 다시 못 보냄(%s)" % again.get("reason", ""))
+	sim.now_unix += int(r["seconds"]) - 1
+	_steps(sim, st, 1)
+	_ok(not sim.apply(st, "expedition_claim", {"team": 1}).get("ok", false), "1초 전에도 수령 불가")
+	sim.now_unix += 1
+	var c1 := sim.apply(st, "expedition_claim", {"team": 1})
+	var got := float(st.stock.get("metal", 0.0)) - wood0
+	_ok(c1.get("ok", false) and got >= 14.0 and (c1["rewards"] as Array).size() >= 1, "완료 뒤 수령: 철제 +%d, 보상 목록 %s" % [int(got), str(c1.get("rewards", []))])
+	var m1 := float(st.stock.get("metal", 0.0))
+	var c2 := sim.apply(st, "expedition_claim", {"team": 1})
+	_ok(not c2.get("ok", false) and float(st.stock.get("metal", 0.0)) == m1, "두 번째 수령은 아무것도 주지 않는다")
+	_ok(bool(st.dests["warehouse_district"]["known"]), "첫 근거리 수령으로 중거리 목적지 공개")
+	sim.systems.clear()
+
+
+func _exp_teams_follow_posts() -> void:
+	print("탐험: 팀 수 = 거점 수(최대 3), 나가 있는 팀의 거점을 허물면 수령 뒤 해산")
+	var L := _base_lab()
+	var sim: Sim = L[0]
+	var st: CityState = L[1]
+	for i: int in 4:
+		_fac(sim, st, "expedition_base", Vector3i(i, 0, 0))
+	_steps(sim, st, 1)
+	_ok(st.teams.size() == 3, "거점 4 → 팀 3(최대) (%d)" % st.teams.size())
+	sim.apply(st, "demolish", {"pos": Vector3i(3, 0, 0)})
+	_ok(st.teams.size() == 3, "거점 3 → 팀 3")
+	sim.apply(st, "expedition_send", {"team": 3, "dest": "furniture_alley", "provision": false})
+	sim.apply(st, "demolish", {"pos": Vector3i(2, 0, 0)})
+	var live := 0
+	for t: Dictionary in st.teams:
+		if not t.get("retired", false):
+			live += 1
+	_ok(live == 2 and st.teams.size() == 3, "거점 2 → 쉬는 팀 2 + 나가 있는 팀은 은퇴 표시")
+	sim.now_unix += 400
+	sim.apply(st, "expedition_claim", {})
+	_ok(st.teams.size() == 2, "수령 뒤 은퇴 팀 해산 → 팀 2")
+	sim.systems.clear()
+
+
+func _exp_save_load() -> void:
+	print("탐험: 나가 있는 중 저장·불러오기")
+	var L := _base_lab()
+	var sim: Sim = L[0]
+	var st: CityState = L[1]
+	_fac(sim, st, "expedition_base", Vector3i(0, 0, 0))
+	_steps(sim, st, 1)
+	sim.apply(st, "expedition_send", {"team": 1, "dest": "demolition_site", "provision": false})
+	var js := st.to_json()
+	var st2 := CityState.new()
+	_ok(st2.from_json(js), "불러오기")
+	var sim2 := Sim.new()
+	sim2.setup(DB)
+	sim2.now_unix = sim.now_unix + 3600
+	sim.now_unix += 3600
+	var a := sim.apply(st, "expedition_claim", {})
+	var b := sim2.apply(st2, "expedition_claim", {})
+	_ok(a.get("ok", false) and JSON.stringify(a["rewards"]) == JSON.stringify(b["rewards"]), "불러온 상태의 보상 = 원래 보상(출발 때 굴림) %s" % str(b.get("rewards", [])))
+	sim.systems.clear()
+	sim2.systems.clear()
+
+
+func _labor_separate() -> void:
+	print("탐험대는 주민 노동력과 분리(한 주민이 두 곳에 배정되지 않음)")
+	var L := _base_lab()
+	var sim: Sim = L[0]
+	var st: CityState = L[1]
+	for i: int in 6:
+		_house(sim, st, Vector3i(i, 5, 0), 1, 4)
+	_fac(sim, st, "garden", Vector3i(0, 7, 0))
+	_steps(sim, st, 2)
+	var before := JSON.stringify(st.labor)
+	_fac(sim, st, "expedition_base", Vector3i(0, 0, 0))
+	_steps(sim, st, 1)
+	sim.apply(st, "expedition_send", {"team": 1, "dest": "furniture_alley", "provision": false})
+	_steps(sim, st, 1)
+	_ok(JSON.stringify(st.labor) == before, "탐험대를 보내도 노동력 배분이 그대로")
+	var ok := true
+	for t: Variant in st.labor:
+		ok = ok and float(st.labor[t]["used"]) <= float(st.labor[t]["have"]) + 1e-9
+	_ok(ok, "계층마다 배정 ≤ 노동력")
+	sim.systems.clear()
+
+
+func _bot_city(days_h: int, seed_v: int) -> Array:
+	var sim := Sim.new()
+	sim.setup(DB)
+	var bot := Bot.new(sim, "balanced")
+	var st := CityState.new()
+	sim.now_unix = 3_000_000
+	sim.new_game(st, seed_v)
+	for h: int in days_h:
+		bot.act(st)
+		sim.now_unix += 25
+		sim.tick(st, 1.0 / 24.0)
+		st.events.clear()
+	st.last_saved_unix = sim.now_unix
+	return [sim, st]
+
+
+func _offline_consistency() -> void:
+	print("미접속: 한 번에 8시간 = 37분씩 여러 번(허용 오차 안), 아무도 안 떠남")
+	var B := _bot_city(24 * 5, 9)
+	var sim: Sim = B[0]
+	var st: CityState = B[1]
+	var js := st.to_json()
+	var a := CityState.new()
+	a.from_json(js)
+	var b := CityState.new()
+	b.from_json(js)
+	var t0 := sim.now_unix
+	var left0 := float(a.stats.get("left", 0.0))
+	sim.catch_up(a, t0 + 8 * 3600)
+	var t := t0
+	while t < t0 + 8 * 3600:
+		t = mini(t + 37 * 60, t0 + 8 * 3600)
+		sim.catch_up(b, t)
+	_ok(_near(a.econ_days, b.econ_days, 1e-9), "경제 시간 같음 (%.4f / %.4f)" % [a.econ_days, b.econ_days])
+	var pa := a.population()
+	var pb := b.population()
+	_ok(absf(float(pa - pb)) <= maxf(3.0, 0.02 * float(pa)), "인구 ±2%% (%d / %d)" % [pa, pb])
+	_ok(absf(a.money - b.money) <= maxf(50.0, 0.03 * absf(a.money)), "금고 ±3%% (₩%d / ₩%d)" % [int(a.money), int(b.money)])
+	_ok(float(a.stats.get("left", 0.0)) == left0, "미접속 중 떠난 주민 0")
+	sim.systems.clear()
+
+
+func _offline_guards() -> void:
+	print("미접속: 시계 방어(거꾸로·과도한 도약), 빠르기")
+	var B := _bot_city(24 * 2, 4)
+	var sim: Sim = B[0]
+	var st: CityState = B[1]
+	var e0 := st.econ_days
+	var r: Variant = sim.catch_up(st, st.last_saved_unix - 5000)
+	_ok(st.econ_days == e0 and r != null and str(r["lines"][0]).find("뒤로") >= 0, "시계가 거꾸로 가면 경제 시간 0, 요약에 한 줄")
+	var e1 := st.econ_days
+	var r2: Variant = sim.catch_up(st, st.last_saved_unix + 30 * 86400)
+	_ok(_near(st.econ_days - e1, 12.0, 1e-6) and bool(r2.get("clamped", false)), "30일 비워도 8시간(12경제일)까지만 (%.2f)" % (st.econ_days - e1))
+	_ok(sim.catch_up(st, st.last_saved_unix) == null, "같은 시각이면 정산할 것 없음(null)")
+	sim.systems.clear()
+
+
+func _policy_research() -> void:
+	print("정책·연구: 효과가 들어가고 정책을 끄면 되돌아간다")
+	var B := _bot_city(24 * 4, 5)
+	var sim: Sim = B[0]
+	var st: CityState = B[1]
+	st.unlocked["feature:policy_slot_1"] = 1.0
+	var tax := func() -> float:
+		var s := 0.0
+		for b: Dictionary in st.buildings.values():
+			if b["kind"] == "house":
+				s += float(b["tax"])
+		return s
+	_steps(sim, st, 1)
+	var t0: float = tax.call()
+	_ok(sim.apply(st, "policy_set", {"id": "tax_cut", "on": true}).get("ok", false), "감세 켬")
+	_steps(sim, st, 1)
+	var t1: float = tax.call()
+	sim.apply(st, "policy_set", {"id": "tax_cut", "on": false})
+	_steps(sim, st, 1)
+	var t2: float = tax.call()
+	_ok(t1 < t0 and _near(t2, t0, 1e-9), "감세: 세수 %.1f → %.1f → 끄면 %.1f" % [t0, t1, t2])
+	st.unlocked.erase("feature:policy_slot_2")
+	sim.apply(st, "policy_set", {"id": "rations", "on": true})
+	_ok(not sim.can(st, "policy_set", {"id": "overtime", "on": true}).get("ok", true), "칸이 1개면 두 번째 정책은 거절")
+	sim.apply(st, "policy_set", {"id": "rations", "on": false})
+	# 연구: 공부방 + 작업 정리 → 생산 +10%
+	var L := _lab()
+	var s2: Sim = L[0]
+	var c2: CityState = L[1]
+	for i: int in 8:
+		_house(s2, c2, Vector3i(i, 5, 0), 3, 12)
+	_fac(s2, c2, "study", Vector3i(0, 0, 0))
+	_fac(s2, c2, "candle_shop", Vector3i(1, 0, 0))
+	c2.stock["fat"] = 5000.0
+	for i: int in 6:
+		_house(s2, c2, Vector3i(i, 7, 0), 1, 4)
+	_steps(s2, c2, 2)
+	var p0 := float(c2.stats.get("prod.candle", 0.0))
+	_steps(s2, c2, 4)
+	var base := float(c2.stats.get("prod.candle", 0.0)) - p0
+	c2.money = 100000.0
+	var rs := s2.apply(c2, "research_start", {"id": "workflow"})
+	_ok(rs.get("ok", false), "연구 시작(공부방 있음) %s" % rs.get("reason", ""))
+	_ok(not s2.can(c2, "research_start", {"id": "handcart"}).get("ok", true), "한 번에 하나")
+	_steps(s2, c2, 52)
+	_ok(c2.research["done"].has("workflow"), "1경제일 뒤 연구 완료")
+	c2.stock["candle"] = 0.0
+	var p1 := float(c2.stats.get("prod.candle", 0.0))
+	_steps(s2, c2, 4)
+	var after := float(c2.stats.get("prod.candle", 0.0)) - p1
+	_ok(base > 0.0 and _near(after, base * 1.1, 1e-6), "작업 정리: 생산 +10%% (%.3f → %.3f)" % [base, after])
+	sim.systems.clear()
+	s2.systems.clear()
+
+
+func _raid() -> void:
+	print("단속: 위험 80에서 음성 시설 정확히 하나가 2일 닫히고 다시 연다")
+	var L := _lab()
+	var sim: Sim = L[0]
+	var st: CityState = L[1]
+	for i: int in 12:
+		_house(sim, st, Vector3i(i, 5, 0), 1, 4)
+	var ids: Array = []
+	for i: int in 3:
+		ids.append(_fac(sim, st, "gambling_den", Vector3i(i, 0, 0)))
+	_steps(sim, st, 2)
+	st.heat = 79.99
+	_steps(sim, st, 1)
+	var closed := 0
+	for b: int in ids:
+		if st.buildings[b].get("raided", false):
+			closed += 1
+	_ok(closed == 1, "하나만 닫힘 (%d)" % closed)
+	_ok(st.heat < 50.0 and float(st.stats.get("fines", 0.0)) > 0.0, "위험이 내려가고 벌금 (위험 %.1f, 벌금 ₩%d)" % [st.heat, int(st.stats.get("fines", 0.0))])
+	var rb := -1
+	for b: int in ids:
+		if st.buildings[b].get("raided", false):
+			rb = b
+	_steps(sim, st, 1)
+	_ok(str(st.buildings[rb].get("cause", "")) == "raid" and float(st.buildings[rb].get("eff", 1.0)) == 0.0, "닫힌 시설은 cause raid, 가동 0")
+	_ok(sim.can(st, "pause", {"bid": rb}).get("ok", false), "닫혀 있어도 플레이어는 멈추기·허물기를 할 수 있다")
+	_steps(sim, st, 96)
+	_ok(not st.buildings[rb].get("raided", false), "2일 뒤 다시 연다")
+	sim.systems.clear()
+
+
+func _alerts_goals() -> void:
+	print("알림·목표: 최대 4개, 목표 진행, 셋째 질의 모양")
+	var B := _bot_city(24 * 3, 6)
+	var sim: Sim = B[0]
+	var st: CityState = B[1]
+	var h: Dictionary = sim.query(st, "hud")
+	_ok((h["alerts"] as Array).size() <= 4, "알림 ≤ 4 (%d)" % (h["alerts"] as Array).size())
+	var ok := true
+	for a: Dictionary in h["alerts"]:
+		ok = ok and a.has("id") and a.has("text") and a.has("tone") and a.has("jump")
+	_ok(ok, "알림 모양 {id, text, tone, jump}")
+	_ok(h.has("next_goal") and str(h["next_goal"].get("text", "")) != "", "다음 목표 문장")
+	var g: Dictionary = sim.query(st, "goals")
+	_ok((g["steps"] as Array).size() > 10 and str(g["steps"].back()["id"]) == "g_final", "목표 단계, 마지막은 구룡성채")
+	_ok(int(g["done_count"]) >= 2, "3일 동안 목표 몇 개 달성 (%d)" % int(g["done_count"]))
+	_ok(sim.query(st, "offline_summary") == null, "offline_summary: 보여 줄 것이 없으면 null")
+	_ok(str(sim.can(st, "build", {"type": "stall", "pos": Vector3i(99, 0, 0)}).get("code", "")) == "bounds", "can build code: bounds")
+	sim.systems.clear()
