@@ -371,13 +371,16 @@ func _on_event(n: String, p: Dictionary) -> void:
 		"log":
 			var tone := str(p.get("tone", ""))
 			var tx := str(p.get("text", ""))
-			# 목표 달성은 현수막이 말한다(같은 말을 두 번 하지 않게). 일지에는 남는다.
-			if tx.begins_with("목표 달성"):
+			# 목표 달성·등급·해금은 현수막이 말한다(같은 말을 두 번 하지 않게). 일지에는 남는다.
+			if tx.begins_with("목표 달성") or tx.begins_with("성채 등급") or tx.begins_with("새로 지을 수 있다"):
 				return
 			if tone != "debug" or bool(Data.cfg("debug.enabled", false)):
 				toasts.push(tx, tone)
 		"unlock":
-			_banner_unlock(p)
+			# 한꺼번에 열리면(목표·등급 하나에 넷씩) 현수막 하나로 묶는다 — 따로면 15초 넘게 화면 가운데를 가렸다
+			_unlock_pending.append(p)
+			if _unlock_pending.size() == 1:
+				get_tree().create_timer(0.3).timeout.connect(_flush_unlocks)
 		"milestone":
 			_banner_milestone(p)
 		"floor_unlocked":
@@ -520,6 +523,28 @@ func replay_tutorial() -> void:
 
 
 # ------------------------------------------------------------------ 현수막
+var _unlock_pending: Array = []
+
+
+func _flush_unlocks() -> void:
+	var ps := _unlock_pending.duplicate()
+	_unlock_pending.clear()
+	if ps.size() == 1:
+		_banner_unlock(ps[0])
+		return
+	var names: Array = []
+	for q: Variant in ps:
+		var id := str(UI.to_dict(q).get("id", ""))
+		var nm := str(UI.to_dict(q).get("name", id))
+		if nm == id:
+			for cat: Variant in Q.list("build_menu"):
+				for it: Variant in UI.to_array(UI.to_dict(cat).get("items", [])):
+					if it is Dictionary and str(it.get("id", "")) == id:
+						nm = str(it.get("name", id))
+		names.append(nm)
+	banner.show_banner("새로 지을 수 있다 · %d가지" % names.size(), " · ".join(names), "[짓기]에서 찾는다.", "gold", 3.0, "新")
+
+
 func _banner_unlock(p: Dictionary) -> void:
 	var id := str(p.get("id", ""))
 	var nm := str(p.get("name", id))

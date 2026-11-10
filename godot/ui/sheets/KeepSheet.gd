@@ -45,6 +45,8 @@ func _on_open(a: String, _was: bool) -> void:
 		tab = a
 	elif a in ["policies"]:
 		tab = "policy"
+	elif a == "" and ui != null and int(ui._badge_keep) > 0:
+		tab = "goals"      # 새로 끝난 목표가 있으면(배지) 목표부터 — 지난번에 본 탭(기록 등)에 머물지 않게
 	_seg.set_value(tab)
 	_sig = ""
 	if ui != null:
