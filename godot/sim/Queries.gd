@@ -25,6 +25,11 @@ static func run(sim: Sim, state: CityState, name: String, args: Dictionary) -> V
 			return {"slots": {"used": 0, "max": 0}, "items": []}
 		"goals":
 			return _goals(sim, state)
+		"upgradable":     # upgrades 시스템이 꺼져 있을 때의 빈 모양
+			return []
+		"upgrade_preview":
+			return {"ok": false, "blockers": ["승급 시스템이 꺼져 있다."], "cost": {"money": 0, "qty": 0, "extra": {}}, "cap_from": 0, "cap_to": 0,
+				"movers": 0, "vacancies": 0, "labor": [], "tax_now": 0.0, "tax_after_now": 0.0, "tax_full": 0.0, "tax_delta": 0.0, "demand_text": []}
 		"offline_summary":
 			return {"real_hours": 0.0, "econ_days": 0.0, "lines": []}
 	return null

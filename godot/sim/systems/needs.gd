@@ -11,12 +11,24 @@ extends SimSystem
 
 var by_tier: Dictionary = {}   # tier int -> [need def + "id", 옵션은 key/kind 붙임]
 var _ok := 0.9
+var _c: Dictionary = {}        # config population.* 캐시(setup에서)
+var _has_up: Dictionary = {}   # tier -> 다음 승급 비용 데이터가 있나
+const DEF := {"grace_days": 3.0, "short_recover_mult": 2.0, "move_in_per_day": 8.0, "move_out_per_day": 2.0, "happiness_base": 50.0,
+	"happiness_per_luxury": 12.0, "happiness_basic_short": -5.0, "noise_penalty": 6.0, "tax_mult_min": 0.85, "tax_mult_max": 1.15,
+	"advance_tax_bonus": 0.1, "luxury_tax_bonus": 0.15}
 var _spare: Dictionary = {}    # 이번 스텝에 prefer 유틸리티로 갈아탈 수 있는 남는 공급
 
 
 func setup(s: Sim) -> void:
 	super.setup(s)
 	_ok = float(sim.cfg("population.ok_ratio", 0.9))
+	var P := "population."
+	for k: String in ["grace_days", "short_recover_mult", "move_in_per_day", "move_out_per_day", "happiness_base", "happiness_per_luxury",
+			"happiness_basic_short", "noise_penalty", "tax_mult_min", "tax_mult_max", "advance_tax_bonus", "luxury_tax_bonus"]:
+		_c[k] = float(sim.cfg(P + k, DEF[k]))
+	_has_up.clear()
+	for t: int in range(1, sim.max_tier() + 1):
+		_has_up[t] = not sim.item("upgrade_costs", "%dto%d" % [t, t + 1]).is_empty()
 	by_tier.clear()
 	for id: String in sim.items("needs"):
 		var n: Dictionary = sim.item("needs", id).duplicate(true)
@@ -38,6 +50,9 @@ func setup(s: Sim) -> void:
 				oo["kind"] = "market"
 			opts.append(oo)
 		n["options"] = opts
+		for o: Dictionary in opts:
+			if o.get("prefer", false):
+				n["_has_prefer"] = true
 		var t := int(n["tier"])
 		if not by_tier.has(t):
 			by_tier[t] = []
@@ -85,7 +100,19 @@ func _util_ratio(state: CityState, u: String) -> float:
 
 
 ## 옵션 하나를 지금 쓸 수 있나. 반환 [cause, ratio_hint]
+var _av: Dictionary = {}       # 이번 주거의 옵션별 _avail 결과(1단계 동안 재고·가동 상태가 안 바뀌므로 캐시)
+
+
 func _avail(state: CityState, o: Dictionary, mk: Array, sv: Dictionary) -> String:
+	var k: String = o["key"]
+	if _av.has(k):
+		return _av[k]
+	var r := _avail_raw(state, o, mk, sv)
+	_av[k] = r
+	return r
+
+
+func _avail_raw(state: CityState, o: Dictionary, mk: Array, sv: Dictionary) -> String:
 	match str(o["kind"]):
 		"good":
 			var c := _market_cause(state, mk, int(sim.good(o["good"]).get("grade", 1)))
@@ -132,6 +159,9 @@ func _pick(state: CityState, n: Dictionary, rec: Dictionary, mk: Array, sv: Dict
 				keep.append(o)
 			else:
 				failed.append(o)
+	# 대부분의 스텝: 고른 것이 그대로 유효하면 바로 끝(갈아탈 prefer 선택지가 없을 때)
+	if failed.is_empty() and keep.size() == count and (not n.get("_has_prefer", false) or keep[0].get("prefer", false)):
+		return keep
 	for o: Dictionary in opts:
 		if o.get("prefer", false) and not (o in keep) and _avail(state, o, mk, sv) == "":
 			if o["kind"] == "utility":
@@ -141,12 +171,19 @@ func _pick(state: CityState, n: Dictionary, rec: Dictionary, mk: Array, sv: Dict
 					continue
 				_spare[u] = float(_spare.get(u, 0.0)) - need
 			keep.push_front(o)
+	# 새로 고를 때는 재고가 가장 많은 상품부터(같은 묶음 안에서 소비가 한 품목에 몰리지 않게)
+	var cand: Array = []
 	for o: Dictionary in opts:
-		if keep.size() >= count:
-			break
 		if not (o in keep) and not (o in failed) and not (o.get("prefer", false) and o["kind"] == "utility") and _avail(state, o, mk, sv) == "" \
 				and (o["kind"] != "good" or float(fills.get(o["good"], 1.0)) >= _ok):
-			keep.append(o)
+			cand.append(o)
+	if cand.size() > 1:
+		cand.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+			return (float(state.stock.get(a.get("good", ""), 0.0)) if a["kind"] == "good" else 0.0) > (float(state.stock.get(b.get("good", ""), 0.0)) if b["kind"] == "good" else 0.0))
+	for o: Dictionary in cand:
+		if keep.size() >= count:
+			break
+		keep.append(o)
 	for o: Dictionary in opts:
 		if keep.size() >= count:
 			break
@@ -173,6 +210,7 @@ func tick(state: CityState, dt: float) -> void:
 		if b["kind"] != "house":
 			continue
 		var hb := int(b["id"])
+		_av.clear()
 		var mk: Array = cov["markets"].get(hb, [])
 		var sv: Dictionary = cov["services"].get(hb, {})
 		var r := float(b["residents"])
@@ -212,11 +250,10 @@ func tick(state: CityState, dt: float) -> void:
 		state.stat_add("cons." + g, used)
 	state.flags["fill"] = fills_saved
 	# 2단계: 충족도 · 인원 · 행복 · 세수
-	var P := "population."
-	var grace := float(sim.cfg(P + "grace_days", 3))
-	var rec_mult := float(sim.cfg(P + "short_recover_mult", 2.0))
-	var mi := float(sim.cfg(P + "move_in_per_day", 8))
-	var mo := float(sim.cfg(P + "move_out_per_day", 2))
+	var grace: float = _c["grace_days"]
+	var rec_mult: float = _c["short_recover_mult"]
+	var mi: float = _c["move_in_per_day"]
+	var mo: float = _c["move_out_per_day"]
 	var hap_sum := 0.0
 	var hap_w := 0.0
 	for wk: Array in work:
@@ -288,9 +325,8 @@ func tick(state: CityState, dt: float) -> void:
 		var target := mini(cap, int(floorf(target_f + 1e-6)))
 		b["target"] = target
 		# 행복
-		var hp := float(sim.cfg(P + "happiness_base", 50)) + float(lux_met) * float(sim.cfg(P + "happiness_per_luxury", 12)) \
-			+ float(basic_short) * float(sim.cfg(P + "happiness_basic_short", -5)) \
-			- float(cov["noise"].get(int(b["id"]), 0)) * float(sim.cfg(P + "noise_penalty", 6))
+		var hp: float = _c["happiness_base"] + float(lux_met) * _c["happiness_per_luxury"] \
+			+ float(basic_short) * _c["happiness_basic_short"] - float(cov["noise"].get(int(b["id"]), 0)) * _c["noise_penalty"]
 		hp = clampf(hp, 0.0, 100.0)
 		b["happiness"] = hp
 		# 입주·퇴거
@@ -325,14 +361,12 @@ func tick(state: CityState, dt: float) -> void:
 				lt[str(t)] = int(lt.get(str(t), 0)) + (old_res - res)
 				state.flags["left_today"] = lt
 		# 세수(₩/경제일)
-		var hm := lerpf(float(sim.cfg(P + "tax_mult_min", 0.85)), float(sim.cfg(P + "tax_mult_max", 1.15)), hp / 100.0)
-		b["tax"] = float(res) * float(td.get("tax", 0.0)) * (1.0 + float(adv_met) * float(sim.cfg(P + "advance_tax_bonus", 0.1)) \
-			+ float(lux_met) * float(sim.cfg(P + "luxury_tax_bonus", 0.15))) * hm
+		var hm := lerpf(_c["tax_mult_min"], _c["tax_mult_max"], hp / 100.0)
+		b["tax"] = float(res) * float(td.get("tax", 0.0)) * (1.0 + float(adv_met) * _c["advance_tax_bonus"] + float(lux_met) * _c["luxury_tax_bonus"]) * hm
 		hap_sum += hp * float(res)
 		hap_w += float(res)
 		var ns := "bad" if bad else ("warn" if any_unmet else "ok")
-		var up: bool = t < sim.max_tier() and res >= cap and basic_all and adv_all and b.get("upgrading") == null \
-			and not sim.item("upgrade_costs", "%dto%d" % [t, t + 1]).is_empty()
+		var up: bool = res >= cap and basic_all and adv_all and b.get("upgrading") == null and bool(_has_up.get(t, false))
 		if res != old_res or ns != str(b["need_state"]) or up != bool(b["upgradable"]):
 			b["need_state"] = ns
 			b["upgradable"] = up

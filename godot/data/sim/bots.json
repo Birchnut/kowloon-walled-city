@@ -8,8 +8,8 @@
    "money_reserve": 40,
    "labor_margin": 2,
    "upgrades_per_hour": 3,
-   "zone_batch": 6,
-   "zone_when_vacancy_below": 6,
+   "zone_batch": 12,
+   "zone_when_vacancy_below": 12,
    "houses_per_floor": 100,
    "power_before_t3_at_t2": 40,
    "water_order": [
@@ -44,7 +44,8 @@
    ],
    "luxury": true,
    "max_tier": 5,
-   "zone_money": 60
+   "zone_money": 60,
+   "t1_spare_stop": 80
   }
  }
 }

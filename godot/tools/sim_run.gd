@@ -71,7 +71,7 @@ static func daily(sim: Sim, state: CityState, d: int) -> Dictionary:
 			houses += 1
 			if b["need_state"] == "ok":
 				basic_ok += 1
-	return {"day": d, "pop": pop, "money": int(state.money), "net": float(led.get("net", 0.0)), "tax": float(led.get("tax", 0.0)),
+	return {"day": d, "pop": pop, "money": int(state.money), "net": float(led.get("net", 0.0)), "tax": float(led.get("tax", 0.0)), "ledger": led,
 		"labor_spare": lab, "houses": houses, "houses_ok": basic_ok, "happiness": snappedf(state.happiness, 0.1),
 		"floors": state.floors_unlocked, "facilities": int(m.get("sites", 0)), "water": [snappedf(float(state.util.get("water", {}).get("supply", 0)), 1), snappedf(float(state.util.get("water", {}).get("demand", 0)), 1)],
 		"power": [snappedf(float(state.util.get("power", {}).get("supply", 0)), 1), snappedf(float(state.util.get("power", {}).get("demand", 0)), 1)]}
@@ -154,7 +154,52 @@ static func report(r: Dictionary) -> String:
 		L.append("| %s | %.1f |" % [l["name"], l["amount"]])
 	L.append("| **순** | **%.1f** |" % float(eco["finance"]["net"]))
 	L.append("")
+	L.append("## 마지막 날 시설(완공·공사 중)")
+	var fc := {}
+	var upk := 0.0
+	for b: Dictionary in state.buildings.values():
+		if b["kind"] == "facility" or b["kind"] == "site":
+			var k := str(b["type"])
+			var a: Array = fc.get(k, [0, 0, 0.0, {}])
+			a[0] += 1
+			if b.get("active", false):
+				a[1] += 1
+			var cz := str(b.get("cause", "site" if b["kind"] == "site" else ""))
+			a[3][cz] = int(a[3].get(cz, 0)) + 1
+			a[2] += float(sim.bdef(k).get("upkeep", 0))
+			fc[k] = a
+			upk += float(sim.bdef(k).get("upkeep", 0))
+	L.append("| 시설 | 수 | 가동 | 유지비/일 | 상태(원인별 수) |")
+	L.append("|---|---|---|---|---|")
+	for k: String in fc:
+		L.append("| %s | %d | %d | %.0f | %s |" % [sim.bdef(k).get("name", k), fc[k][0], fc[k][1], fc[k][2], JSON.stringify(fc[k][3])])
+	L.append("| 합계 | | | %.0f | |" % upk)
+	L.append("")
+	L.append("## 마지막 날 계약")
+	var cq: Dictionary = sim.query(state, "contracts")
+	L.append("자리 %d/%d" % [int(cq["slots"]["used"]), int(cq["slots"]["max"])])
+	for k: Dictionary in cq["active"]:
+		L.append("- %s %s %s %d개/%d시간 @₩%s — 지난 회차: %s" % [k["partner_name"], k["good_name"], "수입" if k["dir"] == "import" else "수출", k["qty"], k["interval_h"], str(k["price"]), k["last_text"]])
+	L.append("")
 	L.append_array(per_cell(sim, state))
+	L.append("")
+	L.append("## 세 계열 자재(디렉터 수정 4 — 구역 단위 총량)")
+	var acc_q := 0
+	var row := "누적(떠돌이 판잣집 한 채를 그 계층까지): "
+	var parts_q: Array = []
+	var district: Array = []
+	for t: int in range(1, sim.max_tier()):
+		acc_q += int(sim.item("upgrade_costs", "%dto%d" % [t, t + 1])["qty"])
+		parts_q.append("%s %d" % [sim.tname(t + 1), acc_q])
+		district.append("%s 100채 = %d" % [sim.tname(t + 1), acc_q * 100])
+	L.append(row + ", ".join(parts_q) + ".")
+	L.append("한 층(약 100채)을 전부 그 계층으로: " + ", ".join(district) + ".")
+	var got := 0.0
+	var used := 0.0
+	for m: String in sim.db["upgrade_costs"]["materials"]:
+		got += float(state.stats.get("debug_stock." + m, 0.0))
+		used += float(state.stats.get("used." + m, 0.0))
+	L.append("이번 실행: 탐험 흉내로 받은 자재 %d, 승급·건설에 쓴 자재 %d, 남은 자재 %d (시작 36)." % [int(got), int(used), int(float(state.stock.get("wood", 0)) + float(state.stock.get("metal", 0)) + float(state.stock.get("concrete", 0)))])
 	L.append("")
 	L.append("## 막힌 것(봇이 하려다 못 한 일, 횟수)")
 	var bl: Dictionary = r["bot"].blocked

@@ -223,32 +223,103 @@ func augment(state: CityState, name: String, _args: Dictionary, out: Variant) ->
 		if float(state.stock.get(g, 0.0)) + 1e-9 < float(c["extra"][g]):
 			u["blockers"].append("%s %d개가 필요하다." % [sim.gname(g), int(c["extra"][g])])
 	u["ready"] = bool(b.get("upgradable", false)) and (u["blockers"] as Array).is_empty()
-	var cap_to := int(sim.tier(nt).get("cap", 0))
-	var stay := mini(res, cap_to)
-	var movers := maxi(0, res - cap_to)
+	u["preview"] = _preview(state, [b])
+
+
+## 승급 미리보기(여러 주거 합산). bids의 주거들은 서로의 빈자리로 치지 않는다.
+func _preview(state: CityState, houses: Array) -> Dictionary:
+	var skip := {}
+	for b: Dictionary in houses:
+		skip[int(b["id"])] = true
+	var cap_from := 0
+	var cap_to_sum := 0
+	var movers := 0
+	var labor := {}
+	var tax_now := 0.0
+	var tax_after := 0.0
+	var tax_full := 0.0
+	var water := [0.0, 0.0]
+	var pw := 0.0
+	var movers_by := {}
+	var to_tiers := {}
+	for b: Dictionary in houses:
+		var t := int(b["tier"])
+		var nt := t + 1
+		var res := int(b.get("residents", 0))
+		var cap_to := int(sim.tier(nt).get("cap", 0))
+		var stay := mini(res, cap_to)
+		var mv := maxi(0, res - cap_to)
+		cap_from += int(b.get("cap", 0))
+		cap_to_sum += cap_to
+		movers += mv
+		movers_by[t] = int(movers_by.get(t, 0)) + mv
+		to_tiers[nt] = true
+		labor[t] = int(labor.get(t, 0)) - int(floorf(stay * float(sim.tier(t).get("labor", 1.0))))
+		labor[nt] = int(labor.get(nt, 0)) + int(floorf(stay * float(sim.tier(nt).get("labor", 1.0))))
+		tax_now += float(b.get("tax", 0.0))
+		tax_after += float(stay) * float(sim.tier(nt).get("tax", 0.0))
+		tax_full += float(cap_to) * float(sim.tier(nt).get("tax", 0.0))
+		water[0] += stay * float(sim.tier(nt).get("water", 0)) - res * float(sim.tier(t).get("water", 0))
+		water[1] += cap_to * float(sim.tier(nt).get("water", 0)) - res * float(sim.tier(t).get("water", 0))
+		pw += cap_to * float(sim.tier(nt).get("power", 0)) - res * float(sim.tier(t).get("power", 0))
 	var vac := 0
-	for o: Dictionary in state.buildings.values():
-		if o["kind"] == "house" and int(o["tier"]) == t and int(o["id"]) != int(b["id"]):
-			vac += maxi(0, int(o["cap"]) - int(o["residents"]))
-	var lt := float(sim.tier(t).get("labor", 1.0))
-	var ln := float(sim.tier(nt).get("labor", 1.0))
-	var tax_now := float(b.get("tax", 0.0))
-	var tax_full := float(cap_to) * float(sim.tier(nt).get("tax", 0.0))
-	var demand: Array = []
-	demand.append("물 %+.1f/일 (지금 인원 기준), 만실이면 %+.1f/일" % [stay * float(sim.tier(nt).get("water", 0)) - res * float(sim.tier(t).get("water", 0)),
-		cap_to * float(sim.tier(nt).get("water", 0)) - res * float(sim.tier(t).get("water", 0))])
-	var pw := cap_to * float(sim.tier(nt).get("power", 0)) - res * float(sim.tier(t).get("power", 0))
+	for t: int in movers_by:
+		for o: Dictionary in state.buildings.values():
+			if o["kind"] == "house" and int(o["tier"]) == t and not skip.has(int(o["id"])):
+				vac += maxi(0, int(o["cap"]) - int(o["residents"]))
+	if movers_by.is_empty() and houses.size() > 0:
+		var t0 := int(houses[0]["tier"])
+		for o: Dictionary in state.buildings.values():
+			if o["kind"] == "house" and int(o["tier"]) == t0 and not skip.has(int(o["id"])):
+				vac += maxi(0, int(o["cap"]) - int(o["residents"]))
+	var demand: Array = ["물 %+.1f/일 (지금 인원 기준), 만실이면 %+.1f/일" % [water[0], water[1]]]
 	if absf(pw) > 0.01:
 		demand.append("전기 %+.1f (만실 기준)" % pw)
-	var new_needs: Array = []
-	for nid: String in sim.items("needs"):
-		var n := sim.item("needs", nid)
-		if int(n.get("tier", 0)) == nt and n.get("role", "") != "luxury":
-			new_needs.append(str(n.get("name", nid)))
-	demand.append("%s 수요: %s" % [sim.tname(nt), ", ".join(new_needs)])
+	for nt: int in to_tiers:
+		var new_needs: Array = []
+		for nid: String in sim.items("needs"):
+			var n := sim.item("needs", nid)
+			if int(n.get("tier", 0)) == nt and n.get("role", "") != "luxury":
+				new_needs.append(str(n.get("name", nid)))
+		demand.append("%s 수요: %s" % [sim.tname(nt), ", ".join(new_needs)])
 	if movers > 0:
 		demand.append("%d명이 이주해야 한다 / 같은 계층 빈자리 %d%s" % [movers, vac, "" if vac >= movers else " — 모자라면 %d일 대기 뒤 떠난다" % int(sim.cfg("upgrade.waiting_days", 3))])
-	u["preview"] = {"cap_from": cap, "cap_to": cap_to, "movers": movers, "vacancies": vac,
-		"labor": [{"tier": t, "name": sim.tname(t), "delta": -int(floorf(stay * lt))}, {"tier": nt, "name": sim.tname(nt), "delta": int(floorf(stay * ln))}],
-		"tax_now": snappedf(tax_now, 0.1), "tax_after_now": snappedf(float(stay) * float(sim.tier(nt).get("tax", 0.0)), 0.1),
+	var lab: Array = []
+	var ts: Array = labor.keys()
+	ts.sort()
+	for t: int in ts:
+		lab.append({"tier": t, "name": sim.tname(t), "delta": int(labor[t])})
+	return {"cap_from": cap_from, "cap_to": cap_to_sum, "movers": movers, "vacancies": vac, "labor": lab,
+		"tax_now": snappedf(tax_now, 0.1), "tax_after_now": snappedf(tax_after, 0.1),
 		"tax_full": snappedf(tax_full, 0.1), "tax_delta": snappedf(tax_full - tax_now, 0.1), "demand_text": demand}
+
+
+func query(state: CityState, name: String, args: Dictionary) -> Variant:
+	match name:
+		"upgradable":
+			var by := {}
+			for b: Dictionary in state.buildings.values():
+				if b["kind"] == "house" and b.get("upgradable", false) and (not args.has("tier") or int(args["tier"]) == int(b["tier"])):
+					var t := int(b["tier"])
+					if not by.has(t):
+						by[t] = []
+					by[t].append(int(b["id"]))
+			var out: Array = []
+			var ts: Array = by.keys()
+			ts.sort()
+			for t: int in ts:
+				out.append({"tier": t, "tier_name": sim.tname(t), "count": (by[t] as Array).size(), "bids": by[t]})
+			return out
+		"upgrade_preview":
+			var houses: Array = []
+			for x: Variant in args.get("bids", []):
+				var b: Dictionary = state.buildings.get(int(x), {})
+				if b.get("kind", "") == "house" and int(b["tier"]) < sim.max_tier() and not (b in houses):
+					houses.append(b)
+			var p := _plan(state, args)
+			var pv := _preview(state, houses)
+			pv["ok"] = bool(p.get("ok", false))
+			pv["blockers"] = [] if pv["ok"] else [str(p.get("reason", ""))]
+			pv["cost"] = {"money": p.get("money", 0.0), "qty": p.get("qty", 0), "extra": p.get("extra", {})}
+			return pv
+	return null
