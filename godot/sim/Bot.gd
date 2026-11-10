@@ -39,7 +39,8 @@ func act(state: CityState, context: Dictionary = {}) -> void:
 	if float(c("expedition_per_day", 0)) > 0.0:
 		_expedition(state, mem)
 	_explore(state)
-	for _r: int in int(c("act_rounds", 1)):   # 짧게 몰아 하는 접속: 한 손길에 여러 바퀴(밀린 일을 한꺼번에)
+	var rounds := int(c("act_rounds", 1)) if _houses(state) > 40 else 1
+	for _r: int in rounds:   # 짧게 몰아 하는 접속: 한 손길에 여러 바퀴(밀린 일을 한꺼번에)
 		_utilities(state)
 		_upgrades(state)       # 승급 버튼이 뜨면 먼저 누른다(사람처럼)
 		_production(state)
@@ -143,7 +144,7 @@ func _choose_dest(state: CityState, q: Dictionary, left: float, gap: float, leav
 	var fam := _family_need(state)
 	var best: Dictionary = {}
 	var best_v := -1.0
-	var margin := 30.0
+	var margin := float(ctx.get("act_s", 60.0)) + 30.0   # 마지막 손길 전에 돌아와야 받아서 다시 보낸다
 	# 1) 이번 접속 안에 돌아오는 곳
 	if not leaving:
 		for d: Dictionary in q["dests"]:
@@ -731,9 +732,14 @@ func _upgrades(state: CityState) -> void:
 		if mat_wait > t:
 			_block("위 계층 승급을 위해 자재를 모으는 중(T%d→T%d 보류)" % [t, t + 1])
 			continue
+		var keep_hall := false
 		for g: String in cost.get("extra", {}):
-			if float(state.stock.get(g, 0.0)) < float(cost["extra"][g]):
+			if float(state.stock.get(g, 0.0)) < float(cost["extra"][g]) + _hall_keep(state, g):
 				_buy_extra(state, g)
+				keep_hall = keep_hall or _hall_keep(state, g) > 0.0
+		if keep_hall:
+			_block("성채 회관에 쓸 %s을 남겨 둠(T%d→T%d 보류)" % ["설비 부품", t, t + 1])
+			continue
 		var r := cmd(state, "upgrade", {"bids": [int(b["id"])], "material": best})
 		if r.get("ok", false):
 			done += 1

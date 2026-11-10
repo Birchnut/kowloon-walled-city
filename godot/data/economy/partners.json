@@ -594,19 +594,19 @@
    "transport": 0,
    "sizes": [
     {
+     "qty": 1,
+     "interval_h": 24,
+     "price": 30.0
+    },
+    {
      "qty": 2,
      "interval_h": 24,
-     "price": 22.0
+     "price": 36.0
     },
     {
-     "qty": 4,
+     "qty": 3,
      "interval_h": 24,
-     "price": 22.0
-    },
-    {
-     "qty": 6,
-     "interval_h": 24,
-     "price": 22.0
+     "price": 44.0
     }
    ]
   },
@@ -617,19 +617,19 @@
    "transport": 0,
    "sizes": [
     {
+     "qty": 1,
+     "interval_h": 24,
+     "price": 30.0
+    },
+    {
      "qty": 2,
      "interval_h": 24,
-     "price": 22.0
+     "price": 36.0
     },
     {
-     "qty": 4,
+     "qty": 3,
      "interval_h": 24,
-     "price": 22.0
-    },
-    {
-     "qty": 6,
-     "interval_h": 24,
-     "price": 22.0
+     "price": 44.0
     }
    ]
   },
@@ -640,19 +640,19 @@
    "transport": 0,
    "sizes": [
     {
+     "qty": 1,
+     "interval_h": 24,
+     "price": 30.0
+    },
+    {
      "qty": 2,
      "interval_h": 24,
-     "price": 22.0
+     "price": 36.0
     },
     {
-     "qty": 4,
+     "qty": 3,
      "interval_h": 24,
-     "price": 22.0
-    },
-    {
-     "qty": 6,
-     "interval_h": 24,
-     "price": 22.0
+     "price": 44.0
     }
    ]
   },
@@ -664,13 +664,13 @@
    "sizes": [
     {
      "qty": 1,
-     "interval_h": 24,
-     "price": 150.0
+     "interval_h": 120,
+     "price": 500.0
     },
     {
-     "qty": 2,
-     "interval_h": 24,
-     "price": 150.0
+     "qty": 1,
+     "interval_h": 96,
+     "price": 700.0
     }
    ]
   },

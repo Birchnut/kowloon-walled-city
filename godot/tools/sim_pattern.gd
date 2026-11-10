@@ -71,7 +71,7 @@ static func run(bot_id: String, real_days: int, seed_value: int, verbose: bool =
 		var acts := 0
 		while now < s_end:
 			var left := float(s_end - now)
-			bot.act(state, {"now": now, "session_left": left, "next_gap": float(next_start - s_end), "leaving": left <= act_s + 0.5})
+			bot.act(state, {"now": now, "session_left": left, "next_gap": float(next_start - s_end), "leaving": left <= act_s + 0.5, "act_s": act_s})
 			acts += 1
 			_mat_wait(r, sim, state, minf(act_s, left))
 			var stp := int(minf(act_s, left))

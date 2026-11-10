@@ -99,7 +99,6 @@
    ],
    "unlocks": [
     "market3",
-    "radio_shop",
     "karaoke",
     "water_ext",
     "power_ext"
@@ -113,7 +112,7 @@
     [
      "pop.t3",
      ">=",
-     100
+     300
     ]
    ],
    "unlocks": [
@@ -121,7 +120,8 @@
     "water_plant",
     "suit_shop",
     "fake_shop",
-    "callcenter"
+    "callcenter",
+    "radio_shop"
    ],
    "features": [
     "policy_slot_2"
@@ -152,7 +152,7 @@
     [
      "pop.t4",
      ">=",
-     60
+     120
     ]
    ],
    "unlocks": [
@@ -169,7 +169,7 @@
     [
      "pop.t5",
      ">=",
-     40
+     150
     ],
     [
      "count.city_hall",
