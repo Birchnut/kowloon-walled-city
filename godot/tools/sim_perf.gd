@@ -29,6 +29,7 @@ func _init() -> void:
 	var per := {}
 	var tot := 0.0
 	var mx := 0.0
+	var all_ms: Array = []
 	for i: int in n:
 		if topup:
 			_topup(sim, st)
@@ -54,7 +55,9 @@ func _init() -> void:
 		var ms := float(Time.get_ticks_usec() - t0) / 1000.0
 		tot += ms
 		mx = maxf(mx, ms)
-	print("topup=%s " % args["topup"], "STEP avg %.2f ms  max %.2f ms  (%d steps)" % [tot / n, mx, n])
+		all_ms.append(ms)
+	all_ms.sort()
+	print("topup=%s " % args["topup"], "STEP avg %.2f ms  median %.2f ms  max %.2f ms  (%d steps, day boundary = settle)" % [tot / n, all_ms[n / 2], mx, n])
 	var ids: Array = per.keys()
 	ids.sort_custom(func(a: String, b: String) -> bool: return per[a] > per[b])
 	for id: String in ids:
