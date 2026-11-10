@@ -27,7 +27,7 @@ func _max_teams() -> int:
 func on_new_game(state: CityState) -> void:
 	for id: String in sim.items("destinations"):
 		state.dests[id] = {"known": bool(_dest(id).get("known", false)), "visits": 0, "new": false}
-	state.stats["start_unix"] = sim.now_unix
+	state.stats["start_unix"] = float(sim.now_unix)
 	_sync(state)
 
 
@@ -266,7 +266,7 @@ func _send(state: CityState, args: Dictionary) -> Dictionary:
 	t["finds"] = finds
 	t["pick"] = pick
 	if not state.stats.has("first_send_unix"):
-		state.stats["first_send_unix"] = now
+		state.stats["first_send_unix"] = float(now)
 		state.stats["first_send_day"] = state.econ_days
 	state.stat_add("exp_sent", 1.0)
 	state.stat_add("exp_sent_" + str(d.get("band", "near")), 1.0)
@@ -312,7 +312,7 @@ func _claim(state: CityState, args: Dictionary) -> Dictionary:
 		claimed += 1
 		state.stat_add("exp_claims", 1.0)
 		if not state.stats.has("first_claim_unix"):
-			state.stats["first_claim_unix"] = sim.now_unix
+			state.stats["first_claim_unix"] = float(sim.now_unix)
 			state.stats["first_claim_day"] = state.econ_days
 	# 은퇴 표시된 팀은 수령 뒤 없앤다
 	var i := state.teams.size() - 1
