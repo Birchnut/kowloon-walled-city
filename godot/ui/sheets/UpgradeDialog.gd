@@ -300,7 +300,7 @@ func _short_row(up: Dictionary, qty: int, mname: String) -> void:
 	if qty > have:
 		need_good = mat
 		if _batch and _fit_k > 0:
-			line = "%s %d 모자람 — 남은 %d채까지 하려면 %s %d 더(지금 %d / %d)." % [mname, qty - have, bids.size() - _fit_k, mname, qty - have, have, qty]
+			line = "남은 %d채엔 %s %d 더(지금 %d / %d)." % [bids.size() - _fit_k, mname, qty - have, have, qty]
 		else:
 			line = "%s %d 모자람(지금 %d / %d)." % [mname, qty - have, have, qty]
 	else:

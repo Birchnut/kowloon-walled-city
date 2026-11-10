@@ -180,7 +180,7 @@ func _process(delta: float) -> void:
 	if Game.state != null:
 		strip.set_time(Game.time_of_day())
 	# 토스트는 위쪽 대화·힌트 아래로 비킨다(겹쳐 읽히지 않게)
-	var t_off := maxf(maxf(top_h() + 8.0, tutorial.dialog.occupied_bottom() + 6.0), banner.occupied_bottom() + 4.0)
+	var t_off := maxf(maxf(top_h() + 8.0, tutorial.dialog.occupied_bottom() + 6.0), banner.occupied_bottom() + 10.0)
 	if absf(toasts.top_offset - t_off) > 0.5:
 		toasts.top_offset = t_off
 	_poll_t -= delta
