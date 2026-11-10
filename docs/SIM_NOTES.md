@@ -59,7 +59,7 @@ ARCHITECTURE.md의 필드 이름 그대로. **SIM이 보탠 필드**(저장됨):
 | 목표 문구(milestones) | `goals` 질의는 해금 단계로 임시 채움(`Queries._goals`). 등급 이벤트는 progression이 이미 낸다. |
 | 미접속 정산 | `Game._offline_catch_up()`(표시된 스텁): 실제 경과 ≤ 8시간 × 0.25 → `sim.fast_forward`. 할 일: 유예 시계 정지(needs의 `short_days` 증가를 `sim.offline`일 때 막기), 재고 0이면 그 소비만 정지(이미 그렇다), 요약 줄(`SimSystem.fast_forward` 훅), 음수·과도 도약 방어. `fast_forward`는 지금 같은 고정 스텝을 그대로 돈다(오프라인 = 온라인 결과 동일). |
 | 시나리오 묶음(브리프 §20.1) | `tools/sim_run.gd`(봇 이름 인자) + `data/sim/bots.json`. `Bot.gd`는 균형형 하나 — 설정값으로 다른 봇을 만들 수 있다(자재 집중형: 자재 선택 규칙만 바꾸면 됨). |
-| 일괄 승급 UI | `upgradable {tier?}`, `upgrade_preview {bids, material}`(합산) 구현됨. |
+| 일괄 승급 UI | `upgradable {tier?}` → [{tier, tier_name, count, bids}], `upgrade_preview {bids, material}` → info.upgrade.preview와 같은 키(합산) + {ok, blockers, cost{money, qty, extra}} 구현됨. |
 
 ## 6. 내가 정한 것(사양 밖) — 번호, 이유
 
@@ -68,7 +68,7 @@ ARCHITECTURE.md의 필드 이름 그대로. **SIM이 보탠 필드**(저장됨):
 3. **물·전기를 쓰는 생산식의 물은 재고 상품이 아니라 유틸리티 부하**(GDD 표의 "물 6"). 물 저장 개념을 만들지 않기 위해.
 4. **"헌 옷"은 생산 시설 없이 수입 전용**: GDD 표에 떠돌이 승급 수요로만 있고 만드는 곳이 없었다. 봉제방은 세입자 인력이 필요해 떠돌이 승급 전에 못 돌리므로(순환 잠금) 도매상 수입으로 해결.
 5. **교역소 인력 세입자 2 → 떠돌이 2**: 떠돌이 승급 수요(헌 옷·초 원료)가 계약을 필요로 하는데 교역소가 세입자를 요구하면 순환 잠금.
-6. **기본 계약 자리 1**(교역소 없이 길 건너 도매상과 하나): 첫 접속에서 유지(초 원료)를 바로 사게. 교역소는 자리 +2.
+6. **기본 계약 자리 2**(교역소 없이 길 건너 도매상과 둘, `contracts.base_slots`): 첫 접속에서 헌 옷·유지(떠돌이 승급)를 바로 사게. 교역소는 자리 +2. 계약 자리는 완공 교역소 수로만 세고 교역소 인력과는 무관.
 7. **도매상이 전자 부품·양주를 비싸게 판다**, **건재상이 설비 부품·고물도 판다**: 순환 잠금 검사 규칙("아는 거래처나 해금된 시설로 얻을 수 있어야")을 지키려고. 부두 암시장이 더 싸다(탐험 발견의 가치).
 8. **고물 작업장 해금 떠돌이 50 → 20**: 시설 건설 재료(고물)가 시작 30개로 막혔다.
 9. **세입자 등불: 전기가 남으면 전기로 갈아탄다(prefer)**: GDD "등불은 전기가 닿으면 전기로 대체". 남는 전기 몫 확인으로 쏠림·깜빡임 방지.
@@ -92,3 +92,10 @@ ARCHITECTURE.md의 필드 이름 그대로. **SIM이 보탠 필드**(저장됨):
 - 계약 회차는 스텝 경계에서 실행된다(최대 1/48일 늦음). 한 스텝에 한 계약은 한 번만.
 - 2층 이상 2×2 시설 자리는 플레이어가 비워 둬야 한다(봇은 층마다 2×2 자리 네 곳을 남긴다).
 - `Data.gd`는 디렉터 소유라 바꾸지 않았다. 데이터 검증 오류는 Sim.setup에서 `push_error` + `sim.errors`로 나온다(UI가 보여 주면 좋다).
+
+## 8. 실행 방법
+- 시험: `godot/tests/sim_test.sh` (헤드리스, 약 15초, 마지막 줄 `RESULT: PASS`).
+- 봇 리포트: `KOWLOON_NOSAVE=1 godot --headless --path godot -s res://tools/sim_run.gd -- bot=balanced days=30 seed=1` → `simulation/reports/core_balanced.md` + `.json`(약 45초).
+- 검토 표: `python3 godot/tools/data_tables.py` → `docs/data_tables/*.md`.
+- Game 부팅 탐침(UI 없이 오토로드만): `KOWLOON_NOSAVE=1 godot --headless --path godot res://tools/sim_game_probe.tscn`.
+- 컴파일 확인: `godot --headless --path godot -s res://tools/sim_check.gd` (core/Game.gd는 -s 모드에서 Data 오토로드가 없어 실패로 나오는 게 정상 — 탐침으로 확인).

@@ -183,6 +183,24 @@ static func report(r: Dictionary) -> String:
 	L.append("")
 	L.append_array(per_cell(sim, state))
 	L.append("")
+	L.append("## 세 계열 자재(디렉터 수정 4 — 구역 단위 총량)")
+	var acc_q := 0
+	var row := "누적(떠돌이 판잣집 한 채를 그 계층까지): "
+	var parts_q: Array = []
+	var district: Array = []
+	for t: int in range(1, sim.max_tier()):
+		acc_q += int(sim.item("upgrade_costs", "%dto%d" % [t, t + 1])["qty"])
+		parts_q.append("%s %d" % [sim.tname(t + 1), acc_q])
+		district.append("%s 100채 = %d" % [sim.tname(t + 1), acc_q * 100])
+	L.append(row + ", ".join(parts_q) + ".")
+	L.append("한 층(약 100채)을 전부 그 계층으로: " + ", ".join(district) + ".")
+	var got := 0.0
+	var used := 0.0
+	for m: String in sim.db["upgrade_costs"]["materials"]:
+		got += float(state.stats.get("debug_stock." + m, 0.0))
+		used += float(state.stats.get("used." + m, 0.0))
+	L.append("이번 실행: 탐험 흉내로 받은 자재 %d, 승급·건설에 쓴 자재 %d, 남은 자재 %d (시작 36)." % [int(got), int(used), int(float(state.stock.get("wood", 0)) + float(state.stock.get("metal", 0)) + float(state.stock.get("concrete", 0)))])
+	L.append("")
 	L.append("## 막힌 것(봇이 하려다 못 한 일, 횟수)")
 	var bl: Dictionary = r["bot"].blocked
 	var keys: Array = bl.keys()
