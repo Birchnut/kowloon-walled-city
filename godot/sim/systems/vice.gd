@@ -66,13 +66,13 @@ func _raid(state: CityState, contrib: Array) -> void:
 	state.heat = maxf(0.0, state.heat - _c("after_raid_drop", 40.0))
 	state.emit("raid", {"bid": int(pick["id"]), "type": str(pick["type"]), "until": until, "fine": fine})
 	state.emit("building_changed", {"bid": int(pick["id"])})
-	sim.say(state, "%s 벌금 ₩%d. %d일 뒤 다시 연다." % [str(d.get("vice", {}).get("raid_line", "단속이 있었다.")), int(fine), int(roundf(_c("close_days", 2.0)))], "bad")
+	sim.say(state, "%s 벌금 %s. %d일 뒤 다시 연다." % [str(d.get("vice", {}).get("raid_line", "단속이 있었다.")), Sim.won(fine), int(roundf(_c("close_days", 2.0)))], "bad")
 
 
 func fast_forward(state: CityState, _econ_days: float, before: Dictionary, lines: Array) -> void:
 	var n := int(float(state.stats.get("raids", 0.0)) - float(before.get("stats", {}).get("raids", 0.0)))
 	if n > 0:
-		lines.append("자리를 비운 사이 단속 %d번(벌금 ₩%d)." % [n, int(float(state.stats.get("fines", 0.0)) - float(before.get("stats", {}).get("fines", 0.0)))])
+		lines.append("자리를 비운 사이 단속 %d번(벌금 %s)." % [n, Sim.won(float(state.stats.get("fines", 0.0)) - float(before.get("stats", {}).get("fines", 0.0)))])
 
 
 func query(state: CityState, name: String, _args: Dictionary) -> Variant:

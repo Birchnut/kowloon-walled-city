@@ -85,7 +85,7 @@ var _sync_key := ""
 
 func tick(state: CityState, _dt: float) -> void:
 	var k := "%d:%d" % [state.get_instance_id(), state.layout_rev()]
-	if k != _sync_key:
+	if k != _sync_key or sim.no_cache:
 		_sync_key = k
 		_sync(state)
 	_update(state)
@@ -176,11 +176,11 @@ func can(state: CityState, name: String, args: Dictionary) -> Variant:
 				return {"ok": false, "reason": "아직 모르는 곳이다 — %s." % str(d.get("reveal_hint", "탐험으로 알게 된다")), "code": "unknown"}
 			var cost := _cost(state, d)
 			if state.money + 1e-9 < cost:
-				return {"ok": false, "reason": "출발 비용 ₩%d이(가) 모자란다." % int(cost), "code": "money"}
+				return {"ok": false, "reason": Sim.kr("출발 비용 %s이(가) 모자란다." % Sim.won(cost)), "code": "money"}
 			if args.get("provision", false):
 				var need := float(_d().get("provision", {}).get("n", 10))
 				if _meal_have(state) + 1e-9 < need:
-					return {"ok": false, "reason": "보급할 끼니 %d이(가) 모자란다." % int(need), "code": "provision"}
+					return {"ok": false, "reason": Sim.kr("보급할 끼니 %d이(가) 모자란다." % int(need)), "code": "provision"}
 			var picks: Array = d.get("picks", [])
 			var pick := str(args.get("pick", ""))
 			if pick != "" and not picks.is_empty() and not (pick in picks):

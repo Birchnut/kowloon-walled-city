@@ -14,6 +14,7 @@ var blocked: Dictionary = {}       # 이유 → 횟수(리포트용)
 var cmds: Dictionary = {}          # 명령 이름 → 성공 횟수(리포트용)
 var ctx: Dictionary = {}           # 이번 손길의 접속 맥락
 var _save: float = 0.0             # 꼭 필요한 시설을 위해 모으는 돈(이번 손길 동안 덜 급한 지출을 막는다)
+var recorded = null                # 시험용(sim_cache_fuzz): Array면 명령마다 [name, args, 결과]를 남긴다(다른 시뮬에 그대로 다시 넣기)
 
 
 func _init(s: Sim, bot_id: String) -> void:
@@ -52,7 +53,10 @@ func act(state: CityState, context: Dictionary = {}) -> void:
 
 
 func cmd(state: CityState, name: String, args: Dictionary) -> Dictionary:
+	var a0: Dictionary = args.duplicate(true) if recorded is Array else {}
 	var r := sim.apply(state, name, args)
+	if recorded is Array:
+		(recorded as Array).append([name, a0, r.duplicate(true)])
 	if r.get("ok", false):
 		cmds[name] = int(cmds.get(name, 0)) + 1
 	return r

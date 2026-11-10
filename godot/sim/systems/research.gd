@@ -55,10 +55,10 @@ func can(state: CityState, name: String, args: Dictionary) -> Variant:
 				return {"ok": false, "reason": "이미 연구 중이다(한 번에 하나).", "code": "busy"}
 			var req := str(r.get("requires", ""))
 			if req != "" and not _done(state).has(req):
-				return {"ok": false, "reason": "먼저 '%s'을(를) 끝내야 한다." % sim.item("research", req).get("name", req), "code": "locked"}
+				return {"ok": false, "reason": Sim.kr("먼저 '%s'을(를) 끝내야 한다." % sim.item("research", req).get("name", req)), "code": "locked"}
 			var cost := float(r.get("cost", 0))
 			if state.money + 1e-9 < cost:
-				return {"ok": false, "reason": "돈이 모자란다(₩%d 필요)." % int(cost), "code": "money"}
+				return {"ok": false, "reason": "돈이 모자란다(%s 필요)." % Sim.won(cost), "code": "money"}
 			return {"ok": true, "reason": "", "code": "ok", "cost": {"money": cost, "goods": {}}}
 		"research_cancel":
 			if _active(state).is_empty():
@@ -78,7 +78,7 @@ func apply(state: CityState, name: String, args: Dictionary) -> Variant:
 			state.stat_add("research_spent", cost)
 			var days := float(r.get("days", 1.0))
 			state.research["active"] = {"id": id, "left": days, "done_at": state.econ_days + days}
-			sim.say(state, "공부방에서 '%s' 연구를 시작했다(₩%d, %.1f일)." % [r.get("name", id), int(cost), days])
+			sim.say(state, "공부방에서 '%s' 연구를 시작했다(%s, %.1f일)." % [r.get("name", id), Sim.won(cost), days])
 			return {"ok": true, "reason": "", "id": id}
 		"research_cancel":
 			var a := _active(state)
@@ -87,7 +87,7 @@ func apply(state: CityState, name: String, args: Dictionary) -> Variant:
 			state.money += back
 			state.book("build", back)
 			state.research["active"] = {}
-			sim.say(state, "'%s' 연구를 그만두었다(₩%d 돌려받음)." % [r.get("name", ""), int(back)])
+			sim.say(state, "'%s' 연구를 그만두었다(%s 돌려받음)." % [r.get("name", ""), Sim.won(back)])
 			return {"ok": true, "reason": "", "refund": back}
 	return null
 

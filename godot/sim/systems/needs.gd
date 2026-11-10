@@ -208,6 +208,7 @@ var _hres: PackedInt32Array = PackedInt32Array()
 var _hset: PackedByteArray = PackedByteArray()
 var _aff_last: Array = []
 var _off_last := false
+var _settle_seen := -1
 var _acls_of: PackedInt32Array = PackedInt32Array()   # cls → acls
 var _acls_tab: Array = []                              # acls → {"mkt:g"/"svc:tag": cause}
 var _acls_noise: PackedInt32Array = PackedInt32Array()
@@ -603,6 +604,8 @@ func _affordable(state: CityState) -> Array:
 func tick(state: CityState, dt: float) -> void:
 	var cov := sim.cover(state)
 	var clsmap: Dictionary = cov["cls"]
+	if sim.no_cache:
+		_forget(cov)
 	_access(state, cov)
 	var houses: Array = cov["houses"]
 	_spare.clear()
@@ -656,6 +659,12 @@ func tick(state: CityState, dt: float) -> void:
 	var offline := sim.offline
 	var aff := _affordable(state)
 	var fast2 := aff == _aff_last and offline == _off_last
+	# settle()(자정·저장)이 주거의 파생 값(세수·충족률…)을 반올림했다 → 이번 스텝은 건너뛰지 않고 다시 쓴다.
+	# 안 그러면 건너뛴 주거만 반올림 값을 들고 있어 캐시 없는 계산과 끝자리가 갈린다(퍼즈로 찾음).
+	var resettled := state.settle_n != _settle_seen
+	if resettled:
+		_settle_seen = state.settle_n
+		fast2 = false
 	_aff_last = aff
 	_off_last = offline
 	var todo2 := PackedInt32Array()   # 2단계를 돌릴 주거 순번(주거 순서 유지)
@@ -815,7 +824,7 @@ func tick(state: CityState, dt: float) -> void:
 			e.p2[1 if rpos else 0] = p
 		var tl: Array = by_tier.get(t, [])
 		var needs: Dictionary = b["needs"]
-		if b.get("nsig", -1) != p.nsig:
+		if resettled or b.get("nsig", -1) != p.nsig:
 			for i: int in tl.size():
 				var rec: Dictionary = needs[tl[i]["id"]]
 				rec["ratio"] = p.ratios[i]
@@ -911,6 +920,29 @@ func tick(state: CityState, dt: float) -> void:
 	state.happiness = hap_sum / hap_w if hap_w > 0.0 else 50.0
 
 
+## sim.no_cache(시험): 스텝을 넘는 기억을 모두 버린다 — 묶음·2단계 결과·주거별 빠른 길·접근표·수정치·소비 묶음 목록,
+## 그리고 주거에 적어 둔 캐시 필드(psig·nsig 지움, sdm=-1·sdc=0 → 모든 수요의 부족 일수를 다시 센다).
+func _forget(cov: Dictionary) -> void:
+	_pents.clear()
+	_pacc = -1
+	_acc_key = ""
+	_mrev = ""
+	_last_used.clear()
+	_dems.clear()
+	_dem_of.clear()
+	_cov_ref = null
+	_hent.clear()
+	_hp2.clear()
+	_hres.clear()
+	_hset.clear()
+	_aff_last = []
+	for b: Dictionary in cov["houses"]:
+		b.erase("psig")
+		b.erase("nsig")
+		b["sdm"] = -1
+		b["sdc"] = 0
+
+
 func on_day_end(state: CityState, ended: int) -> void:
 	var lt: Dictionary = state.flags.get("left_today", {})
 	for t: String in lt:
@@ -976,6 +1008,9 @@ func augment(state: CityState, name: String, _args: Dictionary, out: Variant) ->
 			var ct := ""
 			if c != "":
 				ct = CAUSE_TEXT.get(c, c)
+				# 서비스(사당·학교…)는 시장이 아니다: "범위 밖"만. 상품·시장 수요만 "시장 범위 밖".
+				if c == "range" and str(rec.get("pick", "")).begins_with("svc:"):
+					ct = "범위 밖"
 				if picks.size() > 0:
 					ct = "%s — %s" % ["·".join(picks), ct]
 			var alt: Array = []

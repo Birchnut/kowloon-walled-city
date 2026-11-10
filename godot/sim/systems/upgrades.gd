@@ -47,12 +47,12 @@ func _plan(state: CityState, args: Dictionary) -> Dictionary:
 		for g: String in c.get("extra", {}):
 			extra[g] = float(extra.get(g, 0.0)) + float(c["extra"][g])
 	if state.money + 1e-9 < money:
-		return {"ok": false, "reason": "돈이 모자란다(₩%d 필요)." % int(money), "money": money, "qty": qty, "extra": extra}
+		return {"ok": false, "reason": "돈이 모자란다(%s 필요)." % Sim.won(money), "money": money, "qty": qty, "extra": extra}
 	if float(state.stock.get(mat, 0.0)) + 1e-9 < float(qty):
-		return {"ok": false, "reason": "%s이(가) 모자란다(%d 필요, 지금 %d)." % [_mat_name(mat), qty, int(state.stock.get(mat, 0.0))], "money": money, "qty": qty, "extra": extra}
+		return {"ok": false, "reason": Sim.kr("%s이(가) 모자란다(%d 필요, 지금 %d)." % [_mat_name(mat), qty, int(state.stock.get(mat, 0.0))]), "money": money, "qty": qty, "extra": extra}
 	for g: String in extra:
 		if float(state.stock.get(g, 0.0)) + 1e-9 < float(extra[g]):
-			return {"ok": false, "reason": "%s이(가) 모자란다(%d 필요)." % [sim.gname(g), int(extra[g])], "money": money, "qty": qty, "extra": extra}
+			return {"ok": false, "reason": Sim.kr("%s이(가) 모자란다(%d 필요)." % [sim.gname(g), int(extra[g])]), "money": money, "qty": qty, "extra": extra}
 	return {"ok": true, "reason": "", "money": money, "qty": qty, "extra": extra, "bids": bids, "material": mat}
 
 
@@ -220,7 +220,7 @@ func augment(state: CityState, name: String, _args: Dictionary, out: Variant) ->
 		if float(b.get("needs", {}).get(nid, {}).get("ratio", 0.0)) < ok:
 			u["blockers"].append("%s 수요 미충족: %s" % ["기본" if n["role"] == "basic" else "승급 조건", n.get("name", nid)])
 	if state.money + 1e-9 < float(c.get("money", 0)):
-		u["blockers"].append("돈이 모자란다(₩%d)." % int(c.get("money", 0)))
+		u["blockers"].append("돈이 모자란다(%s)." % Sim.won(float(c.get("money", 0))))
 	var any_mat := false
 	for m: Dictionary in u["materials"]:
 		any_mat = any_mat or m["enough"]

@@ -11,6 +11,9 @@ var sys_ids: Array[String] = []
 var enabled: Dictionary = {}
 var offline: bool = false          # fast_forward 중
 var now_unix: int = 0              # Game이 매 프레임 넣는다(시스템 시각 + state.clock_offset)
+## 시험용(파트 C): true면 스텝을 넘는 캐시·빠른 길을 모두 끈다 — Cover는 스텝마다·명령 앞뒤로 다시 만들고, 수정치는 매번 다시 더하고,
+## needs의 묶음·주거별 기억·접근표, expeditions의 팀 맞추기도 매 스텝 처음부터. 결과는 캐시 켠 쪽과 같아야 한다(sim_cache_fuzz).
+var no_cache: bool = false
 var W: int = 12
 var H: int = 12
 var F: int = 10
@@ -150,7 +153,7 @@ func mod(state: CityState, key: String) -> float:
 
 func mod_sum(state: CityState, key: String) -> float:
 	var k := "%d:%d" % [state.get_instance_id(), int(state.flags.get("mods_rev", 0))]
-	if k != _mods_key:
+	if k != _mods_key or no_cache:
 		_mods_key = k
 		_mods = {}
 		if enabled.has("research"):
@@ -215,7 +218,24 @@ func say(state: CityState, text: String, tone: String = "") -> void:
 
 
 const _JOSA := [["이(가)", "이", "가"], ["을(를)", "을", "를"], ["은(는)", "은", "는"], ["과(와)", "과", "와"],
-	["으로(로)", "으로", "로"], ["(이)라", "이라", "라"]]
+	["으로(로)", "으로", "로"], ["(으)로", "으로", "로"], ["(이)라", "이라", "라"]]
+
+
+## 정수에 천 단위 쉼표: 33151 → "33,151", −320 → "−320"(반올림 없이 int로 자름 — 예전 %d와 같은 값).
+static func num(v: float) -> String:
+	var n := int(v)
+	var neg := n < 0
+	var s := str(absi(n))
+	var out := ""
+	while s.length() > 3:
+		out = "," + s.right(3) + out
+		s = s.left(s.length() - 3)
+	return ("−" if neg else "") + s + out
+
+
+## 문장 속 돈: "₩33,151"(음수는 "−₩320"). 시뮬이 만드는 글에서 돈은 모두 이것으로.
+static func won(v: float) -> String:
+	return ("−₩" + num(-v)) if int(v) < 0 else ("₩" + num(v))
 
 
 ## "이(가)" 같은 조사를 앞말 받침에 맞춘다.
@@ -232,7 +252,7 @@ static func kr(text: String) -> String:
 			var fin := code >= 0 and code < 11172 and code % 28 != 0
 			if code < 0 and back >= 0 and text[back] >= "0" and text[back] <= "9":
 				fin = text[back] in ["0", "1", "3", "6", "7", "8"]
-			if j[0] == "으로(로)" and code >= 0 and code % 28 == 8:
+			if (j[0] == "으로(로)" or j[0] == "(으)로") and code >= 0 and code % 28 == 8:
 				fin = false
 			text = text.substr(0, at) + (j[1] if fin else j[2]) + text.substr(at + (j[0] as String).length())
 			at = text.find(j[0])
@@ -288,6 +308,8 @@ func step(state: CityState, dt: float = -1.0) -> void:
 		dt = step_days
 	var d0 := state.day
 	var h0 := int(state.hour)
+	if no_cache:
+		_cover_key = ""
 	_fa.clear()
 	for s: SimSystem in systems:
 		s.tick(state, dt)
@@ -353,7 +375,7 @@ func fast_forward(state: CityState, econ_days: float, real_seconds: float = -1.0
 	var rh := real_seconds / 3600.0 if real_seconds >= 0.0 else econ_days * float(cfg("time.seconds_per_day", 600)) / maxf(0.01, float(cfg("time.offline_speed", 0.25))) / 3600.0
 	lines.append("자리를 비운 %s 동안 성채의 시간은 %.1f일 흘렀다(미접속 중에는 %s배로 느리게)." % [_hours(rh), econ_days, str(cfg("time.offline_speed", 0.25))])
 	var dm := state.money - float(before["money"])
-	lines.append("금고 ₩%d → ₩%d (%s₩%d)." % [int(before["money"]), int(state.money), "+" if dm >= 0.0 else "−", int(absf(dm))])
+	lines.append("금고 %s → %s (%s%s)." % [won(float(before["money"])), won(state.money), "+" if dm >= 0.0 else "−", won(absf(dm))])
 	var made: Array = []
 	var used: Array = []
 	var bs: Dictionary = before["stats"]
@@ -434,6 +456,8 @@ func can(state: CityState, name: String, args: Dictionary) -> Dictionary:
 
 
 func apply(state: CityState, name: String, args: Dictionary) -> Dictionary:
+	if no_cache:
+		_cover_key = ""
 	var c := can(state, name, args)
 	if not c.get("ok", false):
 		return c
@@ -450,6 +474,8 @@ func apply(state: CityState, name: String, args: Dictionary) -> Dictionary:
 	if res is Dictionary and res.get("reason", "") is String:
 		res["reason"] = kr(res["reason"])
 	if res.get("ok", false):
+		if no_cache:
+			_cover_key = ""
 		for s: SimSystem in systems:
 			s.on_command(state, name, args, res)
 	return res

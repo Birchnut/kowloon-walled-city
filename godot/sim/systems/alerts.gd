@@ -56,10 +56,12 @@ func _compute(state: CityState) -> Dictionary:
 		var s := float(x.get("supply", 0.0))
 		var d := float(x.get("demand", 0.0))
 		if d > 0.5 and s < d - 1e-6:
-			r[u] = _al(u, "%s이(가) 모자란다(공급 %d / 수요 %d)" % ["물" if u == "water" else "전기", int(s), int(ceilf(d))], "bad", "build", u)
+			r[u] = _al(u, Sim.kr("%s이(가) 모자란다(공급 %d / 수요 %d)" % ["물" if u == "water" else "전기", int(s), int(ceilf(d))]), "bad", "build", u)
 	# 일손
 	var short: Array = []
-	for t: Variant in state.labor:
+	# 새 도시의 첫 경제시간, 또는 아직 아무도 안 살 때는 일손 부족을 띄우지 않는다(입주 전 깜빡임 — 통합 보고 i)
+	var quiet := state.population() == 0 or state.econ_days < float(sim.cfg("time.start_hour", 6)) / 24.0 + 1.0 / 24.0 - 1e-9
+	for t: Variant in ({} if quiet else state.labor):
 		var l: Dictionary = state.labor[t]
 		var gap := int(ceilf(float(l.get("need", 0.0)) - 1e-6)) - int(l.get("have", 0))
 		if gap > 0:
@@ -112,7 +114,7 @@ func _compute(state: CityState) -> Dictionary:
 	if not out_now.is_empty():
 		r["stockout"] = _al("stockout", "%s 재고가 없다" % "·".join(out_now.slice(0, 3)), "bad", "economy", first)
 	elif not out_soon.is_empty():
-		r["stockout"] = _al("stockout", "%s이(가) 하루 안에 바닥난다" % "·".join(out_soon.slice(0, 3)), "warn", "economy", first)
+		r["stockout"] = _al("stockout", Sim.kr("%s이(가) 하루 안에 바닥난다" % "·".join(out_soon.slice(0, 3))), "warn", "economy", first)
 	# 계약
 	var fl := 0
 	for c: Dictionary in state.contracts:
@@ -140,7 +142,7 @@ func _compute(state: CityState) -> Dictionary:
 		r["heat"] = _al("heat", "단속 위험 %d — 80이면 음성 시설 하나가 닫힌다" % int(state.heat), "warn", "keep", "policies")
 	for b: Dictionary in sim.cover(state)["facs"]:
 		if b.get("raid_until", -1.0) != null and float(b.get("raid_until", -1.0)) > state.econ_days:
-			r["raid"] = _al("raid", "%s이(가) 단속으로 닫혀 있다" % sim.bdef(str(b["type"])).get("name", ""), "bad", "inspect", int(b["id"]))
+			r["raid"] = _al("raid", Sim.kr("%s이(가) 단속으로 닫혀 있다" % sim.bdef(str(b["type"])).get("name", "")), "bad", "inspect", int(b["id"]))
 			break
 	return r
 
