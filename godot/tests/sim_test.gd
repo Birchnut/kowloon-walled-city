@@ -688,6 +688,8 @@ func _policy_research() -> void:
 				s += float(b["tax"])
 		return s
 	_steps(sim, st, 1)
+	var twin := CityState.new()
+	twin.from_json(st.to_json())
 	var t0: float = tax.call()
 	_ok(sim.apply(st, "policy_set", {"id": "tax_cut", "on": true}).get("ok", false), "감세 켬")
 	_steps(sim, st, 1)
@@ -695,7 +697,12 @@ func _policy_research() -> void:
 	sim.apply(st, "policy_set", {"id": "tax_cut", "on": false})
 	_steps(sim, st, 1)
 	var t2: float = tax.call()
-	_ok(t1 < t0 and _near(t2, t0, 1e-9), "감세: 세수 %.1f → %.1f → 끄면 %.1f" % [t0, t1, t2])
+	_steps(sim, twin, 2)
+	var tt := 0.0
+	for b: Dictionary in twin.buildings.values():
+		if b["kind"] == "house":
+			tt += float(b["tax"])
+	_ok(t1 < t0 * 0.85 and absf(t2 - tt) <= 0.005 * tt, "감세: 세수 %.1f → %.1f → 끄면 %.1f (안 켠 쌍둥이 %.1f)" % [t0, t1, t2, tt])
 	st.unlocked.erase("feature:policy_slot_2")
 	sim.apply(st, "policy_set", {"id": "rations", "on": true})
 	_ok(not sim.can(st, "policy_set", {"id": "overtime", "on": true}).get("ok", true), "칸이 1개면 두 번째 정책은 거절")

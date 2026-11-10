@@ -981,7 +981,7 @@
    "priority": "service",
    "size": 2,
    "cost": {
-    "money": 5000,
+    "money": 25000,
     "goods": {
      "wood": 40,
      "metal": 40,

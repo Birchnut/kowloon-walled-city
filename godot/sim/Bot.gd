@@ -282,6 +282,8 @@ func _try_build(state: CityState, type: String, near: Vector3i, critical: bool =
 	var p: Variant = _spot(state, int(d.get("size", 1)), near)
 	if p != null and d.has("range") and Cover.dist(sim, near, p, int(d.get("size", 1))) > int(d["range"]):
 		p = null
+	if p == null and critical and bool(c("carve", true)):
+		p = _carve(state, int(d.get("size", 1)), near, int(d.get("range", 99)))
 	if p == null:
 		_block("자리 부족으로 %s 보류" % d.get("name", type))
 		return false
@@ -290,6 +292,40 @@ func _try_build(state: CityState, type: String, near: Vector3i, critical: bool =
 		_block(str(r.get("reason", "")))
 		return false
 	return true
+
+
+## 자리 내기: 꼭 필요한 시설인데 빈 자리가 없으면, 범위 안에서 판잣집·낮은 계층 주거만 있는 자리를 골라 허문다
+## (주거 철거는 무료, 주민은 빈집을 찾아 기다린다 — 알려진 약점 "층이 차면 2×2를 못 놓음"의 플레이어식 해결).
+func _carve(state: CityState, size: int, near: Vector3i, rng: int) -> Variant:
+	var best: Variant = null
+	var bs := 1 << 30
+	for z: int in state.floors_unlocked:
+		for x: int in sim.W - size + 1:
+			for y: int in sim.H - size + 1:
+				var o := Vector3i(x, y, z)
+				var dd := Cover.dist(sim, near, o, size)
+				if dd > rng or dd >= (1 << 19):
+					continue
+				var score := 0
+				var ok := true
+				for q: Vector3i in Cover.footprint(o, size):
+					if not state.cells.has(q):
+						continue
+					var b: Dictionary = state.buildings.get(int(state.cells[q]["bid"]), {})
+					if b.get("kind", "") != "house" or int(b["tier"]) > int(c("carve_max_tier", 2)) or b.get("upgrading") != null:
+						ok = false
+						break
+					score += 10 * int(b["tier"]) + int(b["residents"])
+				if ok and score + dd < bs:
+					bs = score + dd
+					best = o
+	if best == null:
+		return null
+	for q: Vector3i in Cover.footprint(best, size):
+		if state.cells.has(q):
+			cmd(state, "demolish", {"pos": q})
+	_block("자리 내려고 주거를 허묾")
+	return best
 
 
 func _count(state: CityState, type: String) -> int:

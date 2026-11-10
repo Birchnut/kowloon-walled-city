@@ -13,7 +13,7 @@
     ]
    ],
    "rewards": {
-    "money": 100
+    "money": 250
    }
   },
   "g_t1_20": {
@@ -28,7 +28,7 @@
    ],
    "unlock": "t1_20",
    "rewards": {
-    "money": 150
+    "money": 300
    }
   },
   "g_base": {
@@ -42,7 +42,7 @@
     ]
    ],
    "rewards": {
-    "money": 60
+    "money": 150
    }
   },
   "g_claim": {
@@ -74,7 +74,7 @@
    ],
    "unlock": "t2_1",
    "rewards": {
-    "money": 200
+    "money": 300
    }
   },
   "g_trade": {
@@ -93,7 +93,7 @@
     ]
    ],
    "rewards": {
-    "money": 150
+    "money": 200
    }
   },
   "g_t1_50": {

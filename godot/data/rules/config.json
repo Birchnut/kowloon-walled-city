@@ -39,7 +39,7 @@
  },
  "start": {
   "_status": "실험값. 세 계열 자재 12씩(GDD §8)",
-  "money": 1000,
+  "money": 1200,
   "stock": {
    "wood": 12,
    "metal": 12,

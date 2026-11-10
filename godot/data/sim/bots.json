@@ -195,7 +195,8 @@
     "flour",
     "fat",
     "cloth",
-    "elec"
+    "elec",
+    "oldclothes"
    ],
    "produce": [
     "candle",

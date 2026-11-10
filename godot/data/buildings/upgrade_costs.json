@@ -26,7 +26,7 @@
   "3to4": {
    "from": 3,
    "to": 4,
-   "money": 400,
+   "money": 800,
    "qty": 12,
    "extra": {},
    "days": 0.08
@@ -34,7 +34,7 @@
   "4to5": {
    "from": 4,
    "to": 5,
-   "money": 1000,
+   "money": 2000,
    "qty": 16,
    "extra": {
     "parts": 2
