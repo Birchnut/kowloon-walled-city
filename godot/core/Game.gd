@@ -103,30 +103,32 @@ func save_game() -> bool:
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
 		return false
-	f.store_string(JSON.stringify(state.to_dict()))
+	# to_json(): 키 순서를 그대로 두고(결정론), float를 왕복값으로 맞춘 뒤 쓴다 → 불러와 이어하면 저장 안 한 것과 똑같이 흘러간다.
+	f.store_string(state.to_json())
 	return true
 
 
 func load_game() -> bool:
 	if not FileAccess.file_exists(SAVE_PATH):
 		return false
-	var json := JSON.new()
-	if json.parse(FileAccess.get_file_as_string(SAVE_PATH)) != OK or not (json.data is Dictionary):
-		return false
 	var s := CityState.new()
-	s.from_dict(json.data)
+	if not s.from_json(FileAccess.get_file_as_string(SAVE_PATH)):
+		return false
 	state = s
-	# 미접속 시간 → 도시 시간
+	# 미접속 시간 → 도시 시간. 실제 1시간 = 도시 offline_game_hours_per_real_hour 시간, 최대 실제 offline_max_real_hours 시간분.
 	var now := int(Time.get_unix_time_from_system())
-	var elapsed: float = maxf(0.0, float(now - state.last_saved_unix))
-	var spd: float = float(Data.cfg("time.seconds_per_game_day", 600.0))
-	var max_days: float = float(Data.cfg("time.offline_max_days", 3.0))
-	var hours: float = minf(elapsed * 24.0 / maxf(spd, 1.0), max_days * 24.0)
+	var hours := offline_game_hours(float(now - state.last_saved_unix))
 	if state.last_saved_unix > 0 and hours >= 0.5:
 		_offline_summary = sim.fast_forward(state, hours)
 	state.events.clear()
 	state_replaced.emit()
 	return true
+
+
+## 미접속 실제 초 → 흘려보낼 도시 시간(시간 단위).
+func offline_game_hours(elapsed_real_seconds: float) -> float:
+	var real_hours: float = clampf(elapsed_real_seconds / 3600.0, 0.0, float(Data.cfg("time.offline_max_real_hours", 24.0)))
+	return real_hours * float(Data.cfg("time.offline_game_hours_per_real_hour", 3.0))
 
 
 func delete_save() -> void:

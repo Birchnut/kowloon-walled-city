@@ -143,3 +143,30 @@ signal view_changed()           # 카메라 이동 → UI 재배치
 ```
 tools/shot.sh <scene.tscn> <out_dir> [frames=30] [WxH=540x960]   # xvfb로 실제 렌더 → PNG 프레임
 ```
+
+## SIM 추가 필드 (v0.2 SIM 담당이 덧붙임 — 기존 필드 이름은 그대로)
+
+계약의 필드는 하나도 바꾸지 않았다. 아래는 **덧붙인 키**다. 뷰·UI는 몰라도 된다(모르는 키는 무시).
+
+| 어디 | 키 | 뜻 |
+|---|---|---|
+| 셀 | `why` | 왜 여기 지어졌는지 한 문장(표시용, `cell_info`가 보여 준다) |
+| 셀(주거) | `residents` [가구 id] | 이 칸에 사는 가구들. `owner` = 지은(첫) 가구 |
+| 셀(시설) | `anchor` (int) | 이 앵커의 일자리 장부(`businesses`의 id) |
+| 셀 | `cantilever` (bool), `renovated` (day) | 허공 증축 칸 표시 / 자재를 보강한 날 |
+| 가구 | `kin`, `wait_since`, `idle` | 딸린 식구가 기대는 가구 id / 대문 앞에 선 날 / 실업 일수 |
+| 사업체 | `jobs`, `facility`(bool), `protected`(bool), `empty_days` | 일자리 수 / 앵커 시설의 장부인가 / 결재로 들인 가게 / 일손 0일 수 |
+| 수금함 | `type`, `rate`, `ready`, `over_hours` | 앵커 시설 id / 하루 수입 / 거둘 만한가 / 넘친 채 지난 시간 |
+| pending_cards[].choices[] | `tags` | 선택의 성격(봇·통계용) |
+| flags | `growth`, `inflow_acc`, `named_seen`, `cards`, `missions`, `bot`, `floor_cap`, `floor_bonus`, `power_contract`, `daily_fee`, `tribute`, `uplink`, `forced_title`, `cage_ok`, `no_cage`, `bridges`, `food_short`, `first_plant`, 요청 큐(`build_requests` `arrival_requests` `leave_requests` `close_requests` `card_queue` `mission_requests`) | 시스템별 메모. `bridges`(다리 수)는 뷰가 읽어 그려도 된다 |
+| stats | `plants`, `built_total`, `skim_total`, `collected_total`, `tribute_total`, `expelled`, `left_*`, `turned_away`, `cages`, `upgrades`, … | 누적 통계 |
+| config.json | `grid.gate` [x, y], `pace.*`, `time.offline_game_hours_per_real_hour`, `time.offline_max_real_hours` | 대문 기둥 / 속도 다이얼 / 미접속 환산(`offline_max_days`는 없앰) |
+
+**사업체 장부에 앵커 시설도 들어간다.** `businesses[id].facility == true`인 항목은 플레이어가 심은 시설의 일자리 장부다(`type`은 facilities.json id). 가게만 세려면 `facility`가 false인 것만.
+
+**CityState에 메서드 3개 추가**: `to_json()` / `from_json(text)` / `settle()`. 저장·스냅샷은 반드시 `to_json()`으로(키 순서를 보존하고 float를 왕복값으로 맞춘다 → 불러와 이어 돌려도 결과가 같다).
+
+**명령·질의·이벤트는 계약 표 그대로.** 덧붙인 것: 질의 `metrics`(이름 붙은 숫자 전부), `identity`, `unlocks`, `missions`; `hud`에 `water_cap` `waiting` `alley_fund`; `facilities`에 `free` `affordable`; `collect_points`에 `skimmed` `ready` `rate` `type`; `cell_info.actions[]` = `{id, label, cmd, args, ok, reason}`; `collect` 결과에 `amount` `skimmed` `loot[]`.
+`debug` op: `add_money|add_food|add_materials {amount}`, `set {field, value}`, `skip_hours {hours}`, `unlock {id}`, `unlock_all`, `effects {effects:[…]}`(Expr 효과 직접 실행).
+
+**시스템 인터페이스**: `sim/SimSystem.gd`. 규칙 묶음 = `sim/systems/<id>.gd` 하나, 켜고 끄기 = `config.json systems`. 자세한 건 `docs/SIM_NOTES.md`.
