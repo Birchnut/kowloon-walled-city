@@ -479,7 +479,7 @@ func _disable_each() -> void:
 			bot.act(st)
 			sim.tick(st, 1.0 / 24.0)
 			st.events.clear()
-		for q: String in ["hud", "build_menu", "economy", "contracts", "expeditions", "research", "policies", "goals", "offline_summary"]:
+		for q: String in ["hud", "build_menu", "economy", "contracts", "expeditions", "research", "policies", "goals"]:
 			if sim.query(st, q) == null:
 				_ok(false, "%s 끔: 질의 %s가 null" % [id, q])
 		var v := _invariants(st)

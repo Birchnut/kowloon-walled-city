@@ -12,7 +12,8 @@
   "production",
   "needs",
   "upgrades",
-  "finance"
+  "finance",
+  "alerts"
  ],
  "grid": {
   "width": 12,
@@ -126,5 +127,11 @@
    6
   ],
   "_status": "확정 값의 검증 기준. 실험 브랜치에서 정원을 바꾸려면 여기도 같이 바꾼다(의도적 변경만)."
+ },
+ "alerts": {
+  "max": 4,
+  "linger_days": 0.041666666666666664,
+  "floor_cells": 12,
+  "_status": "제안: 최대 4개, 조건이 꺼져도 1경제시간 유지(깜빡임 방지), 층 해금까지 12칸 이하면 알림"
  }
 }

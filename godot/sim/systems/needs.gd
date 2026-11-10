@@ -945,8 +945,13 @@ func augment(state: CityState, name: String, _args: Dictionary, out: Variant) ->
 				ct = CAUSE_TEXT.get(c, c)
 				if picks.size() > 0:
 					ct = "%s — %s" % ["·".join(picks), ct]
+			var alt: Array = []
+			if c == "stock":
+				for k: String in str(rec.get("pick", "")).split(",", false):
+					if not k.begins_with("@") and not k.begins_with("svc:") and not k.begins_with("mkt:"):
+						alt.append_array(_sources(state, k))
 			rows.append({"id": n["id"], "name": n.get("name", n["id"]), "role": n["role"], "role_name": ROLE_NAME[n["role"]],
-				"ratio": snappedf(ratio, 0.01), "state": st, "cause": c, "cause_text": ct, "jump": _jump(n, rec),
+				"ratio": snappedf(ratio, 0.01), "state": st, "cause": c, "cause_text": ct, "jump": _jump(n, rec), "jump_alt": alt,
 				"using": "·".join(picks), "amount": float(n.get("amount", 0.0)), "share": int(n.get("share", 0))})
 		out["needs"] = rows
 	elif name == "hud":
@@ -962,6 +967,20 @@ func augment(state: CityState, name: String, _args: Dictionary, out: Variant) ->
 			out["alerts"].append({"id": "needs_bad", "text": "주거 %d채가 공급 부족으로 주민을 잃고 있다" % bad, "tone": "bad", "jump": {"screen": "economy", "arg": ""}})
 		elif warn > 0:
 			out["alerts"].append({"id": "needs_warn", "text": "주거 %d채에 부족한 수요가 있다(유예 중)" % warn, "tone": "warn", "jump": {"screen": "economy", "arg": ""}})
+
+
+## G7: 상품 g를 얻는 곳 — 만드는 시설(짓기) + 아는 거래처의 수입 계약(교역).
+func _sources(state: CityState, g: String) -> Array:
+	var out: Array = []
+	for id: String in sim.items("buildings"):
+		if sim.bdef(id).get("recipe", {}).get("out", {}).has(g):
+			out.append({"screen": "build", "arg": id, "label": "%s 짓기" % sim.bdef(id).get("name", id)})
+	var ps: Dictionary = sim.db.get("partners", {}).get("partners", {})
+	for oid: String in sim.items("partners"):
+		var o := sim.item("partners", oid)
+		if str(o.get("good", "")) == g and str(o.get("dir", "")) == "import" and state.partners.has(str(o.get("partner", ""))):
+			out.append({"screen": "trade", "arg": oid, "label": "%s에서 수입" % ps.get(o["partner"], {}).get("name", o["partner"])})
+	return out
 
 
 func _opt_name(n: Dictionary, key: String) -> String:

@@ -30,8 +30,22 @@ func tick(state: CityState, _dt: float) -> void:
 		_check(state)
 
 
+## G11: 튜토리얼 진행 저장 — cmd("tutorial", {step:int}) → state.flags.tutorial, hud.tutorial로 읽는다(저장됨).
+func can(_state: CityState, name: String, args: Dictionary) -> Variant:
+	if name == "tutorial":
+		return {"ok": int(args.get("step", -1)) >= 0, "reason": "" if int(args.get("step", -1)) >= 0 else "step이 필요하다."}
+	return null
+
+
+func apply(state: CityState, name: String, args: Dictionary) -> Variant:
+	if name == "tutorial":
+		state.flags["tutorial"] = int(args.get("step", 0))
+		return {"ok": true, "reason": "", "step": int(state.flags["tutorial"])}
+	return null
+
+
 func on_command(state: CityState, name: String, _args: Dictionary, _result: Dictionary) -> void:
-	if name != "debug":
+	if name != "debug" and name != "tutorial":
 		_check(state)
 
 
