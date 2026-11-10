@@ -9,7 +9,7 @@
 - **RNG**: xorshift32 하나, 상태는 `state.rng_state`(지금은 외형 씨앗에만 쓰임).
 - **시스템 = 파일 하나** (`sim/systems/<id>.gd`, 공통 `SimSystem`): `config.json systems`의 순서대로 매 스텝 실행. 하나를 빼도 게임이 돈다(시험으로 확인). 시스템끼리 직접 부르지 않고 `CityState`로만 말한다.
 - **공용 도우미(규칙 아님)**: `Cover.gd`(배치 파생 캐시: 주거별 시장·서비스 접근 목록, 소음 이웃, 창고·교역소 수, 시설 우선순위 순서 — `state.layout_rev`가 바뀔 때만 다시 계산, 저장 안 함), `Queries.gd`(hud·info·economy·build_menu 등의 뼈대, 시스템은 `augment()`로 보탬), `Metrics.gd`(조건식용 지표), `Validate.gd`(데이터 검증 + 순환 잠금 정적 검사), `Debug.gd`, `Expr.gd`(조건식).
-- **성능**: 매 스텝 O(주거 × 수요 수). 시장·서비스 범위는 배치가 바뀔 때만 다시 계산. 1,000채도 접속 중 1스텝/12.5초라 여유롭다. 미접속 8시간(0.25배 = 12경제일 = 576스텝)은 B 파트가 시간을 재 보길 권한다(§5).
+- **성능(측정)**: 매 스텝 O(주거 × 수요 수), 시장·서비스 범위는 배치가 바뀔 때만 다시 계산. 데스크톱 헤드리스에서 주거 1,008채 = **스텝당 약 120ms**(그중 needs 110ms), 300채면 약 40ms. 접속 중엔 12.5초에 한 번이라 평균 부하는 작지만 큰 도시에선 한 프레임 끊김이 생길 수 있다. 미접속 8시간(=12경제일=576스텝)은 1,000채에서 약 70초 → **B 파트 과제**: 오프라인 전용 큰 스텝(예: 1/12일), 또는 needs의 1단계(선택) 결과를 여러 스텝 재사용. needs.gd의 남은 비용은 수요마다 만드는 작은 배열·딕셔너리(GDScript 할당)다.
 
 ### 한 스텝의 실행 순서
 `progression → space → contracts → workforce → utilities → production → upgrades → needs → finance` → (Sim) 상품 흐름 접기 → 시계 전진 → 정시 `hour` → 자정이면 `on_day_end`(장부 마감·떠남 요약) → `day_ended` → `on_day_start` → `day_started` → `state.settle()`.
