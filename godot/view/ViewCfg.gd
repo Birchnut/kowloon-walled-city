@@ -6,6 +6,7 @@ var render: Dictionary = {}
 var visuals: Dictionary = {}
 var _recipe_cache: Dictionary = {}
 var _mat_cache: Dictionary = {}
+var _look_cache: Dictionary = {}
 static var overrides: Dictionary = {}
 
 # 파생 상수(카메라 수학)
@@ -24,6 +25,7 @@ func reload() -> void:
 	visuals = Data.file("visuals") if Data.file("visuals") is Dictionary else {}
 	_recipe_cache.clear()
 	_mat_cache.clear()
+	_look_cache.clear()
 	# 개발용 덮어쓰기(Sandbox의 r:경로=값 인자)
 	if not overrides.is_empty():
 		render = render.duplicate(true)
@@ -102,25 +104,21 @@ func material_key(id: String) -> String:
 	return id if m.has(id) else "_default"
 
 
-func household_color(type: String) -> Color:
-	var m: Dictionary = visuals.get("household_colors", {})
-	return col(m.get(type, m.get("_default", "#c9c2b4")), Color("#c9c2b4"))
-
-
-## kind + type → 레시피. _default_<kind> ← _group_<group> ← types[type] 순으로 덮어쓴다.
+## kind + type → 레시피. _default_<kind> ← _cat_<buildings.json의 cat> ← types[type] 순으로 덮어쓴다.
+## 모르는 id는 기본 레시피로 그려진다(뷰 코드 수정 불필요).
 func recipe(kind: String, type: String) -> Dictionary:
 	var key := kind + "/" + type
 	if _recipe_cache.has(key):
 		return _recipe_cache[key]
 	var types: Dictionary = visuals.get("types", {})
-	var out: Dictionary = {"form": "box", "window": "std", "sign_style": "none", "interior": "", "floor": "concrete", "busy": "day", "roof": {"antenna": 1}}
+	var out: Dictionary = {"form": "box", "window": "std", "sign_style": "none", "interior": "", "floor": "concrete", "busy": "day", "props": []}
 	var dk: Variant = types.get("_default_" + kind, {})
 	if dk is Dictionary:
 		out.merge(dk, true)
-	if kind == "business":
-		var grp: String = str(Data.item("businesses", type).get("group", ""))
-		var dg: Variant = types.get("_group_" + grp, {})
-		if dg is Dictionary:
+	if kind == "facility":
+		var cat: String = str(Data.item("buildings", type).get("cat", ""))
+		var dg: Variant = types.get("_cat_" + cat, {})
+		if cat != "" and dg is Dictionary:
 			out.merge(dg, true)
 	var dt: Variant = types.get(type, {})
 	if dt is Dictionary:
@@ -129,12 +127,54 @@ func recipe(kind: String, type: String) -> Dictionary:
 	return out
 
 
-## 간판 글자(데이터의 sign). 없으면 "".
-static func sign_text(kind: String, type: String) -> String:
-	var file := "businesses" if kind == "business" else ("facilities" if kind == "facility" else "")
-	if file == "":
-		return ""
-	return str(Data.item(file, type).get("sign", ""))
+## 주거 외관(계층 × 자재). 없는 키는 같은 자재의 가까운 계층 → common_1 → 내장 기본값.
+func house_look(key: String) -> Dictionary:
+	if _look_cache.has(key):
+		return _look_cache[key]
+	var hs: Dictionary = visuals.get("houses", {}) if visuals.get("houses", {}) is Dictionary else {}
+	var out: Dictionary = {"wall": "scrap", "roof": "sheet", "win": ["std"], "frames": ["a"], "win_p": 0.9, "clutter": 0.5, "balcony": "none", "eave": "none", "parapet": 0, "roofprops": {"antenna": 1}}
+	var found: Variant = hs.get(key, null)
+	if found == null:
+		var parts := key.split("_")
+		if parts.size() == 2 and parts[1].is_valid_int():
+			var t := int(parts[1])
+			for dt in [-1, 1, -2, 2, -3, 3]:
+				var k2 := "%s_%d" % [parts[0], t + dt]
+				if hs.has(k2):
+					found = hs[k2]
+					break
+		if found == null:
+			found = hs.get("common_1", {})
+	if found is Dictionary:
+		out.merge(found, true)
+	_look_cache[key] = out
+	return out
+
+
+## 간판 글자: 시뮬 데이터(buildings.json의 sign)가 있으면 그것, 없으면 visuals 레시피의 sign. 없으면 "".
+func sign_text(type: String) -> String:
+	var s := str(Data.item("buildings", type).get("sign", ""))
+	if s == "":
+		s = str(recipe("facility", type).get("sign", ""))
+	return s
+
+
+func tier_color(tier: int, i: int) -> Color:
+	var tc: Dictionary = visuals.get("tier_colors", {}) if visuals.get("tier_colors", {}) is Dictionary else {}
+	var a: Variant = tc.get(str(clampi(tier, 1, 5)), [])
+	if a is Array and not (a as Array).is_empty():
+		return col((a as Array)[i % (a as Array).size()], Color("#c9c2b4"))
+	return Color("#c9c2b4")
+
+
+func vis(path: String, default: Variant = null) -> Variant:
+	var cur: Variant = visuals
+	for part in path.split("."):
+		if cur is Dictionary and cur.has(part):
+			cur = cur[part]
+		else:
+			return default
+	return cur
 
 
 # ------------------------------------------------------------------ 해시(결정론)

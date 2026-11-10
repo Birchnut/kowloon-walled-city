@@ -44,16 +44,24 @@ uniform float floor_grime = 0.1;
 uniform float time_s = 0.0;
 uniform vec4 plane = vec4(0.0, 0.0, 0.0, 0.0);   // xz = 그림자 중심(지면), z = 진행 각, w = 세기
 uniform float ground_fade = 1.0;
+// 셀 상태(CityView가 building_changed마다 갱신): R = 불 켜진 창 비율, G = 전기, B = 가동, A = 점유
+uniform sampler2D cellstate : filter_nearest, repeat_disable;
+// 렌즈 색: RGB = 색, A = 세기(0이면 렌즈 대상 아님)
+uniform sampler2D lenstex : filter_nearest, repeat_disable;
+uniform vec2 grid_wh = vec2(12.0, 12.0);
+uniform float lens_on = 0.0;
+uniform float lens_dim = 0.45;
 
 varying vec3 wpos;
 varying vec3 wnrm;
 varying vec2 info;
+varying float owner;
 
 void vertex() {
 	vec3 p = VERTEX;
 	float kind = UV2.y;
 	if (kind > 2.5 && kind < 3.5) {
-		float ph = UV2.x * 6.283 + (p.x + p.z) * 0.9;
+		float ph = fract(UV2.x) * 6.283 + (p.x + p.z) * 0.9;
 		float s = sin(time_s * 1.7 + ph) + 0.5 * sin(time_s * 2.9 + ph * 1.7);
 		p += NORMAL * (floor(s * 1.2 + 0.5) / 16.0) * COLOR.a;
 	} else if (kind > 7.5 && kind < 8.5) {
@@ -62,7 +70,8 @@ void vertex() {
 	VERTEX = p;
 	wpos = (MODEL_MATRIX * vec4(p, 1.0)).xyz;
 	wnrm = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
-	info = UV2;
+	owner = floor(UV2.x + 0.0001);
+	info = vec2(fract(UV2.x), UV2.y);
 }
 
 float hm(ivec2 c) {
@@ -127,6 +136,15 @@ void fragment() {
 	vec3 base = t.rgb * COLOR.rgb;
 	vec3 n = wnrm;
 	float dth = bayer4(ivec2(FRAGCOORD.xy));
+	vec4 cs = vec4(1.0, 1.0, 1.0, 0.0);
+	vec4 ln = vec4(0.0);
+	if (owner > 0.5) {
+		int idx = int(owner + 0.5) - 1;
+		int gx = int(grid_wh.x + 0.5);
+		ivec2 tc = ivec2(idx % gx, idx / gx);
+		cs = texelFetch(cellstate, tc, 0);
+		ln = texelFetch(lenstex, tc, 0);
+	}
 
 	// 지면: 부지에서 멀어지면 디더로 사라진다
 	if (kind == 4) {
@@ -207,7 +225,8 @@ void fragment() {
 	hz = floor(hz * 24.0 + dth) / 24.0;
 	col = mix(col, haze_col, hz * (kind == 4 ? 0.5 : 1.0));
 
-	float powered = step(distance(wpos, wave_center), wave_radius) * step(0.5, power);
+	// 전기 물결(첫 전기 연출): 반경 안만 전기가 들어온 것으로 본다. 집·가게별 전기 여부는 cellstate.G
+	float powered = step(distance(wpos, wave_center), wave_radius);
 
 	// ── 복셀 빛번짐(네온·창) ──
 	vec3 gp = (wpos + n * 0.3 - lg_origin) * lg_inv_size;
@@ -223,14 +242,17 @@ void fragment() {
 
 	// ── 유리 ──
 	if (is_glass) {
-		if (kind == 1 || kind == 7) {
+		if (kind == 1 || kind == 7 || kind == 9) {
 			float on = 0.0;
 			vec3 lc = warm_col;
 			float pick = fract(rnd * 7.31);
-			if (powered > 0.5) {
-				float lvl = (kind == 7) ? max(win_level * 1.3, biz_day * 0.0) : win_level;
-				on = step(rnd, lvl);
-				if (kind == 7) { on = step(fract(rnd * 3.3), min(lvl * 1.5, 1.0)); }
+			float occ = step(fract(rnd * 13.7), cs.r);          // 사는 사람 비율만큼만 창이 켜진다
+			bool elec = kind != 9 && cs.g > 0.5 && powered > 0.5;
+			if (kind == 7) { occ = cs.b; elec = powered > 0.5 && cs.b > 0.5; }
+			if (elec) {
+				float lvl = win_level;
+				on = step(rnd, lvl) * occ;
+				if (kind == 7) { on = step(fract(rnd * 3.3), min(lvl * 1.5, 1.0)) * occ; }
 				if (pick > 0.84) {
 					lc = tv_col * (0.72 + 0.28 * step(0.5, hash11(floor(time_s * 5.0) + rnd * 91.0)));
 				} else if (pick > 0.62) {
@@ -241,8 +263,8 @@ void fragment() {
 					lc = warm_col * vec3(1.0, 0.84, 0.66);
 				}
 			} else {
-				on = step(rnd, win_level * 0.2);
-				lc = candle_col * (0.5 + 0.14 * step(0.5, hash11(floor(time_s * 7.0) + rnd * 37.0)));
+				on = step(rnd, win_level * 0.45) * occ;
+				lc = candle_col * (0.62 + 0.14 * step(0.5, hash11(floor(time_s * 7.0) + rnd * 37.0)));
 			}
 			if (on > 0.5) {
 				col = lc * (0.86 + 0.5 * (t.b - 0.55));
@@ -261,7 +283,7 @@ void fragment() {
 		col = base * (0.9 + 0.1 * step(0.3, hash11(floor(time_s * 6.0) + rnd * 13.0)));
 	}
 	if (kind == 2) {
-		float lit = powered * step(0.3, night);
+		float lit = powered * step(0.3, night) * step(0.5, cs.b);
 		float fk = 1.0;
 		if (fract(rnd * 3.71) > 0.82) {
 			fk = step(0.25, hash11(floor(time_s * 9.0) + rnd * 57.0));
@@ -277,5 +299,14 @@ void fragment() {
 		col = mix(col, base * lampc * 0.95 + add * 0.5, room);
 	}
 
+	// 렌즈: 주거를 색으로, 나머지는 회색으로 가라앉힌다
+	if (lens_on > 0.5 && kind != 2) {
+		float l = dot(col, vec3(0.3, 0.5, 0.2));
+		if (ln.a > 0.01) {
+			col = mix(col, ln.rgb * (0.45 + 0.75 * l), ln.a);
+		} else {
+			col = mix(col, vec3(l) * vec3(0.78, 0.78, 0.86), lens_dim);
+		}
+	}
 	ALBEDO = to_linear(clamp(col, vec3(0.0), vec3(1.0)));
 }

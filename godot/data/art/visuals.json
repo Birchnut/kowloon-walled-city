@@ -1,12 +1,22 @@
 {
-  "_comment": "외형 매핑(VIEW 소유). 콘텐츠 id → 외형 레시피. 없는 id는 _default_* 로 그린다(뷰 코드 수정 불필요). 설명은 docs/VIEW_NOTES.md.",
+  "_comment": "외형 매핑(VIEW 소유). 콘텐츠 id → 외형 레시피. 없는 id는 _default_* 로 그린다(뷰 코드 수정 불필요). 설명은 docs/VIEW_NOTES.md §2.",
 
   "materials": {
-    "_comment": "ramp = 밝음→어두움 4톤(그림자 쪽은 색상을 보라/파랑으로 민다). pattern = planks|corrugated|brick|concrete|patch. accent = 얼룩/녹/패치 색. roof = 지붕 톤 2개. frames = 이 자재에 어울리는 창틀 색 키(a 크림 b 청록 c 붉은 d 어두운) — 자재마다 창틀을 묶어 덩어리가 깨끗해 보이게. cage = 철망 색(0 초록 1 녹).",
+    "_comment": "ramp = 밝음→어두움 4톤. pattern = planks|boards|battens|corrugated|panel|clad|curtain|patch|render|mosaic|smooth|formed|brick|concrete. accent = 얼룩/녹/이음 색. roof = 지붕 톤 2개. frames = 창틀 색 키(a 크림 b 청록 c 붉은 d 어두운 e 은색 f 검은 철). cage = 철망 색(0 초록 1 녹).",
     "_default": { "ramp": ["#e2dccf", "#c9c0bb", "#a79ead", "#7d7493"], "pattern": "concrete", "accent": "#8f8aa6", "roof": ["#cfc6bd", "#b3a9ad"], "frames": ["a", "b"], "cage": 0 },
     "scrap":    { "ramp": ["#dcc9a4", "#c7ae8c", "#9f8478", "#705a70"], "pattern": "patch",      "accent": "#6fa8a0", "roof": ["#9fb4b8", "#7c8fa2"], "frames": ["a", "d", "b"], "cage": 1 },
-    "wood":     { "ramp": ["#f3d6aa", "#e4bc8e", "#bd9072", "#88627c"], "pattern": "planks",     "accent": "#9a6a56", "roof": ["#d6a070", "#b47c5c"], "frames": ["a", "c"], "cage": 1 },
     "sheet":    { "ramp": ["#bfdcd8", "#98bfc4", "#7096aa", "#526c92"], "pattern": "corrugated", "accent": "#c97a55", "roof": ["#a9cbcb", "#84a9b6"], "frames": ["d", "a"], "cage": 0 },
+    "timber":   { "ramp": ["#f2d2a0", "#e0b582", "#b98a68", "#86607a"], "pattern": "planks",     "accent": "#a8735a", "roof": ["#c99466", "#a8775a"], "frames": ["c", "a"], "cage": 1 },
+    "wood":     { "ramp": ["#f0c68e", "#dba470", "#b07a5c", "#7c5470"], "pattern": "planks",     "accent": "#8a5a48", "roof": ["#b9785a", "#97604e"], "frames": ["c"], "cage": 1 },
+    "cedar":    { "ramp": ["#f6d9a8", "#e6bd86", "#bf9270", "#8a6678"], "pattern": "boards",     "accent": "#9a6a56", "roof": ["#7e9a6a", "#647e5a"], "frames": ["a"], "cage": 1 },
+    "teak":     { "ramp": ["#c97b52", "#a85f44", "#7f4640", "#563246"], "pattern": "battens",    "accent": "#e9c27a", "roof": ["#5a7a5e", "#46624e"], "frames": ["f"], "cage": 1 },
+    "panel":    { "ramp": ["#b6d0dc", "#90b2c8", "#6a8cae", "#4e6690"], "pattern": "panel",      "accent": "#d8834e", "roof": ["#a2bcc8", "#829eb2"], "frames": ["e", "d"], "cage": 0 },
+    "clad":     { "ramp": ["#dde9ee", "#bcd0dc", "#8ea8c2", "#64789e"], "pattern": "clad",       "accent": "#5a76a8", "roof": ["#c6d2d8", "#a6b6c2"], "frames": ["e"], "cage": 0 },
+    "curtain":  { "ramp": ["#eef4f6", "#c8d8e2", "#8fa8c4", "#5e7098"], "pattern": "curtain",    "accent": "#4a6ea8", "roof": ["#d6dee2", "#b4c2cc"], "frames": ["e"], "cage": 0 },
+    "render":   { "ramp": ["#e6dccb", "#cdbfb0", "#a99aa4", "#7a6f8c"], "pattern": "render",     "accent": "#9a8a7e", "roof": ["#cdc3b6", "#b0a6a8"], "frames": ["b", "a"], "cage": 0 },
+    "mosaic":   { "ramp": ["#f3dccf", "#e2c0b4", "#b996a2", "#86708e"], "pattern": "mosaic",     "accent": "#8fb8b0", "roof": ["#d2c8bc", "#b8aca8"], "frames": ["b"], "cage": 0 },
+    "smooth":   { "ramp": ["#f8f4ea", "#e2dcd2", "#b6aebc", "#857d9c"], "pattern": "smooth",     "accent": "#c9a87a", "roof": ["#e0d8cc", "#c4bab4"], "frames": ["a", "f"], "cage": 0 },
+    "formed":   { "ramp": ["#e0d6c6", "#c6baae", "#9c90a0", "#6e6486"], "pattern": "formed",     "accent": "#6e6486", "roof": ["#86a070", "#6e865e"], "frames": ["f"], "cage": 0 },
     "brick":    { "ramp": ["#f0a892", "#de8a7c", "#b3626a", "#7c4462"], "pattern": "brick",      "accent": "#f0d2b4", "roof": ["#d9b9a2", "#b8938c"], "frames": ["a", "a", "b"], "cage": 0 },
     "concrete": { "ramp": ["#ece4d4", "#d2c8c0", "#aea3b2", "#80779a"], "pattern": "concrete",   "accent": "#8b86a8", "roof": ["#d6ccc0", "#b9aeb2"], "frames": ["b", "b", "a"], "cage": 0 }
   },
@@ -16,66 +26,106 @@
     "red": "#ff5a4a", "orange": "#ff9a3d", "violet": "#b07bff", "white": "#fff2d8", "blue": "#5a8bff"
   },
 
-  "household_colors": {
-    "_default": "#c9c2b4",
-    "laborer": "#5f86c4", "farmer": "#6fae5c", "artisan": "#d8a13e",
-    "merchant": "#d85f5f", "hustler": "#9b62c9", "dependent": "#c9c2b4"
+  "tier_colors": {
+    "_comment": "사람 옷 색(계층별 팔레트에서 고른다)과 tier 렌즈 색.",
+    "1": ["#9a8f86", "#8a7f74", "#a69a7e", "#7f8a96"],
+    "2": ["#5f86c4", "#c9a04a", "#7a9a5c", "#b86a5a"],
+    "3": ["#d85f5f", "#4fa0b0", "#e0a23c", "#6a7ac8", "#5fae7a"],
+    "4": ["#3e4a7a", "#f2ece0", "#8a3a4a", "#2e6a6a"],
+    "5": ["#1e1e2e", "#f6f0e2", "#b08a3a", "#7a1e2e"],
+    "lens": { "1": "#b9a58c", "2": "#8fb36a", "3": "#4fb0c8", "4": "#7a7ae0", "5": "#e0b04a" }
+  },
+
+  "lens": {
+    "_comment": "set_lens 색. needs = ok/warn/bad, happiness = 0→100 세 점 보간.",
+    "ok": "#5fd07a", "warn": "#ffb43c", "bad": "#ff4a4a", "none": "#6a6486",
+    "happy_lo": "#ff4a4a", "happy_mid": "#ffd84a", "happy_hi": "#5fd07a",
+    "strength": 0.62, "dim_other": 0.45
+  },
+
+  "overlay": {
+    "_comment": "배치·범위 오버레이 색(알파 포함 #rrggbbaa).",
+    "grid_free": "#fff6dc40", "grid_used": "#ff7a5a50", "grid_locked": "#8a8aa830", "grid_edge": "#fff6dcc0",
+    "ghost_ok": "#5dff9a80", "ghost_bad": "#ff5a4a80", "ghost_support": "#fff2d8b0",
+    "range": "#4fe3ff55", "valid": "#5dff9a70", "select": "#ffd84a90", "warn": "#ff5a4a70"
+  },
+
+  "houses": {
+    "_comment": "주거 외관 = <family>_<tier>. T1은 언제나 common_1. 모르는 조합은 같은 family의 가까운 tier → common_1. 필드 설명은 docs/VIEW_NOTES.md §2.2.",
+    "common_1":   { "wall": "scrap",   "roof": "sheet",   "win": ["small", "std"], "frames": ["a", "d", "b"], "win_p": 0.8, "bay_p": 0.32, "bay_mats": ["sheet", "wood", "scrap"], "clutter": 0.95, "awning_p": 0.14, "balcony": "cage", "balcony_p": 0.12, "plants_p": 0.05, "eave": "none", "parapet": 0, "band": false, "seam": "#5a4c62", "roofprops": { "junk": 3, "laundry": 3, "antenna": 2, "shack": 1 } },
+
+    "wood_2":     { "wall": "timber",  "roof": "timber",  "win": ["std"], "frames": ["c"], "win_p": 0.95, "bay_p": 0.12, "bay_mats": ["timber"], "clutter": 0.55, "awning_p": 0.45, "awning_c": ["#5d9a62", "#d85f5f", "#e0a23c"], "balcony": "none", "balcony_p": 0.0, "plants_p": 0.15, "eave": "wood", "parapet": 0, "band": false, "seam": "#6a4a46", "roofprops": { "laundry": 3, "plants": 2, "antenna": 1, "tank": 1 } },
+    "wood_3":     { "wall": "wood",    "roof": "wood",    "win": ["twin", "std"], "frames": ["c", "a"], "win_p": 1.0, "bay_p": 0.06, "bay_mats": ["wood"], "clutter": 0.45, "awning_p": 0.15, "awning_c": ["#5d9a62", "#d85f5f"], "balcony": "gallery", "balcony_p": 0.7, "plants_p": 0.3, "eave": "wood", "parapet": 0, "band": false, "seam": "#5a3e46", "roofprops": { "laundry": 2, "plants": 3, "tank": 2, "antenna": 1 } },
+    "wood_4":     { "wall": "cedar",   "roof": "cedar",   "win": ["wide", "lattice"], "frames": ["a"], "win_p": 1.0, "bay_p": 0.0, "clutter": 0.12, "awning_p": 0.0, "balcony": "deck", "balcony_p": 0.55, "plants_p": 0.6, "eave": "wood_deep", "parapet": 0, "band": false, "seam": "#6a4a46", "roofprops": { "garden": 3, "pergola": 2, "plants": 1 } },
+    "wood_5":     { "wall": "teak",    "roof": "teak",    "win": ["full_warm", "lattice"], "frames": ["f"], "win_p": 1.0, "bay_p": 0.0, "clutter": 0.0, "awning_p": 0.0, "balcony": "deck", "balcony_p": 0.6, "plants_p": 0.75, "eave": "tile", "parapet": 0, "band": false, "seam": "#3a2436", "roofprops": { "garden": 4, "pergola": 3 } },
+
+    "metal_2":    { "wall": "sheet",   "roof": "sheet",   "win": ["std", "small"], "frames": ["d"], "win_p": 0.9, "bay_p": 0.1, "bay_mats": ["sheet"], "clutter": 0.6, "awning_p": 0.2, "awning_c": ["#4f8fb5", "#d8834e"], "balcony": "cage", "balcony_p": 0.18, "plants_p": 0.05, "frame_posts": true, "eave": "none", "parapet": 0, "band": false, "seam": "#3e4a6a", "roofprops": { "tank": 3, "antenna": 2, "junk": 1 } },
+    "metal_3":    { "wall": "panel",   "roof": "panel",   "win": ["twin", "std"], "frames": ["e", "d"], "win_p": 1.0, "bay_p": 0.0, "clutter": 0.5, "equip_p": 0.65, "awning_p": 0.0, "balcony": "cage", "balcony_p": 0.3, "plants_p": 0.05, "frame_posts": true, "eave": "none", "parapet": 2, "band": true, "band_c": "#4e6690", "seam": "#3e4a6a", "roofprops": { "tank": 3, "equipment": 3, "antenna": 2 } },
+    "metal_4":    { "wall": "clad",    "roof": "clad",    "win": ["band", "louvre"], "frames": ["e"], "win_p": 1.0, "bay_p": 0.0, "clutter": 0.1, "equip_p": 0.2, "awning_p": 0.0, "balcony": "glass", "balcony_p": 0.35, "plants_p": 0.2, "eave": "metal", "parapet": 2, "band": true, "band_c": "#64789e", "seam": "#4a5a7e", "roofprops": { "solar": 3, "garden": 1, "equipment": 1 } },
+    "metal_5":    { "wall": "curtain", "roof": "clad",    "win": ["none"], "frames": ["e"], "win_p": 1.0, "bay_p": 0.0, "clutter": 0.0, "awning_p": 0.0, "balcony": "glass", "balcony_p": 0.45, "plants_p": 0.3, "eave": "metal", "parapet": 2, "band": true, "band_c": "#d6dee2", "seam": "#5e7098", "roofprops": { "penthouse": 3, "garden": 2, "solar": 1 } },
+
+    "concrete_2": { "wall": "render",  "roof": "render",  "win": ["std", "small"], "frames": ["b", "a"], "win_p": 0.9, "bay_p": 0.08, "bay_mats": ["render", "sheet"], "clutter": 0.6, "awning_p": 0.12, "awning_c": ["#4f8fb5", "#5d9a62"], "balcony": "cage", "balcony_p": 0.22, "plants_p": 0.08, "eave": "none", "parapet": 1, "band": false, "seam": "#6e6486", "roofprops": { "tank": 2, "laundry": 2, "antenna": 2 } },
+    "concrete_3": { "wall": "mosaic",  "roof": "render",  "win": ["twin", "std"], "frames": ["b"], "win_p": 1.0, "bay_p": 0.0, "clutter": 0.55, "awning_p": 0.0, "balcony": "slab", "balcony_p": 0.75, "plants_p": 0.2, "eave": "none", "parapet": 2, "band": true, "band_c": "#c9b0a8", "seam": "#86708e", "roofprops": { "tank": 3, "laundry": 3, "antenna": 2 } },
+    "concrete_4": { "wall": "smooth",  "roof": "smooth",  "win": ["wide", "band"], "frames": ["a"], "win_p": 1.0, "bay_p": 0.0, "clutter": 0.12, "awning_p": 0.0, "balcony": "slab", "balcony_p": 0.4, "plants_p": 0.5, "eave": "none", "parapet": 3, "band": true, "band_c": "#d8d0c4", "seam": "#857d9c", "roofprops": { "garden": 3, "plants": 2, "tank": 1 } },
+    "concrete_5": { "wall": "formed",  "roof": "formed",  "win": ["deep"], "frames": ["f"], "win_p": 1.0, "bay_p": 0.0, "clutter": 0.0, "awning_p": 0.0, "balcony": "cantilever", "balcony_p": 0.45, "plants_p": 0.6, "eave": "slab", "parapet": 0, "band": false, "seam": "#6e6486", "roofprops": { "garden": 4, "canopy": 2 } }
   },
 
   "types": {
-    "_comment": "form: box|open|shed|tank|loft. window: none|small|std|wide|cage|shop|shutter|slit. sign_style: neon|paint|lantern|none. interior/floor = 층 컷에서의 가구·바닥. fx: steam|smoke|incense|sparks. roof = 이 칸이 꼭대기일 때 얹힐 수 있는 것(가중치). busy = day|night|always(불·사람).",
+    "_comment": "시설 레시피. form: box|open|shed|tank|shrine. wall: 자재 id. window: none|small|std|wide|shop|shutter|slit|full. sign: 간판 글자(buildings.json의 sign이 있으면 그것이 우선). sign_style: neon|paint|lantern|none. props: 지붕·앞 소품 목록(stack|tanks|pipes|mast|racks|vats|bolts|crates|transformer|stalls|jars|antennas|lanterns|dish). big: 2×2일 때의 형태(market|plant|works|hall|bath|casino|block). interior/floor = 층 컷 가구·바닥. fx: steam|smoke|incense|sparks.",
 
-    "_default_housing":  { "form": "box", "window": "std",  "sign_style": "none",  "interior": "bed",     "floor": "wood",     "busy": "home",   "roof": { "antenna": 3, "laundry": 2, "plants": 1, "tank": 1, "shack": 1 } },
-    "_default_business": { "form": "box", "window": "shop", "sign_style": "neon",  "sign_color": "yellow", "awning": "#d85f5f", "interior": "counter", "floor": "tile", "busy": "day", "roof": { "antenna": 2, "tank": 1, "junk": 1 } },
-    "_default_facility": { "form": "box", "window": "shop", "sign_style": "paint", "sign_color": "red",    "interior": "counter", "floor": "concrete", "busy": "day", "roof": { "antenna": 1 } },
+    "_default_house":    { "form": "box" },
+    "_default_facility": { "form": "box", "wall": "render", "window": "shop", "sign_style": "paint", "sign_color": "red", "interior": "counter", "floor": "concrete", "props": [], "big": "block" },
     "_default_site":     { "form": "site" },
-    "_group_farm": { "window": "small",   "sign_style": "paint", "sign_color": "green",   "awning": "",        "busy": "day" },
-    "_group_make": { "window": "shutter", "sign_style": "paint", "sign_color": "red",     "awning": "",        "busy": "day", "roof": { "chimney": 2, "tank": 1, "junk": 2, "antenna": 1 } },
-    "_group_fun":  { "window": "shop",    "sign_style": "neon",  "sign_color": "orange",  "awning": "#d85f5f", "busy": "night" },
-    "_group_vice": { "window": "slit",    "sign_style": "neon",  "sign_color": "magenta", "awning": "",        "busy": "night" },
 
-    "shack": { "window": "small", "interior": "mat",  "floor": "dirt",  "roof": { "junk": 2, "laundry": 2, "antenna": 1 } },
-    "room":  { "window": "std",   "interior": "bed",  "floor": "wood" },
-    "flat":  { "window": "wide",  "interior": "flat", "floor": "wood",  "roof": { "plants": 3, "antenna": 3, "laundry": 2, "tank": 1, "shack": 1 } },
-    "cage":  { "window": "cage",  "interior": "cages", "floor": "concrete", "roof": { "laundry": 3, "antenna": 2, "junk": 1 } },
+    "stall":           { "form": "shed", "plot": "stall", "sign": "雜", "sign_style": "lantern", "sign_color": "red", "awning": "#4f9a8a", "interior": "stall", "floor": "dirt" },
+    "market_basic":    { "sign": "市", "wall": "render", "window": "shop", "awning": "#d85f5f", "sign_style": "paint", "sign_color": "red", "big": "market", "props": ["stalls", "crates"], "interior": "shelves", "floor": "tile" },
+    "market_general":  { "sign": "百貨", "wall": "smooth", "window": "shop", "awning": "#e0a23c", "sign_style": "neon", "sign_color": "yellow", "big": "market", "props": ["stalls", "lanterns"], "interior": "shelves", "floor": "tile" },
+    "market_luxury":   { "sign": "名店", "wall": "curtain", "window": "full", "awning": "#3a3a5a", "sign_style": "neon", "sign_color": "white", "big": "market", "props": ["planters"], "interior": "shelves", "floor": "checker" },
 
-    "rooftop_farm":  { "form": "open", "interior": "soil",   "floor": "soil",  "plot": "crops" },
-    "pigeon_loft":   { "form": "loft", "interior": "pigeons", "floor": "wood", "sign_style": "paint", "sign_color": "white", "fx": "pigeons" },
-    "fish_tank":     { "form": "open", "interior": "tanks",  "floor": "concrete", "plot": "tanks", "sign_color": "cyan" },
-    "mushroom_room": { "window": "none", "interior": "shelves", "floor": "dirt", "sign_color": "violet", "glow": "violet" },
-    "herb_shop":     { "window": "shop", "interior": "shelves", "floor": "wood", "sign_color": "green", "awning": "#5d9a62" },
+    "rain_catcher":    { "form": "open", "plot": "rain", "sign_style": "none" },
+    "water_tower":     { "form": "tank", "sign": "水", "sign_style": "paint", "sign_color": "blue" },
+    "water_main":      { "sign": "駁水", "wall": "render", "window": "shutter", "sign_color": "blue", "props": ["pipes", "tanks"], "interior": "tank", "floor": "concrete" },
+    "water_works":     { "sign": "淨水", "wall": "smooth", "window": "slit", "sign_color": "blue", "big": "works", "props": ["tanks", "pipes"], "interior": "tub", "floor": "tile" },
 
-    "fishball":      { "window": "shutter", "interior": "vats",    "floor": "tile",     "sign_color": "red",    "fx": "steam", "chimney": true },
-    "noodle_works":  { "window": "shutter", "interior": "noodles", "floor": "concrete", "sign_color": "yellow", "fx": "steam", "chimney": true },
-    "tailor":        { "window": "wide",    "interior": "sewing",  "floor": "wood",     "sign_color": "blue" },
-    "metal_shop":    { "window": "shutter", "interior": "machine", "floor": "concrete", "sign_color": "orange", "fx": "sparks", "chimney": true },
-    "plastic_works": { "window": "shutter", "interior": "machine", "floor": "concrete", "sign_color": "cyan",   "fx": "smoke", "chimney": true },
-    "repair_shop":   { "window": "shop",    "interior": "shelves", "floor": "tile",     "sign_color": "cyan",   "sign_style": "neon", "roof": { "antenna": 8 } },
+    "generator":       { "form": "shed", "plot": "generator", "power": true, "sign": "電", "sign_style": "paint", "sign_color": "yellow", "fx": "smoke" },
+    "grid_power":      { "power": true, "sign": "駁電", "wall": "render", "window": "shutter", "sign_color": "yellow", "props": ["transformer"], "interior": "machine", "floor": "concrete" },
+    "power_plant":     { "power": true, "sign": "電廠", "wall": "panel", "window": "shutter", "sign_color": "yellow", "big": "plant", "props": ["stack", "pipes"], "fx": "smoke", "interior": "machine", "floor": "concrete" },
+    "cogen_plant":     { "power": true, "sign": "熱電", "wall": "clad", "window": "slit", "sign_color": "orange", "sign_style": "neon", "big": "plant", "props": ["stack", "tanks", "pipes"], "fx": "steam", "interior": "machine", "floor": "concrete" },
 
-    "noodle_shop":   { "window": "shop", "interior": "tables",  "floor": "tile",   "sign_color": "yellow",  "awning": "#e0a23c", "fx": "steam" },
-    "teahouse":      { "window": "shop", "interior": "tables",  "floor": "wood",   "sign_color": "green",   "awning": "#5d9a62", "sign_style": "lantern" },
-    "mahjong":       { "window": "std",  "interior": "mahjong", "floor": "carpet", "sign_color": "green" },
-    "karaoke":       { "window": "slit", "interior": "karaoke", "floor": "carpet", "sign_color": "magenta" },
-    "bathhouse":     { "window": "slit", "interior": "tub",     "floor": "tile",   "sign_color": "cyan",    "fx": "steam", "chimney": true, "awning": "#4f8fb5" },
-    "night_stall":   { "form": "shed",   "interior": "stall",   "floor": "dirt",   "sign_color": "orange",  "awning": "#d85f5f", "fx": "steam", "sign_style": "lantern" },
+    "rooftop_farm":    { "form": "open", "plot": "crops", "sign_style": "none", "interior": "soil", "floor": "soil" },
+    "garden":          { "form": "open", "plot": "crops", "sign_style": "none", "interior": "soil", "floor": "soil" },
+    "roof_garden":     { "form": "open", "plot": "flowers", "sign_style": "none", "interior": "soil", "floor": "soil" },
+    "noodle_works":    { "sign": "麵", "wall": "render", "window": "shutter", "sign_color": "yellow", "props": ["racks", "stack"], "fx": "steam", "interior": "noodles", "floor": "concrete" },
+    "fishball_works":  { "sign": "魚蛋", "wall": "mosaic", "window": "shutter", "sign_color": "red", "props": ["vats", "stack"], "fx": "steam", "interior": "vats", "floor": "tile" },
+    "moonshine":       { "sign": "酒", "wall": "timber", "window": "small", "sign_style": "lantern", "sign_color": "red", "props": ["jars"], "fx": "steam", "interior": "vats", "floor": "dirt" },
 
-    "dentist":         { "window": "wide", "interior": "dentist", "floor": "checker", "sign_color": "white",   "glow": "cyan" },
-    "loan_office":     { "window": "slit", "interior": "desks",   "floor": "carpet",  "sign_color": "red" },
-    "gambling_den":    { "window": "none", "interior": "mahjong", "floor": "carpet",  "sign_style": "none", "glow": "red" },
-    "phishing_center": { "window": "none", "interior": "desks",   "floor": "concrete", "sign_color": "blue", "glow": "blue", "busy": "always" },
-    "casino":          { "window": "slit", "interior": "slots",   "floor": "carpet",  "sign_color": "yellow", "glow": "magenta", "awning": "#b0306a", "busy": "always" },
-    "fireworks":       { "window": "small", "interior": "crates", "floor": "concrete", "sign_color": "red", "sign_style": "paint" },
+    "candle_shop":     { "sign": "燭", "wall": "timber", "window": "shop", "sign_color": "red", "props": ["racks"], "glow": "orange", "interior": "shelves", "floor": "wood" },
+    "sewing_shop":     { "sign": "衣", "wall": "render", "window": "wide", "sign_color": "blue", "props": ["bolts"], "interior": "sewing", "floor": "wood" },
+    "soap_shop":       { "sign": "皂", "wall": "mosaic", "window": "shop", "sign_color": "cyan", "props": ["crates"], "interior": "shelves", "floor": "tile" },
+    "tailor":          { "sign": "洋服", "wall": "smooth", "window": "wide", "sign_style": "neon", "sign_color": "blue", "awning": "#3a4a7a", "props": ["bolts"], "interior": "sewing", "floor": "carpet" },
 
-    "garden":     { "form": "open", "interior": "soil",  "floor": "soil", "plot": "crops" },
-    "scrapyard":  { "form": "open", "interior": "junk",  "floor": "dirt", "plot": "junk", "sign_style": "paint", "sign_color": "red" },
-    "stall":      { "form": "shed", "interior": "stall", "floor": "dirt", "awning": "#4f9a8a", "sign_style": "paint", "sign_color": "green", "busy": "night" },
-    "well":       { "form": "open", "interior": "well",  "floor": "concrete", "plot": "well", "sign_style": "paint", "sign_color": "blue" },
-    "water_tank": { "form": "tank", "interior": "tank",  "floor": "concrete" },
-    "kitchen":    { "window": "shop", "interior": "stove", "floor": "tile", "sign_style": "paint", "sign_color": "red", "fx": "steam", "chimney": true, "awning": "#e0a23c", "busy": "always" },
-    "generator":  { "form": "shed", "interior": "generator", "floor": "concrete", "plot": "generator", "sign_style": "paint", "sign_color": "yellow", "fx": "smoke" },
-    "clinic":     { "window": "std",  "interior": "clinic", "floor": "checker", "sign_style": "neon", "sign_color": "green" },
-    "shrine":     { "form": "shrine", "interior": "altar", "floor": "tile", "sign_style": "lantern", "sign_color": "red", "fx": "incense" },
-    "watch_post": { "window": "slit", "interior": "desks", "floor": "concrete", "sign_style": "paint", "sign_color": "blue" },
-    "hall":       { "window": "wide", "interior": "hall",  "floor": "wood", "sign_style": "paint", "sign_color": "red", "awning": "#b84a4a" }
+    "radio_shop":      { "sign": "電器", "wall": "panel", "window": "shop", "sign_style": "neon", "sign_color": "cyan", "props": ["antennas"], "interior": "shelves", "floor": "tile" },
+    "assembly":        { "sign": "裝配", "wall": "panel", "window": "shutter", "sign_style": "neon", "sign_color": "cyan", "big": "works", "props": ["stack", "crates"], "fx": "sparks", "interior": "machine", "floor": "concrete" },
+    "fake_shop":       { "sign": "名牌", "wall": "render", "window": "slit", "sign_style": "neon", "sign_color": "magenta", "props": ["bolts"], "interior": "sewing", "floor": "concrete" },
+
+    "shrine":          { "form": "shrine", "sign": "福", "sign_style": "lantern", "sign_color": "red", "fx": "incense", "interior": "altar", "floor": "tile" },
+    "teahouse":        { "sign": "茶", "wall": "timber", "window": "shop", "sign_style": "lantern", "sign_color": "green", "awning": "#5d9a62", "fx": "steam", "interior": "tables", "floor": "wood" },
+    "mahjong":         { "sign": "麻雀", "wall": "render", "window": "std", "sign_style": "neon", "sign_color": "green", "interior": "mahjong", "floor": "carpet" },
+    "dentist":         { "sign": "牙科", "wall": "smooth", "window": "wide", "sign_style": "neon", "sign_color": "white", "glow": "cyan", "interior": "dentist", "floor": "checker" },
+    "bathhouse":       { "sign": "浴", "wall": "mosaic", "window": "slit", "sign_style": "neon", "sign_color": "cyan", "awning": "#4f8fb5", "big": "bath", "props": ["stack", "tanks"], "fx": "steam", "interior": "tub", "floor": "tile" },
+    "study_hall":      { "sign": "學", "wall": "smooth", "window": "wide", "sign_style": "paint", "sign_color": "green", "interior": "desks", "floor": "wood" },
+    "karaoke":         { "sign": "卡拉OK", "wall": "render", "window": "slit", "sign_style": "neon", "sign_color": "magenta", "glow": "magenta", "interior": "karaoke", "floor": "carpet", "busy": "night" },
+
+    "gambling_den":    { "sign": "賭", "wall": "render", "window": "none", "sign_style": "neon", "sign_color": "red", "glow": "red", "interior": "mahjong", "floor": "carpet", "busy": "night" },
+    "call_centre":     { "sign": "客服", "wall": "panel", "window": "slit", "sign_style": "neon", "sign_color": "blue", "glow": "blue", "props": ["dish"], "interior": "desks", "floor": "concrete", "busy": "always" },
+    "casino":          { "sign": "賭場", "wall": "smooth", "window": "slit", "sign_style": "neon", "sign_color": "yellow", "glow": "magenta", "awning": "#b0306a", "big": "casino", "props": ["lanterns"], "interior": "slots", "floor": "carpet", "busy": "always" },
+    "fireworks":       { "sign": "炮", "wall": "timber", "window": "small", "sign_style": "paint", "sign_color": "red", "props": ["crates"], "interior": "crates", "floor": "concrete" },
+
+    "scrapyard":       { "form": "open", "plot": "junk", "sign": "收買", "sign_style": "paint", "sign_color": "red" },
+    "warehouse":       { "sign": "倉", "wall": "sheet", "window": "shutter", "sign_color": "orange", "props": ["crates"], "interior": "crates", "floor": "concrete" },
+    "trade_post":      { "sign": "行", "wall": "timber", "window": "shop", "sign_color": "red", "awning": "#b84a4a", "props": ["crates"], "interior": "desks", "floor": "wood" },
+    "expedition_post": { "sign": "探", "wall": "sheet", "window": "shutter", "sign_color": "green", "props": ["mast", "crates"], "interior": "crates", "floor": "concrete" },
+
+    "landmark_hall":   { "sign": "城寨", "wall": "teak", "window": "wide", "sign_style": "paint", "sign_color": "red", "awning": "#b84a4a", "big": "hall", "props": ["lanterns"], "interior": "hall", "floor": "wood" }
   }
 }

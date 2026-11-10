@@ -3,6 +3,7 @@ extends Control
 ## API 계약: docs/ARCHITECTURE.md "CityView". 설명·결정 기록: docs/VIEW_NOTES.md.
 
 signal cell_tapped(info: Dictionary)
+signal cell_dragged(info: Dictionary)   # set_drag_paint(true)일 때 한 손가락 끌기 → pick_floor(작업 층) 결과
 signal view_changed
 
 const CityShader := preload("res://view/shaders/city.gdshader")
@@ -38,6 +39,13 @@ var _lights_dirty := false
 var _lights_timer := 0.0
 var people: Node = null
 var fx: Node = null
+var markers: CityMarkers = null
+var _cell_img: Image
+var _cell_tex: ImageTexture
+var _lens_img: Image
+var _lens_tex: ImageTexture
+var lens := ""
+var _sigs: Dictionary = {}          # bid -> 외형 서명(바뀌면 그 층만 다시 짓는다)
 
 # 카메라 상태
 var angle := 0                     # 0..3
@@ -67,10 +75,16 @@ var _wave_center := Vector3(6, 0, 6)
 var _plane_t := -1.0
 var _plane_next := 12.0
 var _plane_dir := 0.6
-var _last_power := -1
-var _show_zones := false
-var _ghost: Dictionary = {}
-var _spots: Array = []
+var _last_power := false
+var _grid_z := -1                  # show_floor_grid 층(-1 = 끔)
+var _grid_prev_cut := -1
+var _ghost_cells: Array = []
+var _ghost_ok := true
+var _ghost_sup: Array = []
+var _cell_sets: Dictionary = {}    # style -> Array[Vector3i]
+var _cue_z := -1                   # floor_unlocked 연출
+var _cue_t := 0.0
+var drag_paint := false
 var _overlay_dirty := false
 var _prev_kinds: Dictionary = {}
 var _cut_emitters: Array = []
@@ -172,6 +186,10 @@ func _build_tree() -> void:
 	pn.setup(cfg, self, mesher, grid_tex.lg_tex)
 	_world.add_child(pn)
 	people = pn
+	markers = CityMarkers.new()
+	markers.setup(cfg, self, mesher)
+	_world.add_child(markers)
+	_make_cell_tex()
 
 	_screen = TextureRect.new()
 	_screen.texture = _vp.get_texture()
@@ -303,25 +321,101 @@ func set_time_override(t: float) -> void:
 	_time_override = t
 
 
-func show_zones(on: bool) -> void:
-	_show_zones = on
+## z층 평면 격자. 켜면 그 층을 작업 평면으로 보여 준다(위는 걷어 내고 아래층은 덩어리로). 끄면 이전 층 컷으로 돌아간다.
+func show_floor_grid(z: int, on: bool) -> void:
+	if on:
+		if _grid_z < 0:
+			_grid_prev_cut = floor_cut
+		_grid_z = clampi(z, 0, cfg.grid.z - 1)
+		set_floor_cut(_grid_z)
+	elif _grid_z >= 0:
+		_grid_z = -1
+		set_floor_cut(_grid_prev_cut)
 	_overlay_dirty = true
 
 
-func show_ghost(pos: Vector3i, facility_id: String, ok: bool) -> void:
-	_ghost = {"pos": pos, "id": facility_id, "ok": ok}
+## 배치 미리보기: 칸들(초록/빨강 반투명 덩어리) + 새로 생길 골조(반투명 틀).
+## 옛 호출 show_ghost(pos, id, ok)도 받아 준다.
+func show_ghost(cells: Variant, ok: Variant = true, supports: Variant = []) -> void:
+	if supports is bool:
+		# v2: show_ghost(pos, facility_id, ok)
+		ok = supports
+		supports = []
+	_ghost_cells = []
+	if cells is Vector3i:
+		_ghost_cells = [cells]
+	elif cells is Array:
+		for c in cells:
+			if c is Vector3i:
+				_ghost_cells.append(c)
+	_ghost_ok = bool(ok) if ok is bool else true
+	_ghost_sup = []
+	for c2 in (supports if supports is Array else []):
+		if c2 is Vector3i:
+			_ghost_sup.append(c2)
 	_overlay_dirty = true
 
 
-func show_spots(cells: Array) -> void:
-	_spots = cells
+## 칸 표시: style = "range"(서비스·시장 범위) | "valid" | "select" | "warn". 같은 style을 다시 부르면 바꿔 끼운다. 빈 배열 = 그 style 지우기.
+func show_cells(cells: Array, style: String = "select") -> void:
+	var list: Array = []
+	for c in cells:
+		if c is Vector3i:
+			list.append(c)
+	if list.is_empty():
+		_cell_sets.erase(style)
+	else:
+		_cell_sets[style] = list
 	_overlay_dirty = true
 
 
+## 고스트와 칸 표시를 지운다(격자·렌즈는 각자의 함수로 끈다).
 func clear_overlay() -> void:
-	_ghost = {}
-	_spots = []
+	_ghost_cells = []
+	_ghost_sup = []
+	_cell_sets.clear()
 	_overlay_dirty = true
+
+
+## 렌즈: "" | "needs" | "tier" | "happiness". 주거를 건물 데이터 색으로 물들이고 나머지는 가라앉힌다.
+func set_lens(name: String) -> void:
+	if name not in ["", "needs", "tier", "happiness"]:
+		name = ""
+	lens = name
+	if markers != null:
+		markers.show_warn = name == "needs"
+	_cells_dirty = true
+
+
+## 켜면 한 손가락 끌기가 팬이 아니라 cell_dragged(pick_floor 결과)를 낸다. 두 손가락은 그대로 줌·팬.
+func set_drag_paint(on: bool) -> void:
+	drag_paint = on
+
+
+## 화면 점 → z층 수평면 위의 칸(비어 있어도). {ok, pos, in_grid, world}
+func pick_floor(screen_pos: Vector2, z: int) -> Dictionary:
+	var ip := _to_internal(screen_pos)
+	var b := _cam.global_transform.basis
+	var p := ppu()
+	var o := _cam.global_transform.origin + b.x * ((ip.x - float(_iw + 2) * 0.5) / p) + b.y * ((float(_ih + 2) * 0.5 - ip.y) / p)
+	var d := -b.z
+	if absf(d.y) < 1e-5:
+		return {"ok": false, "pos": Vector3i(-1, -1, z), "in_grid": false}
+	var y := float(z) * cfg.floor_h
+	var t := (y - o.y) / d.y
+	var w := o + d * t
+	var pos := Vector3i(int(floor(w.x)), int(floor(w.z)), z)
+	var inside := pos.x >= 0 and pos.y >= 0 and pos.x < cfg.grid.x and pos.y < cfg.grid.y
+	return {"ok": inside, "pos": pos, "in_grid": inside, "world": w}
+
+
+## 옛 이름(v2 UI 호환): 심을 자리 표시 = show_cells(cells, "valid"). 구획 표시는 v3에서 없어졌다.
+func show_spots(cells: Array) -> void:
+	show_cells(cells, "valid")
+
+
+func show_zones(_on: bool) -> void:
+	pass
 
 
 ## 셀 → 이 Control 좌표(말풍선 위치). 셀 윗면 중심.
@@ -406,12 +500,15 @@ func _pick_ray(o: Vector3, d: Vector3) -> Dictionary:
 func _on_state_replaced() -> void:
 	cfg.reload()
 	mesher.setup(cfg, atlas)
-	_last_power = int(Game.state.power_level)
 	_wave_r = 1000.0
 	_prev_kinds.clear()
 	for p in Game.state.cells:
 		_prev_kinds[p] = str(Game.state.cells[p].get("kind", ""))
 	mesher.prepare(Game.state)
+	_last_power = mesher.power_on
+	_sigs.clear()
+	for bid in _buildings():
+		_sigs[bid] = _sig(bid)
 	target = _default_target()
 	rebuild_all()
 
@@ -432,8 +529,10 @@ func rebuild_all() -> void:
 		_rebuild_floor(z)
 	_dirty.clear()
 	atlas.flush()
+	_update_cell_tex()
 	_refresh_lights()
 	_apply_cut()
+	_cells_dirty = true
 	_overlay_dirty = true
 	_apply_camera()
 
@@ -490,32 +589,95 @@ func _apply_cut() -> void:
 		_cut_emitters = []
 	_mat.set_shader_parameter("hm_clamp", 99.0 if floor_cut < 0 else float(floor_cut) + 0.3)
 	_push_emitters()
+	_cells_dirty = true
 	if people != null:
 		people.call("set_cut", floor_cut)
 
 
 func _on_event(ev: String, payload: Dictionary) -> void:
 	match ev:
-		"cell_changed":
-			var pos: Vector3i = payload.get("pos", Vector3i.ZERO)
-			for z in [pos.z - 1, pos.z, pos.z + 1]:
-				if z >= 0 and z < cfg.grid.z + 2:
-					_dirty[z] = true
+		"cell_changed", "support_changed":
+			var pos: Variant = payload.get("pos", Vector3i.ZERO)
+			if not (pos is Vector3i):
+				return
+			_mark_dirty(pos)
+			var c: Dictionary = Game.state.cells.get(pos, {})
+			# 2×2: 네 칸 모두 같은 층이지만 이웃 층의 벽 가림도 바뀐다
+			if int(c.get("size", 1)) >= 2:
+				_mark_dirty(pos + Vector3i(1, 1, 0))
 			# 공사 끝: 비계가 떨어져 나가고 먼지가 인다
-			var now_kind := str(Game.state.cells.get(pos, {}).get("kind", ""))
+			var now_kind := str(c.get("kind", ""))
 			if str(_prev_kinds.get(pos, "")) == "site" and now_kind != "site" and now_kind != "":
 				_drop_scaffold(pos)
 			if now_kind == "":
 				_prev_kinds.erase(pos)
 			else:
 				_prev_kinds[pos] = now_kind
-		"power_changed":
-			var lv: int = int(payload.get("level", Game.state.power_level))
-			if _last_power <= 0 and lv > 0:
-				_start_power_wave()
-			_last_power = lv
-		"zone_changed":
+			var bid := int(c.get("bid", -1))
+			if bid >= 0:
+				_sigs[bid] = _sig(bid)
+		"building_changed":
+			_on_building_changed(int(payload.get("bid", -1)))
+		"house_upgraded":
+			var bid2 := int(payload.get("bid", -1))
+			var b2: Dictionary = _buildings().get(bid2, {})
+			var p2: Variant = b2.get("pos", null)
+			if p2 is Vector3i:
+				_mark_dirty(p2)
+				_drop_scaffold(p2)
+			_sigs[bid2] = _sig(bid2)
+			_cells_dirty = true
+		"floor_unlocked":
+			_cue_z = int(payload.get("z", -1))
+			_cue_t = 0.0
 			_overlay_dirty = true
+		"power_changed":
+			var on := bool(payload.get("on", payload.get("level", 0) != 0))
+			if on and not _last_power:
+				_start_power_wave()
+			_last_power = on
+			mesher.power_on = CityMesher.city_power(Game.state, cfg) or on
+			_cells_dirty = true
+		"expedition_done", "expedition_claimed":
+			if people != null and people.has_method("expedition"):
+				people.call("expedition", ev == "expedition_claimed")
+
+
+var _cells_dirty := false
+
+
+func _mark_dirty(pos: Vector3i) -> void:
+	for z in [pos.z - 1, pos.z, pos.z + 1]:
+		if z >= 0 and z < cfg.grid.z + 2:
+			_dirty[z] = true
+
+
+func _buildings() -> Dictionary:
+	var bs: Variant = Game.state.get("buildings") if Game.state != null else null
+	return bs if bs is Dictionary else {}
+
+
+## 외형에 영향을 주는 값만 묶은 서명. 같으면 메시는 그대로 두고 상태 텍스처·표시만 갱신.
+func _sig(bid: int) -> String:
+	var b: Dictionary = _buildings().get(bid, {})
+	if b.is_empty():
+		return ""
+	var pos: Variant = b.get("pos", null)
+	var c: Dictionary = Game.state.cells.get(pos, {}) if pos is Vector3i else {}
+	if str(b.get("kind", "")) == "house":
+		return "h%d|%s|%s|%d" % [int(c.get("tier", b.get("tier", 1))), str(c.get("material", "")), str(c.get("scaffold", false)), 1 if int(b.get("residents", 0)) > 0 else 0]
+	return "f%s" % str(b.get("active", true))
+
+
+func _on_building_changed(bid: int) -> void:
+	var sg := _sig(bid)
+	if sg != str(_sigs.get(bid, sg)):
+		var b: Dictionary = _buildings().get(bid, {})
+		var p: Variant = b.get("pos", null)
+		if p is Vector3i:
+			_mark_dirty(p)
+	_sigs[bid] = sg
+	_cells_dirty = true
 
 
 func _drop_scaffold(pos: Vector3i) -> void:
@@ -532,7 +694,8 @@ func _start_power_wave() -> void:
 	_wave_r = 0.0
 	_wave_center = Vector3(cfg.grid.x * 0.5, 0, cfg.grid.y * 0.5)
 	for p in Game.state.cells:
-		if str(Game.state.cells[p].get("type", "")) == "generator":
+		var c: Dictionary = Game.state.cells[p]
+		if str(c.get("kind", "")) == "facility" and bool(cfg.recipe("facility", str(c.get("type", ""))).get("power", false)):
 			_wave_center = Vector3(p.x + 0.5, p.z * cfg.floor_h, p.y + 0.5)
 			break
 
@@ -543,7 +706,7 @@ func _build_ground() -> void:
 	var st: CityState = Game.state
 	var gw := cfg.grid.x
 	var gh := cfg.grid.y
-	var sd := int(st.rng_seed)
+	var sd := int(st.get("rng_seed")) if st.get("rng_seed") != null else 0
 	var K := MeshBuf.K_GROUND
 	for x in range(-9, gw + 9):
 		for z in range(-9, gh + 9):
@@ -745,7 +908,9 @@ func _update_uniforms() -> void:
 	_mat.set_shader_parameter("sky_col", _v3(v["sky_mid"]))
 	_mat.set_shader_parameter("night", float(v["night"]))
 	_mat.set_shader_parameter("win_level", float(v["win"]))
-	_mat.set_shader_parameter("power", float(st.power_level))
+	_mat.set_shader_parameter("grid_wh", Vector2(cfg.grid.x, cfg.grid.y))
+	_mat.set_shader_parameter("lens_on", 1.0 if lens != "" else 0.0)
+	_mat.set_shader_parameter("lens_dim", float(cfg.vis("lens.dim_other", 0.45)))
 	_mat.set_shader_parameter("time_s", _t)
 	_mat.set_shader_parameter("floor_h", cfg.floor_h)
 	_mat.set_shader_parameter("lot_center", Vector3(cfg.grid.x * 0.5, 0, cfg.grid.y * 0.5))
@@ -876,12 +1041,25 @@ func _process(delta: float) -> void:
 		if floor_cut >= 0:
 			_apply_cut()
 		_overlay_dirty = true
+		_cells_dirty = true
 	if _lights_dirty:
 		_lights_timer -= delta
 		if _lights_timer <= 0.0:
 			_refresh_lights()
+	if _cells_dirty:
+		_cells_dirty = false
+		_update_cell_tex()
+		if markers != null:
+			markers.refresh(Game.state)
+	if _cue_z >= 0:
+		_cue_t += delta
+		_overlay_dirty = true
+		if _cue_t > 2.6:
+			_cue_z = -1
 	if _overlay_dirty:
 		_rebuild_overlay()
+	if markers != null:
+		markers.set_frame(ppu(), maxf(1.0, floor(float(_zoom_levels[zoom_i]) * 0.75)), _t)
 	if cam_dirty:
 		_apply_camera()
 	_update_uniforms()
@@ -931,6 +1109,25 @@ var _touch_mode_t := -10.0
 var _pinch_d0 := 0.0
 var _pinch_a0 := 0.0
 const TAP_SLOP := 10.0
+var _paint_last := Vector3i(-99, -99, -99)
+
+
+func work_floor() -> int:
+	return _grid_z if _grid_z >= 0 else maxi(floor_cut, 0)
+
+
+## 칠하기 모드: 칸이 바뀔 때만 낸다(같은 칸 위의 떨림은 무시).
+func _paint_at(pos: Vector2, first: bool) -> void:
+	var info := pick_floor(pos, work_floor())
+	if first:
+		_paint_last = Vector3i(-99, -99, -99)
+		_dragging = true   # 칠하기 모드의 누름은 탭이 아니다
+	var p: Vector3i = info["pos"]
+	if p == _paint_last:
+		return
+	_paint_last = p
+	info["first"] = first
+	cell_dragged.emit(info)
 
 func _gui_input(ev: InputEvent) -> void:
 	if ev is InputEventScreenTouch:
@@ -941,6 +1138,8 @@ func _gui_input(ev: InputEvent) -> void:
 				_press_pos = ev.position
 				_press_t = _t
 				_dragging = false
+				if drag_paint:
+					_paint_at(ev.position, true)
 			elif _touches.size() == 2:
 				_dragging = true
 				var k: Array = _touches.values()
@@ -955,12 +1154,17 @@ func _gui_input(ev: InputEvent) -> void:
 		_touch_mode_t = _t
 		_touches[ev.index] = ev.position
 		if _touches.size() == 1:
-			if not _dragging and ev.position.distance_to(_press_pos) > TAP_SLOP:
-				_dragging = true
-			if _dragging:
-				pan_by(ev.relative)
+			if drag_paint:
+				_paint_at(ev.position, false)
+			else:
+				if not _dragging and ev.position.distance_to(_press_pos) > TAP_SLOP:
+					_dragging = true
+				if _dragging:
+					pan_by(ev.relative)
 		elif _touches.size() >= 2:
 			var k2: Array = _touches.values()
+			# 두 손가락: 가운데가 움직인 만큼 팬(칠하기 모드에서도)
+			pan_by(ev.relative * 0.5)
 			var dist := (k2[0] as Vector2).distance_to(k2[1])
 			var ang := ((k2[1] as Vector2) - (k2[0] as Vector2)).angle()
 			if _pinch_d0 > 1.0:
@@ -984,6 +1188,8 @@ func _gui_input(ev: InputEvent) -> void:
 					_press_pos = ev.position
 					_press_t = _t
 					_dragging = false
+					if drag_paint:
+						_paint_at(ev.position, true)
 				else:
 					if _mouse_down and not _dragging:
 						cell_tapped.emit(pick(ev.position))
@@ -996,10 +1202,13 @@ func _gui_input(ev: InputEvent) -> void:
 				zoom_step(-1)
 				accept_event()
 		elif ev is InputEventMouseMotion and _mouse_down:
-			if not _dragging and ev.position.distance_to(_press_pos) > TAP_SLOP:
-				_dragging = true
-			if _dragging:
-				pan_by(ev.relative)
+			if drag_paint:
+				_paint_at(ev.position, false)
+			else:
+				if not _dragging and ev.position.distance_to(_press_pos) > TAP_SLOP:
+					_dragging = true
+				if _dragging:
+					pan_by(ev.relative)
 			accept_event()
 		elif ev is InputEventMagnifyGesture:
 			if ev.factor > 1.15:
@@ -1008,8 +1217,11 @@ func _gui_input(ev: InputEvent) -> void:
 				zoom_step(-1)
 
 
-# ------------------------------------------------------------------ 오버레이(고스트·심을 자리·구획)
-const ZONE_COL := {"housing": Color(0.35, 0.6, 1.0, 0.45), "work": Color(1.0, 0.62, 0.25, 0.45), "keep": Color(0.4, 0.85, 0.5, 0.45)}
+# ------------------------------------------------------------------ 오버레이(격자·고스트·칸 표시·층 열림)
+func _ocol(key: String, def: String) -> Color:
+	var v: Variant = cfg.vis("overlay." + key, def)
+	return ViewCfg.col(v, Color(def))
+
 
 func _rebuild_overlay() -> void:
 	_overlay_dirty = false
@@ -1021,28 +1233,97 @@ func _rebuild_overlay() -> void:
 		for v in [a, b, c, a, c, d]:
 			verts.append(v)
 			cols.append(col)
-	if _show_zones:
-		for zc in st.zones:
-			var zcol: Color = ZONE_COL.get(str(st.zones[zc]), Color(1, 1, 1, 0.3))
-			var y := mesher.height_floors(zc) * fh + 0.05
-			if floor_cut >= 0:
-				y = minf(y, float(floor_cut) * fh + 0.3)
-			add_quad.call(Vector3(zc.x + 0.06, y, zc.y + 0.06), Vector3(zc.x + 0.94, y, zc.y + 0.06), Vector3(zc.x + 0.94, y, zc.y + 0.94), Vector3(zc.x + 0.06, y, zc.y + 0.94), zcol)
-	for sp in _spots:
-		if sp is Vector3i:
-			var y2 := float(sp.z) * fh + 0.06
-			add_quad.call(Vector3(sp.x + 0.12, y2, sp.y + 0.12), Vector3(sp.x + 0.88, y2, sp.y + 0.12), Vector3(sp.x + 0.88, y2, sp.y + 0.88), Vector3(sp.x + 0.12, y2, sp.y + 0.88), Color(1.0, 0.9, 0.35, 0.6))
-	if not _ghost.is_empty():
-		var gp: Vector3i = _ghost["pos"]
-		var gc := Color(0.45, 1.0, 0.6, 0.55) if bool(_ghost.get("ok", true)) else Color(1.0, 0.4, 0.4, 0.55)
-		var a0 := Vector3(gp.x, float(gp.z) * fh + 0.02, gp.y)
-		var top := a0 + Vector3(0, fh, 0)
-		add_quad.call(top, top + Vector3(1, 0, 0), top + Vector3(1, 0, 1), top + Vector3(0, 0, 1), gc)
-		var side := Color(gc.r * 0.8, gc.g * 0.8, gc.b * 0.8, gc.a)
-		add_quad.call(top + Vector3(0, 0, 1), top + Vector3(1, 0, 1), a0 + Vector3(1, 0, 1), a0 + Vector3(0, 0, 1), side)
-		add_quad.call(top + Vector3(1, 0, 1), top + Vector3(1, 0, 0), a0 + Vector3(1, 0, 0), a0 + Vector3(1, 0, 1), side)
-		add_quad.call(top + Vector3(1, 0, 0), top, a0, a0 + Vector3(1, 0, 0), side)
-		add_quad.call(top, top + Vector3(0, 0, 1), a0 + Vector3(0, 0, 1), a0, side)
+	var flat := func(x0: float, z0: float, x1: float, z1: float, y: float, col: Color) -> void:
+		add_quad.call(Vector3(x0, y, z0), Vector3(x1, y, z0), Vector3(x1, y, z1), Vector3(x0, y, z1), col)
+	var shell := func(a0: Vector3, a1: Vector3, col: Color) -> void:
+		var top_c := col
+		var side := Color(col.r * 0.82, col.g * 0.82, col.b * 0.82, col.a * 0.85)
+		add_quad.call(Vector3(a0.x, a1.y, a0.z), Vector3(a1.x, a1.y, a0.z), Vector3(a1.x, a1.y, a1.z), Vector3(a0.x, a1.y, a1.z), top_c)
+		add_quad.call(Vector3(a0.x, a1.y, a1.z), Vector3(a1.x, a1.y, a1.z), Vector3(a1.x, a0.y, a1.z), Vector3(a0.x, a0.y, a1.z), side)
+		add_quad.call(Vector3(a1.x, a1.y, a1.z), Vector3(a1.x, a1.y, a0.z), Vector3(a1.x, a0.y, a0.z), Vector3(a1.x, a0.y, a1.z), side)
+		add_quad.call(Vector3(a1.x, a1.y, a0.z), Vector3(a0.x, a1.y, a0.z), Vector3(a0.x, a0.y, a0.z), Vector3(a1.x, a0.y, a0.z), side)
+		add_quad.call(Vector3(a0.x, a1.y, a0.z), Vector3(a0.x, a1.y, a1.z), Vector3(a0.x, a0.y, a1.z), Vector3(a0.x, a0.y, a0.z), side)
+	var gw := cfg.grid.x
+	var gh := cfg.grid.y
+	var unlocked := int(st.get("floors_unlocked")) if st.get("floors_unlocked") != null else cfg.grid.z
+	# ── 층 격자 ──
+	if _grid_z >= 0:
+		var z := _grid_z
+		var y := float(z) * fh + 0.02
+		var locked := z >= unlocked
+		var c_free := _ocol("grid_free", "#fff6dc40")
+		var c_used := _ocol("grid_used", "#ff7a5a50")
+		var c_lock := _ocol("grid_locked", "#8a8aa830")
+		var c_edge := _ocol("grid_edge", "#fff6dcc0")
+		var g := 0.05
+		for x in gw:
+			for yy in gh:
+				var p := Vector3i(x, yy, z)
+				var col := c_lock if locked else (c_used if st.cells.has(p) else c_free)
+				if st.cells.has(p) and str(st.cells[p].get("kind", "")) == "site":
+					col = c_used
+				flat.call(x + g, yy + g, x + 1 - g, yy + 1 - g, y, col)
+		# 둘레(두꺼운 테) + 4칸마다 옅은 눈금
+		var e := 0.07
+		flat.call(-e, -e, gw + e, 0.0, y + 0.002, c_edge)
+		flat.call(-e, gh, gw + e, gh + e, y + 0.002, c_edge)
+		flat.call(-e, 0.0, 0.0, gh, y + 0.002, c_edge)
+		flat.call(gw, 0.0, gw + e, gh, y + 0.002, c_edge)
+		var c_mid := Color(c_edge.r, c_edge.g, c_edge.b, c_edge.a * 0.35)
+		for i in range(4, gw, 4):
+			flat.call(float(i) - 0.02, 0.0, float(i) + 0.02, gh, y + 0.003, c_mid)
+		for i in range(4, gh, 4):
+			flat.call(0.0, float(i) - 0.02, gw, float(i) + 0.02, y + 0.003, c_mid)
+	# ── 칸 표시 ──
+	for style in _cell_sets:
+		var sc := _ocol(style, "#ffd84a90")
+		for p in _cell_sets[style]:
+			var a0 := Vector3(p.x, p.z * fh, p.y)
+			var buried: bool = floor_cut >= 0 and p.z > floor_cut
+			if buried:
+				continue
+			if mesher.solid.has(p) and not (floor_cut >= 0 and p.z == floor_cut):
+				shell.call(a0 + Vector3(-0.03, 0.0, -0.03), a0 + Vector3(1.03, fh + 0.02, 1.03), sc)
+			else:
+				var ins := 0.04 if style != "range" else 0.0
+				flat.call(p.x + ins, p.y + ins, p.x + 1 - ins, p.y + 1 - ins, p.z * fh + 0.035, sc)
+				if style == "select":
+					# 선택은 테두리도
+					var e2 := 0.06
+					var sy: float = p.z * fh + 0.04
+					flat.call(p.x, p.y, p.x + 1, p.y + e2, sy, Color(sc.r, sc.g, sc.b, 1.0))
+					flat.call(p.x, p.y + 1 - e2, p.x + 1, p.y + 1, sy, Color(sc.r, sc.g, sc.b, 1.0))
+					flat.call(p.x, p.y, p.x + e2, p.y + 1, sy, Color(sc.r, sc.g, sc.b, 1.0))
+					flat.call(p.x + 1 - e2, p.y, p.x + 1, p.y + 1, sy, Color(sc.r, sc.g, sc.b, 1.0))
+	# ── 고스트 ──
+	if not _ghost_cells.is_empty():
+		var gc := _ocol("ghost_ok", "#5dff9a80") if _ghost_ok else _ocol("ghost_bad", "#ff5a4a80")
+		for p in _ghost_cells:
+			var a1 := Vector3(p.x, p.z * fh, p.y)
+			shell.call(a1 + Vector3(0.04, 0.01, 0.04), a1 + Vector3(0.96, fh * 0.96, 0.96), gc)
+	if not _ghost_sup.is_empty():
+		var sc2 := _ocol("ghost_support", "#fff2d8b0")
+		for p in _ghost_sup:
+			var a2 := Vector3(p.x, p.z * fh, p.y)
+			for q in [Vector3(0.02, 0, 0.02), Vector3(0.9, 0, 0.02), Vector3(0.02, 0, 0.9), Vector3(0.9, 0, 0.9)]:
+				shell.call(a2 + q, a2 + q + Vector3(0.08, fh, 0.08), sc2)
+			shell.call(a2 + Vector3(0.0, fh - 0.08, 0.0), a2 + Vector3(1.0, fh, 0.08), sc2)
+			shell.call(a2 + Vector3(0.0, fh - 0.08, 0.92), a2 + Vector3(1.0, fh, 1.0), sc2)
+			shell.call(a2 + Vector3(0.0, fh - 0.08, 0.08), a2 + Vector3(0.08, fh, 0.92), sc2)
+			shell.call(a2 + Vector3(0.92, fh - 0.08, 0.08), a2 + Vector3(1.0, fh, 0.92), sc2)
+	# ── 새 층 열림: 평면을 따라 퍼지는 빛 고리 ──
+	if _cue_z >= 0:
+		var k := clampf(_cue_t / 2.6, 0.0, 1.0)
+		var r := k * 10.0
+		var cy := float(_cue_z) * fh + 0.03
+		var cc := Color(1.0, 0.95, 0.7, 0.55 * (1.0 - k))
+		for x in gw:
+			for yy in gh:
+				var dd := Vector2(x + 0.5 - gw * 0.5, yy + 0.5 - gh * 0.5).length()
+				if absf(dd - r) < 1.2:
+					flat.call(x + 0.06, yy + 0.06, x + 0.94, yy + 0.94, cy, cc)
+				elif dd < r:
+					flat.call(x + 0.42, yy + 0.42, x + 0.58, yy + 0.58, cy, Color(cc.r, cc.g, cc.b, cc.a * 0.6))
 	if verts.is_empty():
 		_overlay.mesh = null
 		return
@@ -1060,4 +1341,74 @@ func _rebuild_overlay() -> void:
 		sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		sm.cull_mode = BaseMaterial3D.CULL_DISABLED
 		sm.no_depth_test = false
+		sm.render_priority = 10
 		_overlay.material_override = sm
+
+
+# ------------------------------------------------------------------ 셀 상태·렌즈 텍스처
+func _make_cell_tex() -> void:
+	var w := cfg.grid.x
+	var h := cfg.grid.y * (cfg.grid.z + 2)
+	_cell_img = Image.create(w, h, false, Image.FORMAT_RGBA8)
+	_cell_img.fill(Color(1, 1, 1, 0))
+	_cell_tex = ImageTexture.create_from_image(_cell_img)
+	_lens_img = Image.create(w, h, false, Image.FORMAT_RGBA8)
+	_lens_img.fill(Color(0, 0, 0, 0))
+	_lens_tex = ImageTexture.create_from_image(_lens_img)
+	_mat.set_shader_parameter("cellstate", _cell_tex)
+	_mat.set_shader_parameter("lenstex", _lens_tex)
+
+
+## buildings → 칸마다 (불 켜진 비율, 전기, 가동, 점유) + 렌즈 색. 칸 수만큼만 돈다(가볍다).
+func _update_cell_tex() -> void:
+	if _cell_img == null:
+		return
+	var st: CityState = Game.state
+	var gw := cfg.grid.x
+	var gh := cfg.grid.y
+	var nz := cfg.grid.z + 2
+	if _cell_img.get_width() != gw or _cell_img.get_height() != gh * nz:
+		_make_cell_tex()
+	_cell_img.fill(Color(1, 1, 1, 0))
+	_lens_img.fill(Color(0, 0, 0, 0))
+	var bs := _buildings()
+	var lstr := float(cfg.vis("lens.strength", 0.62))
+	for p in st.cells:
+		if not (p is Vector3i) or p.x < 0 or p.y < 0 or p.x >= gw or p.y >= gh or p.z < 0 or p.z >= nz:
+			continue
+		var c: Dictionary = st.cells[p]
+		var kind := str(c.get("kind", ""))
+		var b: Dictionary = bs.get(int(c.get("bid", -1)), {})
+		var lit := 1.0
+		var elec := 1.0 if mesher.electric(c) else 0.0
+		var active := 1.0
+		if kind == "house":
+			var cap := maxf(float(b.get("cap", 1)), 1.0)
+			lit = clampf(float(b.get("residents", cap)) / cap, 0.0, 1.0)
+		elif kind == "facility":
+			active = 1.0 if bool(b.get("active", true)) else 0.0
+			lit = active
+		var ty: int = p.y + p.z * gh
+		_cell_img.set_pixel(p.x, ty, Color(lit, elec, active, 1.0))
+		if lens != "" and kind == "house":
+			var lc := _lens_color(c, b)
+			_lens_img.set_pixel(p.x, ty, Color(lc.r, lc.g, lc.b, lstr))
+	_cell_tex.update(_cell_img)
+	_lens_tex.update(_lens_img)
+
+
+func _lens_color(c: Dictionary, b: Dictionary) -> Color:
+	match lens:
+		"needs":
+			var ns := str(b.get("need_state", "ok"))
+			return ViewCfg.col(cfg.vis("lens." + ns, "#6a6486"), Color("#6a6486"))
+		"tier":
+			var t := clampi(int(c.get("tier", b.get("tier", 1))), 1, 5)
+			return ViewCfg.col(cfg.vis("tier_colors.lens.%d" % t, "#cccccc"), Color("#cccccc"))
+		"happiness":
+			var h := clampf(float(b.get("happiness", 50.0)) / 100.0, 0.0, 1.0)
+			var lo := ViewCfg.col(cfg.vis("lens.happy_lo", "#ff4a4a"))
+			var mid := ViewCfg.col(cfg.vis("lens.happy_mid", "#ffd84a"))
+			var hi := ViewCfg.col(cfg.vis("lens.happy_hi", "#5fd07a"))
+			return lo.lerp(mid, h * 2.0) if h < 0.5 else mid.lerp(hi, (h - 0.5) * 2.0)
+	return Color.WHITE
