@@ -130,6 +130,11 @@ static func apply(sim: Sim, state: CityState, effects: Variant) -> void:
 				_push(state, "card_queue", {"card": str(e[1]), "day": state.day + int(e[2] if e.size() > 2 else 0)})
 			"mission":
 				_push(state, "mission_requests", {"mission": str(e[1])})
+			"transfer":
+				# ["transfer", "alley_fund", "money", 0.5] — 앞 재고의 일부를 뒤 재고로 옮긴다
+				var part := float(state.get(str(e[1]))) * clampf(float(e[3] if e.size() > 3 else 1.0), 0.0, 1.0)
+				state.set(str(e[1]), float(state.get(str(e[1]))) - part)
+				state.set(str(e[2]), float(state.get(str(e[2]))) + part)
 			"zone_clear":
 				_zone_clear(sim, state, str(e[1]), int(e[2] if e.size() > 2 else 1))
 			"if":

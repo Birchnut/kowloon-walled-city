@@ -107,6 +107,8 @@ func _complete(state: CityState, pos: Vector3i, site: Dictionary) -> void:
 	Ops.set_cell(state, pos, cell)
 	if b["kind"] == "business":
 		cell["owner"] = Ops.open_business(sim, state, str(b["type"]), pos, false)
+		if b.get("protected", false):
+			state.businesses[cell["owner"]]["protected"] = true   # 결재로 들인 가게는 금지령에도 스스로 접지 않는다
 		var key := "first_" + str(b["type"])
 		if not state.flags.has(key):
 			state.flags[key] = state.day
@@ -201,7 +203,10 @@ func _start_business(state: CityState, type: String, forced: bool) -> bool:
 		return false
 	if forced:
 		spot["why_key"] = "forced"
-	_site(state, spot, {"kind": "business", "type": type, "material": GrowthUpgrade.material(sim, state, spot["pos"], str(d.get("group", ""))), "owner": 0}, str(d.get("name", type)))
+	var becomes := {"kind": "business", "type": type, "material": GrowthUpgrade.material(sim, state, spot["pos"], str(d.get("group", ""))), "owner": 0}
+	if forced:
+		becomes["protected"] = true
+	_site(state, spot, becomes, str(d.get("name", type)))
 	return true
 
 
