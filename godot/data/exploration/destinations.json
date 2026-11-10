@@ -231,7 +231,7 @@
      "good": "parts",
      "min": 1,
      "max": 1,
-     "chance": 0.3
+     "chance": 1.0
     },
     {
      "good": "scrap",
@@ -265,7 +265,7 @@
      "good": "parts",
      "min": 1,
      "max": 1,
-     "chance": 0.3
+     "chance": 1.0
     },
     {
      "good": "scrap",
@@ -299,7 +299,7 @@
      "good": "parts",
      "min": 1,
      "max": 1,
-     "chance": 0.3
+     "chance": 1.0
     },
     {
      "good": "scrap",
@@ -325,8 +325,8 @@
    "desc": "녹슨 터빈이 서 있는 발전소. 처음 가면 열병합 도면을 찾는다.",
    "primary": {
     "good": "parts",
-    "min": 1,
-    "max": 2
+    "min": 3,
+    "max": 4
    },
    "bonus": [
     {
