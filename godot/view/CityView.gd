@@ -161,6 +161,14 @@ func _build_tree() -> void:
 	_world.add_child(_cut_node)
 	_overlay = MeshInstance3D.new()
 	_world.add_child(_overlay)
+	var fxn := CityFx.new()
+	fxn.setup(cfg, grid_tex.lg_tex)
+	_world.add_child(fxn)
+	fx = fxn
+	var pn := CityPeople.new()
+	pn.setup(cfg, self, mesher, grid_tex.lg_tex)
+	_world.add_child(pn)
+	people = pn
 
 	_screen = TextureRect.new()
 	_screen.texture = _vp.get_texture()
@@ -427,6 +435,18 @@ func _refresh_lights() -> void:
 	_all_emitters = em
 	_push_emitters()
 	_lights_dirty = false
+	if fx != null:
+		fx.call("set_motes", all)
+	if people != null:
+		var br: Array = []
+		for e in em:
+			var ty: String = str(e["type"])
+			if ty.begins_with("walk_bridge:"):
+				var d := int(ty.get_slice(":", 1))
+				var dv := Vector3(CityMesher.NRM[d]) * 0.55
+				br.append({"a": (e["pos"] as Vector3) - dv, "b": (e["pos"] as Vector3) + dv})
+		people.call("set_bridges", br)
+		people.call("rebuild", Game.state)
 
 
 func _push_emitters() -> void:
@@ -811,6 +831,24 @@ func _process(delta: float) -> void:
 	if cam_dirty:
 		_apply_camera()
 	_update_uniforms()
+	if not _tod_vals.is_empty():
+		var lit: Color = _tod_vals["lit_side"]
+		var shd: Color = _tod_vals["shade"]
+		var ambc := lit.lerp(shd, 0.35)
+		var amb := Vector3(ambc.r, ambc.g, ambc.b)
+		var night := float(_tod_vals["night"])
+		var ng := float(cfg.r("shade.neon_gain", 1.25))
+		var hr := tod() * 24.0
+		var work := 1.0 if (hr > 7.0 and hr < 21.0) else 0.15
+		if people != null:
+			people.call("set_light", amb, night, ng, grid_tex.origin(), grid_tex.inv_size())
+			people.call("step", delta, tod())
+		if fx != null:
+			var cut_y := 1000.0 if floor_cut < 0 else float(floor_cut) * cfg.floor_h + 0.6
+			fx.call("set_frame", ppu(), float(_zoom_levels[zoom_i]), _t, night, work, amb, ng, grid_tex.origin(), grid_tex.inv_size(), cut_y)
+			fx.call("prune", _t)
+			var pl: Vector4 = _mat.get_shader_parameter("plane")
+			fx.call("set_plane", _plane_t >= 0.0, Vector2(pl.x, pl.y), _plane_dir, _sun_dir(tod()), 13.0)
 
 
 func _clamp_target() -> void:
