@@ -11,6 +11,9 @@ var sys_ids: Array[String] = []
 var enabled: Dictionary = {}
 var offline: bool = false          # fast_forward 중
 var now_unix: int = 0              # Game이 매 프레임 넣는다(시스템 시각 + state.clock_offset)
+## 시험용(파트 C): true면 스텝을 넘는 캐시·빠른 길을 모두 끈다 — Cover는 부를 때마다 다시 만들고, 수정치는 매번 다시 더하고,
+## needs의 묶음·주거별 기억·접근표, expeditions의 팀 맞추기도 매 스텝 처음부터. 결과는 캐시 켠 쪽과 같아야 한다(sim_cache_fuzz).
+var no_cache: bool = false
 var W: int = 12
 var H: int = 12
 var F: int = 10
@@ -150,7 +153,7 @@ func mod(state: CityState, key: String) -> float:
 
 func mod_sum(state: CityState, key: String) -> float:
 	var k := "%d:%d" % [state.get_instance_id(), int(state.flags.get("mods_rev", 0))]
-	if k != _mods_key:
+	if k != _mods_key or no_cache:
 		_mods_key = k
 		_mods = {}
 		if enabled.has("research"):
@@ -176,7 +179,7 @@ static func mods_changed(state: CityState) -> void:
 ## 배치(건물·완공)가 바뀔 때만 다시 계산: 주거별 시장·서비스 접근 목록, 소음 이웃, 창고 수 등.
 func cover(state: CityState) -> Dictionary:
 	var key := "%d:%d" % [state.get_instance_id(), state.layout_rev()]
-	if key != _cover_key:
+	if key != _cover_key or no_cache:
 		cover_cache = Cover.build(self, state)
 		_cover_key = key
 	return cover_cache

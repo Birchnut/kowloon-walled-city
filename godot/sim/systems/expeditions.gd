@@ -85,7 +85,7 @@ var _sync_key := ""
 
 func tick(state: CityState, _dt: float) -> void:
 	var k := "%d:%d" % [state.get_instance_id(), state.layout_rev()]
-	if k != _sync_key:
+	if k != _sync_key or sim.no_cache:
 		_sync_key = k
 		_sync(state)
 	_update(state)

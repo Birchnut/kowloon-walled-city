@@ -603,6 +603,8 @@ func _affordable(state: CityState) -> Array:
 func tick(state: CityState, dt: float) -> void:
 	var cov := sim.cover(state)
 	var clsmap: Dictionary = cov["cls"]
+	if sim.no_cache:
+		_forget(cov)
 	_access(state, cov)
 	var houses: Array = cov["houses"]
 	_spare.clear()
@@ -909,6 +911,29 @@ func tick(state: CityState, dt: float) -> void:
 				hap_sum += (e.p2[k] as P2).hp * w
 				hap_w += w
 	state.happiness = hap_sum / hap_w if hap_w > 0.0 else 50.0
+
+
+## sim.no_cache(시험): 스텝을 넘는 기억을 모두 버린다 — 묶음·2단계 결과·주거별 빠른 길·접근표·수정치·소비 묶음 목록,
+## 그리고 주거에 적어 둔 캐시 필드(psig·nsig 지움, sdm=-1·sdc=0 → 모든 수요의 부족 일수를 다시 센다).
+func _forget(cov: Dictionary) -> void:
+	_pents.clear()
+	_pacc = -1
+	_acc_key = ""
+	_mrev = ""
+	_last_used.clear()
+	_dems.clear()
+	_dem_of.clear()
+	_cov_ref = null
+	_hent.clear()
+	_hp2.clear()
+	_hres.clear()
+	_hset.clear()
+	_aff_last = []
+	for b: Dictionary in cov["houses"]:
+		b.erase("psig")
+		b.erase("nsig")
+		b["sdm"] = -1
+		b["sdc"] = 0
 
 
 func on_day_end(state: CityState, ended: int) -> void:
