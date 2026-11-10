@@ -15,6 +15,12 @@ var paused: bool = false
 var speed: float = 1.0
 var autosave: bool = true
 var _offline_summary: Variant = null
+# 자동 저장: 명령 뒤 SAVE_AFTER_CMD초 조용하면 한 번, 아무 일 없어도 SAVE_EVERY초마다, 창이 뒤로 갈 때.
+# (웹·폰에서는 탭을 닫을 때 알림이 오지 않는다 — 자정 저장만으로는 방금 보낸 탐험이 사라진다.)
+const SAVE_AFTER_CMD := 2.0
+const SAVE_EVERY := 60.0
+var _dirty_t: float = -1.0      # 마지막 명령 뒤 지난 실제 초(-1 = 저장할 변화 없음)
+var _since_save: float = 0.0
 
 
 func _ready() -> void:
@@ -39,6 +45,7 @@ var _last_frame_unix: int = 0
 func _process(delta: float) -> void:
 	if state == null:
 		return
+	_autosave_tick(delta)
 	sim.now_unix = _now()
 	# 앱이 백그라운드에 있다 돌아오면(프레임 사이 실제 공백이 길면) 접속 중 속도가 아니라 미접속 규칙으로 정산한다.
 	var gap := sim.now_unix - _last_frame_unix
@@ -63,9 +70,20 @@ func _unhandled_key_input(ev: InputEvent) -> void:
 
 
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_WM_GO_BACK_REQUEST:
+	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_WM_GO_BACK_REQUEST \
+			or what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_WM_WINDOW_FOCUS_OUT:
 		if autosave and state != null:
 			save_game()
+
+
+func _autosave_tick(delta: float) -> void:
+	if not autosave:
+		return
+	_since_save += delta
+	if _dirty_t >= 0.0:
+		_dirty_t += delta
+	if _dirty_t >= SAVE_AFTER_CMD or _since_save >= SAVE_EVERY:
+		save_game()
 
 
 # ------------------------------------------------------------------ 공개 API
@@ -79,6 +97,8 @@ func new_game(seed_value: int = -1) -> void:
 	state.last_saved_unix = sim.now_unix
 	_offline_summary = null
 	state.events.clear()
+	if autosave:
+		_dirty_t = 0.0          # 새 도시도 곧 저장
 	state_replaced.emit()
 
 
@@ -95,6 +115,8 @@ func cmd(cmd_name: String, args: Dictionary = {}) -> Dictionary:
 	sim.now_unix = _now()
 	var r: Dictionary = sim.apply(state, cmd_name, args)
 	_last_frame_unix = _now()   # 디버그 skip_real 같은 시계 이동을 "앱이 멈췄다 돌아옴"으로 오해하지 않게
+	if autosave and bool(r.get("ok", false)):
+		_dirty_t = 0.0          # 조용해지면 저장(_autosave_tick)
 	_drain()
 	return r
 
@@ -121,6 +143,8 @@ func register_view(v: Node) -> void:
 
 # ------------------------------------------------------------------ 저장
 func save_game() -> bool:
+	_dirty_t = -1.0
+	_since_save = 0.0
 	state.last_saved_unix = _now()
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
