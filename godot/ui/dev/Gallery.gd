@@ -81,25 +81,3 @@ func _ready() -> void:
 	sl.value = 40
 	sl.custom_minimum_size = Vector2(160, 40)
 	tags.add_child(sl)
-
-	var card := CardView.make({
-		"uid": 1, "title": "옥상에 비둘기장을 올리겠답니다",
-		"body": "경주용이라는데, 가끔 식탁에도 오른다고 합니다. 아랫집은 벌써 창문을 닫았습니다.",
-		"speaker": {"name": "복 할매", "role": "옥상 지킴이"},
-		"choices": [{"label": "올려라", "hint": "식량 조금↑ 민심 조금↓. 옥상 한 칸이 찬다."}, {"label": "안 된다", "hint": "할매가 며칠 말을 안 한다."}],
-	}, "1/3")
-	v.add_child(card)
-	card.stamp.call_deferred("准")
-
-	var bub := Control.new()
-	bub.custom_minimum_size = Vector2(0, 70)
-	v.add_child(bub)
-	var x := 40.0
-	for a in [[0.2, false, false], [0.6, false, false], [1.0, true, false], [1.0, true, true]]:
-		var b := Bubble.new()
-		b.ratio = a[0]
-		b.ready_now = a[1]
-		b.hot = a[2]
-		bub.add_child(b)
-		b.anchor = Vector2(x, 66)
-		x += 70.0
