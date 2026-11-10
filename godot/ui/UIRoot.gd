@@ -109,6 +109,7 @@ func _ready() -> void:
 	toasts = ToastLayer.new()
 	add_child(toasts)
 	banner = Banner.new()
+	banner.y_ratio = 0.3
 	add_child(banner)
 	tutorial = Tutorial.new()
 	tutorial.ui = self
@@ -302,16 +303,16 @@ func jump(target: Variant) -> void:
 				open_screen(s, a)
 
 
-## 승급 가능한 집 전부(또는 한 계층)를 일괄 승급 창으로.
+## 승급 가능한 집을 계층 묶음으로 일괄 승급 창에. tier=0 이면 가장 낮은 계층 묶음부터(창 안에서 계층을 바꿀 수 있다).
 func upgrade_all(tier: int = 0) -> void:
-	var bids: Array = []
+	var groups: Array = []
 	for row: Variant in Q.upgradable():
-		if row is Dictionary and (tier == 0 or int(row.get("tier", 0)) == tier):
-			bids.append_array(UI.to_array(row.get("bids", [])))
-	if bids.is_empty():
+		if row is Dictionary and not UI.to_array(row.get("bids", [])).is_empty():
+			groups.append(row)
+	if groups.is_empty():
 		toast("지금 승급할 수 있는 집이 없다.", "dim")
 		return
-	upgrade.open_batch(bids)
+	upgrade.open_groups(groups, tier)
 
 
 func open_upgrade(bid: int, info: Dictionary) -> void:

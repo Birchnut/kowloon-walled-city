@@ -181,6 +181,7 @@ func _say(s: Dictionary) -> void:
 		highlight.point_at(ui.target_rect.bind(target), str(s.get("type", "")) == "highlight")
 	else:
 		highlight.clear()
+	dialog.at_top = ui != null and str(ui.screen) != ""
 	dialog.say(str(sp.get("name", "")), _fill(text), str(sp.get("role", "")))
 
 

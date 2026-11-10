@@ -11,11 +11,13 @@ extends Node
 ##   inspect=x,y,z          그 칸 들여다보기       upgrade=x,y,z[,material]  그 집 승급 창
 ##   paint=x,y,z[;x,y,z…]   주거 칠하기 모드에서 칸 고르기(cell_dragged 흉내)
 ##   place=<시설>@x,y,z     시설 배치 모드 + 그 자리 후보
+##   confirm=1              짓기 막대의 확정/짓기를 누른다(paint=/place= 뒤)
 ##   tap=x,y                화면 좌표 탭(뷰 pick → UI)
 ##   fakeexp=<json 경로>     탐험 질의 대신 이 파일(계약 모양 견본 — B 파트 데이터가 오기 전 지도 확인용)
 ##   fakekeep=<json 경로>    연구·정책 질의 대신 이 파일(견본)
 ##   offline=1              자리 비운 사이 창(견본 문장)
 ##   toast=1 banner=<unlock|milestone|floor|power>   피드백 견본
+##   png=<절대 경로>         (무비 대신) 실제 창 크기 그대로 한 장 찍고 끝낸다 — 360x800 같은 화면비 확인용. png_wait=<초>
 ##   at=<초>                위 인자들을 적용할 시각(기본 0.6초)
 
 const FIX := "res://tools/fixtures/%s.json"
@@ -82,6 +84,12 @@ func _on_event(n: String, _p: Dictionary) -> void:
 
 func _process(delta: float) -> void:
 	_t += delta
+	if args.has("png") and _applied and _t >= float(args.get("at", 0.6)) + float(args.get("png_wait", 1.6)):
+		var img := get_viewport().get_texture().get_image()
+		img.save_png(str(args["png"]))
+		print("[DevHarness] png ", args["png"], " ", img.get_size())
+		args.erase("png")
+		get_tree().quit()
 	if _applied or _t < float(args.get("at", 0.6)):
 		return
 	_applied = true
@@ -168,6 +176,20 @@ func _process(delta: float) -> void:
 			ui.build._start(it)
 			if pp.size() > 1:
 				ui.build.on_drag({"ok": true, "in_grid": true, "pos": _v3(pp[1]), "first": true})
+	if args.has("go"):
+		var n0 := 0
+		for b: Variant in Game.state.buildings.values():
+			if b.get("upgrading") != null:
+				n0 += 1
+		ui.upgrade._on_go()
+		var n1 := 0
+		for b: Variant in Game.state.buildings.values():
+			if b.get("upgrading") != null:
+				n1 += 1
+		print("[DevHarness] upgrade go → 공사 중 ", n0, " → ", n1, " dialog ", ui.upgrade.visible)
+	if args.has("confirm"):
+		ui.build._on_confirm()
+		print("[DevHarness] confirm → money ", int(Game.state.money), " cells ", Game.state.cells.size())
 	if args.has("tap") and view != null:
 		var xy := str(args["tap"]).split(",")
 		var info2: Dictionary = view.pick(Vector2(float(xy[0]), float(xy[1])))

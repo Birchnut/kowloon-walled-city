@@ -59,9 +59,12 @@ func _init() -> void:
 	var x := PixelButton.make("", "close", "ButtonRed")
 	x.pressed.connect(close)
 	hr.add_child(x)
+	_tier_row = UI.hbox(4)
+	v.add_child(_tier_row)
 	_cards = UI.hbox(8)
 	v.add_child(_cards)
 	_same = UI.label("", "LabelSmall", true)
+	_same.custom_minimum_size.x = 100
 	_same.add_theme_color_override("font_color", UI.col("gold"))
 	v.add_child(_same)
 	var sb := Screen.scroll_body(4)
@@ -86,7 +89,7 @@ func _place() -> void:
 	if not is_inside_tree():
 		return
 	var vh := size.y
-	var h := clampf(vh * 0.64, 560.0, vh - _bar - _top - 40.0)
+	var h := clampf(vh * (0.72 if _groups.size() > 1 else 0.64), 560.0, vh - _bar - _top - 40.0)
 	_panel.position = Vector2(0, vh - _bar - h)
 	_panel.size = Vector2(size.x, h)
 	_scrim.position = Vector2(0, _top)
@@ -100,13 +103,58 @@ func _notification(what: int) -> void:
 
 # ------------------------------------------------------------------ 열기
 func open_single(bid: int, info: Dictionary) -> void:
+	_groups = []
+	_build_tier_row(0)
 	bids = [bid]
 	_batch = false
 	_info = info if not info.is_empty() else Q.dict("info", {"bid": bid})
 	_open()
 
 
-func open_batch(b: Array) -> void:
+## 계층 묶음들 [{tier, tier_name, count, bids}] — 계층 칩으로 고른다.
+var _groups: Array = []
+var _tier_row: HBoxContainer
+
+
+func open_groups(groups: Array, tier: int = 0) -> void:
+	_groups = groups
+	var pick: Dictionary = groups[0]
+	for g: Dictionary in groups:
+		if int(g.get("tier", 0)) == tier:
+			pick = g
+	_build_tier_row(int(pick.get("tier", 0)))
+	open_batch(UI.to_array(pick.get("bids", [])), true)
+
+
+func _build_tier_row(cur: int) -> void:
+	Screen.clear(_tier_row)
+	_tier_row.visible = _groups.size() > 1
+	if _groups.size() <= 1:
+		return
+	var sc := DragScroll.new()
+	sc.horizontal = true
+	sc.custom_minimum_size = Vector2(0, 48)
+	var seg := Segmented.new()
+	seg.small_text = true
+	seg.equal_width = false
+	seg.chip_min = Vector2(56, 44)
+	var opts: Array = []
+	for g: Dictionary in _groups:
+		opts.append({"id": str(g.get("tier", 0)), "name": "%s %d채" % [str(g.get("tier_name", "")), int(g.get("count", 0))]})
+	seg.set_options(opts, str(cur))
+	seg.selected.connect(func(id: String) -> void:
+		for g: Dictionary in _groups:
+			if str(g.get("tier", 0)) == id:
+				open_batch(UI.to_array(g.get("bids", [])), true))
+	sc.set_content(seg)
+	sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_tier_row.add_child(sc)
+
+
+func open_batch(b: Array, keep_groups: bool = false) -> void:
+	if not keep_groups:
+		_groups = []
+		_build_tier_row(0)
 	bids = b.duplicate()
 	_batch = bids.size() > 1
 	_info = Q.dict("info", {"bid": int(bids[0])}) if not bids.is_empty() else {}
@@ -152,6 +200,8 @@ func _build_cards(mats: Array, to_tier: int) -> void:
 		var id := str(mt.get("id", ""))
 		var c := MatCard.make(id, str(mt.get("name", id)), PREVIEW % [to_tier, id])
 		c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		c.custom_minimum_size.x = 100
+		c.clip_contents = true
 		c.pressed.connect(func() -> void:
 			mat = id
 			_refresh())
@@ -177,7 +227,9 @@ func _refresh() -> void:
 		var q: Variant = Game.query("upgrade_preview", {"bids": bids, "material": mat})
 		if q is Dictionary:
 			pv = q
-			cost = UI.to_dict(q.get("cost", cost))
+			var qc := UI.to_dict(q.get("cost", {}))
+			if int(qc.get("qty", 0)) > 0 or float(qc.get("money", 0)) > 0.0:
+				cost = qc
 			ok = bool(q.get("ok", ok))
 			blockers = UI.to_array(q.get("blockers", blockers))
 		else:

@@ -122,8 +122,12 @@ static func kv(k: String, v: String, v_var: String = "LabelSmall") -> HBoxContai
 	var h := UI.hbox(8)
 	var a := UI.label(k, "LabelDim")
 	h.add_child(a)
-	h.add_child(UI.spacer(true))
-	h.add_child(UI.label(v, v_var))
+	var b := UI.label(v, v_var)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	b.clip_text = true
+	b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	h.add_child(b)
 	return h
 
 
