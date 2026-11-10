@@ -81,11 +81,17 @@ func _init() -> void:
 	v.add_child(b)
 	var r2 := UI.hbox(6)
 	b.add_child(r2)
+	# 계층 칩은 폭이 모자라면 잘린다(띠 전체 폭을 밀어내지 않게 최소 폭 0인 그릇에 담는다)
+	var holder := Control.new()
+	holder.clip_contents = true
+	holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	holder.custom_minimum_size = Vector2(0, 30)
+	r2.add_child(holder)
 	_tiers = UI.hbox(4)
-	_tiers.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_tiers.clip_contents = true
-	r2.add_child(_tiers)
-	_tap(_tiers, func() -> void: jump.emit({"screen": "economy", "arg": "labor"}))
+	holder.add_child(_tiers)
+	holder.resized.connect(func() -> void: _tiers.size = Vector2(maxf(_tiers.get_combined_minimum_size().x, holder.size.x), holder.size.y))
+	_tiers.minimum_size_changed.connect(func() -> void: _tiers.size = Vector2(maxf(_tiers.get_combined_minimum_size().x, holder.size.x), holder.size.y))
+	_tap(holder, func() -> void: jump.emit({"screen": "economy", "arg": "labor"}))
 	_water = UtilPip.make("水")
 	_power = UtilPip.make("電")
 	r2.add_child(_water)
