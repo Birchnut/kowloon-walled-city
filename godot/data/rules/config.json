@@ -103,7 +103,7 @@
   "_broke": "파산(돈 0)으로 멈춘 시설은 유지비 1일치가 모이면 다시 켠다"
  },
  "contracts": {
-  "base_slots": 1,
+  "base_slots": 2,
   "slots_per_post": 2,
   "first_delay_h": 1,
   "_status": "실험값"

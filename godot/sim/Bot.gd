@@ -124,7 +124,7 @@ func _try_build(state: CityState, type: String, near: Vector3i, critical: bool =
 			_block("%s 부족으로 %s 보류" % [sim.gname(g), d.get("name", type)])
 			return false
 	var p: Variant = _spot(state, int(d.get("size", 1)), near)
-	if p != null and d.has("range") and Cover.dist(sim, near, p, int(d.get("size", 1))) > int(d["range"]) - 1:
+	if p != null and d.has("range") and Cover.dist(sim, near, p, int(d.get("size", 1))) > int(d["range"]):
 		p = null
 	if p == null:
 		_block("자리 부족으로 %s 보류" % d.get("name", type))
@@ -469,6 +469,7 @@ func _upgrades(state: CityState) -> void:
 	for id2: String in sim.items("buildings"):
 		for tk: String in sim.bdef(id2).get("workforce", {}):
 			labor_tiers[int(tk.substr(1))] = true
+	var mat_wait := 0
 	for b: Dictionary in cands:
 		if done >= max_per:
 			break
@@ -480,8 +481,10 @@ func _upgrades(state: CityState) -> void:
 			_block("%s 주거가 아직 안 차서(그 계층 수요 미충족) 승급 보류" % sim.tname(nt))
 			continue
 		# 다음 계층 노동력이 이미 넉넉하면(그 계층 인력을 쓰는 시설이 있는 계층만) 자재를 아낀다
+		var lo: Dictionary = state.labor.get(nt - 1, {"have": 0, "need": 0.0})
+		var lower_spare := float(lo["have"]) - float(lo["need"])
 		if labor_tiers.has(nt) and float(ln["have"]) - float(ln["need"]) >= float(c("spare_cap", 16)) and int(hn.get(nt + 1, 0)) > 0 \
-				and _pop(state, nt) >= _goal_pop(state, nt):
+				and _pop(state, nt) >= _goal_pop(state, nt) and lower_spare < 3.0 * float(c("spare_cap", 16)):
 			_block("%s 노동력이 넉넉해 승급 보류(자재 아낌)" % sim.tname(nt))
 			continue
 		if b["kind"] != "house" or not b.get("upgradable", false):
@@ -506,6 +509,10 @@ func _upgrades(state: CityState) -> void:
 				best = m
 		if best == "":
 			_block("자재가 모자라 승급 보류(T%d→T%d)" % [t, t + 1])
+			mat_wait = maxi(mat_wait, t)
+			continue
+		if mat_wait > t:
+			_block("위 계층 승급을 위해 자재를 모으는 중(T%d→T%d 보류)" % [t, t + 1])
 			continue
 		for g: String in cost.get("extra", {}):
 			if float(state.stock.get(g, 0.0)) < float(cost["extra"][g]):
@@ -543,9 +550,9 @@ func _buy_extra(state: CityState, g: String) -> void:
 
 
 # ------------------------------------------------------------------ 주거 칠하기
-## 층마다 2×2 시설 자리 네 곳(16칸)을 비워 둔다.
+## 층마다 2×2 시설 자리 여섯 곳(24칸)을 비워 둔다.
 func _reserved(p: Vector3i) -> bool:
-	return (p.x % 6 == 2 or p.x % 6 == 3) and (p.y % 6 == 2 or p.y % 6 == 3)
+	return (p.x % 4 == 1 or p.x % 4 == 2) and (p.y % 6 == 2 or p.y % 6 == 3)
 
 func _zone(state: CityState) -> void:
 	var vacant := 0
@@ -557,6 +564,11 @@ func _zone(state: CityState) -> void:
 			if int(b["residents"]) == 0:
 				vacant += 2
 	if vacant > int(c("zone_when_vacancy_below", 6)):
+		return
+	# 떠돌이 노동력이 이미 크게 남으면 더 칠하지 않는다(승급으로 쓰게)
+	var l1: Dictionary = state.labor.get(1, {"have": 0, "need": 0.0})
+	if houses > 40 and float(l1["have"]) - float(l1["need"]) > float(c("t1_spare_stop", 40)):
+		_block("떠돌이 노동력이 남아 주거 확장 보류")
 		return
 	# 먹을 것이 모자라거나 돈이 없으면 칠하지 않는다
 	var dem := _demand(state)
