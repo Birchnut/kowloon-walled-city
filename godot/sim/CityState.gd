@@ -31,6 +31,10 @@ var policies: Dictionary = {}        # axis id -> option id
 var zones: Dictionary = {}           # Vector2i -> "housing" | "work" | "keep"
 
 # ── 공간 ──
+# v3 계약(docs/ARCHITECTURE.md): 뷰가 읽는 필드. SIM이 CityState를 v3로 다시 쓰는 동안에도 이름은 고정.
+var supports: Dictionary = {}        # Vector3i -> true (골조)
+var buildings: Dictionary = {}       # int -> 건물 인스턴스
+var floors_unlocked: int = 1         # 지을 수 있는 층 수
 var cells: Dictionary = {}           # Vector3i -> Dictionary (셀 계약은 ARCHITECTURE.md)
 
 # ── 사람·사업 ──
@@ -172,7 +176,7 @@ static func _dec(v: Variant) -> Variant:
 const _FIELDS := [
 	"rng_seed", "rng_state", "day", "hour", "money", "food", "materials",
 	"prestige", "notoriety", "morale", "power_level", "water_cap",
-	"policies", "zones", "cells", "households", "businesses", "next_id",
+	"policies", "zones", "supports", "buildings", "floors_unlocked", "cells", "households", "businesses", "next_id",
 	"collect_points", "alley_fund", "pending_cards", "unlocked", "flags",
 	"identity", "logbook", "stats", "last_saved_unix",
 ]
