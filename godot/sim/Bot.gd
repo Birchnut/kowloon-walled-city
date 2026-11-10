@@ -28,7 +28,7 @@ func _block(why: String) -> void:
 
 # ------------------------------------------------------------------ 한 번의 손길(경제 1시간마다)
 func act(state: CityState) -> void:
-	var mem: Dictionary = state.flags.get("bot", {"exp_acc": 0.0, "last_day": 0})
+	var mem: Dictionary = state.flags.get("bot", {"exp_acc": 0.0})
 	state.flags["bot"] = mem
 	_save = 0.0
 	_expedition(state, mem)
