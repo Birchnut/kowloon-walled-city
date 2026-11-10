@@ -155,8 +155,53 @@ static func check(db: Dictionary) -> Array:
 	for g: String in Sim.dig(cfg, "start.stock", {}):
 		if not goods.has(g):
 			e.append("시작 재고의 상품 '%s'가 없다." % g)
+	e.append_array(check_b(db))
 	if e.is_empty():
 		e.append_array(lock_check(db))
+	return e
+
+
+## 파트 B 데이터(탐험·연구·정책) 검사. 파일이 없으면 그 시스템이 빈 모양으로 돈다.
+static func check_b(db: Dictionary) -> Array:
+	var e: Array = []
+	var goods := _items(db, "goods")
+	var partners: Dictionary = db.get("partners", {}).get("partners", {})
+	var dests := _items(db, "destinations")
+	var blds := _items(db, "buildings")
+	for id: String in dests:
+		var d: Dictionary = dests[id]
+		if not (str(d.get("band", "")) in ["near", "mid", "far"]):
+			e.append("목적지 %s의 band는 near/mid/far여야 한다." % id)
+		if float(d.get("seconds", 0)) <= 0.0:
+			e.append("목적지 %s의 seconds가 0 이하다." % id)
+		var pg := str(d.get("primary", {}).get("good", ""))
+		if pg != "" and not goods.has(pg):
+			e.append("목적지 %s의 주력 상품 '%s'가 없다." % [id, pg])
+		if pg == "" and (d.get("picks", []) as Array).is_empty():
+			e.append("목적지 %s에 주력 상품도 고를 자재도 없다." % id)
+		for g: String in d.get("picks", []):
+			if not goods.has(g):
+				e.append("목적지 %s의 고를 자재 '%s'가 없다." % [id, g])
+		for b: Dictionary in d.get("bonus", []):
+			if not goods.has(str(b.get("good", ""))):
+				e.append("목적지 %s의 덤 상품 '%s'가 없다." % [id, b.get("good", "")])
+		for f: Dictionary in d.get("finds", []):
+			if f.get("type", "") == "partner" and not partners.has(str(f.get("id", ""))):
+				e.append("목적지 %s가 모르는 거래처 '%s'를 발견한다." % [id, f.get("id", "")])
+		for r: String in d.get("reveals", []):
+			if not dests.has(r):
+				e.append("목적지 %s가 없는 목적지 '%s'를 알려 준다." % [id, r])
+	for f: String in ["research", "policies"]:
+		for id: String in _items(db, f):
+			var it: Dictionary = _items(db, f)[id]
+			if not (it.get("effects", {}) is Dictionary):
+				e.append("%s %s의 effects는 {키: 비율}이어야 한다." % [f, id])
+			for r: String in it.get("reveals", []):
+				if not dests.has(r):
+					e.append("%s %s가 없는 목적지 '%s'를 알려 준다." % [f, id, r])
+			for b: String in it.get("unlocks", []):
+				if not blds.has(b):
+					e.append("%s %s가 없는 시설 '%s'를 연다." % [f, id, b])
 	return e
 
 

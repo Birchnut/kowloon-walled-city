@@ -137,6 +137,41 @@ func is_unlocked(state: CityState, id: String) -> bool:
 	return not enabled.has("progression") or state.unlocked.has(id)
 
 
+# ------------------------------------------------------------------ 수정치(연구·정책) — 하나의 접근자
+## 다른 시스템은 숫자를 읽을 때 이것만 부른다: 값 × sim.mod(state, "prod.all"). 효과는 research.json·policies.json의 effects{키: 비율}.
+## mod = 1 + Σ(켜진 정책 + 끝난 연구의 그 키 값). 키 목록은 docs/SIM_NOTES.md. 연구·정책이 바뀌면 state.flags.mods_rev가 오른다.
+var _mods: Dictionary = {}
+var _mods_key: String = ""
+
+
+func mod(state: CityState, key: String) -> float:
+	return 1.0 + mod_sum(state, key)
+
+
+func mod_sum(state: CityState, key: String) -> float:
+	var k := "%d:%d" % [state.get_instance_id(), int(state.flags.get("mods_rev", 0))]
+	if k != _mods_key:
+		_mods_key = k
+		_mods = {}
+		if enabled.has("research"):
+			for id: String in state.research.get("done", {}):
+				_add_effects(item("research", id).get("effects", {}))
+		if enabled.has("policies"):
+			for id: String in state.policies:
+				if state.policies[id]:
+					_add_effects(item("policies", id).get("effects", {}))
+	return float(_mods.get(key, 0.0))
+
+
+func _add_effects(fx: Dictionary) -> void:
+	for key: String in fx:
+		_mods[key] = float(_mods.get(key, 0.0)) + float(fx[key])
+
+
+static func mods_changed(state: CityState) -> void:
+	state.flags["mods_rev"] = int(state.flags.get("mods_rev", 0)) + 1
+
+
 # ------------------------------------------------------------------ 배치 캐시
 ## 배치(건물·완공)가 바뀔 때만 다시 계산: 주거별 시장·서비스 접근 목록, 소음 이웃, 창고 수 등.
 func cover(state: CityState) -> Dictionary:

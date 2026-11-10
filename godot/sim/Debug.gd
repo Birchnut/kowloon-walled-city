@@ -18,7 +18,9 @@ static func run(sim: Sim, state: CityState, args: Dictionary) -> Dictionary:
 		"skip_days":
 			sim.tick(state, float(args.get("n", 1)))
 		"skip_real":
-			state.clock_offset += int(args.get("seconds", 600))
+			var sec := maxi(0, int(args.get("seconds", 600)))
+			state.clock_offset += sec
+			sim.now_unix += sec
 		"unlock_all":
 			for id: String in sim.items("buildings"):
 				state.unlocked[id] = state.econ_days
