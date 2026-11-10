@@ -301,7 +301,12 @@ func jump(target: Variant) -> void:
 		"upgrade":
 			upgrade_all()
 		"inspect":
-			pass
+			# G12: inspect:<bid> — 그 건물을 들여다본다(알림 "단속으로 닫혀 있다" 등)
+			var inf := Q.dict("info", {"bid": int(a)}) if a.is_valid_int() else {}
+			var pp: Variant = inf.get("pos")
+			if pp is Vector3i:
+				open_screen("inspect")
+				inspect.show_cell(pp)
 		_:
 			if screens.has(s):
 				open_screen(s, a)

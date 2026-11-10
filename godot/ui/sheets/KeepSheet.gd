@@ -204,6 +204,7 @@ func _goal_tip(v: VBoxContainer, id: String) -> void:
 
 # ------------------------------------------------------------------ 정책
 func _policies(d: Dictionary) -> void:
+	_heat_panel()
 	var items := UI.to_array(d.get("items", []))
 	var sl := UI.to_dict(d.get("slots", {}))
 	_body.add_child(Screen.kv("정책 칸", "%d / %d" % [int(sl.get("used", 0)), int(sl.get("max", 0))], "LabelGoldSmall"))
@@ -221,6 +222,18 @@ func _policies(d: Dictionary) -> void:
 		h.add_child(v)
 		v.add_child(UI.label(str(it.get("name", "")), "LabelBold"))
 		v.add_child(UI.label(str(it.get("desc", "")), "LabelSmall", true))
+		var extra: Array = []
+		if float(it.get("upkeep", 0)) > 0.0:
+			extra.append("유지비 ₩%s/일" % UI.num(float(it["upkeep"])))
+		if str(it.get("group", "")) != "":
+			var same: Array = []
+			for o: Variant in items:
+				if o is Dictionary and str(o.get("group", "")) == str(it["group"]) and o != it:
+					same.append(str(o.get("name", "")))
+			if not same.is_empty():
+				extra.append("%s와(과) 함께 못 켠다" % ", ".join(same))
+		if not extra.is_empty():
+			v.add_child(UI.label(" · ".join(extra), "LabelDim", true))
 		var locked := bool(it.get("locked", false))
 		if locked:
 			var l := UI.label("잠김 — " + str(it.get("lock_hint", "")), "LabelSmall", true)
@@ -242,6 +255,39 @@ func _policies(d: Dictionary) -> void:
 		_body.add_child(p)
 
 
+## 단속 위험(query vice): 음성 시설이 하나라도 있거나 위험이 0이 아니면 정책 탭 맨 위에.
+## 위험 알림(hud.alerts heat)이 이 탭으로 온다 — 뒷돈 같은 정책이 여기 있으니까.
+func _heat_panel() -> void:
+	var vq := Q.dict("vice")
+	var heat := float(vq.get("heat", 0.0))
+	var items := UI.to_array(vq.get("items", []))
+	if heat <= 0.05 and items.is_empty():
+		return
+	var warn := float(vq.get("warn", 50.0))
+	var raid := float(vq.get("raid", 80.0))
+	var p := UI.panel("PanelDeep")
+	var v := UI.vbox(4)
+	p.add_child(v)
+	var h := UI.hbox(6)
+	v.add_child(h)
+	var t := UI.label("단속 위험", "LabelBold")
+	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(t)
+	var hl := UI.label("%d / 100" % int(heat), "LabelGold")
+	if heat >= warn:
+		hl.add_theme_color_override("font_color", UI.col("red_hi"))
+	h.add_child(hl)
+	v.add_child(RatioBar.make(clampf(heat / 100.0, 0.0, 1.0), "bad" if heat >= raid else ("warn" if heat >= warn else "gold"), 10))
+	v.add_child(UI.label("하루 +%s(음성 시설 %d곳) · −%s(저절로 식는다). %d이면 경고, %d이면 음성 시설 하나가 이틀 닫히고 벌금." % [
+		str(snappedf(float(vq.get("gain_per_day", 0)), 0.1)), items.size(), str(snappedf(float(vq.get("decay_per_day", 0)), 0.1)), int(warn), int(raid)], "LabelSmall", true))
+	for it: Variant in items:
+		if it is Dictionary and bool(it.get("raided", false)):
+			var rl := UI.label("단속으로 닫힘: %s — %s일 뒤 다시 연다" % [str(it.get("name", "")), str(snappedf(float(it.get("reopens_in_days", 0)), 0.1))], "LabelSmall", true)
+			rl.add_theme_color_override("font_color", UI.col("red_hi"))
+			v.add_child(rl)
+	_body.add_child(p)
+
+
 # ------------------------------------------------------------------ 연구
 func _research(d: Dictionary) -> void:
 	var act := UI.to_dict(d.get("active", {}))
@@ -250,10 +296,29 @@ func _research(d: Dictionary) -> void:
 		var v := UI.vbox(2)
 		p.add_child(v)
 		v.add_child(UI.label("연구 중 · %s" % str(act.get("name", "")), "LabelBold"))
-		v.add_child(UI.label("%s일 남음(경제 시간)" % str(snappedf(float(act.get("left_days", 0)), 0.1)), "LabelSmall"))
+		var paused := bool(act.get("paused", false))
+		var ll := UI.label(("멈춤 — 돌아가는 공부방이 없다" if paused else "%s일 남음(경제 시간)" % str(snappedf(float(act.get("left_days", 0)), 0.1))), "LabelSmall", true)
+		if paused:
+			ll.add_theme_color_override("font_color", UI.col("red_hi"))
+		v.add_child(ll)
+		var cb := PixelButton.make("그만두기(절반 환불)", "close", "ButtonGhost")
+		cb.small = true
+		cb.pressed.connect(func() -> void:
+			ui.confirm({"kicker": "연구", "title": "%s 연구를 그만둔다" % str(act.get("name", "")), "lines": ["낸 돈의 절반만 돌려받는다.", "진행은 사라진다."],
+				"ok_text": "그만둔다", "danger": true}, func() -> void:
+					var r: Dictionary = ui.cmd("research_cancel", {})
+					if not bool(r.get("ok", false)):
+						ui.toast(str(r.get("reason", "")), "warn")
+					_sig = ""
+					refresh()))
+		v.add_child(cb)
 		_body.add_child(p)
 	elif str(d.get("hint", "")) != "":
-		_body.add_child(UI.label(str(d["hint"]), "LabelMute", true))
+		var hl2 := UI.label(str(d["hint"]), "LabelSmall", true)
+		hl2.add_theme_color_override("font_color", UI.col("gold"))
+		_body.add_child(hl2)
+	if d.has("total"):
+		_body.add_child(UI.label("연구 %d / %d" % [int(d.get("done", 0)), int(d.get("total", 0))], "LabelDim"))
 	var nodes := UI.to_array(d.get("nodes", []))
 	if nodes.is_empty():
 		return
@@ -268,10 +333,14 @@ func _research(d: Dictionary) -> void:
 			by[b].append(n)
 	var cols := UI.hbox(6)
 	_body.add_child(cols)
+	# 갈래 칸 폭을 같게(내용 폭 때문에 한 칸이 눌리지 않게)
 	var can_start := bool(d.get("can", false))
 	for b: String in order:
 		var col := UI.vbox(4)
 		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		col.size_flags_stretch_ratio = 1.0
+		col.custom_minimum_size.x = 0
+		col.clip_contents = true
 		cols.add_child(col)
 		var hd := UI.label(b, "LabelGoldSmall")
 		hd.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -297,10 +366,12 @@ func _node_card(n: Dictionary, can_start: bool) -> Control:
 		"active":
 			v.add_child(UI.label("연구 중", "LabelGoldSmall"))
 		"ready":
-			var b := PixelButton.make("₩%s · %s일" % [UI.num(float(n.get("cost", 0))), str(n.get("days", 0))], "", "ButtonJade" if can_start else "")
+			# 두 줄(값 / 날) — 한 줄이면 버튼 폭이 갈래 칸을 넓혀 가운데 칸이 글자 하나 폭으로 눌렸다
+			var aff := bool(n.get("affordable", true))
+			var b := PixelButton.make("₩%s\n%s일" % [UI.num(float(n.get("cost", 0))), str(n.get("days", 0))], "", "ButtonJade" if can_start and aff else "")
 			b.small = true
 			b.min_size = Vector2(56, 48)
-			b.disabled = not can_start
+			b.disabled = not can_start or not aff
 			var id := str(n.get("id", ""))
 			b.pressed.connect(func() -> void:
 				var r: Dictionary = ui.cmd("research_start", {"id": id})
