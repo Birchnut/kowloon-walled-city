@@ -1,0 +1,56 @@
+{
+ "_comment": "다섯 계층. cap = 정원(확정 4-8-12-8-6), labor = 노동 참여(확정: 떠돌이만 0.75), tax = ₩/인·경제일, water = 물/인·경제일, power = 전기/인(부하 단위). 이름은 Jin 선택(확정).",
+ "status": "cap·labor 확정 / tax·water·power 실험값",
+ "items": {
+  "t1": {
+   "index": 1,
+   "name": "떠돌이",
+   "desc": "판자와 양철로 버티는 첫 이주민.",
+   "cap": 4,
+   "labor": 0.75,
+   "tax": 2.0,
+   "water": 1.0,
+   "power": 0.0
+  },
+  "t2": {
+   "index": 2,
+   "name": "세입자",
+   "desc": "월세를 내고 자리를 잡은 사람들.",
+   "cap": 8,
+   "labor": 1.0,
+   "tax": 3.2,
+   "water": 1.5,
+   "power": 0.0
+  },
+  "t3": {
+   "index": 3,
+   "name": "토박이",
+   "desc": "성채에서 나고 자란 사람들. 전기 없이는 못 산다.",
+   "cap": 12,
+   "labor": 1.0,
+   "tax": 4.8,
+   "water": 2.0,
+   "power": 1.0
+  },
+  "t4": {
+   "index": 4,
+   "name": "유지",
+   "desc": "골목의 돈과 말을 쥔 사람들.",
+   "cap": 8,
+   "labor": 1.0,
+   "tax": 12.0,
+   "water": 3.0,
+   "power": 2.0
+  },
+  "t5": {
+   "index": 5,
+   "name": "거물",
+   "desc": "성채 밖에서도 이름이 통하는 사람들.",
+   "cap": 6,
+   "labor": 1.0,
+   "tax": 24.0,
+   "water": 4.0,
+   "power": 3.5
+  }
+ }
+}

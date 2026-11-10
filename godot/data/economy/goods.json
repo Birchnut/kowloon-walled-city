@@ -1,0 +1,33 @@
+{
+  "_comment": "상품. cat: material(건축자재) / raw(원료) / consumer(소비재). grade = 이 상품을 취급할 수 있는 최저 시장 등급(소비재만). family = 승급 외관 자재 계열. price = 기준가 ₩/단위(계약 단가의 기준). 재고는 도시 공유(확정).",
+  "status": "실험값",
+  "cats": { "material": "건축자재", "raw": "원료", "consumer": "소비재" },
+  "items": {
+    "scrap":     { "name": "고물", "cat": "material", "price": 2, "desc": "시설을 짓는 데 쓰는 잡동사니." },
+    "wood":      { "name": "목재", "cat": "material", "family": "wood", "price": 12, "desc": "문짝·가구·판재. 목조 외관." },
+    "metal":     { "name": "철제", "cat": "material", "family": "metal", "price": 12, "desc": "프레임·패널. 철제 외관." },
+    "concrete":  { "name": "콘크리트 부재", "cat": "material", "family": "concrete", "price": 12, "desc": "재사용 블록·프리캐스트. 콘크리트 외관." },
+    "parts":     { "name": "설비 부품", "cat": "material", "price": 80, "desc": "상급 설비와 거물 주거에 드는 특수 부품." },
+
+    "flour":     { "name": "밀가루", "cat": "raw", "price": 1.0 },
+    "fishmeat":  { "name": "어육", "cat": "raw", "price": 1.2 },
+    "cloth":     { "name": "원단", "cat": "raw", "price": 1.5 },
+    "fat":       { "name": "유지", "cat": "raw", "price": 1.0 },
+    "elec":      { "name": "전자 부품", "cat": "raw", "price": 5.0 },
+
+    "veg":       { "name": "채소", "cat": "consumer", "grade": 1, "price": 1.0 },
+    "noodles":   { "name": "국수", "cat": "consumer", "grade": 1, "price": 1.2 },
+    "fishball":  { "name": "어묵", "cat": "consumer", "grade": 1, "price": 1.4 },
+    "oldclothes":{ "name": "헌 옷", "cat": "consumer", "grade": 1, "price": 2.0 },
+    "candle":    { "name": "초", "cat": "consumer", "grade": 1, "price": 1.5 },
+    "moonshine": { "name": "밀주", "cat": "consumer", "grade": 1, "price": 2.0 },
+    "clothes":   { "name": "옷", "cat": "consumer", "grade": 2, "price": 3.0 },
+    "soap":      { "name": "비누", "cat": "consumer", "grade": 2, "price": 2.5 },
+    "radio":     { "name": "라디오", "cat": "consumer", "grade": 3, "price": 14.0 },
+    "suit":      { "name": "양복", "cat": "consumer", "grade": 3, "price": 22.0 },
+    "appliance": { "name": "가전", "cat": "consumer", "grade": 4, "price": 45.0 },
+    "fakelux":   { "name": "짝퉁 명품", "cat": "consumer", "grade": 4, "price": 30.0 },
+    "liquor":    { "name": "양주", "cat": "consumer", "grade": 4, "price": 25.0, "desc": "수입만 된다." },
+    "firework":  { "name": "폭죽", "cat": "consumer", "price": 6.0, "desc": "수출용. 성채 안에서는 안 쓴다." }
+  }
+}

@@ -1,24 +1,29 @@
 extends SceneTree
-## 개발용 연기 시험: 데이터를 읽고 며칠 돌려 본다. godot --headless --path godot -s res://tools/sim_smoke.gd
+## 개발용 연기 시험: godot --headless --path godot -s res://tools/sim_smoke.gd
 
 
 func _init() -> void:
 	var db := SimIO.load_db()
 	var sim := Sim.new()
 	sim.setup(db)
+	print("data errors: ", sim.errors)
 	var state := CityState.new()
 	sim.new_game(state, 1)
-	print(sim.apply(state, "plant", {"facility": "garden", "pos": Vector3i(5, 8, 0)}))
-	for i: int in 240 * 5:
-		sim.tick(state, 0.1)
+	var cells: Array = []
+	for x: int in 4:
+		for y: int in 3:
+			cells.append(Vector3i(x, y, 0))
+	print(sim.apply(state, "zone", {"cells": cells}))
+	print(sim.apply(state, "build", {"type": "stall", "pos": Vector3i(5, 1, 0)}))
+	print(sim.apply(state, "build", {"type": "rain_catcher", "pos": Vector3i(5, 2, 0)}))
+	print(sim.apply(state, "build", {"type": "garden", "pos": Vector3i(5, 0, 0)}))
+	for d: int in 3:
+		sim.tick(state, 1.0)
 		state.events.clear()
-		if i % 240 == 239:
-			var m := sim.metrics(state)
-			print("day ", state.day, " pop ", m["population"], " hh ", m["households"], " wait ", m["waiting"], " cells ", m["cells"],
-				" money ", snappedf(state.money, 0.1), " food ", snappedf(state.food, 0.1), " mat ", snappedf(state.materials, 0.1),
-				" morale ", snappedf(state.morale, 0.1))
-			sim.apply(state, "collect", {})
+		print("day ", state.day, " pop ", state.population(), " money ", snappedf(state.money, 0.1), " stock ", state.stock, " hap ", state.happiness)
+	print(sim.query(state, "hud"))
+	print(sim.query(state, "info", {"pos": Vector3i(0, 0, 0)}))
 	for l: Dictionary in state.logbook:
-		print("  [", l["day"], "] ", l["text"])
-	print(sim.query(state, "cell_info", {"pos": Vector3i(5, 8, 0)}))
+		print("  ", l["day"], " ", l["text"])
+	sim.systems.clear()
 	quit()

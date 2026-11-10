@@ -1,18 +1,19 @@
 extends Node
 ## Game — UI와 View가 보는 유일한 진입점 (오토로드).
 ## 상태 변경은 cmd(), 표시용 정보는 query(), 검증은 can(). 계약은 docs/ARCHITECTURE.md.
+## 시계 주입: 매 프레임 sim.now_unix = 시스템 시각 + state.clock_offset, 경제 dt = delta × speed / seconds_per_day.
 
 signal event(name: String, payload: Dictionary)
 signal state_replaced
 
-const SAVE_PATH := "user://save.json"
+const SAVE_PATH := "user://save_v3.json"   # 옛 save.json(v2)은 읽지도 지우지도 않는다
 
 var state: CityState
 var sim: Sim
-var view: Node = null            # CityView가 register_view()로 등록
+var view: Node = null
 var paused: bool = false
-var speed: float = 1.0           # 배속(디버그·감상)
-var autosave: bool = true        # 테스트/샌드박스에서는 끈다
+var speed: float = 1.0
+var autosave: bool = true
 var _offline_summary: Variant = null
 
 
@@ -21,8 +22,6 @@ func _ready() -> void:
 	sim.setup(Data.files)
 	Data.reloaded.connect(func() -> void: sim.setup(Data.files))
 	state = CityState.new()
-	# 개발용: 사용자 인자 `nosave` 또는 환경변수 KOWLOON_NOSAVE=1 이면 저장/불러오기를 끈다.
-	# (샌드박스·스크린샷·테스트가 서로의 세이브를 밟지 않게)
 	if "nosave" in OS.get_cmdline_user_args() or OS.get_environment("KOWLOON_NOSAVE") == "1":
 		autosave = false
 		new_game()
@@ -30,11 +29,18 @@ func _ready() -> void:
 		new_game()
 
 
+func _now() -> int:
+	return int(Time.get_unix_time_from_system()) + (state.clock_offset if state != null else 0)
+
+
 func _process(delta: float) -> void:
-	if paused or state == null:
+	if state == null:
 		return
-	var spd: float = float(Data.cfg("time.seconds_per_game_day", 600.0))
-	sim.tick(state, delta * speed * 24.0 / maxf(spd, 1.0))
+	sim.now_unix = _now()
+	if paused:
+		return
+	var spd: float = float(Data.cfg("time.seconds_per_day", 600.0))
+	sim.tick(state, delta * speed / maxf(spd, 1.0))
 	_drain()
 
 
@@ -55,16 +61,14 @@ func _notification(what: int) -> void:
 func new_game(seed_value: int = -1) -> void:
 	state = CityState.new()
 	if seed_value < 0:
-		seed_value = int(Data.cfg("seed", 0))
-		if seed_value == 0:
-			seed_value = int(Time.get_unix_time_from_system()) & 0x7fffffff
+		seed_value = int(Time.get_unix_time_from_system()) & 0x7fffffff
+	sim.now_unix = int(Time.get_unix_time_from_system())
 	sim.new_game(state, seed_value)
 	_offline_summary = null
 	state.events.clear()
 	state_replaced.emit()
 
 
-## 외부(샌드박스·도구)에서 만든 상태를 통째로 끼운다.
 func replace_state(s: CityState) -> void:
 	state = s
 	state.events.clear()
@@ -72,6 +76,10 @@ func replace_state(s: CityState) -> void:
 
 
 func cmd(cmd_name: String, args: Dictionary = {}) -> Dictionary:
+	if cmd_name == "debug" and str(args.get("op", "")) == "set_speed":
+		speed = float(args.get("speed", 1.0))
+		return {"ok": true, "reason": ""}
+	sim.now_unix = _now()
 	var r: Dictionary = sim.apply(state, cmd_name, args)
 	_drain()
 	return r
@@ -82,7 +90,7 @@ func can(cmd_name: String, args: Dictionary = {}) -> Dictionary:
 
 
 func query(q_name: String, args: Dictionary = {}) -> Variant:
-	if q_name == "offline_summary":
+	if q_name == "offline_summary" and _offline_summary != null:
 		var s: Variant = _offline_summary
 		_offline_summary = null
 		return s
@@ -99,11 +107,10 @@ func register_view(v: Node) -> void:
 
 # ------------------------------------------------------------------ 저장
 func save_game() -> bool:
-	state.last_saved_unix = int(Time.get_unix_time_from_system())
+	state.last_saved_unix = _now()
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
 		return false
-	# to_json(): 키 순서를 그대로 두고(결정론), float를 왕복값으로 맞춘 뒤 쓴다 → 불러와 이어하면 저장 안 한 것과 똑같이 흘러간다.
 	f.store_string(state.to_json())
 	return true
 
@@ -113,22 +120,29 @@ func load_game() -> bool:
 		return false
 	var s := CityState.new()
 	if not s.from_json(FileAccess.get_file_as_string(SAVE_PATH)):
+		push_warning("[Game] save_v3.json을 읽을 수 없거나 버전이 다르다 — 새 게임.")
 		return false
 	state = s
-	# 미접속 시간 → 도시 시간. 실제 1시간 = 도시 offline_game_hours_per_real_hour 시간, 최대 실제 offline_max_real_hours 시간분.
-	var now := int(Time.get_unix_time_from_system())
-	var hours := offline_game_hours(float(now - state.last_saved_unix))
-	if state.last_saved_unix > 0 and hours >= 0.5:
-		_offline_summary = sim.fast_forward(state, hours)
+	sim.now_unix = _now()
+	_offline_catch_up()
 	state.events.clear()
 	state_replaced.emit()
 	return true
 
 
-## 미접속 실제 초 → 흘려보낼 도시 시간(시간 단위).
-func offline_game_hours(elapsed_real_seconds: float) -> float:
-	var real_hours: float = clampf(elapsed_real_seconds / 3600.0, 0.0, float(Data.cfg("time.offline_max_real_hours", 24.0)))
-	return real_hours * float(Data.cfg("time.offline_game_hours_per_real_hour", 3.0))
+## ── [B 파트 이음새] 미접속 따라잡기 ──────────────────────────────────────────
+## 지금은 최소 구현: 실제 경과(최대 config time.offline_max_real_hours) × offline_speed → 경제일, sim.fast_forward 한 번.
+## B 파트가 할 일: 보호 장치(유예 시계 정지·재고 0이면 그 소비만 정지), 복귀 요약(생산·소비·계약·부족 시점·탐험 완료),
+## 음수 시간·과도한 도약 방어. 결과는 _offline_summary {real_hours, econ_days, lines[]}로 둔다(query offline_summary가 한 번 돌려줌).
+func _offline_catch_up() -> void:
+	if state.last_saved_unix <= 0:
+		return
+	var real_s := clampf(float(sim.now_unix - state.last_saved_unix), 0.0, float(Data.cfg("time.offline_max_real_hours", 8)) * 3600.0)
+	var econ := real_s * float(Data.cfg("time.offline_speed", 0.25)) / maxf(float(Data.cfg("time.seconds_per_day", 600)), 1.0)
+	if econ < sim.step_days:
+		return
+	var r := sim.fast_forward(state, econ)
+	_offline_summary = {"real_hours": snappedf(real_s / 3600.0, 0.01), "econ_days": snappedf(econ, 0.01), "lines": r.get("lines", [])}
 
 
 func delete_save() -> void:
@@ -142,7 +156,7 @@ func _drain() -> void:
 		return
 	var evs: Array = state.events
 	state.events = []
-	for e in evs:
+	for e: Dictionary in evs:
 		var n: String = e.get("name", "")
 		if n == "day_ended" and autosave:
 			save_game()

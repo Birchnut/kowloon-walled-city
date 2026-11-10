@@ -1,0 +1,812 @@
+{
+ "_comment": "거래처와 계약 제안. dir = import(우리가 산다)/export(우리가 판다). sizes = 수량 단계 {qty 회당 단위, interval_h 경제시간 주기, price ₩/단위}. transport = 회당 고정 운송비 ₩. known = 처음부터 아는 거래처(나머지는 B 파트 탐험이 partners에 넣는다).",
+ "status": "실험값",
+ "partners": {
+  "wholesaler": {
+   "name": "길 건너 도매상",
+   "known": true,
+   "desc": "원료를 팔고 소비재를 산다. 전자 부품·양주는 비싸게."
+  },
+  "builder": {
+   "name": "건재상",
+   "known": true,
+   "desc": "목재·철제·콘크리트를 비싸게, 조금씩(확정: 탐험 주력 + 교역은 비싸게 소량)."
+  },
+  "docks": {
+   "name": "부두 암시장",
+   "known": false,
+   "desc": "전자 부품과 양주가 싸다. 짝퉁·폭죽을 산다.",
+   "reveal_hint": "부두 뒷골목 탐험에서 발견"
+  },
+  "mainland": {
+   "name": "본토 보따리상",
+   "known": false,
+   "desc": "원단이 싸다. 짝퉁·폭죽을 비싸게 산다.",
+   "reveal_hint": "외곽 창고 지대 탐험에서 발견"
+  }
+ },
+ "items": {
+  "ws_flour": {
+   "partner": "wholesaler",
+   "good": "flour",
+   "dir": "import",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 10,
+     "interval_h": 24,
+     "price": 1.1
+    },
+    {
+     "qty": 20,
+     "interval_h": 12,
+     "price": 1.0
+    },
+    {
+     "qty": 40,
+     "interval_h": 12,
+     "price": 1.0
+    },
+    {
+     "qty": 80,
+     "interval_h": 12,
+     "price": 1.0
+    }
+   ]
+  },
+  "ws_fish": {
+   "partner": "wholesaler",
+   "good": "fishmeat",
+   "dir": "import",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 10,
+     "interval_h": 24,
+     "price": 1.32
+    },
+    {
+     "qty": 20,
+     "interval_h": 12,
+     "price": 1.2
+    },
+    {
+     "qty": 40,
+     "interval_h": 12,
+     "price": 1.2
+    },
+    {
+     "qty": 80,
+     "interval_h": 12,
+     "price": 1.2
+    }
+   ]
+  },
+  "ws_cloth": {
+   "partner": "wholesaler",
+   "good": "cloth",
+   "dir": "import",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 5,
+     "interval_h": 24,
+     "price": 1.76
+    },
+    {
+     "qty": 10,
+     "interval_h": 12,
+     "price": 1.6
+    },
+    {
+     "qty": 20,
+     "interval_h": 12,
+     "price": 1.6
+    },
+    {
+     "qty": 40,
+     "interval_h": 12,
+     "price": 1.6
+    }
+   ]
+  },
+  "ws_fat": {
+   "partner": "wholesaler",
+   "good": "fat",
+   "dir": "import",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 5,
+     "interval_h": 24,
+     "price": 1.1
+    },
+    {
+     "qty": 10,
+     "interval_h": 12,
+     "price": 1.0
+    },
+    {
+     "qty": 20,
+     "interval_h": 12,
+     "price": 1.0
+    },
+    {
+     "qty": 40,
+     "interval_h": 12,
+     "price": 1.0
+    }
+   ]
+  },
+  "ws_oldclothes": {
+   "partner": "wholesaler",
+   "good": "oldclothes",
+   "dir": "import",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 2,
+     "interval_h": 24,
+     "price": 2.2
+    },
+    {
+     "qty": 4,
+     "interval_h": 12,
+     "price": 2.0
+    },
+    {
+     "qty": 8,
+     "interval_h": 12,
+     "price": 2.0
+    },
+    {
+     "qty": 16,
+     "interval_h": 12,
+     "price": 2.0
+    }
+   ]
+  },
+  "ws_elec": {
+   "partner": "wholesaler",
+   "good": "elec",
+   "dir": "import",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 3,
+     "interval_h": 24,
+     "price": 7.7
+    },
+    {
+     "qty": 6,
+     "interval_h": 12,
+     "price": 7.0
+    },
+    {
+     "qty": 12,
+     "interval_h": 12,
+     "price": 7.0
+    },
+    {
+     "qty": 24,
+     "interval_h": 12,
+     "price": 7.0
+    }
+   ]
+  },
+  "ws_liquor": {
+   "partner": "wholesaler",
+   "good": "liquor",
+   "dir": "import",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 1,
+     "interval_h": 24,
+     "price": 37.4
+    },
+    {
+     "qty": 2,
+     "interval_h": 12,
+     "price": 34.0
+    },
+    {
+     "qty": 4,
+     "interval_h": 12,
+     "price": 34.0
+    },
+    {
+     "qty": 8,
+     "interval_h": 12,
+     "price": 34.0
+    }
+   ]
+  },
+  "ws_veg_sell": {
+   "partner": "wholesaler",
+   "good": "veg",
+   "dir": "export",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 5,
+     "interval_h": 24,
+     "price": 0.77
+    },
+    {
+     "qty": 10,
+     "interval_h": 12,
+     "price": 0.7
+    },
+    {
+     "qty": 20,
+     "interval_h": 12,
+     "price": 0.7
+    },
+    {
+     "qty": 40,
+     "interval_h": 12,
+     "price": 0.7
+    }
+   ]
+  },
+  "ws_noodles_sell": {
+   "partner": "wholesaler",
+   "good": "noodles",
+   "dir": "export",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 10,
+     "interval_h": 24,
+     "price": 1.1
+    },
+    {
+     "qty": 20,
+     "interval_h": 12,
+     "price": 1.0
+    },
+    {
+     "qty": 40,
+     "interval_h": 12,
+     "price": 1.0
+    },
+    {
+     "qty": 80,
+     "interval_h": 12,
+     "price": 1.0
+    }
+   ]
+  },
+  "ws_fishball_sell": {
+   "partner": "wholesaler",
+   "good": "fishball",
+   "dir": "export",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 10,
+     "interval_h": 24,
+     "price": 1.32
+    },
+    {
+     "qty": 20,
+     "interval_h": 12,
+     "price": 1.2
+    },
+    {
+     "qty": 40,
+     "interval_h": 12,
+     "price": 1.2
+    },
+    {
+     "qty": 80,
+     "interval_h": 12,
+     "price": 1.2
+    }
+   ]
+  },
+  "ws_moonshine_sell": {
+   "partner": "wholesaler",
+   "good": "moonshine",
+   "dir": "export",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 5,
+     "interval_h": 24,
+     "price": 1.98
+    },
+    {
+     "qty": 10,
+     "interval_h": 12,
+     "price": 1.8
+    },
+    {
+     "qty": 20,
+     "interval_h": 12,
+     "price": 1.8
+    },
+    {
+     "qty": 40,
+     "interval_h": 12,
+     "price": 1.8
+    }
+   ]
+  },
+  "ws_clothes_sell": {
+   "partner": "wholesaler",
+   "good": "clothes",
+   "dir": "export",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 3,
+     "interval_h": 24,
+     "price": 3.08
+    },
+    {
+     "qty": 6,
+     "interval_h": 12,
+     "price": 2.8
+    },
+    {
+     "qty": 12,
+     "interval_h": 12,
+     "price": 2.8
+    },
+    {
+     "qty": 24,
+     "interval_h": 12,
+     "price": 2.8
+    }
+   ]
+  },
+  "ws_candle_sell": {
+   "partner": "wholesaler",
+   "good": "candle",
+   "dir": "export",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 4,
+     "interval_h": 24,
+     "price": 1.43
+    },
+    {
+     "qty": 8,
+     "interval_h": 12,
+     "price": 1.3
+    },
+    {
+     "qty": 16,
+     "interval_h": 12,
+     "price": 1.3
+    },
+    {
+     "qty": 32,
+     "interval_h": 12,
+     "price": 1.3
+    }
+   ]
+  },
+  "ws_soap_sell": {
+   "partner": "wholesaler",
+   "good": "soap",
+   "dir": "export",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 4,
+     "interval_h": 24,
+     "price": 2.42
+    },
+    {
+     "qty": 8,
+     "interval_h": 12,
+     "price": 2.2
+    },
+    {
+     "qty": 16,
+     "interval_h": 12,
+     "price": 2.2
+    },
+    {
+     "qty": 32,
+     "interval_h": 12,
+     "price": 2.2
+    }
+   ]
+  },
+  "ws_radio_sell": {
+   "partner": "wholesaler",
+   "good": "radio",
+   "dir": "export",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 1,
+     "interval_h": 24,
+     "price": 16.5
+    },
+    {
+     "qty": 2,
+     "interval_h": 12,
+     "price": 15.0
+    },
+    {
+     "qty": 4,
+     "interval_h": 12,
+     "price": 15.0
+    },
+    {
+     "qty": 8,
+     "interval_h": 12,
+     "price": 15.0
+    }
+   ]
+  },
+  "ws_suit_sell": {
+   "partner": "wholesaler",
+   "good": "suit",
+   "dir": "export",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 1,
+     "interval_h": 24,
+     "price": 26.4
+    },
+    {
+     "qty": 2,
+     "interval_h": 12,
+     "price": 24.0
+    },
+    {
+     "qty": 4,
+     "interval_h": 12,
+     "price": 24.0
+    },
+    {
+     "qty": 8,
+     "interval_h": 12,
+     "price": 24.0
+    }
+   ]
+  },
+  "ws_appliance_sell": {
+   "partner": "wholesaler",
+   "good": "appliance",
+   "dir": "export",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 1,
+     "interval_h": 24,
+     "price": 55.0
+    },
+    {
+     "qty": 1,
+     "interval_h": 12,
+     "price": 50.0
+    },
+    {
+     "qty": 2,
+     "interval_h": 12,
+     "price": 50.0
+    },
+    {
+     "qty": 4,
+     "interval_h": 12,
+     "price": 50.0
+    }
+   ]
+  },
+  "bd_wood": {
+   "partner": "builder",
+   "good": "wood",
+   "dir": "import",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 2,
+     "interval_h": 24,
+     "price": 22.0
+    },
+    {
+     "qty": 4,
+     "interval_h": 24,
+     "price": 22.0
+    },
+    {
+     "qty": 6,
+     "interval_h": 24,
+     "price": 22.0
+    }
+   ]
+  },
+  "bd_metal": {
+   "partner": "builder",
+   "good": "metal",
+   "dir": "import",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 2,
+     "interval_h": 24,
+     "price": 22.0
+    },
+    {
+     "qty": 4,
+     "interval_h": 24,
+     "price": 22.0
+    },
+    {
+     "qty": 6,
+     "interval_h": 24,
+     "price": 22.0
+    }
+   ]
+  },
+  "bd_concrete": {
+   "partner": "builder",
+   "good": "concrete",
+   "dir": "import",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 2,
+     "interval_h": 24,
+     "price": 22.0
+    },
+    {
+     "qty": 4,
+     "interval_h": 24,
+     "price": 22.0
+    },
+    {
+     "qty": 6,
+     "interval_h": 24,
+     "price": 22.0
+    }
+   ]
+  },
+  "bd_parts": {
+   "partner": "builder",
+   "good": "parts",
+   "dir": "import",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 1,
+     "interval_h": 24,
+     "price": 150.0
+    },
+    {
+     "qty": 2,
+     "interval_h": 24,
+     "price": 150.0
+    }
+   ]
+  },
+  "bd_scrap": {
+   "partner": "builder",
+   "good": "scrap",
+   "dir": "import",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 10,
+     "interval_h": 12,
+     "price": 3.0
+    },
+    {
+     "qty": 20,
+     "interval_h": 12,
+     "price": 3.0
+    },
+    {
+     "qty": 40,
+     "interval_h": 12,
+     "price": 3.0
+    }
+   ]
+  },
+  "dk_elec": {
+   "partner": "docks",
+   "good": "elec",
+   "dir": "import",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 5,
+     "interval_h": 24,
+     "price": 4.95
+    },
+    {
+     "qty": 10,
+     "interval_h": 12,
+     "price": 4.5
+    },
+    {
+     "qty": 20,
+     "interval_h": 12,
+     "price": 4.5
+    },
+    {
+     "qty": 40,
+     "interval_h": 12,
+     "price": 4.5
+    }
+   ]
+  },
+  "dk_liquor": {
+   "partner": "docks",
+   "good": "liquor",
+   "dir": "import",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 2,
+     "interval_h": 24,
+     "price": 24.2
+    },
+    {
+     "qty": 4,
+     "interval_h": 12,
+     "price": 22.0
+    },
+    {
+     "qty": 8,
+     "interval_h": 12,
+     "price": 22.0
+    },
+    {
+     "qty": 16,
+     "interval_h": 12,
+     "price": 22.0
+    }
+   ]
+  },
+  "dk_fake_sell": {
+   "partner": "docks",
+   "good": "fakelux",
+   "dir": "export",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 1,
+     "interval_h": 24,
+     "price": 37.4
+    },
+    {
+     "qty": 2,
+     "interval_h": 12,
+     "price": 34.0
+    },
+    {
+     "qty": 4,
+     "interval_h": 12,
+     "price": 34.0
+    },
+    {
+     "qty": 8,
+     "interval_h": 12,
+     "price": 34.0
+    }
+   ]
+  },
+  "dk_fw_sell": {
+   "partner": "docks",
+   "good": "firework",
+   "dir": "export",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 4,
+     "interval_h": 24,
+     "price": 6.6
+    },
+    {
+     "qty": 8,
+     "interval_h": 12,
+     "price": 6.0
+    },
+    {
+     "qty": 16,
+     "interval_h": 12,
+     "price": 6.0
+    },
+    {
+     "qty": 32,
+     "interval_h": 12,
+     "price": 6.0
+    }
+   ]
+  },
+  "ml_cloth": {
+   "partner": "mainland",
+   "good": "cloth",
+   "dir": "import",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 10,
+     "interval_h": 24,
+     "price": 1.21
+    },
+    {
+     "qty": 20,
+     "interval_h": 12,
+     "price": 1.1
+    },
+    {
+     "qty": 40,
+     "interval_h": 12,
+     "price": 1.1
+    },
+    {
+     "qty": 80,
+     "interval_h": 12,
+     "price": 1.1
+    }
+   ]
+  },
+  "ml_fake_sell": {
+   "partner": "mainland",
+   "good": "fakelux",
+   "dir": "export",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 1,
+     "interval_h": 24,
+     "price": 44.0
+    },
+    {
+     "qty": 2,
+     "interval_h": 12,
+     "price": 40.0
+    },
+    {
+     "qty": 4,
+     "interval_h": 12,
+     "price": 40.0
+    },
+    {
+     "qty": 8,
+     "interval_h": 12,
+     "price": 40.0
+    }
+   ]
+  },
+  "ml_fw_sell": {
+   "partner": "mainland",
+   "good": "firework",
+   "dir": "export",
+   "transport": 0,
+   "sizes": [
+    {
+     "qty": 4,
+     "interval_h": 24,
+     "price": 8.8
+    },
+    {
+     "qty": 8,
+     "interval_h": 12,
+     "price": 8.0
+    },
+    {
+     "qty": 16,
+     "interval_h": 12,
+     "price": 8.0
+    },
+    {
+     "qty": 32,
+     "interval_h": 12,
+     "price": 8.0
+    }
+   ]
+  }
+ }
+}

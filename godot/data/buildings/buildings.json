@@ -1,0 +1,984 @@
+{
+ "_comment": "시설. cost = 돈 + 상품, upkeep = ₩/경제일(일시정지·파산 정지면 0), workforce = 계층별 필요 인원, priority = 노동·물·전기 배분 순위(rules/config workforce.priority), build_days = 공사 경제일, recipe = 경제일당 입력→출력(기본량), water/power = 가동 중 경제일당 물/전기 부하(전기 부하가 있으면 전기 비율만큼만 돈다), supply = 경제일당 공급, market.grade/range, services(서비스 태그)/range, storage = 창고, contract_slots, teams(B), vice.income = ₩/경제일(B 파트가 단속을 붙인다; 'stub' 태그), tags: noise(옆 칸 주거 행복 −), open_sky(위가 비어야 함), blueprint(도면 필요).",
+ "status": "실험값(GDD §4.1 + 디렉터 수정 1: 양복·가전 2단 체인)",
+ "cats": {
+  "house": "주거",
+  "market": "시장",
+  "water": "물",
+  "power": "전기",
+  "food": "식품",
+  "goods": "생활품",
+  "electronics": "전자",
+  "service": "서비스",
+  "vice": "음성",
+  "infra": "기반",
+  "landmark": "명소"
+ },
+ "items": {
+  "stall": {
+   "name": "좌판",
+   "sign": "雜",
+   "cat": "market",
+   "priority": "service",
+   "size": 1,
+   "cost": {
+    "money": 40,
+    "goods": {}
+   },
+   "upkeep": 2,
+   "workforce": {
+    "t1": 2
+   },
+   "build_days": 0.04,
+   "market": 1,
+   "range": 5,
+   "desc": "잡동사니를 늘어놓은 좌판. 1등급 상품을 취급한다."
+  },
+  "market2": {
+   "name": "생활 시장",
+   "sign": "市",
+   "cat": "market",
+   "priority": "service",
+   "size": 2,
+   "cost": {
+    "money": 160,
+    "goods": {
+     "scrap": 10
+    }
+   },
+   "upkeep": 8,
+   "workforce": {
+    "t2": 4
+   },
+   "build_days": 0.08,
+   "market": 2,
+   "range": 6,
+   "desc": "옷과 비누까지 파는 골목 시장. 2등급까지."
+  },
+  "market3": {
+   "name": "종합 시장",
+   "sign": "百貨",
+   "cat": "market",
+   "priority": "service",
+   "size": 2,
+   "cost": {
+    "money": 600,
+    "goods": {
+     "scrap": 30
+    }
+   },
+   "upkeep": 20,
+   "workforce": {
+    "t3": 6
+   },
+   "build_days": 0.08,
+   "market": 3,
+   "range": 7,
+   "power": 6,
+   "desc": "불 켜진 백화 골목. 3등급까지. 전기 필요."
+  },
+  "market4": {
+   "name": "고급 상가",
+   "sign": "名店",
+   "cat": "market",
+   "priority": "service",
+   "size": 2,
+   "cost": {
+    "money": 1500,
+    "goods": {
+     "scrap": 60,
+     "parts": 2
+    }
+   },
+   "upkeep": 45,
+   "workforce": {
+    "t4": 6
+   },
+   "build_days": 0.08,
+   "market": 4,
+   "range": 8,
+   "power": 10,
+   "desc": "간판이 번쩍이는 명품 거리. 4등급까지. 전기 필요."
+  },
+  "rain_catcher": {
+   "name": "빗물받이",
+   "sign": "",
+   "cat": "water",
+   "priority": "utility",
+   "size": 1,
+   "cost": {
+    "money": 20,
+    "goods": {}
+   },
+   "upkeep": 0.5,
+   "workforce": {},
+   "build_days": 0.04,
+   "supply": {
+    "water": 20
+   },
+   "desc": "양철 홈통과 드럼통. 싸고 약하다."
+  },
+  "water_tower": {
+   "name": "급수탑",
+   "sign": "水",
+   "cat": "water",
+   "priority": "utility",
+   "size": 1,
+   "cost": {
+    "money": 120,
+    "goods": {
+     "scrap": 10
+    }
+   },
+   "upkeep": 6,
+   "workforce": {
+    "t1": 2
+   },
+   "build_days": 0.04,
+   "supply": {
+    "water": 120
+   },
+   "desc": "지붕 위 물탱크와 펌프."
+  },
+  "water_ext": {
+   "name": "외부 수도",
+   "sign": "駁水",
+   "cat": "water",
+   "priority": "utility",
+   "size": 1,
+   "cost": {
+    "money": 300,
+    "goods": {}
+   },
+   "upkeep": 35,
+   "workforce": {},
+   "build_days": 0.04,
+   "supply": {
+    "water": 250
+   },
+   "desc": "성채 밖 수도관에 몰래 이은 관. 자리는 적게, 돈은 많이."
+  },
+  "water_plant": {
+   "name": "정수장",
+   "sign": "",
+   "cat": "water",
+   "priority": "utility",
+   "size": 2,
+   "cost": {
+    "money": 1200,
+    "goods": {
+     "scrap": 40,
+     "parts": 2
+    }
+   },
+   "upkeep": 50,
+   "workforce": {
+    "t3": 4
+   },
+   "build_days": 0.08,
+   "supply": {
+    "water": 600
+   },
+   "power": 10,
+   "desc": "거르고 끓여 보내는 큰 설비. 전기 필요."
+  },
+  "generator": {
+   "name": "소형 발전기",
+   "sign": "電",
+   "cat": "power",
+   "priority": "utility",
+   "size": 1,
+   "cost": {
+    "money": 150,
+    "goods": {
+     "scrap": 10
+    }
+   },
+   "upkeep": 25,
+   "workforce": {
+    "t2": 1
+   },
+   "build_days": 0.04,
+   "supply": {
+    "power": 40
+   },
+   "tags": [
+    "noise"
+   ],
+   "desc": "털털거리는 디젤 발전기. 시끄럽다."
+  },
+  "power_ext": {
+   "name": "외부 전력",
+   "sign": "駁電",
+   "cat": "power",
+   "priority": "utility",
+   "size": 1,
+   "cost": {
+    "money": 400,
+    "goods": {}
+   },
+   "upkeep": 140,
+   "workforce": {},
+   "build_days": 0.04,
+   "supply": {
+    "power": 150
+   },
+   "desc": "전봇대에서 끌어온 선. 자리는 적게, 돈은 많이."
+  },
+  "power_plant": {
+   "name": "발전소",
+   "sign": "",
+   "cat": "power",
+   "priority": "utility",
+   "size": 2,
+   "cost": {
+    "money": 1500,
+    "goods": {
+     "scrap": 60,
+     "parts": 3
+    }
+   },
+   "upkeep": 120,
+   "workforce": {
+    "t3": 6
+   },
+   "build_days": 0.08,
+   "supply": {
+    "power": 300
+   },
+   "tags": [
+    "noise"
+   ],
+   "desc": "성채의 심장. 설비 부품이 든다."
+  },
+  "chp": {
+   "name": "열병합 발전",
+   "sign": "",
+   "cat": "power",
+   "priority": "utility",
+   "size": 2,
+   "cost": {
+    "money": 3000,
+    "goods": {
+     "scrap": 80,
+     "parts": 6
+    }
+   },
+   "upkeep": 200,
+   "workforce": {
+    "t3": 4,
+    "t4": 2
+   },
+   "build_days": 0.08,
+   "supply": {
+    "power": 800
+   },
+   "blueprint": "chp",
+   "desc": "폐열까지 쓰는 발전 설비. 도면이 있어야 짓는다(탐험)."
+  },
+  "garden": {
+   "name": "옥상 텃밭",
+   "sign": "",
+   "cat": "food",
+   "priority": "food",
+   "size": 1,
+   "cost": {
+    "money": 30,
+    "goods": {}
+   },
+   "upkeep": 1,
+   "workforce": {
+    "t1": 2
+   },
+   "build_days": 0.04,
+   "recipe": {
+    "in": {},
+    "out": {
+     "veg": 10
+    }
+   },
+   "water": 3,
+   "desc": "스티로폼 상자에 키우는 채소."
+  },
+  "noodle_mill": {
+   "name": "제면소",
+   "sign": "麵",
+   "cat": "food",
+   "priority": "food",
+   "size": 1,
+   "cost": {
+    "money": 100,
+    "goods": {
+     "scrap": 5
+    }
+   },
+   "upkeep": 4,
+   "workforce": {
+    "t1": 4
+   },
+   "build_days": 0.04,
+   "recipe": {
+    "in": {
+     "flour": 20
+    },
+    "out": {
+     "noodles": 40
+    }
+   },
+   "water": 6,
+   "tags": [
+    "noise"
+   ],
+   "desc": "밀가루를 뽑아 국수를 만든다."
+  },
+  "fishball_factory": {
+   "name": "어묵 공장",
+   "sign": "魚蛋",
+   "cat": "food",
+   "priority": "food",
+   "size": 1,
+   "cost": {
+    "money": 150,
+    "goods": {
+     "scrap": 10
+    }
+   },
+   "upkeep": 6,
+   "workforce": {
+    "t1": 4
+   },
+   "build_days": 0.04,
+   "recipe": {
+    "in": {
+     "fishmeat": 20
+    },
+    "out": {
+     "fishball": 40
+    }
+   },
+   "water": 6,
+   "tags": [
+    "noise"
+   ],
+   "desc": "어육을 치대 어묵을 빚는다."
+  },
+  "distillery": {
+   "name": "밀주 양조장",
+   "sign": "酒",
+   "cat": "food",
+   "priority": "goods",
+   "size": 1,
+   "cost": {
+    "money": 100,
+    "goods": {}
+   },
+   "upkeep": 3,
+   "workforce": {
+    "t1": 3
+   },
+   "build_days": 0.04,
+   "recipe": {
+    "in": {
+     "flour": 10
+    },
+    "out": {
+     "moonshine": 20
+    }
+   },
+   "water": 4,
+   "desc": "밀가루로 담그는 독한 술."
+  },
+  "candle_shop": {
+   "name": "초 공방",
+   "sign": "燭",
+   "cat": "goods",
+   "priority": "goods",
+   "size": 1,
+   "cost": {
+    "money": 80,
+    "goods": {}
+   },
+   "upkeep": 3,
+   "workforce": {
+    "t1": 3
+   },
+   "build_days": 0.04,
+   "recipe": {
+    "in": {
+     "fat": 8
+    },
+    "out": {
+     "candle": 16
+    }
+   },
+   "desc": "유지를 녹여 초를 붓는다."
+  },
+  "tailor": {
+   "name": "봉제방",
+   "sign": "衣",
+   "cat": "goods",
+   "priority": "goods",
+   "size": 1,
+   "cost": {
+    "money": 120,
+    "goods": {
+     "scrap": 10
+    }
+   },
+   "upkeep": 5,
+   "workforce": {
+    "t2": 4
+   },
+   "build_days": 0.04,
+   "recipe": {
+    "in": {
+     "cloth": 8
+    },
+    "out": {
+     "clothes": 12
+    }
+   },
+   "desc": "재봉틀 여섯 대가 쉬지 않는다."
+  },
+  "soap_shop": {
+   "name": "비누 공방",
+   "sign": "皂",
+   "cat": "goods",
+   "priority": "goods",
+   "size": 1,
+   "cost": {
+    "money": 120,
+    "goods": {}
+   },
+   "upkeep": 5,
+   "workforce": {
+    "t2": 3
+   },
+   "build_days": 0.04,
+   "recipe": {
+    "in": {
+     "fat": 8
+    },
+    "out": {
+     "soap": 16
+    }
+   },
+   "desc": "유지로 비누를 굳힌다."
+  },
+  "suit_shop": {
+   "name": "양복점",
+   "sign": "洋服",
+   "cat": "goods",
+   "priority": "goods",
+   "size": 1,
+   "cost": {
+    "money": 500,
+    "goods": {
+     "scrap": 20
+    }
+   },
+   "upkeep": 15,
+   "workforce": {
+    "t3": 4
+   },
+   "build_days": 0.04,
+   "recipe": {
+    "in": {
+     "clothes": 4,
+     "cloth": 8
+    },
+    "out": {
+     "suit": 6
+    }
+   },
+   "desc": "봉제방 옷감을 다시 지어 양복을 맞춘다(2단 체인)."
+  },
+  "radio_shop": {
+   "name": "전파사",
+   "sign": "電器",
+   "cat": "electronics",
+   "priority": "goods",
+   "size": 1,
+   "cost": {
+    "money": 400,
+    "goods": {
+     "scrap": 20
+    }
+   },
+   "upkeep": 12,
+   "workforce": {
+    "t3": 4
+   },
+   "build_days": 0.04,
+   "recipe": {
+    "in": {
+     "elec": 4
+    },
+    "out": {
+     "radio": 4
+    }
+   },
+   "power": 6,
+   "desc": "라디오를 조립하고 고친다. 전기 필요."
+  },
+  "assembly": {
+   "name": "조립소",
+   "sign": "裝配",
+   "cat": "electronics",
+   "priority": "goods",
+   "size": 2,
+   "cost": {
+    "money": 1500,
+    "goods": {
+     "scrap": 40,
+     "parts": 2
+    }
+   },
+   "upkeep": 40,
+   "workforce": {
+    "t3": 6,
+    "t4": 2
+   },
+   "build_days": 0.08,
+   "recipe": {
+    "in": {
+     "radio": 2,
+     "elec": 8
+    },
+    "out": {
+     "appliance": 4
+    }
+   },
+   "power": 12,
+   "desc": "라디오를 뜯어 가전을 만든다(2단 체인). 전기 필요."
+  },
+  "fake_shop": {
+   "name": "짝퉁 공방",
+   "sign": "名牌",
+   "cat": "vice",
+   "priority": "vice",
+   "size": 1,
+   "cost": {
+    "money": 400,
+    "goods": {}
+   },
+   "upkeep": 10,
+   "workforce": {
+    "t2": 4,
+    "t3": 2
+   },
+   "build_days": 0.04,
+   "recipe": {
+    "in": {
+     "cloth": 3,
+     "elec": 2
+    },
+    "out": {
+     "fakelux": 4
+    }
+   },
+   "tags": [
+    "vice"
+   ],
+   "desc": "로고는 진짜보다 크다."
+  },
+  "shrine": {
+   "name": "사당",
+   "sign": "福",
+   "cat": "service",
+   "priority": "service",
+   "size": 1,
+   "cost": {
+    "money": 30,
+    "goods": {}
+   },
+   "upkeep": 1,
+   "workforce": {
+    "t1": 1
+   },
+   "build_days": 0.04,
+   "services": [
+    "shrine"
+   ],
+   "range": 5,
+   "desc": "향 연기가 피어오르는 작은 사당."
+  },
+  "teahouse": {
+   "name": "찻집",
+   "sign": "茶",
+   "cat": "service",
+   "priority": "service",
+   "size": 1,
+   "cost": {
+    "money": 80,
+    "goods": {}
+   },
+   "upkeep": 3,
+   "workforce": {
+    "t1": 2
+   },
+   "build_days": 0.04,
+   "services": [
+    "teahouse"
+   ],
+   "range": 5,
+   "desc": "딤섬과 차, 그리고 수다."
+  },
+  "mahjong": {
+   "name": "마작방",
+   "sign": "麻雀",
+   "cat": "service",
+   "priority": "service",
+   "size": 1,
+   "cost": {
+    "money": 100,
+    "goods": {}
+   },
+   "upkeep": 3,
+   "workforce": {
+    "t1": 2
+   },
+   "build_days": 0.04,
+   "services": [
+    "mahjong"
+   ],
+   "range": 5,
+   "desc": "패 섞는 소리가 밤새 난다."
+  },
+  "dentist": {
+   "name": "무면허 치과",
+   "sign": "牙科",
+   "cat": "service",
+   "priority": "service",
+   "size": 1,
+   "cost": {
+    "money": 120,
+    "goods": {}
+   },
+   "upkeep": 5,
+   "workforce": {
+    "t2": 2
+   },
+   "build_days": 0.04,
+   "services": [
+    "clinic"
+   ],
+   "range": 6,
+   "tags": [
+    "vice"
+   ],
+   "desc": "면허는 본토에 있다."
+  },
+  "bathhouse": {
+   "name": "목욕탕",
+   "sign": "浴",
+   "cat": "service",
+   "priority": "service",
+   "size": 2,
+   "cost": {
+    "money": 400,
+    "goods": {
+     "scrap": 20
+    }
+   },
+   "upkeep": 12,
+   "workforce": {
+    "t2": 4
+   },
+   "build_days": 0.08,
+   "services": [
+    "bath"
+   ],
+   "range": 7,
+   "water": 30,
+   "desc": "뜨거운 물이 귀한 성채의 사치."
+  },
+  "study": {
+   "name": "공부방",
+   "sign": "學",
+   "cat": "service",
+   "priority": "service",
+   "size": 1,
+   "cost": {
+    "money": 300,
+    "goods": {}
+   },
+   "upkeep": 10,
+   "workforce": {
+    "t3": 3
+   },
+   "build_days": 0.04,
+   "services": [
+    "study"
+   ],
+   "range": 7,
+   "desc": "아이들과 야간반 어른들. (연구는 B 파트)"
+  },
+  "karaoke": {
+   "name": "가라오케",
+   "sign": "卡拉OK",
+   "cat": "service",
+   "priority": "service",
+   "size": 1,
+   "cost": {
+    "money": 300,
+    "goods": {}
+   },
+   "upkeep": 10,
+   "workforce": {
+    "t2": 3
+   },
+   "build_days": 0.04,
+   "services": [
+    "karaoke"
+   ],
+   "range": 6,
+   "power": 8,
+   "desc": "네온과 떼창. 전기 필요."
+  },
+  "roof_garden": {
+   "name": "옥상 정원",
+   "sign": "",
+   "cat": "service",
+   "priority": "service",
+   "size": 1,
+   "cost": {
+    "money": 200,
+    "goods": {}
+   },
+   "upkeep": 4,
+   "workforce": {
+    "t1": 1
+   },
+   "build_days": 0.04,
+   "services": [
+    "garden"
+   ],
+   "range": 4,
+   "water": 4,
+   "open_sky": true,
+   "desc": "하늘이 열린 자리에만 지을 수 있다."
+  },
+  "gambling_den": {
+   "name": "하우스",
+   "sign": "賭",
+   "cat": "vice",
+   "priority": "vice",
+   "size": 1,
+   "cost": {
+    "money": 150,
+    "goods": {}
+   },
+   "upkeep": 4,
+   "workforce": {
+    "t1": 3
+   },
+   "build_days": 0.04,
+   "services": [
+    "mahjong"
+   ],
+   "range": 5,
+   "vice": {
+    "income": 30
+   },
+   "tags": [
+    "vice",
+    "stub"
+   ],
+   "desc": "문 닫고 하는 판. 마작방 수요도 채운다. [단속은 B 파트]"
+  },
+  "callcenter": {
+   "name": "콜센터",
+   "sign": "客服",
+   "cat": "vice",
+   "priority": "vice",
+   "size": 1,
+   "cost": {
+    "money": 500,
+    "goods": {}
+   },
+   "upkeep": 15,
+   "workforce": {
+    "t1": 6,
+    "t2": 4
+   },
+   "build_days": 0.04,
+   "power": 15,
+   "vice": {
+    "income": 160
+   },
+   "tags": [
+    "vice",
+    "stub"
+   ],
+   "desc": "고객님, 검찰청입니다. [단속은 B 파트]"
+  },
+  "casino": {
+   "name": "카지노",
+   "sign": "賭場",
+   "cat": "vice",
+   "priority": "vice",
+   "size": 2,
+   "cost": {
+    "money": 2500,
+    "goods": {
+     "scrap": 40
+    }
+   },
+   "upkeep": 60,
+   "workforce": {
+    "t2": 8,
+    "t3": 4
+   },
+   "build_days": 0.08,
+   "services": [
+    "casino"
+   ],
+   "range": 8,
+   "power": 30,
+   "vice": {
+    "income": 500
+   },
+   "tags": [
+    "vice",
+    "stub"
+   ],
+   "desc": "유지와 거물이 돈을 잃으러 온다. [단속은 B 파트]"
+  },
+  "fireworks": {
+   "name": "화약 가공소",
+   "sign": "炮",
+   "cat": "vice",
+   "priority": "vice",
+   "size": 1,
+   "cost": {
+    "money": 300,
+    "goods": {}
+   },
+   "upkeep": 8,
+   "workforce": {
+    "t1": 4
+   },
+   "build_days": 0.04,
+   "recipe": {
+    "in": {
+     "scrap": 2
+    },
+    "out": {
+     "firework": 8
+    }
+   },
+   "tags": [
+    "vice",
+    "noise",
+    "stub"
+   ],
+   "desc": "폭죽을 말아 수출한다. [사고 위험은 B 파트]"
+  },
+  "scrapyard": {
+   "name": "고물 작업장",
+   "sign": "收買",
+   "cat": "infra",
+   "priority": "other",
+   "size": 1,
+   "cost": {
+    "money": 80,
+    "goods": {}
+   },
+   "upkeep": 2,
+   "workforce": {
+    "t1": 3
+   },
+   "build_days": 0.04,
+   "recipe": {
+    "in": {},
+    "out": {
+     "scrap": 10
+    }
+   },
+   "tags": [
+    "noise"
+   ],
+   "desc": "고물을 사고 판다."
+  },
+  "warehouse": {
+   "name": "창고",
+   "sign": "倉",
+   "cat": "infra",
+   "priority": "other",
+   "size": 1,
+   "cost": {
+    "money": 100,
+    "goods": {}
+   },
+   "upkeep": 3,
+   "workforce": {
+    "t1": 2
+   },
+   "build_days": 0.04,
+   "storage": true,
+   "desc": "저장 한도를 늘린다."
+  },
+  "trade_post": {
+   "name": "교역소",
+   "sign": "行",
+   "cat": "infra",
+   "priority": "other",
+   "size": 1,
+   "cost": {
+    "money": 100,
+    "goods": {}
+   },
+   "upkeep": 4,
+   "workforce": {
+    "t1": 2
+   },
+   "build_days": 0.04,
+   "contract_slots": 2,
+   "desc": "정기 계약 2자리."
+  },
+  "expedition_base": {
+   "name": "탐험 거점",
+   "sign": "探",
+   "cat": "infra",
+   "priority": "other",
+   "size": 1,
+   "cost": {
+    "money": 100,
+    "goods": {}
+   },
+   "upkeep": 2,
+   "workforce": {},
+   "build_days": 0.04,
+   "teams": 1,
+   "desc": "탐험대 1팀(최대 3). [탐험은 B 파트]"
+  },
+  "city_hall": {
+   "name": "성채 회관",
+   "sign": "城寨",
+   "cat": "landmark",
+   "priority": "service",
+   "size": 2,
+   "cost": {
+    "money": 5000,
+    "goods": {
+     "wood": 40,
+     "metal": 40,
+     "concrete": 40,
+     "parts": 10
+    }
+   },
+   "upkeep": 50,
+   "workforce": {
+    "t4": 4
+   },
+   "build_days": 0.25,
+   "services": [
+    "landmark"
+   ],
+   "range": 12,
+   "landmark": true,
+   "desc": "성채의 얼굴. 세 자재를 모두 쓴다 — 최종 목표."
+  }
+ }
+}

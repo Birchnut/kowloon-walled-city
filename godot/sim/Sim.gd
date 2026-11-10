@@ -1,23 +1,24 @@
 class_name Sim
 extends RefCounted
-## Sim — 시스템들을 순서대로 돌리고 명령·질의를 나눠 준다. 노드 의존 없음.
-## 규칙은 sim/systems/<id>.gd (config.json "systems" 순서대로 켠다). 여기엔 규칙이 없다:
-## 시간 쪼개기, RNG, 데이터 읽기, 지표 캐시, 명령 배달만 한다. 계약은 docs/ARCHITECTURE.md.
+## Sim — 시스템들을 순서대로 돌리고 명령·질의를 나눠 준다. 노드 의존 없음. Time.* 호출 없음.
+## 규칙은 sim/systems/<id>.gd (data/rules/config.json "systems" 순서대로 켠다). 여기엔 규칙이 없다:
+## 고정 스텝 시계, RNG, 데이터 읽기, 배치 캐시, 명령·질의 배달만 한다. 계약은 docs/ARCHITECTURE.md.
+## 경제 시간은 tick(state, dt_econ_days)로만, 실제 시간은 now_unix로만 들어온다.
 
-const KIND_FILE := {"housing": "housing", "business": "businesses", "facility": "facilities"}
-
-var db: Dictionary = {}              # Data.files (파일명 → JSON 루트). 헤드리스에서는 직접 읽어 주입.
+var db: Dictionary = {}
 var systems: Array[SimSystem] = []
-var enabled: Dictionary = {}         # 시스템 id → true
-var offline: bool = false            # fast_forward 중(성장 없음·재난 보류)
+var sys_ids: Array[String] = []
+var enabled: Dictionary = {}
+var offline: bool = false          # fast_forward 중
+var now_unix: int = 0              # Game이 매 프레임 넣는다(시스템 시각 + state.clock_offset)
 var W: int = 12
 var H: int = 12
 var F: int = 10
-var gate: Vector2i = Vector2i(5, 11)
-var _mcache: Dictionary = {}
-var _mdirty: bool = true
-var _mstate: int = 0
-var _opts: Dictionary = {}           # axis → {option id → option}
+var step_days: float = 1.0 / 48.0
+var errors: Array = []             # 데이터 검증 오류(한국어)
+var cover_cache: Dictionary = {}   # Cover.gd가 만든 배치 파생 캐시(저장 안 함)
+var _cover_key: String = ""
+var _fa: Dictionary = {}            # 이번 스텝의 상품 흐름 누적(스텝 끝에 state.flow로 접는다)
 
 
 func setup(data_files: Dictionary) -> void:
@@ -25,43 +26,29 @@ func setup(data_files: Dictionary) -> void:
 	W = int(cfg("grid.width", 12))
 	H = int(cfg("grid.height", 12))
 	F = int(cfg("grid.max_floors", 10))
-	var g: Array = cfg("grid.gate", [W / 2, H - 1])
-	gate = Vector2i(int(g[0]), int(g[1]))
-	_opts.clear()
-	for a: Dictionary in db.get("policies", {}).get("axes", []):
-		_opts[a["axis"]] = {}
-		for o: Dictionary in a.get("options", []):
-			_opts[a["axis"]][o["id"]] = o
+	step_days = float(cfg("time.step_days", 1.0 / 48.0))
+	errors = Validate.check(db)
+	for e: String in errors:
+		push_error("[데이터] " + e)
 	systems.clear()
+	sys_ids.clear()
 	enabled.clear()
 	for id: String in cfg("systems", []):
 		var path := "res://sim/systems/%s.gd" % id
 		if not ResourceLoader.exists(path):
-			push_warning("[Sim] 시스템 파일 없음: %s" % path)
+			push_error("[Sim] 시스템 파일 없음: %s" % path)
 			continue
 		var s: SimSystem = (load(path) as GDScript).new()
 		s.setup(self)
 		systems.append(s)
+		sys_ids.append(id)
 		enabled[id] = true
-	touch()
+	_cover_key = ""
 
 
 # ------------------------------------------------------------------ 데이터
 func cfg(path: String, default: Variant = null) -> Variant:
-	return _dig(db.get("config", {}), path, default)
-
-
-## 시스템 수치: data/economy.json 의 "<system>.<key>".
-func tune(path: String, default: Variant = null) -> Variant:
-	return _dig(db.get("economy", {}), path, default)
-
-
-func num(path: String, default: float = 0.0) -> float:
-	return float(_dig(db.get("economy", {}), path, default))
-
-
-func pace(key: String) -> float:
-	return float(cfg("pace." + key, 1.0))
+	return dig(db.get("config", {}), path, default)
 
 
 func items(file: String) -> Dictionary:
@@ -74,13 +61,32 @@ func item(file: String, id: String) -> Dictionary:
 	return it if it is Dictionary else {}
 
 
-## 셀의 콘텐츠 정의(공사 중이면 완공 후의 정의).
-func def_of(cell: Dictionary) -> Dictionary:
-	var c: Dictionary = cell.get("becomes", cell) if cell.get("kind", "") == "site" else cell
-	return item(KIND_FILE.get(c.get("kind", ""), ""), str(c.get("type", "")))
+func bdef(type: String) -> Dictionary:
+	return item("buildings", type)
 
 
-func _dig(root: Variant, path: String, default: Variant) -> Variant:
+func good(id: String) -> Dictionary:
+	return item("goods", id)
+
+
+func gname(id: String) -> String:
+	return str(good(id).get("name", id))
+
+
+## tier int(1..5) → tiers.json 항목.
+func tier(t: int) -> Dictionary:
+	return item("tiers", "t%d" % t)
+
+
+func tname(t: int) -> String:
+	return str(tier(t).get("name", "t%d" % t))
+
+
+func max_tier() -> int:
+	return items("tiers").size()
+
+
+static func dig(root: Variant, path: String, default: Variant) -> Variant:
 	var cur: Variant = root
 	for part: String in path.split("."):
 		if cur is Dictionary and cur.has(part):
@@ -90,22 +96,34 @@ func _dig(root: Variant, path: String, default: Variant) -> Variant:
 	return cur
 
 
-# ------------------------------------------------------------------ 정책·해금
-## 지금 고른 정책 옵션들의 mods[key]를 전부 곱한 값(없으면 1).
-func mod(state: CityState, key: String) -> float:
-	var v := 1.0
-	for axis: String in state.policies:
-		var o: Dictionary = _opts.get(axis, {}).get(state.policies[axis], {})
-		v *= float(o.get("mods", {}).get(key, 1.0))
-	return v
+## 상품 하나의 저장 한도(창고 수 반영).
+func cap_of(state: CityState, g: String) -> float:
+	var cat := str(good(g).get("cat", "consumer"))
+	var key := "material" if cat == "material" else "goods"
+	var base := float(cfg("storage.%s_base" % key, 200))
+	var per := float(cfg("storage.%s_per_warehouse" % key, 300))
+	return base + per * float(cover(state).get("warehouses", 0))
 
 
-func option(axis: String, id: String) -> Dictionary:
-	return _opts.get(axis, {}).get(id, {})
+## 시설의 인력 비율. workforce 시스템이 꺼져 있으면 1(노동 제약 없음). 일시정지·파산 정지면 0.
+func staff_of(b: Dictionary) -> float:
+	if b.get("paused", false) or b.get("money_stop", false):
+		return 0.0
+	return float(b.get("staff", 0.0)) if enabled.has("workforce") else 1.0
 
 
-func is_unlocked(state: CityState, id: Variant) -> bool:
-	return id == null or str(id) == "" or state.unlocked.has(str(id)) or not enabled.has("unlocks")
+func is_unlocked(state: CityState, id: String) -> bool:
+	return not enabled.has("progression") or state.unlocked.has(id)
+
+
+# ------------------------------------------------------------------ 배치 캐시
+## 배치(건물·완공)가 바뀔 때만 다시 계산: 주거별 시장·서비스 접근 목록, 소음 이웃, 창고 수 등.
+func cover(state: CityState) -> Dictionary:
+	var key := "%d:%d" % [state.get_instance_id(), state.layout_rev()]
+	if key != _cover_key:
+		cover_cache = Cover.build(self, state)
+		_cover_key = key
+	return cover_cache
 
 
 # ------------------------------------------------------------------ RNG (xorshift32, 상태는 state.rng_state)
@@ -131,66 +149,20 @@ func roll(state: CityState) -> float:
 	return float(_next(state)) / 4294967296.0
 
 
-func roll_range(state: CityState, a: int, b: int) -> int:
-	return a if b <= a else a + _next(state) % (b - a + 1)
-
-
 func rand_seed(state: CityState) -> int:
 	return _next(state) & 0x7fffffff
 
 
-## 가중치 배열에서 하나 뽑는다. 전부 0 이하면 -1.
-func pick(state: CityState, weights: Array) -> int:
-	var total := 0.0
-	for w: Variant in weights:
-		total += maxf(float(w), 0.0)
-	if total <= 0.0:
-		return -1
-	var r := roll(state) * total
-	for i: int in weights.size():
-		r -= maxf(float(weights[i]), 0.0)
-		if r < 0.0:
-			return i
-	return weights.size() - 1
-
-
-# ------------------------------------------------------------------ 지표·식
-func touch() -> void:
-	_mdirty = true
-
-
-func metrics(state: CityState) -> Dictionary:
-	if _mdirty or _mstate != state.get_instance_id():
-		_mcache = Metrics.compute(self, state)
-		for s: SimSystem in systems:
-			s.metrics(state, _mcache)
-		_mdirty = false
-		_mstate = state.get_instance_id()
-	return _mcache
-
-
-func test(state: CityState, cond: Variant) -> bool:
-	return Expr.test(cond, metrics(state))
-
-
-func run(state: CityState, effects: Variant) -> void:
-	Expr.apply(self, state, effects)
-
-
-## 글 속의 {t}를 지금 호칭으로, "이(가)" 같은 조사를 앞말 받침에 맞게.
-func fmt(state: CityState, text: String) -> String:
-	return kr(text.replace("{t}", str(state.identity.get("title", "대장"))))
-
-
-## 기록 한 줄(fmt를 거친다).
+# ------------------------------------------------------------------ 글
 func say(state: CityState, text: String, tone: String = "") -> void:
-	state.add_log(fmt(state, text), tone)
+	state.add_log(kr(text), tone)
 
 
 const _JOSA := [["이(가)", "이", "가"], ["을(를)", "을", "를"], ["은(는)", "은", "는"], ["과(와)", "과", "와"],
-	["와(과)", "과", "와"], ["으로(로)", "으로", "로"], ["(이)라", "이라", "라"], ["(이)", "이", ""]]
+	["으로(로)", "으로", "로"], ["(이)라", "이라", "라"]]
 
 
+## "이(가)" 같은 조사를 앞말 받침에 맞춘다.
 static func kr(text: String) -> String:
 	if text.find("(") < 0:
 		return text
@@ -198,10 +170,12 @@ static func kr(text: String) -> String:
 		var at := text.find(j[0])
 		while at >= 0:
 			var back := at - 1
-			while back > 0 and text[back] in ["'", "\"", ")", "」", "’", "”", " "]:
+			while back > 0 and text[back] in ["'", "\"", ")", "」", " "]:
 				back -= 1
 			var code := (text.unicode_at(back) - 0xAC00) if back >= 0 else -1
 			var fin := code >= 0 and code < 11172 and code % 28 != 0
+			if code < 0 and back >= 0 and text[back] >= "0" and text[back] <= "9":
+				fin = text[back] in ["0", "1", "3", "6", "7", "8"]
 			if j[0] == "으로(로)" and code >= 0 and code % 28 == 8:
 				fin = false
 			text = text.substr(0, at) + (j[1] if fin else j[2]) + text.substr(at + (j[0] as String).length())
@@ -212,54 +186,91 @@ static func kr(text: String) -> String:
 # ------------------------------------------------------------------ 진행
 func new_game(state: CityState, seed_value: int) -> void:
 	seed_state(state, seed_value)
-	state.day = 1
-	state.hour = float(cfg("time.start_hour", 6))
+	state.econ_days = float(cfg("time.start_hour", 6)) / 24.0
+	_derive_clock(state)
+	state.money = float(cfg("start.money", 500))
+	var st: Dictionary = cfg("start.stock", {})
+	for g: String in st:
+		state.stock[g] = float(st[g])
+	state.ledger = {"today": {}, "days": []}
 	for s: SimSystem in systems:
 		s.on_new_game(state)
-	touch()
 	state.emit("day_started", {"day": state.day})
 
 
-## dt_hours 만큼 도시 시간을 진행. 정시마다 끊어서 on_hour / on_day_end 를 돌린다.
-func tick(state: CityState, dt_hours: float) -> void:
-	var left := dt_hours
-	while left > 1e-9:
-		var step := minf(left, floorf(state.hour) + 1.0 - state.hour)
-		left -= step
-		var h0 := int(state.hour)
-		var d0 := state.day
-		for s: SimSystem in systems:
-			s.tick(state, step)
-		if state.hour >= 24.0:
-			touch()
-			for s: SimSystem in systems:
-				s.on_day_end(state)
-			for s: SimSystem in systems:
-				s.on_day_start(state)
-		if int(state.hour) != h0 or state.day != d0:
-			touch()
-			for s: SimSystem in systems:
-				s.on_hour(state, int(state.hour))
-			if state.day != d0:
-				state.settle()
+func _derive_clock(state: CityState) -> void:
+	state.day = int(floorf(state.econ_days + 1e-9)) + 1
+	state.hour = (state.econ_days - float(state.day - 1)) * 24.0
 
 
-## 미접속 시간 처리(도시 시간 hours). 같은 규칙을 offline 표시만 켜고 1시간 단위로 돌린다.
-## 반환: {hours, lines[]} — UI의 "자리를 비운 사이" 요약.
-func fast_forward(state: CityState, hours: float) -> Dictionary:
-	var before: Dictionary = metrics(state).duplicate()
-	offline = true
-	var left := hours
-	while left > 1e-9:
-		var step := minf(left, 1.0)
-		tick(state, step)
-		left -= step
-	offline = false
-	touch()
-	var lines: Array = []
+## dt 경제일만큼 진행. 고정 스텝(config time.step_days)으로만 규칙을 돌린다. 남은 조각은 state.flags.step_acc.
+func tick(state: CityState, dt_days: float) -> void:
+	if dt_days <= 0.0:
+		return
+	var acc := float(state.flags.get("step_acc", 0.0)) + dt_days
+	while acc >= step_days - 1e-12:
+		acc -= step_days
+		step(state)
+	state.flags["step_acc"] = maxf(acc, 0.0)
+
+
+## 한 스텝 = 모든 시스템 tick → 시계 전진 → 정시·자정 경계.
+func step(state: CityState) -> void:
+	var d0 := state.day
+	var h0 := int(state.hour)
+	_fa.clear()
 	for s: SimSystem in systems:
-		s.fast_forward(state, hours, before, lines)
-	return {"hours": hours, "lines": lines}
+		s.tick(state, step_days)
+	_fold_flow(state)
+	state.econ_days += step_days
+	# 부동소수 누적 오차를 스텝 격자에 맞춘다(결정론·저장 왕복).
+	state.econ_days = roundf(state.econ_days / step_days) * step_days
+	_derive_clock(state)
+	if int(state.hour) != h0 or state.day != d0:
+		state.emit("hour", {"hour": int(state.hour)})
+	if state.day != d0:
+		for s: SimSystem in systems:
+			s.on_day_end(state, d0)
+		state.emit("day_ended", {"day": d0})
+		for s: SimSystem in systems:
+			s.on_day_start(state)
+		state.emit("day_started", {"day": state.day})
+		state.settle()
+
+
+## 시스템이 상품 흐름을 보고한다. key = prod/cons/imp/exp, amt = 이번 스텝의 양.
+func flow_add(g: String, key: String, amt: float) -> void:
+	if amt == 0.0:
+		return
+	if not _fa.has(g):
+		_fa[g] = {"prod": 0.0, "cons": 0.0, "imp": 0.0, "exp": 0.0}
+	_fa[g][key] += amt
+
+
+## state.flow = 지수 이동 평균(시간 상수 1경제일) → 단위: 경제일당. 규칙이 아니라 표시용 장부.
+func _fold_flow(state: CityState) -> void:
+	var k := 1.0 - step_days
+	for g: String in state.flow.keys():
+		var f: Dictionary = state.flow[g]
+		for key: String in f:
+			f[key] = float(f[key]) * k
+	for g: String in _fa:
+		if not state.flow.has(g):
+			state.flow[g] = {"prod": 0.0, "cons": 0.0, "imp": 0.0, "exp": 0.0}
+		for key: String in _fa[g]:
+			state.flow[g][key] = float(state.flow[g][key]) + float(_fa[g][key])
+
+
+## 미접속 경과(경제일). 같은 규칙을 offline 표시만 켜고 돈다. [B 파트 이음새: 보호 장치·요약]
+func fast_forward(state: CityState, econ_days: float) -> Dictionary:
+	var before := {"money": state.money, "pop": state.population(), "stock": state.stock.duplicate()}
+	offline = true
+	tick(state, econ_days)
+	offline = false
+	var lines: Array = ["자리를 비운 사이 경제 시간으로 %.1f일이 흘렀다." % econ_days]
+	for s: SimSystem in systems:
+		s.fast_forward(state, econ_days, before, lines)
+	return {"econ_days": econ_days, "lines": lines}
 
 
 # ------------------------------------------------------------------ 명령·질의
@@ -278,85 +289,34 @@ func apply(state: CityState, name: String, args: Dictionary) -> Dictionary:
 	var c := can(state, name, args)
 	if not c.get("ok", false):
 		return c
-	var res: Variant = _debug(state, args) if name == "debug" else null
-	for s: SimSystem in systems:
-		if res != null:
-			break
-		res = s.apply(state, name, args)
+	var res: Variant = null
+	if name == "debug":
+		res = Debug.run(self, state, args)
+	else:
+		for s: SimSystem in systems:
+			res = s.apply(state, name, args)
+			if res != null:
+				break
 	if res == null:
 		return {"ok": false, "reason": "지금은 할 수 없는 일이다 (%s)" % name}
-	touch()
 	if res.get("ok", false):
 		for s: SimSystem in systems:
 			s.on_command(state, name, args, res)
-		touch()
 	return res
 
 
-func query(state: CityState, name: String, args: Dictionary) -> Variant:
+## 질의: 시스템이 소유한 질의 → 공용 Queries → 시스템의 augment()로 보탬.
+func query(state: CityState, name: String, args: Dictionary = {}) -> Variant:
+	if name == "can":
+		return can(state, str(args.get("cmd", "")), args)
+	var r: Variant = null
 	for s: SimSystem in systems:
-		var r: Variant = s.query(state, name, args)
+		r = s.query(state, name, args)
 		if r != null:
-			return r
-	match name:
-		"hud": return _hud(state)
-		"metrics": return metrics(state)
-		"identity": return state.identity
-		"cards": return state.pending_cards
-		"log": return state.logbook.slice(maxi(0, state.logbook.size() - int(args.get("n", 20))))
-		"cell_info": return _cell_info(state, args.get("pos", Vector3i.ZERO))
-		"facilities", "plant_spots", "policies", "collect_points": return []
-	return null
-
-
-func _hud(state: CityState) -> Dictionary:
-	var m := metrics(state)
-	return {
-		"day": state.day, "hour": state.hour, "money": state.money, "food": state.food,
-		"materials": state.materials, "population": state.population(),
-		"prestige": state.prestige, "notoriety": state.notoriety, "morale": state.morale,
-		"title": state.identity.get("title", "대장"), "epithet": state.identity.get("epithet", ""),
-		"power_level": state.power_level, "cards": state.pending_cards.size(),
-		"water_cap": state.water_cap, "waiting": int(m.get("waiting", 0)), "alley_fund": state.alley_fund,
-		"floors": int(m.get("max_height", 0)), "tags": state.identity.get("tags", []),
-	}
-
-
-## 셀(또는 빈 칸) 설명. 뼈대만 만들고 줄은 각 시스템의 describe()가 보탠다.
-func _cell_info(state: CityState, pos: Vector3i) -> Dictionary:
-	var cell: Dictionary = state.cell(pos)
-	var info := {"title": "빈 터", "subtitle": "%d층" % (pos.z + 1), "lines": [], "actions": []}
-	if not cell.is_empty():
-		var d := def_of(cell)
-		var mat: String = item("materials", str(cell.get("becomes", cell).get("material", ""))).get("name", "")
-		info["title"] = str(d.get("name", cell.get("type", "?")))
-		info["subtitle"] = "%d층 · %s" % [pos.z + 1, mat]
-		if cell.get("kind", "") == "site":
-			info["title"] = "공사 중 — " + info["title"]
-			info["lines"].append("대나무 비계가 올라가는 중 (%d%%)" % int(float(cell.get("progress", 0.0)) * 100.0))
-		elif d.has("desc"):
-			info["lines"].append(str(d["desc"]))
-		if str(cell.get("why", "")) != "":
-			info["lines"].append("왜 여기에: " + str(cell["why"]))
-	for s: SimSystem in systems:
-		s.describe(state, pos, cell, info)
-	return info
-
-
-## 개발용 명령. op: add_money|add_food|add_materials {amount} · set {field,value} · skip_hours {hours}
-##   unlock_all · unlock {id} · effects {effects:[...]} (Expr 효과를 그대로 실행 — 카드 강제, 가구·가게 소환 등)
-func _debug(state: CityState, args: Dictionary) -> Dictionary:
-	match str(args.get("op", "")):
-		"add_money": state.money += float(args.get("amount", 100))
-		"add_food": state.food += float(args.get("amount", 100))
-		"add_materials": state.materials += float(args.get("amount", 100))
-		"set": state.set(str(args.get("field", "")), args.get("value"))
-		"skip_hours": tick(state, float(args.get("hours", 1)))
-		"unlock": run(state, [["unlock", str(args.get("id", ""))]])
-		"unlock_all":
-			for file: String in ["unlocks"]:
-				for id: String in items(file):
-					run(state, [["unlock", id]])
-		"effects": run(state, args.get("effects", []))
-		_: return {"ok": false, "reason": "모르는 디버그 명령."}
-	return {"ok": true, "reason": ""}
+			break
+	if r == null:
+		r = Queries.run(self, state, name, args)
+	if r is Dictionary or r is Array:
+		for s: SimSystem in systems:
+			s.augment(state, name, args, r)
+	return r
