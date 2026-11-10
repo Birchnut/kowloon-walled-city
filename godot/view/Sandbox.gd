@@ -58,6 +58,8 @@ func _ready() -> void:
 		if pv.size() >= 2:
 			view.target = Vector3(float(pv[0]), float(pv[2]) if pv.size() > 2 else view.target.y, float(pv[1]))
 	_apply_overlay_args()
+	if str(_args.get("markers", "1")) == "0":
+		view.markers.visible = false
 	view._apply_camera()
 	if str(_args.get("hud", "1")) != "0":
 		_label = Label.new()

@@ -743,7 +743,7 @@ func _house_rooftop(p: Vector3i, c: Dictionary, look: Dictionary, seed_v: int, t
 			_roof_equipment(base, hs)
 		"canopy":
 			_roof_canopy(base, hs)
-	if tier <= 3 and what != "antenna" and (hs / 13) % 100 < 12:
+	if tier <= 2 and what != "antenna" and (hs / 13) % 100 < 5:
 		_antennas(base, hs / 3, 1)
 
 
@@ -1548,7 +1548,7 @@ func _stair_flight(p: Vector3i, d: int, i: int) -> void:
 
 
 # ------------------------------------------------------------------ 옥상 소품
-func _antennas(base: Vector3, hs: int, max_n: int = 3) -> void:
+func _antennas(base: Vector3, hs: int, max_n: int = 2) -> void:
 	var n := 1 + hs % max_n
 	for i in n:
 		var k := (hs / (3 + i)) % 3

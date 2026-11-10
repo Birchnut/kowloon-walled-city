@@ -5,7 +5,7 @@ extends Node3D
 ## 깊이 검사 없이 맨 위에 그리되, 완전히 파묻힌 칸(드러난 면이 없는 칸)은 건너뛴다.
 
 const MAX_INST := 256
-const ICON := 9          # 아이콘 칸 크기(텍셀)
+const ICON := 7          # 아이콘 칸 크기(텍셀)
 const KINDS := {"bad": 0, "up": 1, "off": 2, "warn": 3}
 
 var cfg: ViewCfg
@@ -45,58 +45,43 @@ func setup(c: ViewCfg, v: Control, m: CityMesher) -> void:
 
 
 func _make_icons() -> ImageTexture:
+	# 7×7 아이콘 4개: 0 "!"(빨강) 1 "▲"(초록, 테두리) 2 "z"(회색) 3 "!"(노랑)
 	var img := Image.create(ICON * 4, ICON, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
 	var ink := Color("#2a2238")
-	# 0: "!" 빨간 방패
 	_badge(img, 0, Color("#ff4a4a"), ink)
-	for y in [2, 3, 4, 5]:
-		img.set_pixel(4, y, Color.WHITE)
-	img.set_pixel(4, 7, Color.WHITE)
-	# 1: "▲" 초록 화살
+	for y in [1, 2, 3]:
+		img.set_pixel(3, y, Color.WHITE)
+	img.set_pixel(3, 5, Color.WHITE)
 	var g := Color("#5dff9a")
-	for y in 8:
-		for x in 9:
-			var inside := false
-			if y >= 1 and y <= 4:
-				inside = absi(x - 4) <= y - 1
-			elif y >= 5 and y <= 7:
-				inside = x >= 3 and x <= 5
-			if inside:
+	var arrow := ["...#...", "..###..", ".#####.", "#######", "..###..", "..###..", "......."]
+	for y in 7:
+		for x in 7:
+			if arrow[y][x] == "#":
 				img.set_pixel(ICON + x, y, g)
-	for y in 9:
-		for x in 9:
-			if img.get_pixel(ICON + x, y).a < 0.5:
-				for nb in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-					var q: Vector2i = Vector2i(x, y) + nb
-					if q.x >= 0 and q.y >= 0 and q.x < 9 and q.y < 9 and img.get_pixel(ICON + q.x, q.y) == g:
-						img.set_pixel(ICON + x, y, ink)
-						break
-	img.set_pixel(ICON + 4, 1, Color("#dfffe8"))
-	# 2: "z" 회색 말풍선
-	_badge(img, ICON * 2, Color("#9a94b6"), ink)
-	for x in [3, 4, 5]:
+	img.set_pixel(ICON + 3, 0, Color("#e8fff0"))
+	for y in [4, 5]:
+		img.set_pixel(ICON + 2, y, g.darkened(0.35))
+	_badge(img, ICON * 2, Color("#8a84a6"), ink)
+	for x in [2, 3, 4]:
 		img.set_pixel(ICON * 2 + x, 2, Color.WHITE)
-		img.set_pixel(ICON * 2 + x, 6, Color.WHITE)
-	img.set_pixel(ICON * 2 + 5, 3, Color.WHITE)
-	img.set_pixel(ICON * 2 + 4, 4, Color.WHITE)
-	img.set_pixel(ICON * 2 + 3, 5, Color.WHITE)
-	# 3: "!" 노란(주의)
+		img.set_pixel(ICON * 2 + x, 4, Color.WHITE)
+	img.set_pixel(ICON * 2 + 3, 3, Color.WHITE)
 	_badge(img, ICON * 3, Color("#ffb43c"), ink)
-	for y in [2, 3, 4, 5]:
-		img.set_pixel(ICON * 3 + 4, y, ink)
-	img.set_pixel(ICON * 3 + 4, 7, ink)
+	for y in [1, 2, 3]:
+		img.set_pixel(ICON * 3 + 3, y, ink)
+	img.set_pixel(ICON * 3 + 3, 5, ink)
 	return ImageTexture.create_from_image(img)
 
 
 func _badge(img: Image, ox: int, c: Color, ink: Color) -> void:
-	for y in 9:
-		for x in 9:
-			var dx := absi(x - 4)
-			var dy := absi(y - 4)
-			if dx + dy <= 6 and dx <= 4 and dy <= 4:
+	for y in 7:
+		for x in 7:
+			var dx := absi(x - 3)
+			var dy := absi(y - 3)
+			if dx + dy <= 4:
 				img.set_pixel(ox + x, y, ink)
-			if dx + dy <= 5 and dx <= 3 and dy <= 3:
+			if dx + dy <= 3 and dx <= 2 and dy <= 2:
 				img.set_pixel(ox + x, y, c)
 
 

@@ -1255,14 +1255,21 @@ func _rebuild_overlay() -> void:
 		var c_used := _ocol("grid_used", "#ff7a5a50")
 		var c_lock := _ocol("grid_locked", "#8a8aa830")
 		var c_edge := _ocol("grid_edge", "#fff6dcc0")
-		var g := 0.05
+		var g := 0.06
 		for x in gw:
 			for yy in gh:
 				var p := Vector3i(x, yy, z)
-				var col := c_lock if locked else (c_used if st.cells.has(p) else c_free)
-				if st.cells.has(p) and str(st.cells[p].get("kind", "")) == "site":
-					col = c_used
+				var used := st.cells.has(p)
+				var col := c_lock if locked else (c_used if used else c_free)
 				flat.call(x + g, yy + g, x + 1 - g, yy + 1 - g, y, col)
+				if not used and not locked:
+					# 빈 칸은 밝은 테두리 → 칠할 수 있는 칸이 한눈에
+					var rc := Color(c_edge.r, c_edge.g, c_edge.b, c_edge.a * 0.7)
+					var t := 0.07
+					flat.call(x + g, yy + g, x + 1 - g, yy + g + t, y + 0.001, rc)
+					flat.call(x + g, yy + 1 - g - t, x + 1 - g, yy + 1 - g, y + 0.001, rc)
+					flat.call(x + g, yy + g + t, x + g + t, yy + 1 - g - t, y + 0.001, rc)
+					flat.call(x + 1 - g - t, yy + g + t, x + 1 - g, yy + 1 - g - t, y + 0.001, rc)
 		# 둘레(두꺼운 테) + 4칸마다 옅은 눈금
 		var e := 0.07
 		flat.call(-e, -e, gw + e, 0.0, y + 0.002, c_edge)
@@ -1282,7 +1289,11 @@ func _rebuild_overlay() -> void:
 			var buried: bool = floor_cut >= 0 and p.z > floor_cut
 			if buried:
 				continue
-			if mesher.solid.has(p) and not (floor_cut >= 0 and p.z == floor_cut):
+			if style == "range" and floor_cut < 0:
+				# 층 컷이 없으면 범위는 기둥 꼭대기(보이는 면)에 칠한다
+				var hy := mesher.height_floors(Vector2i(p.x, p.y)) * fh + 0.03
+				flat.call(p.x, p.y, p.x + 1, p.y + 1, hy, sc)
+			elif mesher.solid.has(p) and not (floor_cut >= 0 and p.z == floor_cut):
 				shell.call(a0 + Vector3(-0.03, 0.0, -0.03), a0 + Vector3(1.03, fh + 0.02, 1.03), sc)
 			else:
 				var ins := 0.04 if style != "range" else 0.0
@@ -1392,7 +1403,10 @@ func _update_cell_tex() -> void:
 		_cell_img.set_pixel(p.x, ty, Color(lit, elec, active, 1.0))
 		if lens != "" and kind == "house":
 			var lc := _lens_color(c, b)
-			_lens_img.set_pixel(p.x, ty, Color(lc.r, lc.g, lc.b, lstr))
+			var a := lstr
+			if lens == "needs" and str(b.get("need_state", "ok")) == "ok":
+				a = lstr * 0.55   # 괜찮은 집은 옅게 → 주의·부족이 튄다
+			_lens_img.set_pixel(p.x, ty, Color(lc.r, lc.g, lc.b, a))
 	_cell_tex.update(_cell_img)
 	_lens_tex.update(_lens_img)
 

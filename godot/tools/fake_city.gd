@@ -17,34 +17,34 @@ const P := {
 		"f2": [], "roof": {}, "sites": 2, "scaffold": 0.0, "bad": 0.15, "upg": 0.2, "off": 0.0
 	},
 	"mid": {
-		"day": 14, "max_h": 3, "towers": 4, "fill": 0.8, "void": 0.14,
+		"day": 14, "max_h": 4, "towers": 4, "fill": 0.8, "void": 0.22,
 		"tiers": [1, 1, 2, 2, 2, 3, 3], "fam": "two", "fams": ["wood", "concrete"],
 		"f1": {"stall": 2, "noodle_works": 1, "sewing_shop": 1, "candle_shop": 1, "teahouse": 1, "mahjong": 1, "water_tower": 1, "rain_catcher": 2, "generator": 1, "shrine": 1, "warehouse": 1, "expedition_post": 1, "trade_post": 1, "dentist": 1, "soap_shop": 1},
-		"f2": ["market_basic"], "roof": {"garden": 0.15, "rain_catcher": 0.1}, "sites": 4, "scaffold": 0.08, "bad": 0.15, "upg": 0.18, "off": 0.15
+		"f2": ["market_basic"], "roof": {"garden": 0.15, "rain_catcher": 0.1}, "sites": 4, "scaffold": 0.08, "bad": 0.06, "upg": 0.1, "off": 0.15
 	},
 	"late_wood": {
 		"day": 40, "max_h": 8, "towers": 5, "fill": 0.9, "void": 0.12,
 		"tiers": [2, 3, 3, 4, 4, 5, 5], "fam": "one", "fams": ["wood"],
 		"f1": {"teahouse": 2, "noodle_works": 1, "moonshine": 1, "tailor": 1, "candle_shop": 1, "karaoke": 2, "mahjong": 1, "gambling_den": 1, "dentist": 1, "study_hall": 1, "radio_shop": 1, "water_main": 1, "grid_power": 1, "shrine": 2, "trade_post": 1, "expedition_post": 2, "warehouse": 1},
-		"f2": ["market_general", "casino", "landmark_hall", "bathhouse"], "roof": {"roof_garden": 0.14, "garden": 0.08}, "sites": 3, "scaffold": 0.05, "bad": 0.06, "upg": 0.12, "off": 0.08
+		"f2": ["market_general", "casino", "landmark_hall", "bathhouse"], "roof": {"roof_garden": 0.14, "garden": 0.08}, "sites": 3, "scaffold": 0.05, "bad": 0.025, "upg": 0.05, "off": 0.08
 	},
 	"late_metal": {
 		"day": 40, "max_h": 9, "towers": 5, "fill": 0.9, "void": 0.12,
 		"tiers": [2, 3, 3, 4, 4, 5, 5], "fam": "one", "fams": ["metal"],
 		"f1": {"radio_shop": 2, "fishball_works": 1, "call_centre": 1, "karaoke": 2, "fake_shop": 1, "tailor": 1, "dentist": 1, "study_hall": 1, "water_main": 1, "grid_power": 1, "shrine": 1, "trade_post": 1, "expedition_post": 2, "warehouse": 1, "gambling_den": 1},
-		"f2": ["market_luxury", "power_plant", "assembly", "casino", "landmark_hall"], "roof": {"roof_garden": 0.1, "garden": 0.05}, "sites": 3, "scaffold": 0.05, "bad": 0.06, "upg": 0.12, "off": 0.08
+		"f2": ["market_luxury", "power_plant", "assembly", "casino", "landmark_hall"], "roof": {"roof_garden": 0.1, "garden": 0.05}, "sites": 3, "scaffold": 0.05, "bad": 0.025, "upg": 0.05, "off": 0.08
 	},
 	"late_concrete": {
 		"day": 40, "max_h": 9, "towers": 6, "fill": 0.92, "void": 0.1,
 		"tiers": [2, 3, 3, 3, 4, 4, 5, 5], "fam": "one", "fams": ["concrete"],
 		"f1": {"noodle_works": 1, "fishball_works": 1, "soap_shop": 1, "tailor": 1, "karaoke": 2, "mahjong": 1, "call_centre": 1, "dentist": 2, "study_hall": 1, "water_tower": 1, "grid_power": 1, "shrine": 1, "trade_post": 1, "expedition_post": 2, "warehouse": 1},
-		"f2": ["market_general", "water_works", "cogen_plant", "casino", "landmark_hall"], "roof": {"roof_garden": 0.12, "garden": 0.06}, "sites": 3, "scaffold": 0.05, "bad": 0.06, "upg": 0.12, "off": 0.08
+		"f2": ["market_general", "water_works", "cogen_plant", "casino", "landmark_hall"], "roof": {"roof_garden": 0.12, "garden": 0.06}, "sites": 3, "scaffold": 0.05, "bad": 0.025, "upg": 0.05, "off": 0.08
 	},
 	"late_mixed": {
 		"day": 40, "max_h": 9, "towers": 6, "fill": 0.88, "void": 0.2,
 		"tiers": [1, 2, 3, 3, 4, 4, 5], "fam": "districts", "fams": ["wood", "metal", "concrete"],
 		"f1": {"teahouse": 1, "noodle_works": 1, "fishball_works": 1, "radio_shop": 1, "karaoke": 2, "call_centre": 1, "gambling_den": 1, "mahjong": 1, "dentist": 1, "study_hall": 1, "water_main": 1, "grid_power": 1, "generator": 1, "shrine": 2, "trade_post": 1, "expedition_post": 2, "warehouse": 1, "stall": 2},
-		"f2": ["market_general", "casino", "power_plant", "landmark_hall"], "roof": {"roof_garden": 0.12, "garden": 0.08, "rain_catcher": 0.03}, "sites": 4, "scaffold": 0.07, "bad": 0.1, "upg": 0.15, "off": 0.1
+		"f2": ["market_general", "casino", "power_plant", "landmark_hall"], "roof": {"roof_garden": 0.12, "garden": 0.08, "rain_catcher": 0.03}, "sites": 4, "scaffold": 0.07, "bad": 0.035, "upg": 0.06, "off": 0.1
 	},
 }
 
@@ -77,8 +77,8 @@ static func build(preset: String, seed_v: int = 1, grid: Vector3i = Vector3i(12,
 	s.cells = {}
 	s.supports = {}
 	s.buildings = {}
-	if preset == "matrix":
-		_matrix(s, grid)
+	if preset.begins_with("matrix"):
+		_matrix(s, grid, preset.substr(7) if preset.length() > 7 else "")
 		return s
 	if not P.has(preset):
 		preset = "mid"
@@ -223,7 +223,7 @@ static func build(preset: String, seed_v: int = 1, grid: Vector3i = Vector3i(12,
 			need = "bad"
 		elif x < float(cfg["bad"]) * 2.2:
 			need = "warn"
-		var upg := tier < 5 and res >= cap and r.f() < float(cfg["upg"]) * 3.0
+		var upg := tier < 5 and res >= cap and r.f() < float(cfg["upg"])
 		if tier < 5 and r.f() < float(cfg["scaffold"]):
 			cell["scaffold"] = true
 		s.cells[p] = cell
@@ -280,11 +280,13 @@ static func _derive_supports(s: CityState) -> void:
 
 
 ## 계층×자재 표본: 세 줄(목재·철제·콘크리트) × T1..T5, 덩어리 2칸 폭 × 3층. 맨 앞줄은 이어 붙여 이음매를 본다.
-static func _matrix(s: CityState, grid: Vector3i) -> void:
+static func _matrix(s: CityState, grid: Vector3i, only: String = "") -> void:
 	s.day = 30
 	s.hour = 11.0
 	var bid := 1
 	var rows := {"wood": 1, "metal": 5, "concrete": 9}
+	if only != "":
+		rows = {only: 5}
 	for fam in rows:
 		var y0: int = rows[fam]
 		for t in range(1, 6):

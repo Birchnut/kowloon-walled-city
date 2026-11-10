@@ -4,7 +4,7 @@ render_mode unshaded, cull_disabled, depth_test_disabled;
 
 uniform sampler2D tex : filter_nearest, repeat_disable;
 uniform float ppu = 11.3137;
-uniform vec2 frame_px = vec2(9.0, 9.0);
+uniform vec2 frame_px = vec2(7.0, 7.0);
 uniform vec2 sheet_px = vec2(36.0, 9.0);
 uniform float px_scale = 1.0;
 uniform float time_s = 0.0;
