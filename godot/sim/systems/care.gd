@@ -31,7 +31,7 @@ func on_day_end(state: CityState) -> void:
 	if recover > 0.0 and float(sim.metrics(state).get("count.clinic", 0.0)) > 0.0:
 		for id: int in deps:
 			var h: Dictionary = state.households[id]
-			if str(h.get("named", "")) == "" and sim.randf(state) < recover:
+			if str(h.get("named", "")) == "" and sim.roll(state) < recover:
 				h["type"] = str(sim.tune("care.recover_as", "laborer"))
 				state.stats["recovered"] = int(state.stats.get("recovered", 0)) + 1
 				sim.say(state, "의원 신세를 지던 사람이 다시 일을 나간다.", "good")
@@ -64,7 +64,7 @@ func _expel(state: CityState, quota: int) -> void:
 			sim.say(state, "%s을(를) 내보냈다. 골목이 한동안 조용했다." % who, "bad")
 		if state.households.has(kin):
 			var kd := sim.item("households", str(state.households[kin]["type"]))
-			if str(state.households[kin].get("named", "")) == "" and sim.randf(state) < float(kd.get("kin_leave", 0.0)):
+			if str(state.households[kin].get("named", "")) == "" and sim.roll(state) < float(kd.get("kin_leave", 0.0)):
 				Ops.remove_household(state, kin, "followed_kin")
 				followed += 1
 				sim.say(state, "내보낸 노인의 식구인 %s 가구가 짐을 쌌다." % kd.get("name", "어느"), "bad")

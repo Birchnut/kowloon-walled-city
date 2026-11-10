@@ -76,9 +76,9 @@ func on_day_end(state: CityState) -> void:
 	if title != was_title or epithet != was_epithet:
 		state.emit("identity_changed", {"title": title, "epithet": epithet})
 		if title != was_title:
-			state.add_log("사람들이 이제 %s 대신 '%s'(이)라고 부른다." % [was_title, title], "identity")
+			sim.say(state, "사람들이 이제 %s 대신 '%s'(이)라고 부른다." % [was_title, title], "identity")
 		if epithet != was_epithet and epithet != "":
-			state.add_log("바깥에서는 이곳을 '%s'(이)라 부르기 시작했다." % epithet, "identity")
+			sim.say(state, "바깥에서는 이곳을 '%s'(이)라 부르기 시작했다." % epithet, "identity")
 		state.stats["identity_changes"] = int(state.stats.get("identity_changes", 0)) + 1
 
 

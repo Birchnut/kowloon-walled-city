@@ -5,7 +5,7 @@ extends SimSystem
 ##  · 소비: 집 있는 사람 1명당 eat. 공동부엌 하나마다 food_save만큼 덜 든다. 모자라면 돈으로 사 온다(food_price).
 ##    돈도 없으면 굶는다 → state.flags.food_short(0..1)에 적힌다(민심·이탈은 다른 시스템이 읽는다).
 ##  · 유지비: 시설 upkeep + 카드가 건 일일 요금(flags.daily_fee). 빚은 max_debt까지.
-##  · 하루 끝: 자재가 목표보다 적고 돈이 남으면 사들인다. 일손 0으로 close_days를 버틴 가게, 금지된 업종의 가게는 문을 닫는다.
+##  · 하루 끝: 자재가 목표보다 적으면 남는 돈(money_reserve 초과분)의 materials_buy_share까지 써서 사들인다. 일손 0으로 close_days를 버틴 가게, 금지된 업종의 가게는 문을 닫는다.
 ## 수치: data/economy.json "economy" · 생산량은 facilities.json / businesses.json.
 
 
@@ -122,7 +122,7 @@ func on_day_end(state: CityState) -> void:
 	if state.materials < target and spare > 0.0:
 		var price := sim.num("economy.materials_price", 2.0)
 		var cap := (sim.num("economy.materials_buy_per_day", 20.0) + hh * sim.num("economy.materials_buy_per_household", 0.15)) * sim.mod(state, "materials.buy")
-		var buy: float = minf(minf(target - state.materials, cap), spare / price)
+		var buy: float = minf(minf(target - state.materials, cap), spare * sim.num("economy.materials_buy_share", 0.3) / price)
 		state.materials += buy
 		state.money -= buy * price
 		state.stats["materials_bought"] = float(state.stats.get("materials_bought", 0.0)) + buy * price
@@ -137,10 +137,10 @@ func on_day_end(state: CityState) -> void:
 			continue
 		var empty: int = (int(b.get("empty_days", 0)) + 1) if (int(b.get("jobs", 0)) > 0 and (b["workers"] as Array).is_empty()) else 0
 		b["empty_days"] = empty
-		var banned := str(state.policies.get("permit." + str(b["group"]), "allow")) == "ban" and not b.get("protected", false)
+		var banned: bool = str(state.policies.get("permit." + str(b["group"]), "allow")) == "ban" and not b.get("protected", false)
 		if empty >= int(sim.num("economy.close_days", 3)):
 			_close(state, bid, "일손을 못 구해 문을 닫았다", "일손을 못 구해 가게가 빠진 자리.")
-		elif banned and sim.randf(state) < sim.num("economy.ban_close_per_day", 0.34):
+		elif banned and sim.roll(state) < sim.num("economy.ban_close_per_day", 0.34):
 			_close(state, bid, "금지령에 간판을 내렸다", "금지령으로 가게가 빠진 자리.")
 
 
@@ -158,7 +158,7 @@ func _close_matching(state: CityState, what: String, count: int, why: String) ->
 			ids.append(bid)
 	ids.sort()
 	for i: int in mini(count, ids.size()):
-		var bid: int = ids[sim.randi_range(state, 0, ids.size() - 1)]
+		var bid: int = ids[sim.roll_range(state, 0, ids.size() - 1)]
 		ids.erase(bid)
 		_close(state, bid, "문을 닫았다", why)
 

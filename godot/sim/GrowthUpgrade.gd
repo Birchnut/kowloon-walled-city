@@ -38,12 +38,12 @@ static func material(sim: Sim, state: CityState, pos: Vector3i, _group: String) 
 		if mat != "scrap" and int(votes[mat]) > top:
 			top = votes[mat]
 			best = mat
-	if best != "" and _can(sim, state, best) and sim.randf(state) < sim.num("growth.any_follow", 0.75):
+	if best != "" and _can(sim, state, best) and sim.roll(state) < sim.num("growth.any_follow", 0.75):
 		return best
 	if state.materials >= sim.num("growth.any_rich", 40.0) and _can(sim, state, "brick"):
 		return "brick"
 	var defaults: Array = sim.tune("growth.any_default", ["wood", "sheet"])
-	var pick := str(defaults[sim.randi_range(state, 0, defaults.size() - 1)])
+	var pick := str(defaults[sim.roll_range(state, 0, defaults.size() - 1)])
 	return pick if _can(sim, state, pick) else "scrap"
 
 
@@ -138,7 +138,7 @@ static func densify(sim: Sim, state: CityState) -> bool:
 		var c: Dictionary = state.cells[pos]
 		if c.get("kind", "") != "housing" or str(c["type"]) in ["cage", "flat"] or (c.get("residents", []) as Array).is_empty():
 			continue
-		var s := Grid.sunlight(sim, state, pos) + 0.2 * sim.randf(state)
+		var s := Grid.sunlight(sim, state, pos) + 0.2 * sim.roll(state)
 		if s < dark:
 			dark = s
 			best = pos

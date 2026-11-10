@@ -138,7 +138,7 @@ static func apply(sim: Sim, state: CityState, effects: Variant) -> void:
 				elif e.size() > 3:
 					apply(sim, state, e[3])
 			"chance":
-				if sim.randf(state) < float(e[1]):
+				if sim.roll(state) < float(e[1]):
 					apply(sim, state, e[2])
 				elif e.size() > 3:
 					apply(sim, state, e[3])
@@ -173,7 +173,7 @@ static func _zone_clear(sim: Sim, state: CityState, zone: String, n: int) -> voi
 		if state.zones[c] == zone:
 			cols.append(c)
 	for i: int in mini(n, cols.size()):
-		var col: Vector2i = cols[sim.randi_range(state, 0, cols.size() - 1)]
+		var col: Vector2i = cols[sim.roll_range(state, 0, cols.size() - 1)]
 		cols.erase(col)
 		state.zones.erase(col)
 		state.emit("zone_changed", {"col": col})

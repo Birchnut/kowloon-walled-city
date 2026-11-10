@@ -127,11 +127,11 @@ func _next(state: CityState) -> int:
 	return x
 
 
-func randf(state: CityState) -> float:
+func roll(state: CityState) -> float:
 	return float(_next(state)) / 4294967296.0
 
 
-func randi_range(state: CityState, a: int, b: int) -> int:
+func roll_range(state: CityState, a: int, b: int) -> int:
 	return a if b <= a else a + _next(state) % (b - a + 1)
 
 
@@ -146,7 +146,7 @@ func pick(state: CityState, weights: Array) -> int:
 		total += maxf(float(w), 0.0)
 	if total <= 0.0:
 		return -1
-	var r := randf(state) * total
+	var r := roll(state) * total
 	for i: int in weights.size():
 		r -= maxf(float(weights[i]), 0.0)
 		if r < 0.0:
@@ -197,7 +197,10 @@ static func kr(text: String) -> String:
 	for j: Array in _JOSA:
 		var at := text.find(j[0])
 		while at >= 0:
-			var code := (text.unicode_at(at - 1) - 0xAC00) if at > 0 else -1
+			var back := at - 1
+			while back > 0 and text[back] in ["'", "\"", ")", "」", "’", "”", " "]:
+				back -= 1
+			var code := (text.unicode_at(back) - 0xAC00) if back >= 0 else -1
 			var fin := code >= 0 and code < 11172 and code % 28 != 0
 			if j[0] == "으로(로)" and code >= 0 and code % 28 == 8:
 				fin = false

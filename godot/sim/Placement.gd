@@ -157,7 +157,7 @@ static func _score(sim: Sim, state: CityState, spec: Dictionary, pos: Vector3i, 
 				"hidden": f = Grid.gate_dist(sim, pos.x, pos.y) / float(sim.W + sim.H)
 				"water": f = water
 			parts[key] = float(parts.get(key, 0.0)) + float(pf[key]) * f
-	var score := float(S.get("noise", 1.2)) * sim.randf(state)
+	var score := float(S.get("noise", 1.2)) * sim.roll(state)
 	var why := ""
 	var why_v := 0.0
 	for key: String in parts:

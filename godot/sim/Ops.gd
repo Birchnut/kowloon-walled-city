@@ -11,7 +11,7 @@ static func add_household(sim: Sim, state: CityState, type: String, extra: Dicti
 	var sz: Array = d.get("size", [1, 2])
 	var id := state.new_id()
 	var h := {
-		"id": id, "type": type, "size": sim.randi_range(state, int(sz[0]), int(sz[1])),
+		"id": id, "type": type, "size": sim.roll_range(state, int(sz[0]), int(sz[1])),
 		"home": null, "job": 0, "named": "", "arrived_day": state.day, "kin": 0,
 	}
 	h.merge(extra, true)

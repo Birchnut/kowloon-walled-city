@@ -49,7 +49,7 @@
     { "text": "{mat} {form}", "cond": [] }
   ],
   "titles": [
-    { "title": "대장",   "cond": [["population", "<", 20]] },
+    { "title": "대장",   "cond": [["population", "<", 40]] },
     { "title": "따거",   "cond": [["group.vice", ">=", 3], ["notoriety", ">=", 30]] },
     { "title": "어르신", "cond": [["dominant", "==", "farm"], ["policy.care.mutual", ">=", 1], ["prestige", ">=", 45]] },
     { "title": "촌장",   "cond": [["dominant", "==", "farm"]] },

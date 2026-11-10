@@ -74,7 +74,7 @@ func _arrivals(state: CityState) -> void:
 	var types: Dictionary = sim.tune("inflow.nowhere_types", {"laborer": 1})
 	while float(acc["_nowhere"]) >= 1.0:
 		acc["_nowhere"] = float(acc["_nowhere"]) - 1.0
-		if sim.randf(state) < sim.num("inflow.dependent_ratio", 0.2):
+		if sim.roll(state) < sim.num("inflow.dependent_ratio", 0.2):
 			if intake.get("dependents", true):
 				_admit(state, "dependent", gate)
 			else:
@@ -89,7 +89,7 @@ func _admit(state: CityState, type: String, gate: Dictionary) -> void:
 		state.stats["turned_away"] = int(state.stats.get("turned_away", 0)) + 1
 		return
 	var extra := {}
-	if type == "dependent" and sim.randf(state) < sim.num("inflow.kin_chance", 0.6):
+	if type == "dependent" and sim.roll(state) < sim.num("inflow.kin_chance", 0.6):
 		extra["kin"] = _pick_kin(state)
 	Ops.add_household(sim, state, type, extra)
 	state.stats["arrived_total"] = int(state.stats.get("arrived_total", 0)) + 1
@@ -151,7 +151,7 @@ func _force_leave(state: CityState, type: String, count: int, reason: String) ->
 			ids.append(id)
 	ids.sort()
 	for i: int in mini(count, ids.size()):
-		var id: int = ids[sim.randi_range(state, 0, ids.size() - 1)]
+		var id: int = ids[sim.roll_range(state, 0, ids.size() - 1)]
 		ids.erase(id)
 		Ops.remove_household(state, id, reason)
 
@@ -182,7 +182,7 @@ func on_day_end(state: CityState) -> void:
 		var p_job := sim.num("inflow.jobless_leave", 0.3) if idle >= int(sim.num("inflow.jobless_days", 4)) else 0.0
 		var p_hunger := short * sim.num("inflow.hunger_leave", 0.25)
 		var p := p_job + p_hunger + low
-		if total < limit and p > 0.0 and sim.randf(state) < p:
+		if total < limit and p > 0.0 and sim.roll(state) < p:
 			var why := "hunger" if (p_hunger >= p_job and p_hunger >= low) else ("jobless" if p_job >= low else "morale")
 			Ops.remove_household(state, id, why)
 			gone[why] += 1

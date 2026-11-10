@@ -179,7 +179,7 @@ func apply(state: CityState, name: String, args: Dictionary) -> Variant:
 		p["skimmed"] = 0.0
 		p["over_hours"] = 0.0
 		p["ready"] = false
-		if sim.randf(state) < sim.num("collection.loot_chance", 0.5) * minf(ratio, 1.0):
+		if sim.roll(state) < sim.num("collection.loot_chance", 0.5) * minf(ratio, 1.0):
 			var item := _roll_loot(state)
 			if not item.is_empty():
 				loot.append(item)
