@@ -60,6 +60,7 @@ func _init() -> void:
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	UI.ensure_cjk_fallback()
 	chrome = _layer()
 	add_child(chrome)
 

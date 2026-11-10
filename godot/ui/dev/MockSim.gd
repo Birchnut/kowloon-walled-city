@@ -524,7 +524,7 @@ func query(state: CityState, name: String, args: Dictionary) -> Variant:
 				pl.append(d)
 			return pl
 		"cell_info":
-			return _cell_info(state, args.get("pos"))
+			return _mock_cell_info(state, args.get("pos"))
 		"collect_points":
 			var cps: Array = []
 			for id in state.collect_points:
@@ -589,7 +589,7 @@ func _cell_name(c: Dictionary) -> String:
 	return t
 
 
-func _cell_info(state: CityState, pos: Variant) -> Variant:
+func _mock_cell_info(state: CityState, pos: Variant) -> Variant:
 	if not (pos is Vector3i):
 		return null
 	var col := Vector2i(pos.x, pos.y)
