@@ -394,6 +394,20 @@ func _on_event(n: String, p: Dictionary) -> void:
 			# 문장은 시뮬 기록 줄("탐험대 n이 …에서 돌아왔다")이 토스트로 이미 띄운다 — 배지·알림 줄로 충분
 		"goal_done":
 			_on_goal_done(p)
+		"research_done":
+			banner.show_banner("연구 끝", str(p.get("name", "")), "성채 › 연구에서 다음 것을 고른다.", "jade", 2.4, "學")
+			_badge_keep += 1
+			nav.set_badge("keep", _badge_keep)
+		"raid":
+			# 단속: 시설 이름은 build_menu 에서(이벤트는 type 만 준다)
+			var nm := str(p.get("type", ""))
+			for cat: Variant in Q.list("build_menu"):
+				for it: Variant in UI.to_array(UI.to_dict(cat).get("items", [])):
+					if it is Dictionary and str(it.get("id", "")) == nm:
+						nm = str(it.get("name", nm))
+			banner.show_banner("단속", "%s 닫혔다" % UI.josa(nm, "가", "이"), "벌금 ₩%s. 이틀 뒤 다시 연다. 뒷돈 정책이 위험을 늦춘다." % UI.num(float(p.get("fine", 0))), "red", 3.0, "警")
+		"raid_end":
+			toast("단속이 풀렸다. 닫혔던 곳이 다시 연다.", "good")
 		"contract_done":
 			if not bool(p.get("ok", true)):
 				toast("계약 회차를 건너뛰었다 — %s" % str(p.get("reason", "")), "warn")

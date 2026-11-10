@@ -1087,7 +1087,8 @@ func _clamp_target() -> void:
 	var m := 5.0
 	target.x = clampf(target.x, -m, cfg.grid.x + m)
 	target.z = clampf(target.z, -m, cfg.grid.y + m)
-	target.y = clampf(target.y, -1.0, cfg.grid.z * cfg.floor_h + 1.0)
+	# 통합: 위로는 지금 가장 높은 층 조금 위까지만(빈 성채에서 끌다 보면 하늘만 보이게 됐다)
+	target.y = clampf(target.y, -1.0, (float(maxi(mesher.top_z, 0)) + 2.0) * cfg.floor_h)
 
 
 ## 화면 픽셀(이 Control 좌표)만큼 끌었을 때 카메라를 옮긴다.
@@ -1096,6 +1097,7 @@ func pan_by(delta_screen: Vector2) -> void:
 	var k := (float(_up) / _canvas_scale) * ppu()
 	target += -b.x * (delta_screen.x / k) + b.y * (delta_screen.y / k)
 	# 화면 위아래 이동은 지면을 따라 미끄러지는 대신 그대로 카메라 평면 이동으로 둔다
+	_clamp_target()     # 통합: 끌기에도 한계(전에는 확대 때만 걸어 두 손가락·끌기로 도시 밖 하늘까지 나갔다)
 	_apply_camera()
 
 

@@ -159,7 +159,8 @@ func refresh() -> void:
 	for tm0: Variant in teams:
 		if tm0 is Dictionary and str(tm0.get("state", "")) == "out":
 			out_n += 1
-	_slots.text = "탐험대 %d팀 · 나가 있음 %d · 거점 하나에 한 팀(최대 %d)" % [int(slots.get("have", teams.size())), out_n, int(slots.get("max", 0))]
+	var have_n := int(slots.get("have", teams.size()))
+	_slots.text = ("탐험대 %d팀 · 나가 있음 %d · 거점 하나에 한 팀(최대 %d)" % [have_n, out_n, int(slots.get("max", 0))]) if have_n > 0 else "탐험대 없음 — 탐험 거점을 지으면 생긴다"
 	_map.focus_good = _focus
 	_map.selected = _sel
 	_map.set_data(UI.to_array(data.get("dests", [])), teams)
