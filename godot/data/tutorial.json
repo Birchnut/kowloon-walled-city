@@ -1,0 +1,55 @@
+{
+  "_comment": "오프닝/튜토리얼 대본. UI 담당 소유. 단계를 고치거나 끼워 넣기만 하면 된다(코드 수정 불필요, F5 핫리로드 후 '오프닝 다시 보기').",
+  "_step_types": {
+    "say": "대화 상자. speaker(아래 speakers 키, 없으면 내레이션) / text / text_by{key,map,default}(직전 wait_cmd 의 인자로 문장 고르기) / highlight(UI 대상) / stone(표석 띄우기)",
+    "highlight": "say 와 같되 target 을 어둡게 둘러 강조한다",
+    "wait_cmd": "플레이어가 cmd 를 성공시킬 때까지. hint / highlight / timeout(초, 지나면 그냥 진행) / timeout_skip(시간 초과 시 건너뛸 다음 단계 수)",
+    "wait_event": "Game.event 를 기다린다. event(문자열 또는 배열 중 아무거나) / hint / timeout / timeout_skip / speed(기다리는 동안 배속)",
+    "camera": "뷰 힌트. zoom / floor_cut / rotate / time(0..1 감상 시간, -1 해제) / focus[x,y,z](뷰에 focus_on 이 있으면)",
+    "set": "상태 스위치. verbs(쓸 수 있는 동사 id 배열, [] = 전부, [\"none\"] = 전부 잠금) / paused / rain / plant_only(심기 목록 제한, [] = 해제)"
+  },
+  "_targets": "verb_plant verb_zone verb_policy verb_cards verb_record / plant_flow(심기 진행에 맞춰 이동) / bubble(첫 수금 말풍선) / strip / rail / money",
+  "_placeholders": "{title} = 지금 호칭(query hud.title)",
+  "version": 1,
+  "speakers": {
+    "auntie": { "name": "춘자 이모", "role": "따라온 사람" }
+  },
+  "steps": [
+    { "type": "set", "verbs": ["none"], "paused": true, "rain": true },
+    { "type": "camera", "time": 0.23, "floor_cut": -1 },
+    { "type": "say", "text": "비가 온다.\n재개발이 멈춘 네모난 땅에도, 공평하게." },
+    { "type": "say", "stone": true, "text": "반쯤 무너진 담장. 닳아 빠진 표석 하나.\n「九龍城寨」. 왜 그 이름인지는 아무도 모른다." },
+    { "type": "say", "text": "갈 곳 없는 사람 몇이 당신을 따라 들어왔다.\n왜 하필 당신인지도, 아무도 모른다." },
+    { "type": "say", "speaker": "auntie", "text": "{title}. 여기서 살 생각이면,\n내일 먹을 것도 구해야지." },
+    { "type": "say", "speaker": "auntie", "text": "뭐라도 하나 심어 봐. 첫 번째는 외상으로 달아 둘게.\n두 번째부터는 얄짤없고." },
+
+    { "type": "set", "verbs": ["plant"], "paused": false, "rain": false, "plant_only": ["garden", "scrapyard", "stall"] },
+    { "type": "camera", "time": -1 },
+    { "type": "wait_cmd", "cmd": "plant", "highlight": "plant_flow", "timeout": 180,
+      "hint": "[심기]를 눌러 셋 중 하나를 고르고, 빈 땅에 놓는다." },
+    { "type": "set", "plant_only": [] },
+    { "type": "say", "text_by": { "key": "facility", "default": "첫 번째 이유를 놓았다.", "map": {
+        "garden": "흙을 골랐다.\n느리다. 대신 굶지는 않는다.",
+        "scrapyard": "고물을 골랐다.\n남이 버린 것이 여기선 밑천이다.",
+        "stall": "판을 깔았다.\n밥 한 그릇, 패 한 판. 사람은 그렇게 모인다." } } },
+
+    { "type": "wait_event", "event": ["household_arrived", "cell_changed"], "timeout": 25, "timeout_skip": 1, "speed": 4,
+      "hint": "잠깐 둔다. 시키지 않아도 사람들은 움직인다." },
+    { "type": "say", "text": "누가 시키지도 않았는데, 판잣집이 하나 섰다." },
+    { "type": "say", "text": "방은 당신이 놓지 않는다.\n이유를 놓으면, 사람들이 쌓는다." },
+
+    { "type": "wait_event", "event": "collect_ready", "timeout": 40, "timeout_skip": 2, "speed": 4,
+      "hint": "자릿세가 모이는 중이다." },
+    { "type": "say", "speaker": "auntie", "highlight": "bubble", "text": "저기 동전 떴지? 자릿세야.\n눌러서 거둬. 그게 당신 일이야." },
+    { "type": "wait_cmd", "cmd": "collect", "highlight": "bubble", "timeout": 60,
+      "hint": "동전 말풍선을 눌러 거둔다." },
+    { "type": "say", "speaker": "auntie", "text": "자릿세는 그렇게 동전으로 떠.\n안 거둔다고 썩진 않아. 누가 대신 챙길 뿐이지." },
+    { "type": "say", "speaker": "auntie", "text": "그 돈이 어디로 가는지는…\n차차 알게 돼." },
+
+    { "type": "set", "verbs": [] },
+    { "type": "highlight", "target": "verb_zone", "speaker": "auntie", "text": "[긋기]. 어디에 살고, 어디서 일하고, 어디를 비울지.\n선만 긋는 거야. 짓는 건 저 사람들이고." },
+    { "type": "highlight", "target": "verb_policy", "speaker": "auntie", "text": "[허가]. 뭘 눈감아 줄지 정해.\n눈감은 만큼 돈이 되고, 돈이 된 만큼 시끄러워져." },
+    { "type": "highlight", "target": "verb_cards", "speaker": "auntie", "text": "[결재]. 하루가 저물면 서류가 올라와.\n도장은 당신이 찍어. 책임도." },
+    { "type": "say", "speaker": "auntie", "text": "그럼 수고해, {title}.\n비는 당신이 없어도 내려." }
+  ]
+}
