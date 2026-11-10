@@ -35,13 +35,14 @@ var _panel: PanelContainer
 var _plaque: PanelContainer
 var _title_label: Label
 var _close: PixelButton
+var _pad: Control
 var _slide: float = 0.0             # 0 닫힘 … 1 열림
 var _tween: Tween
 
 
 func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	visible = false
 	_holder = Control.new()
 	_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -57,6 +58,8 @@ func _init() -> void:
 	header.custom_minimum_size = Vector2(0, 30)
 	header.alignment = BoxContainer.ALIGNMENT_END
 	v.add_child(header)
+	_pad = UI.spacer(false, Vector2.ZERO)     # 제목 간판 자리(겹침 방지)
+	header.add_child(_pad)
 	body = UI.vbox(8)
 	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(body)
@@ -80,11 +83,6 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_place)
 	resized.connect(_place)
 	_place()
-
-
-## 제목 간판만큼 header 왼쪽을 비워 둔다(겹침 방지).
-func header_left_pad() -> float:
-	return (_plaque.get_combined_minimum_size().x + 20.0) if _plaque.visible else 0.0
 
 
 func sheet_height() -> float:
@@ -111,6 +109,7 @@ func _place() -> void:
 	_panel.size = Vector2(w, h + 8)
 	_plaque.reset_size()
 	_plaque.position = Vector2(12, -22)
+	_pad.custom_minimum_size.x = (_plaque.size.x + 8.0) if _plaque.visible else 0.0
 	_close.size = Vector2(56, 56)
 	_close.position = Vector2(w - 56 - 8, -30)
 

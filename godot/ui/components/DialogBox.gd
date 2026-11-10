@@ -8,7 +8,7 @@ extends Control
 signal advanced
 signal skipped
 
-const CPS := 38.0          # 초당 글자 수
+const CPS := 70.0          # 초당 글자 수(줄바꿈 방지용 폭 0 문자가 섞여 있어 실제로는 절반쯤)
 
 var bottom_gap: float = 0.0
 var top_offset: float = 118.0
@@ -30,13 +30,13 @@ var _t: float = 0.0
 
 func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	visible = false
 
 
 func _ready() -> void:
 	_catch = Control.new()
-	_catch.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_catch.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_catch.mouse_filter = Control.MOUSE_FILTER_STOP
 	_catch.gui_input.connect(_on_catch_input)
 	add_child(_catch)
@@ -76,6 +76,8 @@ func _ready() -> void:
 	add_child(_hint)
 
 	resized.connect(_place)
+	_box.minimum_size_changed.connect(_place, CONNECT_DEFERRED)
+	_hint.minimum_size_changed.connect(_place, CONNECT_DEFERRED)
 	set_process(false)
 
 
@@ -89,7 +91,7 @@ func say(speaker: String, text: String, role: String = "") -> void:
 	_plaque.visible = speaker != ""
 	(_role.get_child(0) as Label).text = role
 	_role.visible = role != "" and speaker != ""
-	_text.text = text
+	_text.text = UI.keep(text)
 	_text.visible_characters = 0
 	_chars = 0.0
 	_typing = true
@@ -107,7 +109,7 @@ func hint(text: String) -> void:
 	_plaque.visible = false
 	_role.visible = false
 	_hint.visible = text != ""
-	_hint_text.text = text
+	_hint_text.text = UI.keep(text)
 	_typing = false
 	set_process(false)
 	_place()
@@ -133,7 +135,7 @@ func _place() -> void:
 	var side := 10.0
 	# 대화 상자: 화면 아래
 	_box.custom_minimum_size = Vector2(w - side * 2, 0)
-	_box.reset_size()
+	_box.size = Vector2.ZERO
 	var by := size.y - bottom_gap - _box.size.y - 12.0
 	_box.position = UI.snap(Vector2(side, by))
 	_plaque.reset_size()
@@ -145,7 +147,7 @@ func _place() -> void:
 	_skip.size = Vector2(maxf(_skip.size.x, 132), 56)
 	if _mode == "hint":
 		_hint.custom_minimum_size = Vector2(w - 16 - 76, 0)
-		_hint.reset_size()
+		_hint.size = Vector2.ZERO
 		_hint.position = Vector2(8, top_offset)
 		_skip.position = Vector2(8, top_offset + (_hint.size.y + 6 if _hint.visible else 0.0))
 	else:

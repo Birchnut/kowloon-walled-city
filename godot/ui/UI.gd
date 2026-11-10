@@ -8,6 +8,7 @@ const TOUCH := 56          # 최소 터치 크기(논리 px)
 const ICON_TEX := "res://assets/ui/icons.png"
 const MISC := "res://assets/ui/misc/%s.png"
 const FALLBACK_THEME := "res://assets/themes/main_theme.tres"
+const WJ := "\u2060"
 
 static var _theme: Theme = null
 static var _atlas: Texture2D = null
@@ -87,9 +88,27 @@ static func misc(n: String) -> Texture2D:
 
 
 # ------------------------------------------------------------------ 만들기
+## 한국어 줄바꿈을 띄어쓰기에서만 하게 한다(CSS keep-all).
+## 글자 사이에 U+2060(WORD JOINER, 폭 0)을 끼워 낱말 중간에서 줄이 갈리지 않게 한다.
+## 줄바꿈 되는 라벨에 글을 넣을 때는 항상 이걸 거친다: label.text = UI.keep(s)
+static func keep(text: String) -> String:
+	if text.length() < 2:
+		return text
+	var out := PackedStringArray()
+	var n := text.length()
+	for i in n:
+		var ch := text[i]
+		out.append(ch)
+		if i < n - 1 and ch != " " and ch != "\n" and ch != WJ:
+			var nx := text[i + 1]
+			if nx != " " and nx != "\n" and nx != WJ:
+				out.append(WJ)
+	return "".join(out)
+
+
 static func label(text: String = "", variation: String = "", wrap: bool = false) -> Label:
 	var l := Label.new()
-	l.text = text
+	l.text = keep(text) if wrap else text
 	if variation != "":
 		l.theme_type_variation = variation
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -229,4 +248,7 @@ static func josa(word: String, no_batchim: String, with_batchim: String) -> Stri
 	var code := word.unicode_at(word.length() - 1)
 	if code >= 0xAC00 and code <= 0xD7A3:
 		return word + (no_batchim if (code - 0xAC00) % 28 == 0 else with_batchim)
+	if code >= 0x30 and code <= 0x39:
+		# 숫자: 영·일·삼·육·칠·팔 은 받침 있음
+		return word + (with_batchim if (code - 0x30) in [0, 1, 3, 6, 7, 8] else no_batchim)
 	return word + no_batchim

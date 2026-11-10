@@ -58,7 +58,7 @@ func _build(title: String, hint: String, lead: String) -> void:
 
 
 func set_hint(hint: String) -> void:
-	_hint.text = hint
+	_hint.text = UI.keep(hint)
 	_hint.visible = hint != ""
 
 

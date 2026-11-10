@@ -12,7 +12,7 @@ var _band: Control = null
 
 func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 
 func show_banner(kicker: String, title: String, sub: String = "", tone: String = "red", hold: float = 3.0, glyph: String = "") -> void:
@@ -80,10 +80,16 @@ func _next() -> void:
 		col.add_child(s)
 	add_child(band)
 	_band = band
-	band.size = Vector2(size.x, 0)
 	band.custom_minimum_size.x = size.x
-	band.reset_size()
 	band.position = Vector2(0, floorf(size.y * y_ratio / 2.0) * 2.0)
+	band.size = Vector2(size.x, 0)
+	band.modulate.a = 0.0
+	# 줄바꿈 라벨은 너비가 잡힌 다음에야 제 높이를 안다 → 한 프레임 뒤에 높이를 다시 맞춘다
+	await get_tree().process_frame
+	if not is_instance_valid(band):
+		return
+	band.size = Vector2(size.x, 0)
+	band.modulate.a = 1.0
 	band.pivot_offset = Vector2(size.x * 0.5, band.size.y * 0.5)
 	band.scale = Vector2(1, 0.0)
 	col.modulate.a = 0.0

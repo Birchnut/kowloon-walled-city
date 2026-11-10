@@ -4,13 +4,13 @@ extends Control
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var bg := ColorRect.new()
 	bg.color = Color("2a3350")
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	var m := UI.margin(12, 12, 12, 12)
-	m.set_anchors_preset(Control.PRESET_FULL_RECT)
+	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(m)
 	var v := UI.vbox(10)
 	m.add_child(v)

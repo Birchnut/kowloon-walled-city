@@ -1,8 +1,6 @@
-[gd_scene format=3]
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ui/Main.gd" id="1"]
 
 [node name="Main" type="Node"]
-
-[node name="Label" type="Label" parent="."]
-offset_left = 24.0
-offset_top = 24.0
-text = "구룡성채 v0.2 스캐폴드 — 조립 전"
+script = ExtResource("1")

@@ -29,6 +29,7 @@ var icon_name: String = "":
 var vertical: bool = false
 var tint_icon: bool = true           # false = 아이콘 원색 그대로(컬러 아이콘)
 var label_variation: String = ""     # 비우면 버튼 테마의 폰트/색을 따른다
+var small: bool = false              # 작은 글자(Galmuri9)로. 색은 버튼 상태를 그대로 따른다
 ## 최소 크기. Button 은 스크립트의 _get_minimum_size 를 무시하므로 custom_minimum_size 를 직접 관리한다.
 ## → 바깥에서는 custom_minimum_size 대신 이 값을 고칠 것.
 var min_size: Vector2 = Vector2(UI.TOUCH, UI.TOUCH):
@@ -137,8 +138,8 @@ func _layout() -> void:
 		_box.size = r.size
 	var col := get_theme_color(col_name)
 	if label_variation == "":
-		var f := get_theme_font("font")
-		var fs := get_theme_font_size("font_size")
+		var f := UI.font("small") if small else get_theme_font("font")
+		var fs := UI.font_size("small") if small else get_theme_font_size("font_size")
 		if _label.get_theme_font("font") != f or _label.get_theme_font_size("font_size") != fs:
 			_label.add_theme_font_override("font", f)
 			_label.add_theme_font_size_override("font_size", fs)

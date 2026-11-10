@@ -11,8 +11,12 @@ signal selected(id: String)
 signal locked_pressed(id: String)
 
 var value: String = ""
+var previous: String = ""           # 직전 값(명령이 거부되면 되돌릴 때)
 var chip_variation: String = "ButtonChip"
 var equal_width: bool = true
+var vertical_chips: bool = false    # 아이콘 위, 글자 아래
+var small_text: bool = false
+var chip_min: Vector2 = Vector2(UI.TOUCH, UI.TOUCH)
 var _buttons: Dictionary = {}    # id -> PixelButton
 var _locked: Dictionary = {}
 
@@ -33,7 +37,9 @@ func set_options(options: Array, current: String = "") -> void:
 		if not (o is Dictionary):
 			continue
 		var id := str(o.get("id", ""))
-		var b := PixelButton.make(str(o.get("name", id)), str(o.get("icon", "")), str(o.get("variation", chip_variation)))
+		var b := PixelButton.make(str(o.get("name", id)), str(o.get("icon", "")), str(o.get("variation", chip_variation)), vertical_chips)
+		b.small = small_text
+		b.min_size = chip_min
 		b.toggle_mode = true
 		b.button_pressed = id == current
 		if equal_width:
@@ -65,5 +71,6 @@ func _on_pressed(id: String) -> void:
 	if id == value:
 		set_value(value)   # 다시 눌러도 꺼지지 않는다
 		return
+	previous = value
 	set_value(id)
 	selected.emit(id)
