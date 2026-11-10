@@ -129,6 +129,10 @@ func _on_open(_a: String, _was: bool) -> void:
 	_sel = ""
 	_card.visible = false
 	_focus_set = false
+	# 승급 창 '탐험 — 목재 주는 곳'처럼 자재를 들고 오면 그 자재를 주는 곳을 비춘다
+	if _a in ["wood", "metal", "concrete", "scrap", "parts"]:
+		_focus = _a
+		_focus_set = true
 	_layout()
 	refresh()
 
@@ -400,6 +404,73 @@ func _dest(id: String) -> Dictionary:
 	return {}
 
 
+## 질의의 bonus_text("덤: 설비 부품 1~1, 고물 10~20, 거래처 발견, 설비 부품(5%)")를 확정/운으로 나눈다.
+## 확정 = 확률 표시가 없는 "이름 a~b"(시뮬은 chance 1.0 일 때만 이 꼴로 쓴다). 구조화된 bonus 배열이 오면 그걸 쓴다(INTEG (b) 요청).
+## → {sure: [{name, amount, parts}], extra: [문장]}
+static func split_bonus(d: Dictionary) -> Dictionary:
+	var sure: Array = []
+	var extra: Array = []
+	var raw := str(d.get("bonus_text", "")).strip_edges()
+	if raw.begins_with("덤:"):
+		raw = raw.substr(2).strip_edges()
+	elif raw.begins_with("덤"):
+		raw = raw.substr(1).strip_edges()
+	if raw == "":
+		return {"sure": sure, "extra": extra}
+	var re := RegEx.create_from_string("^(.+?)\\s+(\\d+)~(\\d+)$")
+	for part: String in raw.split(", "):
+		var t := part.strip_edges()
+		var m := re.search(t)
+		if m != null and not t.contains("%"):
+			var a := int(m.get_string(2))
+			var b := int(m.get_string(3))
+			var nm := m.get_string(1)
+			sure.append({"name": nm, "amount": str(a) if a == b else "%d~%d" % [a, b], "parts": nm == "설비 부품"})
+		elif t != "":
+			extra.append(t)
+	return {"sure": sure, "extra": extra}
+
+
+## 그 자재를 가져오는 아는 곳 중 가장 빠른 곳 → "철거된 가구 골목 · 5분" (없으면 "").
+static func nearest_source(good: String) -> String:
+	var best := {}
+	for d: Variant in UI.to_array(Q.dict("expeditions").get("dests", [])):
+		if not (d is Dictionary) or not bool(d.get("known", true)):
+			continue
+		var hit := str(UI.to_dict(d.get("primary", {})).get("good", "")) == good
+		for pk: Variant in UI.to_array(d.get("picks", [])):
+			if pk is Dictionary and str(pk.get("good", "")) == good:
+				hit = true
+		if good == "parts" and gives_parts(d):
+			hit = true
+		if hit and (best.is_empty() or float(d.get("seconds", 0)) < float(best.get("seconds", 0))):
+			best = d
+	if best.is_empty():
+		return ""
+	return "%s · %s" % [str(best.get("name", "")), fmt_real(float(best.get("seconds", 0)))]
+
+
+## 이 목적지가 설비 부품을 꼭 가져오나(주력이 부품이거나 확정 덤에 부품).
+static func gives_parts(d: Dictionary) -> bool:
+	if str(UI.to_dict(d.get("primary", {})).get("good", "")) == "parts":
+		return true
+	for it: Dictionary in split_bonus(d)["sure"]:
+		if bool(it["parts"]):
+			return true
+	return false
+
+
+## 설비 부품 표시(작은 금색 톱니) — 카드·지도 범례에서 같은 모양.
+class PartsGlyph extends Control:
+	func _init() -> void:
+		custom_minimum_size = Vector2(18, 18)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		size_flags_vertical = Control.SIZE_SHRINK_CENTER
+
+	func _draw() -> void:
+		WorldMap.draw_gear(self, Vector2(9, 9), UI.col("gold_hi"))
+
+
 func _idle_team() -> Variant:
 	for tm: Variant in UI.to_array(data.get("teams", [])):
 		if tm is Dictionary and str(tm.get("state", "")) == "idle":
@@ -441,9 +512,21 @@ func _build_card() -> void:
 	big.add_child(UI.label("%s %s 보장" % [str(pr.get("name", "")), amount], "LabelGold"))
 	big.add_child(UI.spacer(true))
 	big.add_child(UI.label(fmt_real(float(d.get("seconds", 0))), "LabelBold"))
-	var bonus := str(d.get("bonus_text", ""))
-	if bonus != "":
-		_card_body.add_child(UI.label(bonus if bonus.begins_with("덤") else "덤: " + bonus, "LabelSmall", true))
+	# 확정(100%) 덤은 보장 줄에 같이 — 특히 설비 부품(거물 승급). 확률 덤만 '덤:' 줄에 남긴다.
+	var bs := split_bonus(d)
+	var sure: Array = bs["sure"]
+	if not sure.is_empty():
+		var sr := UI.hbox(6)
+		_card_body.add_child(sr)
+		for it: Dictionary in sure:
+			var parts := bool(it["parts"])
+			if parts:
+				sr.add_child(PartsGlyph.new())
+			sr.add_child(UI.label("+ %s %s" % [it["name"], it["amount"]], "LabelGold" if parts else "LabelBold"))
+		sr.add_child(UI.label("보장", "LabelDim"))
+	var extra: Array = bs["extra"]
+	if not extra.is_empty():
+		_card_body.add_child(UI.label("덤(운): " + ", ".join(extra), "LabelSmall", true))
 	var cost := UI.to_dict(d.get("cost", {}))
 	if float(cost.get("money", 0)) > 0.0:
 		_card_body.add_child(Screen.kv("준비 비용", "₩" + UI.num(float(cost["money"]))))

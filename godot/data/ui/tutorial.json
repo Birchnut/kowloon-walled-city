@@ -101,6 +101,17 @@
       "hint": "빗물받이. 물은 범위 없이 성채 전체가 나눠 쓴다. 빈 칸 아무 데나."
     },
     {
+      "type": "wait_cmd",
+      "cmd": "build",
+      "match": {
+        "type": "rain_catcher",
+        "min": 2
+      },
+      "highlight": "flow:rain_catcher",
+      "timeout": 150,
+      "hint": "하나 더. 하나로는 여덟 채가 다 못 마신다 — 물 막대가 위 줄에 있다."
+    },
+    {
       "type": "set",
       "build_only": [
         "garden"

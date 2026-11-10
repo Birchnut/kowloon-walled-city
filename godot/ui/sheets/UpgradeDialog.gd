@@ -258,7 +258,8 @@ func _refresh() -> void:
 		_body.add_child(UI.label("여러 채 합산 미리보기는 아직 준비 중이다(시뮬 질의 upgrade_preview). 한 채씩 보면 자세히 나온다.", "LabelMute", true))
 	else:
 		_preview(pv)
-	_why.text = UI.keep("  ".join(PackedStringArray(blockers.map(func(x: Variant) -> String: return "· " + str(x))))) if not ok else ""
+	_last_blockers = blockers.duplicate()
+	_why.text = UI.keep("  ".join(PackedStringArray(blockers.map(func(x: Variant) -> String: return "· " + _josa_fix(str(x)))))) if not ok else ""
 	_why.visible = not ok and not blockers.is_empty()
 	var mname := ""
 	for mt: Variant in UI.to_array(up.get("materials", [])):
@@ -274,10 +275,73 @@ func _refresh() -> void:
 			var c2 := UI.to_dict(UI.to_dict(q2).get("cost", {}))
 			_go.label_text = "%d채만 승급 — ₩%s · %s %d" % [_fit_k, UI.num(float(c2.get("money", 0))), mname, int(c2.get("qty", 0))]
 			ok = true
+			_why.visible = false   # 빨간 '모자란다' 대신 아래 금색 줄이 남은 채와 모자란 양을 말한다
 	_go.disabled = not ok or mat == ""
 	_go.theme_type_variation = "ButtonJade" if not _go.disabled else ""
+	_short_row(up, qty, mname)
 	_scroll.adopt_buttons()
 	_fit_size.call_deferred()
+
+
+## 자재가 모자라면: 정확히 얼마가 모자란지 + 그 자재를 주는 가장 빠른 탐험 + [탐험] 버튼(그 자재를 비춘 지도).
+## 판정은 시뮬(blockers·have·qty) 그대로 — 뺄셈만 한다.
+func _short_row(up: Dictionary, qty: int, mname: String) -> void:
+	if _short != null and is_instance_valid(_short):
+		_short.queue_free()
+	_short = null
+	if mat == "":
+		return
+	var have := 0
+	for mt: Variant in UI.to_array(up.get("materials", [])):
+		if mt is Dictionary and str(mt.get("id", "")) == mat:
+			have = int(mt.get("have", 0))
+	var need_good := ""
+	var line := ""
+	if qty > have:
+		need_good = mat
+		if _batch and _fit_k > 0:
+			line = "남은 %d채엔 %s %d 더(지금 %d / %d)." % [bids.size() - _fit_k, mname, qty - have, have, qty]
+		else:
+			line = "%s %d 모자람(지금 %d / %d)." % [mname, qty - have, have, qty]
+	else:
+		# 자재는 되는데 막혔다 — 설비 부품 같은 추가 재료(시뮬 이유 문장에 이름이 있다)
+		for b: Variant in UI.to_array(_last_blockers):
+			if str(b).contains("설비 부품"):
+				need_good = "parts"
+				line = str(b)
+	if need_good == "":
+		return
+	var src := ExpeditionScreen.nearest_source(need_good)
+	var gname := "설비 부품" if need_good == "parts" else mname
+	_short = UI.vbox(4)
+	var l := UI.label(line + ((" 가장 빠른 곳: " + src) if src != "" else ""), "LabelSmall", true)
+	l.add_theme_color_override("font_color", UI.col("gold"))
+	_short.add_child(l)
+	var b2 := PixelButton.make("탐험 — %s 주는 곳" % gname, "chev_r", "")
+	b2.min_size = Vector2(0, 44)
+	b2.pressed.connect(func() -> void:
+		close()
+		if ui != null:
+			ui.jump({"screen": "expedition", "arg": need_good}))
+	_short.add_child(b2)
+	_why.get_parent().add_child(_short)
+	_why.get_parent().move_child(_short, _why.get_index() + 1)
+	_scroll.adopt_buttons()
+
+
+var _short: Control = null
+
+
+## 시뮬 문장의 "목재이(가)" → "목재가"(받침으로 고른다 — INTEG (b) 2 가 고쳐질 때까지).
+static func _josa_fix(t: String) -> String:
+	var re := RegEx.create_from_string("(\\S+?)이\\(가\\)")
+	var m := re.search(t)
+	while m != null:
+		var w := m.get_string(1)
+		t = t.substr(0, m.get_start()) + UI.josa(w, "가", "이") + t.substr(m.get_end())
+		m = re.search(t)
+	return t
+var _last_blockers: Array = []
 
 
 ## 내용이 바뀌는 동안 판이 늘어난 채로 남지 않게 높이만 다시 맞춘다(위치 트윈은 건드리지 않는다).

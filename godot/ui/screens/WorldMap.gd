@@ -17,6 +17,7 @@ var focus_good: String = ""
 var _t: float = 0.0
 var _hits: Array = []           # [{rect, id}]
 var _deco_seed: int = 7
+var _label_at: Dictionary = {}  # id → 이름표 왼쪽 위(겹치지 않게 미리 고른 자리)
 
 
 func _init() -> void:
@@ -76,12 +77,33 @@ func _draw() -> void:
 	var unit := minf(size.x, size.y)
 	# 거리 띠(점선 원)
 	var bands := [[0.2, "근거리 · 몇 분"], [0.33, "중거리 · 한 시간쯤"], [0.47, "원거리 · 몇 시간"]]
+	var taken: Array = []   # 이름표가 피할 자리(띠 이름·표지·성채)
+	taken.append(Rect2(c - Vector2(34, 34), Vector2(68, 100)))
+	taken.append(Rect2(4, size.y - 34, 170, 32))   # 범례 자리
+	for d0: Variant in dests:
+		if d0 is Dictionary:
+			taken.append(Rect2(dest_point(d0) - Vector2(16, 12), Vector2(32, 24)))
 	for b: Array in bands:
 		_dotted_circle(c, unit * float(b[0]), Color(UI.col("dim"), 0.35))
-		var f := UI.font("small")
-		var fs := UI.font_size("small")
-		var tp := c + Vector2(-f.get_string_size(b[1], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x * 0.5, -unit * float(b[0]) + 4.0 + f.get_ascent(fs))
-		_text(tp, b[1], UI.col("mute"))
+	# F15: 띠 이름은 원과 왼쪽 큰길이 만나는 자리(지도 가장자리 쪽)에, 표지·이름표와 겹치지 않게 미리 비켜 둔다
+	var f := UI.font("small")
+	var fs := UI.font_size("small")
+	for b: Array in bands:
+		var bw := f.get_string_size(b[1], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var rr := unit * float(b[0])
+		var cands := [c + Vector2(-rr - bw * 0.5, -24), c + Vector2(-bw * 0.5, -rr + 4.0), c + Vector2(-bw * 0.5, rr - 24.0), c + Vector2(rr - bw * 0.5, -24)]
+		var tp: Vector2 = cands[0]
+		for cand: Vector2 in cands:
+			var rc := Rect2(cand - Vector2(2, 0), Vector2(bw + 4, 22))
+			if rc.position.x < 2.0 or rc.end.x > size.x - 2.0 or rc.position.y < 2.0 or rc.end.y > size.y - 2.0:
+				continue
+			if not _hits_any(rc, taken):
+				tp = cand
+				break
+		tp.x = clampf(tp.x, 4.0, size.x - bw - 4.0)
+		taken.append(Rect2(tp - Vector2(2, 0), Vector2(bw + 4, 22)))
+		_text(tp + Vector2(0, f.get_ascent(fs)), b[1], UI.col("mute"))
+	_place_labels(taken)
 	# 길
 	for d: Variant in dests:
 		if d is Dictionary and bool(d.get("known", true)):
@@ -98,6 +120,16 @@ func _draw() -> void:
 	for tm: Variant in teams:
 		if tm is Dictionary:
 			_team(tm, c)
+	# 범례: 톱니 = 설비 부품 보장(그런 곳을 알 때만)
+	for d2: Variant in dests:
+		if d2 is Dictionary and bool(d2.get("known", true)) and ExpeditionScreen.gives_parts(d2):
+			var lt := "설비 부품 보장"
+			var lw := f.get_string_size(lt, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+			var lr := Rect2(6, size.y - 30, lw + 34, 24)
+			draw_rect(lr, Color(UI.col("out"), 0.75))
+			draw_gear(self, lr.position + Vector2(13, 12), UI.col("gold_hi"))
+			_text(lr.position + Vector2(26, 2 + f.get_ascent(fs)), lt, UI.col("gold_hi"))
+			break
 
 
 func _ground() -> void:
@@ -160,6 +192,8 @@ func _is_focus(d: Dictionary) -> bool:
 	if focus_good == "":
 		return false
 	if str(UI.to_dict(d.get("primary", {})).get("good", "")) == focus_good:
+		return true
+	if focus_good == "parts" and bool(d.get("known", true)) and ExpeditionScreen.gives_parts(d):
 		return true
 	for pk: Variant in UI.to_array(d.get("picks", [])):
 		if pk is Dictionary and str(pk.get("good", "")) == focus_good:
@@ -242,18 +276,73 @@ func _marker(d: Dictionary) -> void:
 		draw_rect(Rect2(p + Vector2(-w2, (k - 2) * 2.0 - 1.0), Vector2(w2 * 2.0, 2)), base)
 	if bool(d.get("new", false)):
 		draw_rect(Rect2(p + Vector2(8, -14), Vector2(6, 6)), UI.col("red_hi"))
-	# 이름
-	var nm := str(d.get("name", "?")) if known else "?"
+	# 설비 부품을 꼭 가져오는 곳: 표지 왼쪽 위 금색 톱니(거물 승급용 부품을 한눈에)
+	if known and ExpeditionScreen.gives_parts(d):
+		draw_rect(Rect2(p + Vector2(-21, -21), Vector2(14, 14)), Color(UI.col("out"), 0.8))
+		draw_gear(self, p + Vector2(-14, -14), UI.col("gold_hi") if not dim else UI.col("gold_d"))
+	# 이름(자리는 _place_labels 가 겹치지 않게 골랐다)
+	var nm := _label_text(d)
 	var f := UI.font("small")
 	var fs := UI.font_size("small")
 	var tw := f.get_string_size(nm, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-	var lp := (p + Vector2(-tw * 0.5, 14)).floor()
-	lp.x = clampf(lp.x, 4.0, size.x - tw - 4.0)
+	var lp: Vector2 = _label_at.get(id, (p + Vector2(-tw * 0.5, 14)).floor())
 	var plate := Rect2(lp - Vector2(4, 0), Vector2(tw + 8, 24))
 	draw_rect(plate, Color(UI.col("out"), 0.75 if not dim else 0.5))
 	_text(lp + Vector2(0, 2 + f.get_ascent(fs)), nm, (UI.col("paper") if known else UI.col("dim")) if not dim else UI.col("mute"))
 	var hit := Rect2(p - Vector2(24, 20), Vector2(48, 32)).merge(plate).grow(4)
 	_hits.append({"rect": hit, "id": id})
+
+
+func _label_text(d: Dictionary) -> String:
+	return str(d.get("name", "?")) if bool(d.get("known", true)) else "?"
+
+
+static func _hits_any(r: Rect2, rs: Array) -> bool:
+	for o: Rect2 in rs:
+		if r.intersects(o):
+			return true
+	return false
+
+
+## 이름표 자리 고르기: 아래 → 위 → 오른쪽 → 왼쪽 → 더 아래, 앞서 놓은 이름표·표지·띠 이름과 안 겹치는 첫 자리. 다 겹치면 덜 겹치는 아래.
+func _place_labels(taken: Array) -> void:
+	_label_at.clear()
+	var f := UI.font("small")
+	var fs := UI.font_size("small")
+	# 선택된 곳·새로 알게 된 곳 먼저(좋은 자리를 받게)
+	var order: Array = []
+	for d: Variant in dests:
+		if d is Dictionary:
+			order.append(d)
+	order.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return int(str(a.get("id", "")) == selected) * 2 + int(bool(a.get("known", true))) > int(str(b.get("id", "")) == selected) * 2 + int(bool(b.get("known", true))))
+	for d: Dictionary in order:
+		var p := dest_point(d)
+		var tw := f.get_string_size(_label_text(d), HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var cands := [Vector2(-tw * 0.5, 14), Vector2(-tw * 0.5, -40), Vector2(18, -12), Vector2(-tw - 22, -12), Vector2(-tw * 0.5, 40), Vector2(-tw * 0.5, -66)]
+		var best := Vector2.INF
+		for o: Vector2 in cands:
+			var lp := (p + o).floor()
+			lp.x = clampf(lp.x, 4.0, size.x - tw - 4.0)
+			lp.y = clampf(lp.y, 2.0, size.y - 26.0)
+			if best == Vector2.INF:
+				best = lp
+			if not _hits_any(Rect2(lp - Vector2(4, 0), Vector2(tw + 8, 24)), taken):
+				best = lp
+				break
+		_label_at[str(d.get("id", ""))] = best
+		taken.append(Rect2(best - Vector2(4, 0), Vector2(tw + 8, 24)))
+
+
+## 작은 픽셀 톱니(설비 부품). c = 가운데.
+static func draw_gear(ci: CanvasItem, c: Vector2, col: Color) -> void:
+	var o := c.floor()
+	ci.draw_rect(Rect2(o + Vector2(-4, -4), Vector2(8, 8)), col)
+	for t: Vector2 in [Vector2(-1, -6), Vector2(-1, 4), Vector2(-6, -1), Vector2(4, -1)]:
+		ci.draw_rect(Rect2(o + t, Vector2(2, 2)), col)
+	for t2: Vector2 in [Vector2(-5, -5), Vector2(3, -5), Vector2(-5, 3), Vector2(3, 3)]:
+		ci.draw_rect(Rect2(o + t2, Vector2(2, 2)), col)
+	ci.draw_rect(Rect2(o + Vector2(-1, -1), Vector2(2, 2)), UI.col("out"))
 
 
 func _team(tm: Dictionary, c: Vector2) -> void:

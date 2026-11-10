@@ -1110,6 +1110,12 @@ var _mouse_down := false
 var _touch_mode_t := -10.0
 var _pinch_d0 := 0.0
 var _pinch_a0 := 0.0
+var _pinch_c0 := Vector2.ZERO     # 두 손가락을 댄 순간의 가운데
+var _pinch_armed := false          # 시작 떨림을 넘긴 뒤에만 줌한다
+var _pinch_last_t := -10.0         # 마지막 줌 단계 시각
+const PINCH_STEP := 1.25           # 마지막 단계 때 거리의 1.25배(0.8배)마다 한 단계
+const PINCH_MIN_DT := 0.15         # 단계 사이 최소 0.15초
+const PINCH_DEAD_PX := 24.0        # 시작 떨림: 거리 변화가 이만큼 + 가운데 이동보다 커야 줌으로 본다
 const TAP_SLOP := 10.0
 var _paint_last := Vector3i(-99, -99, -99)
 
@@ -1147,6 +1153,8 @@ func _gui_input(ev: InputEvent) -> void:
 				var k: Array = _touches.values()
 				_pinch_d0 = (k[0] as Vector2).distance_to(k[1])
 				_pinch_a0 = ((k[1] as Vector2) - (k[0] as Vector2)).angle()
+				_pinch_c0 = ((k[0] as Vector2) + (k[1] as Vector2)) * 0.5
+				_pinch_armed = false
 		else:
 			# 누름을 이 뷰가 받지 않은 손가락의 뗌(UI가 누름을 먹고 사라진 경우)은 탭이 아니다(통합: 대화 넘기기가 집을 여는 일)
 			var seen := _touches.has(ev.index)
@@ -1172,12 +1180,21 @@ func _gui_input(ev: InputEvent) -> void:
 			var dist := (k2[0] as Vector2).distance_to(k2[1])
 			var ang := ((k2[1] as Vector2) - (k2[0] as Vector2)).angle()
 			if _pinch_d0 > 1.0:
-				if dist > _pinch_d0 * 1.35:
-					zoom_step(1)
-					_pinch_d0 = dist
-				elif dist < _pinch_d0 * 0.72:
-					zoom_step(-1)
-					_pinch_d0 = dist
+				# F14: 한 동작에 3~4단씩 튀던 것 — 시작 떨림 무시 + 단계마다 기준 다시 잡기(히스테리시스) + 최소 간격
+				if not _pinch_armed:
+					var cen := ((k2[0] as Vector2) + (k2[1] as Vector2)) * 0.5
+					var dd := absf(dist - _pinch_d0)
+					if dd > PINCH_DEAD_PX and dd > cen.distance_to(_pinch_c0) * 0.5:
+						_pinch_armed = true
+				if _pinch_armed and _t - _pinch_last_t >= PINCH_MIN_DT:
+					if dist > _pinch_d0 * PINCH_STEP:
+						zoom_step(1)
+						_pinch_d0 = dist
+						_pinch_last_t = _t
+					elif dist < _pinch_d0 / PINCH_STEP:
+						zoom_step(-1)
+						_pinch_d0 = dist
+						_pinch_last_t = _t
 			var da := wrapf(ang - _pinch_a0, -PI, PI)
 			if absf(da) > 0.6:
 				rotate_view(1 if da < 0.0 else -1)

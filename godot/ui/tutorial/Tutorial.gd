@@ -241,14 +241,15 @@ func _already_done(s: Dictionary) -> bool:
 					return true
 		"build":
 			var t := str(m.get("type", ""))
+			var need := maxi(1, int(m.get("min", 1)))   # "min": n — 그 시설이 n개 있어야 해 둔 것
+			var have := 0
 			for b2: Variant in st.buildings.values():
 				if b2 is Dictionary and (t == "" or str(b2.get("type", "")) == t):
 					if str(b2.get("kind", "")) != "house":
-						return true
-			# 공사 중(site)도 친다
-			for c: Variant in st.cells.values():
-				if c is Dictionary and str(c.get("kind", "")) == "site" and (t == "" or str(UI.to_dict(c.get("becomes", {})).get("type", "")) == t):
-					return true
+						have += 1
+			# 공사 중(site)도 buildings 안에 type 을 달고 있다 → 위에서 함께 센다
+			if have >= need:
+				return true
 		"expedition_send":
 			for tm: Variant in st.teams:
 				if tm is Dictionary and str(tm.get("state", "")) != "idle":
@@ -311,6 +312,8 @@ func on_cmd(cmd_name: String, args: Dictionary, result: Dictionary) -> void:
 		return
 	var m := UI.to_dict(_wait.get("match", {}))
 	for k: String in m:
+		if k == "min":   # 개수 조건(_already_done 용) — 인자가 아니다
+			continue
 		if str(args.get(k, "")) != str(m[k]):
 			return
 	_last_args = args.duplicate()

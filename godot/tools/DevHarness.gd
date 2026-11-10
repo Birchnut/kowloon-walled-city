@@ -264,6 +264,7 @@ func _vecs(d: Dictionary) -> Dictionary:
 ##   {"tap": [x, y]}                      화면 좌표 터치(누름 → 0.1초 → 뗌). 진짜 InputEventScreenTouch
 ##   {"click": [x, y]}                    마우스 왼쪽 클릭
 ##   {"drag": [[x,y],[x,y]…], "steps": n}  한 손가락 끌기(점 사이를 n등분)
+##   {"pinch": [cx,cy], "d0": 120, "d1": 300, "frames": 10, "pan": [dx,dy], "jitter": px}  두 손가락 핀치(줌 단계 변화를 찍는다)
 ##   {"press": "글자", "nth": 0, "region": [x0,y0,x1,y1]}   보이는 버튼(없으면 라벨) 중 글자를 품은 것의 가운데를 터치
 ##   {"target": "exp:dest:<id>"}         UIRoot.target_rect 이름의 가운데를 터치
 ##   {"cell": [x,y,z]}                    뷰가 그 칸을 그린 화면 좌표를 터치
@@ -308,6 +309,12 @@ func _step(i: int, s: Dictionary) -> void:
 		await _sleep(float(s["wait"]))
 	elif s.has("tap"):
 		await _touch(_xy(s["tap"]))
+	elif s.has("pinch"):
+		var z0 := int(view.get("zoom_i")) if view != null else -1
+		await _pinch(_xy(s["pinch"]), float(s.get("d0", 120)), float(s.get("d1", 300)), int(s.get("frames", 10)), _xy(s.get("pan", [0, 0])), float(s.get("jitter", 0)))
+		await get_tree().process_frame
+		var z1 := int(view.get("zoom_i")) if view != null else -1
+		print("[script] #%d pinch %s d %s→%s (%d프레임) zoom %d → %d (%+d단)" % [i, s["pinch"], s.get("d0", 120), s.get("d1", 300), int(s.get("frames", 10)), z0, z1, z1 - z0])
 	elif s.has("click"):
 		await _click(_xy(s["click"]))
 	elif s.has("drag"):
@@ -547,6 +554,39 @@ func _click(at: Vector2) -> void:
 	m2.pressed = false
 	Input.parse_input_event(m2)
 	await get_tree().process_frame
+
+
+## 두 손가락 핀치(진짜 ScreenTouch/Drag, index 0·1). 가운데 c, 손가락 사이 d0 → d1 을 frames 프레임에 걸쳐.
+## pan 은 그동안 가운데가 움직일 양(두 손가락 팬 흉내), jitter 는 프레임마다 거리 흔들림(px).
+func _pinch(c: Vector2, d0: float, d1: float, frames: int, pan: Vector2 = Vector2.ZERO, jitter: float = 0.0) -> void:
+	var pos := [c - Vector2(d0 * 0.5, 0), c + Vector2(d0 * 0.5, 0)]
+	for i in 2:
+		var d := InputEventScreenTouch.new()
+		d.index = i
+		d.position = pos[i]
+		d.pressed = true
+		Input.parse_input_event(d)
+		await get_tree().process_frame
+	for n in range(1, frames + 1):
+		var r := float(n) / frames
+		var cc := c + pan * r
+		var dd := lerpf(d0, d1, r) + (jitter * (1.0 if n % 2 == 0 else -1.0))
+		var np := [cc - Vector2(dd * 0.5, 0), cc + Vector2(dd * 0.5, 0)]
+		for i in 2:
+			var m := InputEventScreenDrag.new()
+			m.index = i
+			m.position = np[i]
+			m.relative = (np[i] as Vector2) - (pos[i] as Vector2)
+			pos[i] = np[i]
+			Input.parse_input_event(m)
+		await get_tree().process_frame
+	for i in 2:
+		var u := InputEventScreenTouch.new()
+		u.index = i
+		u.position = pos[i]
+		u.pressed = false
+		Input.parse_input_event(u)
+		await get_tree().process_frame
 
 
 func _drag(pts: Array, steps: int) -> void:
