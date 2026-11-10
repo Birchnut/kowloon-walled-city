@@ -154,6 +154,33 @@ static func report(r: Dictionary) -> String:
 		L.append("| %s | %.1f |" % [l["name"], l["amount"]])
 	L.append("| **순** | **%.1f** |" % float(eco["finance"]["net"]))
 	L.append("")
+	L.append("## 마지막 날 시설(완공·공사 중)")
+	var fc := {}
+	var upk := 0.0
+	for b: Dictionary in state.buildings.values():
+		if b["kind"] == "facility" or b["kind"] == "site":
+			var k := str(b["type"])
+			var a: Array = fc.get(k, [0, 0, 0.0, {}])
+			a[0] += 1
+			if b.get("active", false):
+				a[1] += 1
+			var cz := str(b.get("cause", "site" if b["kind"] == "site" else ""))
+			a[3][cz] = int(a[3].get(cz, 0)) + 1
+			a[2] += float(sim.bdef(k).get("upkeep", 0))
+			fc[k] = a
+			upk += float(sim.bdef(k).get("upkeep", 0))
+	L.append("| 시설 | 수 | 가동 | 유지비/일 | 상태(원인별 수) |")
+	L.append("|---|---|---|---|---|")
+	for k: String in fc:
+		L.append("| %s | %d | %d | %.0f | %s |" % [sim.bdef(k).get("name", k), fc[k][0], fc[k][1], fc[k][2], JSON.stringify(fc[k][3])])
+	L.append("| 합계 | | | %.0f | |" % upk)
+	L.append("")
+	L.append("## 마지막 날 계약")
+	var cq: Dictionary = sim.query(state, "contracts")
+	L.append("자리 %d/%d" % [int(cq["slots"]["used"]), int(cq["slots"]["max"])])
+	for k: Dictionary in cq["active"]:
+		L.append("- %s %s %s %d개/%d시간 @₩%s — 지난 회차: %s" % [k["partner_name"], k["good_name"], "수입" if k["dir"] == "import" else "수출", k["qty"], k["interval_h"], str(k["price"]), k["last_text"]])
+	L.append("")
 	L.append_array(per_cell(sim, state))
 	L.append("")
 	L.append("## 막힌 것(봇이 하려다 못 한 일, 횟수)")

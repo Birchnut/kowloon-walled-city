@@ -141,12 +141,19 @@ func _pick(state: CityState, n: Dictionary, rec: Dictionary, mk: Array, sv: Dict
 					continue
 				_spare[u] = float(_spare.get(u, 0.0)) - need
 			keep.push_front(o)
+	# 새로 고를 때는 재고가 가장 많은 상품부터(같은 묶음 안에서 소비가 한 품목에 몰리지 않게)
+	var cand: Array = []
 	for o: Dictionary in opts:
-		if keep.size() >= count:
-			break
 		if not (o in keep) and not (o in failed) and not (o.get("prefer", false) and o["kind"] == "utility") and _avail(state, o, mk, sv) == "" \
 				and (o["kind"] != "good" or float(fills.get(o["good"], 1.0)) >= _ok):
-			keep.append(o)
+			cand.append(o)
+	if cand.size() > 1:
+		cand.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+			return (float(state.stock.get(a.get("good", ""), 0.0)) if a["kind"] == "good" else 0.0) > (float(state.stock.get(b.get("good", ""), 0.0)) if b["kind"] == "good" else 0.0))
+	for o: Dictionary in cand:
+		if keep.size() >= count:
+			break
+		keep.append(o)
 	for o: Dictionary in opts:
 		if keep.size() >= count:
 			break

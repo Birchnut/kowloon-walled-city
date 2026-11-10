@@ -83,7 +83,12 @@ func _spot(state: CityState, size: int, near: Vector3i) -> Variant:
 				var p := Vector3i(x, y, z)
 				if not _free(state, p, size):
 					continue
-				var d := absi(x - near.x) + absi(y - near.y) + 3 * absi(z - near.z) + 2 * z
+				var d := Cover.dist(sim, near, p, size)
+				if d >= (1 << 19):
+					continue
+				d = d * 4 + z
+				if size == 1 and _reserved(p):
+					d += 1000
 				if d < bd:
 					bd = d
 					best = p
@@ -112,7 +117,15 @@ func _try_build(state: CityState, type: String, near: Vector3i, critical: bool =
 		if critical:
 			_save = maxf(_save, cost + float(c("money_reserve", 40)))
 		return false
+	for g: String in d.get("cost", {}).get("goods", {}):
+		if float(state.stock.get(g, 0.0)) < float(d["cost"]["goods"][g]):
+			if g == "parts" or g == "scrap":
+				_buy_extra(state, g)
+			_block("%s 부족으로 %s 보류" % [sim.gname(g), d.get("name", type)])
+			return false
 	var p: Variant = _spot(state, int(d.get("size", 1)), near)
+	if p != null and d.has("range") and Cover.dist(sim, near, p, int(d.get("size", 1))) > int(d["range"]) - 1:
+		p = null
 	if p == null:
 		_block("자리 부족으로 %s 보류" % d.get("name", type))
 		return false
@@ -214,6 +227,8 @@ func _markets_services(state: CityState) -> void:
 	for type: String in want:
 		if built >= 2:
 			break
+		if not crit.has(type) and int(sim.bdef(type).get("size", 1)) == 2 and state.money < float(c("luxury_big_money", 3000)):
+			continue
 		if _try_build(state, type, want[type], crit.has(type)):
 			built += 1
 
@@ -317,7 +332,7 @@ func _production(state: CityState) -> void:
 	if meal > 0.0:
 		var have := _supply(state, "veg") + _supply(state, "noodles") + _supply(state, "fishball")
 		if have < meal * 1.2:
-			var order: Array = c("meal_order", ["fishball_factory", "noodle_mill", "garden"])
+			var order: Array = c("meal_order", ["noodle_mill", "garden", "fishball_factory"])
 			# 2종 수요(토박이 이상)를 위해 가장 적은 품목부터
 			if _pop(state, 3) + _pop(state, 4) + _pop(state, 5) > 0.0:
 				order = ["veg", "noodles", "fishball"]
@@ -361,40 +376,55 @@ func _production(state: CityState) -> void:
 func _contracts(state: CityState) -> void:
 	var q: Dictionary = sim.query(state, "contracts")
 	var dem := _demand(state)
-	var slots_free := int(q["slots"]["max"]) - int(q["slots"]["used"])
-	var wants: Array = []
+	var max_slots := int(q["slots"]["max"])
+	var changed := false
 	for g: String in c("imports", ["flour", "fat", "oldclothes", "cloth", "fishmeat", "elec", "liquor"]):
 		var need := float(dem.get(g, 0.0)) * 1.15
-		var have := _supply(state, g)
-		if need > have + 0.5:
-			wants.append([g, need - have])
-	if wants.is_empty():
-		_exports(state, q, slots_free)
-		return
-	if slots_free <= 0:
-		if _sites_of(state, "infra") == 0:
-			_try_build(state, "trade_post", _center(state))
-		return
-	for w: Array in wants:
-		if slots_free <= 0:
-			break
+		var mine: Array = []
+		var have := 0.0
+		for k: Dictionary in state.contracts:
+			if k["good"] == g and k["dir"] == "import":
+				mine.append(k)
+				have += float(k["qty"]) * 24.0 / float(k["interval_h"])
+		if need <= 0.5 and mine.is_empty():
+			continue
+		if have >= need and have <= need * 2.5 + 10.0:
+			continue
 		var best: Dictionary = {}
 		for o: Dictionary in q["offers"]:
-			if o["good"] == w[0] and o["dir"] == "import" and o["known"]:
+			if o["good"] == g and o["dir"] == "import" and o["known"]:
 				if best.is_empty() or float(o["sizes"][0]["price"]) < float(best["sizes"][0]["price"]):
 					best = o
 		if best.is_empty():
-			_block("수입처 없음: %s" % sim.gname(w[0]))
+			_block("수입처 없음: %s" % sim.gname(g))
 			continue
-		var si := 0
-		for i: int in best["sizes"].size():
-			var s: Dictionary = best["sizes"][i]
-			si = i
-			if float(s["qty"]) * 24.0 / float(s["interval_h"]) >= float(w[1]):
-				break
-		var r := cmd(state, "contract_sign", {"offer": best["id"], "size": si})
-		if r.get("ok", false):
-			slots_free -= 1
+		# 원하는 묶음: 가장 큰 단계 여러 개 + 나머지를 덮는 가장 작은 단계
+		var sizes: Array = best["sizes"]
+		var rate := func(i: int) -> float: return float(sizes[i]["qty"]) * 24.0 / float(sizes[i]["interval_h"])
+		var plan: Array = []
+		var left := need
+		var big := sizes.size() - 1
+		while left > float(rate.call(big)) and plan.size() < 4:
+			plan.append(big)
+			left -= float(rate.call(big))
+		if left > 0.5:
+			for i: int in sizes.size():
+				if float(rate.call(i)) >= left or i == big:
+					plan.append(i)
+					break
+		var used_other := state.contracts.size() - mine.size()
+		if used_other + plan.size() > max_slots:
+			if _sites_of(state, "infra") == 0 and _count(state, "trade_post") < int(c("max_trade_posts", 6)):
+				_try_build(state, "trade_post", _center(state))
+			_block("계약 자리가 모자람(%s)" % sim.gname(g))
+			continue
+		for k: Dictionary in mine:
+			cmd(state, "contract_cancel", {"id": int(k["id"])})
+		for i: int in plan:
+			cmd(state, "contract_sign", {"offer": best["id"], "size": i})
+		changed = true
+	if not changed:
+		_exports(state, sim.query(state, "contracts"), max_slots - state.contracts.size())
 
 
 func _exports(state: CityState, q: Dictionary, slots_free: int) -> void:
@@ -428,14 +458,32 @@ func _upgrades(state: CityState) -> void:
 			hn[t0] = int(hn.get(t0, 0)) + 1
 			if int(b["residents"]) >= int(b["cap"]) or b.get("upgrading") != null:
 				hf[t0] = int(hf.get(t0, 0)) + 1
+	# 높은 계층부터(자재를 위쪽 승급에 먼저 쓴다)
+	var cands: Array = []
 	for b: Dictionary in state.buildings.values():
+		if b["kind"] == "house" and b.get("upgradable", false):
+			cands.append(b)
+	cands.sort_custom(func(a: Dictionary, b2: Dictionary) -> bool:
+		return int(a["tier"]) > int(b2["tier"]) if int(a["tier"]) != int(b2["tier"]) else int(a["id"]) < int(b2["id"]))
+	var labor_tiers := {}
+	for id2: String in sim.items("buildings"):
+		for tk: String in sim.bdef(id2).get("workforce", {}):
+			labor_tiers[int(tk.substr(1))] = true
+	for b: Dictionary in cands:
 		if done >= max_per:
 			break
-		if b["kind"] == "house" and b.get("upgradable", false):
-			var nt := int(b["tier"]) + 1
-			if int(hn.get(nt, 0)) >= int(c("pilot_houses", 3)) and float(hf.get(nt, 0)) < 0.7 * float(hn.get(nt, 0)):
-				_block("%s 주거가 아직 안 차서(그 계층 수요 미충족) 승급 보류" % sim.tname(nt))
-				break
+		var nt := int(b["tier"]) + 1
+		var ln: Dictionary = state.labor.get(nt, {"have": 0, "need": 0.0})
+		var short := float(ln["need"]) > float(ln["have"])
+		# 다음 계층 주거가 아직 안 차 있으면(그 계층 수요 미충족) 더 올리지 않는다 — 단, 그 계층 노동력이 모자라면 올려서 채운다
+		if not short and int(hn.get(nt, 0)) >= int(c("pilot_houses", 3)) and float(hf.get(nt, 0)) < 0.7 * float(hn.get(nt, 0)):
+			_block("%s 주거가 아직 안 차서(그 계층 수요 미충족) 승급 보류" % sim.tname(nt))
+			continue
+		# 다음 계층 노동력이 이미 넉넉하면(그 계층 인력을 쓰는 시설이 있는 계층만) 자재를 아낀다
+		if labor_tiers.has(nt) and float(ln["have"]) - float(ln["need"]) >= float(c("spare_cap", 16)) and int(hn.get(nt + 1, 0)) > 0 \
+				and _pop(state, nt) >= _goal_pop(state, nt):
+			_block("%s 노동력이 넉넉해 승급 보류(자재 아낌)" % sim.tname(nt))
+			continue
 		if b["kind"] != "house" or not b.get("upgradable", false):
 			continue
 		var t := int(b["tier"])
@@ -469,17 +517,36 @@ func _upgrades(state: CityState) -> void:
 			_block(str(r.get("reason", "")))
 
 
+## 아직 못 연 해금 단계가 요구하는 계층 인구(가장 큰 값).
+func _goal_pop(state: CityState, t: int) -> float:
+	var done: Dictionary = state.flags.get("unlock_steps", {})
+	var g := 0.0
+	for uid: String in sim.items("unlocks"):
+		if done.has(uid):
+			continue
+		for cnd: Variant in sim.item("unlocks", uid).get("cond", []):
+			if cnd is Array and str(cnd[0]) == "pop.t%d" % t:
+				g = maxf(g, float(cnd[2]))
+	return g
+
+
 ## 설비 부품 같은 추가 상품: 건재상 계약(작게) — 없으면 디버그로 "원거리 탐험" 흉내.
 func _buy_extra(state: CityState, g: String) -> void:
 	for k: Dictionary in state.contracts:
 		if k["good"] == g:
 			return
-	var r := cmd(state, "contract_sign", {"offer": "bd_" + g, "size": 0})
+	var r := cmd(state, "contract_sign", {"offer": "bd_" + g, "size": 1 if g == "scrap" else 0})
 	if not r.get("ok", false):
 		_block("%s 구할 계약 자리 없음" % sim.gname(g))
+		if _sites_of(state, "infra") == 0 and _count(state, "trade_post") < int(c("max_trade_posts", 6)):
+			_try_build(state, "trade_post", _center(state))
 
 
 # ------------------------------------------------------------------ 주거 칠하기
+## 층마다 2×2 시설 자리 네 곳(16칸)을 비워 둔다.
+func _reserved(p: Vector3i) -> bool:
+	return (p.x % 6 == 2 or p.x % 6 == 3) and (p.y % 6 == 2 or p.y % 6 == 3)
+
 func _zone(state: CityState) -> void:
 	var vacant := 0
 	var houses := 0
@@ -527,7 +594,7 @@ func _zone(state: CityState) -> void:
 	for p: Vector3i in order:
 		if cells.size() >= batch:
 			break
-		if not state.cells.has(p):
+		if not state.cells.has(p) and not _reserved(p):
 			cells.append(p)
 	if cells.is_empty():
 		_block("칠할 칸이 없음")
