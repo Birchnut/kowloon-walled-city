@@ -349,6 +349,13 @@ func _shrink_upgrade() -> void:
 	_house(L2[0], L2[1], Vector3i(4, 4, 0), 3, 10)
 	var pv: Dictionary = L2[0].query(L2[1], "info", {"bid": c})["upgrade"]["preview"]
 	_ok(int(pv["cap_from"]) == 12 and int(pv["cap_to"]) == 8 and int(pv["movers"]) == 4 and int(pv["vacancies"]) == 2, "미리보기: 12→8, 이주 4, 빈자리 2")
+	var d := _house(L2[0], L2[1], Vector3i(6, 6, 0), 3, 12)
+	L2[1].buildings[c]["upgradable"] = true
+	L2[1].buildings[d]["upgradable"] = true
+	var ug: Array = L2[0].query(L2[1], "upgradable", {})
+	_ok(ug.size() == 1 and int(ug[0]["count"]) == 2, "upgradable 질의: 토박이 2채")
+	var bp: Dictionary = L2[0].query(L2[1], "upgrade_preview", {"bids": [c, d], "material": "wood"})
+	_ok(int(bp["movers"]) == 8 and int(bp["cap_to"]) == 16 and int(bp["vacancies"]) == 2 and bp.has("ok") and bp["cost"]["qty"] == 32, "upgrade_preview 합산: 이주 8, 정원 16, 빈자리 2, 자재 32")
 
 
 func _batch_atomic() -> void:
