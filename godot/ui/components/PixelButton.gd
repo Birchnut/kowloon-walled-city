@@ -147,7 +147,7 @@ func _layout() -> void:
 		_label.add_theme_color_override("font_color", col)
 	_icon.modulate = col if tint_icon else (Color(1, 1, 1, 0.45) if mode == DRAW_DISABLED else Color.WHITE)
 	if _badge != null:
-		_badge.position = Vector2(size.x - _badge.size.x + 4, -6)
+		_badge.position = Vector2(size.x - _badge.size.x + 2, -8)
 
 
 # ------------------------------------------------------------------ 배지
@@ -161,6 +161,7 @@ func set_badge(n: int) -> void:
 		_badge = PanelContainer.new()
 		_badge.theme_type_variation = "PanelBadge"
 		_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_badge.z_index = 2          # 옆 버튼에 가리지 않게
 		_badge_label = UI.label("", "LabelSmall")
 		_badge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_badge.add_child(_badge_label)
