@@ -39,20 +39,10 @@ static func run(bot_id: String, days: int, seed_value: int, out: String, dt: flo
 	var t0 := Time.get_ticks_msec()
 	if out != "":
 		SimIO.write_text("%s/state_day_00.json" % out, state.to_json())
-	var last_act := -1.0
 	while state.day <= days:
 		var day := state.day
-		if bot.online(state):
-			if absf(state.hour - last_act) >= 1.0 or last_act < 0.0:
-				last_act = floorf(state.hour)
-				bot.act(state)
-			sim.tick(state, dt)
-		else:
-			sim.fast_forward(state, minf(bot.hours_until_online(state), 24.0 - state.hour))
-			last_act = -1.0
-		state.events.clear()
+		advance_day(sim, bot, state, dt)
 		if state.day != day:
-			last_act = -1.0
 			var row := daily_row(sim, state, day)
 			rows.append(row)
 			if out != "":
@@ -76,6 +66,21 @@ static func run(bot_id: String, days: int, seed_value: int, out: String, dt: flo
 	if verbose:
 		print("%s 끝: %d일, %.1f초, hash %s" % [bot_id, days, float(Time.get_ticks_msec() - t0) / 1000.0, state_hash(state)])
 	return {"ok": true, "state": state, "sim": sim, "hash": state_hash(state)}
+
+
+## 하루를 흘린다(state.day가 바뀔 때까지). 접속 중이면 dt 틱 + 정시마다 봇의 손길, 아니면 다음 접속 때까지 fast_forward.
+static func advance_day(sim: Sim, bot: Bot, state: CityState, dt: float = 0.125) -> void:
+	var day := state.day
+	var guard := 0
+	while state.day == day and guard < 100000:
+		guard += 1
+		if bot.online(state):
+			if absf(state.hour - roundf(state.hour)) < 1e-6:
+				bot.act(state)
+			sim.tick(state, dt)
+		else:
+			sim.fast_forward(state, minf(bot.hours_until_online(state), 24.0 - state.hour))
+		state.events.clear()
 
 
 ## 상태의 지문(결정론·왕복 시험용). JSON을 한 번 거쳐 int/float·키 순서 차이를 없앤 뒤 해시.
