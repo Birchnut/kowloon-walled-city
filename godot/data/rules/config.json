@@ -38,14 +38,16 @@
   "offline_min_gap_seconds": 60
  },
  "start": {
-  "_status": "실험값. 세 계열 자재 12씩(GDD §8)",
+  "_status": "실험값. 세 계열 자재 12씩(GDD §8) + 헌 옷 8·초 10(첫 승급을 교역·초 공방 없이 맛보게 — 약 한 시간치, 떨어지면 교역으로 이어진다)",
   "money": 1200,
   "stock": {
    "wood": 12,
    "metal": 12,
    "concrete": 12,
    "scrap": 30,
-   "veg": 30
+   "veg": 30,
+   "oldclothes": 8,
+   "candle": 10
   }
  },
  "distance": {
