@@ -1,0 +1,421 @@
+{
+ "blocked": [
+  [
+   "위 계층 승급을 위해 자재를 모으는 중(T1→T2 보류)",
+   84978
+  ],
+  [
+   "자재가 모자라 승급 보류(T4→T5)",
+   47606
+  ],
+  [
+   "토박이 노동력이 넉넉해 승급 보류(자재 아낌)",
+   11362
+  ],
+  [
+   "설비 부품이 모자란다(3 필요).",
+   8341
+  ],
+  [
+   "자재가 모자라 승급 보류(T1→T2)",
+   7396
+  ],
+  [
+   "유지 노동력이 넉넉해 승급 보류(자재 아낌)",
+   3612
+  ]
+ ],
+ "bot": "concrete_focus",
+ "cash": {
+  "build": -481480.0,
+  "export": 4297.30000000001,
+  "fine": -15940.0,
+  "import": -278119.741,
+  "net": 2994288.16428104,
+  "reward": 11150.0,
+  "tax": 4212186.36778104,
+  "upkeep": -658222.804166665,
+  "vice": 200417.041666667
+ },
+ "cmds_per_session": 58.7,
+ "dec_per_session": 44.4,
+ "econ_days": 348.2,
+ "external": {
+  "goods_import_share": 0.33,
+  "power_ext_share": 0.17,
+  "water_ext_share": 0.0
+ },
+ "family_got": {
+  "concrete": 12717,
+  "metal": 159,
+  "wood": 296
+ },
+ "firsts": {
+  "first_claim_unix": 660.0,
+  "first_power_day": 1032.0,
+  "first_resident_day": 144.0,
+  "first_send_unix": 60.0,
+  "first_upgrade_t2_day": 456.0,
+  "first_upgrade_t3_day": 816.0,
+  "first_upgrade_t4_day": 53868.0,
+  "first_upgrade_t5_day": 126072.0,
+  "floor_2_day": 39900.0,
+  "floor_3_day": 88092.0,
+  "floor_4_day": 311772.0,
+  "floor_5_day": 484800.0,
+  "goal_g_final_day": 658692.0,
+  "goal_g_hall_day": 213192.0
+ },
+ "floors": 5,
+ "goals": 21,
+ "heat": 67.3757499999987,
+ "mat_wait_h": 1176.6,
+ "mats": {
+  "concrete": {
+   "exp": 11778.0,
+   "goal": 0.0,
+   "imp": 939.0,
+   "stock": 47.0,
+   "used": 12682.0
+  },
+  "metal": {
+   "exp": 156.0,
+   "goal": 0.0,
+   "imp": 3.0,
+   "stock": 21.0,
+   "used": 150.0
+  },
+  "parts": {
+   "exp": 57.0,
+   "goal": 2.0,
+   "imp": 70.0,
+   "stock": 0.0,
+   "used": 129.0
+  },
+  "scrap": {
+   "exp": 3154.0,
+   "goal": 0.0,
+   "imp": 181.0,
+   "stock": 1903.98958333333,
+   "used": 1790.0
+  },
+  "wood": {
+   "exp": 293.0,
+   "goal": 0.0,
+   "imp": 3.0,
+   "stock": 158.0,
+   "used": 150.0
+  }
+ },
+ "min_money": 138,
+ "money": 3000589,
+ "name": "콘크리트 집중형",
+ "online_h": 18.67,
+ "pattern": "regular",
+ "pop": [
+  548,
+  200,
+  176,
+  882,
+  150
+ ],
+ "raids": 36,
+ "real_days": 8,
+ "research": 12,
+ "rows": [
+  {
+   "day": 1,
+   "econ": 33.25,
+   "floors": 2,
+   "goals": 16,
+   "happiness": 80.2,
+   "heat": 6.7,
+   "houses": 108,
+   "labor_spare": [
+    81,
+    27,
+    242,
+    6,
+    0
+   ],
+   "mats": {
+    "concrete": 17,
+    "metal": 12,
+    "parts": 2,
+    "wood": 65
+   },
+   "money": 8702,
+   "net": -5401.76423333334,
+   "pop": [
+    288,
+    88,
+    292,
+    8,
+    0
+   ],
+   "real_h": 15.0,
+   "research": 4,
+   "score": 2627.2,
+   "tax_rate": 4529.8,
+   "teams": 3
+  },
+  {
+   "day": 2,
+   "econ": 78.25,
+   "floors": 3,
+   "goals": 19,
+   "happiness": 82.5,
+   "heat": 68.4,
+   "houses": 132,
+   "labor_spare": [
+    109,
+    20,
+    163,
+    106,
+    24
+   ],
+   "mats": {
+    "concrete": 24,
+    "metal": 102,
+    "parts": 2,
+    "wood": 89
+   },
+   "money": 55668,
+   "net": 2738.50231999998,
+   "pop": [
+    356,
+    88,
+    224,
+    120,
+    24
+   ],
+   "real_h": 39.0,
+   "research": 10,
+   "score": 4200.8,
+   "tax_rate": 6342.7,
+   "teams": 3
+  },
+  {
+   "day": 3,
+   "econ": 123.25,
+   "floors": 3,
+   "goals": 20,
+   "happiness": 79.5,
+   "heat": 54.3,
+   "houses": 144,
+   "labor_spare": [
+    97,
+    23,
+    71,
+    266,
+    30
+   ],
+   "mats": {
+    "concrete": 76,
+    "metal": 21,
+    "parts": 1,
+    "wood": 38
+   },
+   "money": 206105,
+   "net": 5388.61890666665,
+   "pop": [
+    348,
+    104,
+    144,
+    290,
+    30
+   ],
+   "real_h": 63.0,
+   "research": 12,
+   "score": 5688.0,
+   "tax_rate": 8206.3,
+   "teams": 3
+  },
+  {
+   "day": 4,
+   "econ": 168.25,
+   "floors": 4,
+   "goals": 20,
+   "happiness": 79.9,
+   "heat": 63.2,
+   "houses": 180,
+   "labor_spare": [
+    86,
+    38,
+    42,
+    366,
+    54
+   ],
+   "mats": {
+    "concrete": 3,
+    "metal": 21,
+    "parts": 1,
+    "wood": 62
+   },
+   "money": 502665,
+   "net": 6384.76498166673,
+   "pop": [
+    376,
+    144,
+    128,
+    392,
+    54
+   ],
+   "real_h": 87.0,
+   "research": 12,
+   "score": 7419.2,
+   "tax_rate": 11731.7,
+   "teams": 3
+  },
+  {
+   "day": 5,
+   "econ": 213.25,
+   "floors": 4,
+   "goals": 20,
+   "happiness": 79.7,
+   "heat": 60.3,
+   "houses": 214,
+   "labor_spare": [
+    100,
+    39,
+    56,
+    488,
+    72
+   ],
+   "mats": {
+    "concrete": 65,
+    "metal": 21,
+    "parts": 2,
+    "wood": 86
+   },
+   "money": 943716,
+   "net": 11379.8243200001,
+   "pop": [
+    424,
+    152,
+    152,
+    520,
+    72
+   ],
+   "real_h": 111.0,
+   "research": 12,
+   "score": 9416.0,
+   "tax_rate": 14869.1,
+   "teams": 3
+  },
+  {
+   "day": 6,
+   "econ": 258.25,
+   "floors": 5,
+   "goals": 20,
+   "happiness": 80.0,
+   "heat": 78.8,
+   "houses": 250,
+   "labor_spare": [
+    111,
+    32,
+    32,
+    622,
+    96
+   ],
+   "mats": {
+    "concrete": 8,
+    "metal": 21,
+    "parts": 1,
+    "wood": 110
+   },
+   "money": 1496886,
+   "net": 11826.6276799999,
+   "pop": [
+    484,
+    160,
+    144,
+    656,
+    96
+   ],
+   "real_h": 135.0,
+   "research": 12,
+   "score": 11519.2,
+   "tax_rate": 18334.2,
+   "teams": 3
+  },
+  {
+   "day": 7,
+   "econ": 303.25,
+   "floors": 5,
+   "goals": 20,
+   "happiness": 76.7,
+   "heat": 43.6,
+   "houses": 274,
+   "labor_spare": [
+    96,
+    39,
+    42,
+    742,
+    120
+   ],
+   "mats": {
+    "concrete": 1,
+    "metal": 21,
+    "parts": 1,
+    "wood": 134
+   },
+   "money": 2189166,
+   "net": 12550.4345066665,
+   "pop": [
+    488,
+    176,
+    164,
+    776,
+    120
+   ],
+   "real_h": 159.0,
+   "research": 12,
+   "score": 13454.4,
+   "tax_rate": 20135.2,
+   "teams": 3
+  },
+  {
+   "day": 8,
+   "econ": 348.25,
+   "floors": 5,
+   "goals": 21,
+   "happiness": 80.6,
+   "heat": 67.4,
+   "houses": 310,
+   "labor_spare": [
+    107,
+    46,
+    42,
+    846,
+    150
+   ],
+   "mats": {
+    "concrete": 47,
+    "metal": 21,
+    "parts": 0,
+    "wood": 158
+   },
+   "money": 3000589,
+   "net": 17432.3465599999,
+   "pop": [
+    548,
+    200,
+    176,
+    882,
+    150
+   ],
+   "real_h": 183.0,
+   "research": 12,
+   "score": 15548.8,
+   "tax_rate": 24797.2,
+   "teams": 3
+  }
+ ],
+ "score": 15548.8,
+ "sessions": 32,
+ "tax_rate": 24797.2,
+ "team_util": 0.51,
+ "team_wait": 0.49,
+ "wall_s": 145.293
+}
