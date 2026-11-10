@@ -377,7 +377,8 @@ func _build_house(p: Vector3i, c: Dictionary, seed_v: int) -> void:
 	var var_i := _age_variant(seed_v, tier)
 	var grp := group_of(p)
 	var glass_wall: bool = str(cfg.material(mat).get("pattern", "")) == "curtain"
-	var wk := MeshBuf.K_WINDOW if electric(c) else MeshBuf.K_CANDLE
+	# 전기/촛불은 셰이더가 셀 상태(G)로 고른다 → 전기가 들어와도 메시를 다시 짓지 않는다
+	var wk := MeshBuf.K_WINDOW
 	for d in 4:
 		var nb: Vector3i = p + DIR[d]
 		if solid.has(nb):

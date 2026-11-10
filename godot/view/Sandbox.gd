@@ -58,6 +58,19 @@ func _ready() -> void:
 		if pv.size() >= 2:
 			view.target = Vector3(float(pv[0]), float(pv[2]) if pv.size() > 2 else view.target.y, float(pv[1]))
 	_apply_overlay_args()
+	if _args.has("upgrade"):
+		# 승급 연출 시험: 위가 빈(보이는) 비계 집 하나를 고르고 카메라를 그쪽으로
+		var best := Vector3i(-1, -1, -1)
+		for p in Game.state.cells:
+			var c: Dictionary = Game.state.cells[p]
+			if bool(c.get("scaffold", false)) and not Game.state.cells.has(p + Vector3i(0, 0, 1)) and p.z > best.z:
+				best = p
+		for p in Game.state.cells:
+			var c2: Dictionary = Game.state.cells[p]
+			if p != best:
+				c2.erase("scaffold")
+		if best.z >= 0:
+			view.target = Vector3(best.x + 0.5, best.z * view.cfg.floor_h, best.y + 0.5)
 	if str(_args.get("markers", "1")) == "0":
 		view.markers.visible = false
 	view._apply_camera()
@@ -112,12 +125,23 @@ func _load_city() -> void:
 			push_warning("state= 파일을 읽지 못함: %s" % path)
 	if s == null:
 		s = FakeCity.build(_preset, _seed, Vector3i(int(Data.cfg("grid.width", 12)), int(Data.cfg("grid.height", 12)), int(Data.cfg("grid.max_floors", 10))))
+	if _args.has("wave"):
+		# 첫 전기 시험: 전기 시설을 꺼 둔 채 시작한다
+		for bid in s.buildings:
+			var b: Dictionary = s.buildings[bid]
+			if str(b.get("kind", "")) == "facility" and bool(view.cfg.recipe("facility", str(b.get("type", ""))).get("power", false)):
+				b["active"] = false
 	Game.replace_state(s)
 
 
 func _process(_dt: float) -> void:
 	_frame += 1
 	if _args.has("wave") and _frame == int(_args.get("wave", 5)):
+		for bid in Game.state.buildings:
+			var b: Dictionary = Game.state.buildings[bid]
+			if str(b.get("kind", "")) == "facility" and bool(view.cfg.recipe("facility", str(b.get("type", ""))).get("power", false)):
+				b["active"] = true
+				Game.event.emit("building_changed", {"bid": bid})
 		Game.event.emit("power_changed", {"on": true})
 	if _args.has("unlock") and _frame == int(_args["unlock"]):
 		var z := int(Game.state.floors_unlocked)
@@ -142,6 +166,13 @@ func _process(_dt: float) -> void:
 		var f := FileAccess.open(str(_args["save_state"]), FileAccess.WRITE)
 		if f:
 			f.store_string(JSON.stringify(Game.state.to_dict()))
+	if _args.has("dbg") and _frame == int(_args["dbg"]):
+		var n := 0
+		for p in Game.state.cells:
+			var c: Dictionary = Game.state.cells[p]
+			if str(c.get("kind", "")) == "house" and n < 4:
+				n += 1
+				print("DBG ", p, " T", c.get("tier"), " px=", view._cell_img.get_pixel(p.x, p.y + p.z * 12), " power_on=", view.mesher.power_on)
 	if _args.has("list") and _frame == 3:
 		for bid in Game.state.buildings:
 			var b: Dictionary = Game.state.buildings[bid]

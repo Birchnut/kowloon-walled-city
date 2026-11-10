@@ -1322,19 +1322,25 @@ func _rebuild_overlay() -> void:
 			shell.call(a2 + Vector3(0.0, fh - 0.08, 0.92), a2 + Vector3(1.0, fh, 1.0), sc2)
 			shell.call(a2 + Vector3(0.0, fh - 0.08, 0.08), a2 + Vector3(0.08, fh, 0.92), sc2)
 			shell.call(a2 + Vector3(0.92, fh - 0.08, 0.08), a2 + Vector3(1.0, fh, 0.92), sc2)
-	# ── 새 층 열림: 평면을 따라 퍼지는 빛 고리 ──
+	# ── 새 층 열림: 평면 테두리가 빛나고, 가운데서 빛 고리가 퍼진다 ──
 	if _cue_z >= 0:
 		var k := clampf(_cue_t / 2.6, 0.0, 1.0)
 		var r := k * 10.0
 		var cy := float(_cue_z) * fh + 0.03
-		var cc := Color(1.0, 0.95, 0.7, 0.55 * (1.0 - k))
+		var fade := 1.0 - k * k
+		var cc := Color(1.0, 0.95, 0.6, 0.85 * fade)
+		var e3 := 0.12
+		flat.call(-e3, -e3, gw + e3, 0.0, cy, cc)
+		flat.call(-e3, gh, gw + e3, gh + e3, cy, cc)
+		flat.call(-e3, 0.0, 0.0, gh, cy, cc)
+		flat.call(gw, 0.0, gw + e3, gh, cy, cc)
 		for x in gw:
 			for yy in gh:
 				var dd := Vector2(x + 0.5 - gw * 0.5, yy + 0.5 - gh * 0.5).length()
-				if absf(dd - r) < 1.2:
-					flat.call(x + 0.06, yy + 0.06, x + 0.94, yy + 0.94, cy, cc)
+				if absf(dd - r) < 1.0:
+					flat.call(x + 0.06, yy + 0.06, x + 0.94, yy + 0.94, cy, Color(cc.r, cc.g, cc.b, 0.6 * fade))
 				elif dd < r:
-					flat.call(x + 0.42, yy + 0.42, x + 0.58, yy + 0.58, cy, Color(cc.r, cc.g, cc.b, cc.a * 0.6))
+					flat.call(x + 0.06, yy + 0.06, x + 0.94, yy + 0.94, cy, Color(cc.r, cc.g, cc.b, 0.16 * fade))
 	if verts.is_empty():
 		_overlay.mesh = null
 		return
