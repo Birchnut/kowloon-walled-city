@@ -25,7 +25,9 @@ def hm(s):
 
 def main():
     rows = {}
-    for p in glob.glob(os.path.join(REP, "*.json")):
+    import sys
+    rep = sys.argv[1] if len(sys.argv) > 1 else REP
+    for p in glob.glob(os.path.join(rep, "*.json")):
         name = os.path.basename(p)[:-5]
         if name.startswith("core_"):
             continue
@@ -57,16 +59,14 @@ def main():
                  f"{int(r['team_util'] * 100)}% | {int(r['team_wait'] * 100)}% | {r['mat_wait_h']} | {r['dec_per_session']} | {r['cmds_per_session']} | "
                  f"{fg['wood']}/{fg['metal']}/{fg['concrete']} | {int(ex['goods_import_share'] * 100)}% | {int(ex['water_ext_share'] * 100)}%/{int(ex['power_ext_share'] * 100)}% | {r['raids']} |")
     # 실제 하루마다 점수(세수/일)
-    L += ["", "## 실제 하루마다 세수(₩/경제일, 하루 끝)", "", "| 봇 | " + " | ".join(f"{i}일" for i in range(1, 8)) + " |", "|---|" + "---|" * 7]
-    for b in bots:
-        r = rows[b]
-        vals = [f"{row['tax_rate']:.0f}" for row in r["rows"]][:7]
-        L.append(f"| {r['name']} | " + " | ".join(vals) + " |")
-    L += ["", "## 실제 하루마다 인구(하루 끝)", "", "| 봇 | " + " | ".join(f"{i}일" for i in range(1, 8)) + " |", "|---|" + "---|" * 7]
-    for b in bots:
-        r = rows[b]
-        vals = [str(sum(row["pop"])) for row in r["rows"]][:7]
-        L.append(f"| {r['name']} | " + " | ".join(vals) + " |")
+    nd = max(len(rows[b]["rows"]) for b in bots)
+    for title, fn in [("세수(₩/경제일, 하루 끝)", lambda row: f"{row['tax_rate']:.0f}"), ("인구(하루 끝)", lambda row: str(sum(row["pop"]))),
+                      ("금고(₩, 하루 끝)", lambda row: f"{row['money']:,}"), ("목표 달성 수", lambda row: str(row["goals"]))]:
+        L += ["", f"## 실제 하루마다 {title}", "", "| 봇 | " + " | ".join(f"{i}일" for i in range(1, nd + 1)) + " |", "|---|" + "---|" * nd]
+        for b in bots:
+            r = rows[b]
+            vals = [fn(row) for row in r["rows"]]
+            L.append(f"| {r['name']} | " + " | ".join(vals) + " |")
     # 패턴 비교
     if "short_frequent" in rows and "twice_a_day" in rows:
         a = rows["short_frequent"]["rows"]
@@ -92,12 +92,13 @@ def main():
         for row in r["rows"]:
             L.append(f"| {row['day']} | {row['econ']} | {sum(row['pop'])} | {row['tax_rate']:.0f} | {row['money']:,} | {row['happiness']} |")
     notes = os.path.join(HERE, "summary_notes.md")
-    if os.path.exists(notes):
+    if os.path.exists(notes) and rep == REP:
         with open(notes, encoding="utf-8") as f:
             L += ["", f.read()]
-    with open(os.path.join(REP, "SUMMARY.md"), "w", encoding="utf-8") as f:
+    out = os.path.join(rep, "SUMMARY.md")
+    with open(out, "w", encoding="utf-8") as f:
         f.write("\n".join(L) + "\n")
-    print("wrote", os.path.join(REP, "SUMMARY.md"), "bots:", len(bots))
+    print("wrote", out, "bots:", len(bots))
 
 
 if __name__ == "__main__":

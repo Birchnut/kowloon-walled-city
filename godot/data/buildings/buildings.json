@@ -983,10 +983,10 @@
    "cost": {
     "money": 25000,
     "goods": {
-     "wood": 40,
-     "metal": 40,
-     "concrete": 40,
-     "parts": 10
+     "wood": 150,
+     "metal": 150,
+     "concrete": 150,
+     "parts": 20
     }
    },
    "upkeep": 50,
