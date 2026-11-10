@@ -270,10 +270,11 @@ void fragment() {
 		vec3 neon = COLOR.rgb * 1.08 + vec3(0.12);
 		col = mix(painted, neon, lit * (0.25 + 0.75 * fk));
 	}
-	if (kind == 5) {
-		// 층 컷 실내: 밤엔 방 불빛이 바닥을 덥힌다
-		float rl = lg.a * powered;
-		col = mix(col, col * 0.5 + base * warm_col * 0.75, clamp(night * step(0.05, rl + 1.0), 0.0, 1.0) * 0.0);
+	if (kind == 5 && !is_emit) {
+		// 층 컷 실내: 밤엔 방 불빛이 바닥과 가구를 덥힌다(전기가 없으면 희미한 등잔빛)
+		float room = night * (powered > 0.5 ? 0.78 : 0.3);
+		vec3 lampc = powered > 0.5 ? warm_col : candle_col * 0.7;
+		col = mix(col, base * lampc * 0.95 + add * 0.5, room);
 	}
 
 	ALBEDO = to_linear(clamp(col, vec3(0.0), vec3(1.0)));

@@ -101,6 +101,16 @@ func _process(_dt: float) -> void:
 		var f := FileAccess.open(str(_args["save_state"]), FileAccess.WRITE)
 		if f:
 			f.store_string(JSON.stringify(Game.state.to_dict()))
+	if _args.has("apitest") and _frame == 4:
+		# API 시험: 화면 가운데 pick, project 왕복, 오버레이 3종
+		var c := size * 0.5
+		var hit: Dictionary = view.pick(c)
+		print("PICK center -> ", hit)
+		if hit.get("hit", false):
+			print("PROJECT back -> ", view.project(hit["pos"]), " (screen center ", c, ")")
+		view.show_zones(true)
+		view.show_spots([Vector3i(1, 10, 0), Vector3i(2, 10, 0), hit.get("above", Vector3i(0, 0, 0))])
+		view.show_ghost(hit.get("above", Vector3i(0, 0, 0)), "well", true)
 	if _args.has("perf") and _frame == 6:
 		var verts := 0
 		var meshes := 0

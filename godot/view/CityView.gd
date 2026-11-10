@@ -864,6 +864,8 @@ func _process(delta: float) -> void:
 		_lights_timer -= delta
 		if _lights_timer <= 0.0:
 			_refresh_lights()
+	if _overlay_dirty:
+		_rebuild_overlay()
 	if cam_dirty:
 		_apply_camera()
 	_update_uniforms()
@@ -901,3 +903,145 @@ func pan_by(delta_screen: Vector2) -> void:
 	target += -b.x * (delta_screen.x / k) + b.y * (delta_screen.y / k)
 	# 화면 위아래 이동은 지면을 따라 미끄러지는 대신 그대로 카메라 평면 이동으로 둔다
 	_apply_camera()
+
+
+# ------------------------------------------------------------------ 입력(팬·핀치줌·휠·탭)
+var _touches: Dictionary = {}      # index -> 위치
+var _press_pos := Vector2.ZERO
+var _press_t := 0.0
+var _dragging := false
+var _mouse_down := false
+var _touch_mode_t := -10.0
+var _pinch_d0 := 0.0
+var _pinch_a0 := 0.0
+const TAP_SLOP := 10.0
+
+func _gui_input(ev: InputEvent) -> void:
+	if ev is InputEventScreenTouch:
+		_touch_mode_t = _t
+		if ev.pressed:
+			_touches[ev.index] = ev.position
+			if _touches.size() == 1:
+				_press_pos = ev.position
+				_press_t = _t
+				_dragging = false
+			elif _touches.size() == 2:
+				_dragging = true
+				var k: Array = _touches.values()
+				_pinch_d0 = (k[0] as Vector2).distance_to(k[1])
+				_pinch_a0 = ((k[1] as Vector2) - (k[0] as Vector2)).angle()
+		else:
+			_touches.erase(ev.index)
+			if _touches.is_empty() and not _dragging and _t - _press_t < 0.5:
+				cell_tapped.emit(pick(ev.position))
+		accept_event()
+	elif ev is InputEventScreenDrag:
+		_touch_mode_t = _t
+		_touches[ev.index] = ev.position
+		if _touches.size() == 1:
+			if not _dragging and ev.position.distance_to(_press_pos) > TAP_SLOP:
+				_dragging = true
+			if _dragging:
+				pan_by(ev.relative)
+		elif _touches.size() >= 2:
+			var k2: Array = _touches.values()
+			var dist := (k2[0] as Vector2).distance_to(k2[1])
+			var ang := ((k2[1] as Vector2) - (k2[0] as Vector2)).angle()
+			if _pinch_d0 > 1.0:
+				if dist > _pinch_d0 * 1.35:
+					zoom_step(1)
+					_pinch_d0 = dist
+				elif dist < _pinch_d0 * 0.72:
+					zoom_step(-1)
+					_pinch_d0 = dist
+			var da := wrapf(ang - _pinch_a0, -PI, PI)
+			if absf(da) > 0.6:
+				rotate_view(1 if da < 0.0 else -1)
+				_pinch_a0 = ang
+		accept_event()
+	elif _t - _touch_mode_t > 0.6:
+		# 마우스(터치가 흉내 낸 마우스 이벤트는 위에서 이미 처리했으므로 무시)
+		if ev is InputEventMouseButton:
+			if ev.button_index == MOUSE_BUTTON_LEFT:
+				if ev.pressed:
+					_mouse_down = true
+					_press_pos = ev.position
+					_press_t = _t
+					_dragging = false
+				else:
+					if _mouse_down and not _dragging:
+						cell_tapped.emit(pick(ev.position))
+					_mouse_down = false
+				accept_event()
+			elif ev.pressed and ev.button_index == MOUSE_BUTTON_WHEEL_UP:
+				zoom_step(1)
+				accept_event()
+			elif ev.pressed and ev.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+				zoom_step(-1)
+				accept_event()
+		elif ev is InputEventMouseMotion and _mouse_down:
+			if not _dragging and ev.position.distance_to(_press_pos) > TAP_SLOP:
+				_dragging = true
+			if _dragging:
+				pan_by(ev.relative)
+			accept_event()
+		elif ev is InputEventMagnifyGesture:
+			if ev.factor > 1.15:
+				zoom_step(1)
+			elif ev.factor < 0.87:
+				zoom_step(-1)
+
+
+# ------------------------------------------------------------------ 오버레이(고스트·심을 자리·구획)
+const ZONE_COL := {"housing": Color(0.35, 0.6, 1.0, 0.45), "work": Color(1.0, 0.62, 0.25, 0.45), "keep": Color(0.4, 0.85, 0.5, 0.45)}
+
+func _rebuild_overlay() -> void:
+	_overlay_dirty = false
+	var st: CityState = Game.state
+	var verts := PackedVector3Array()
+	var cols := PackedColorArray()
+	var fh := cfg.floor_h
+	var add_quad := func(a: Vector3, b: Vector3, c: Vector3, d: Vector3, col: Color) -> void:
+		for v in [a, b, c, a, c, d]:
+			verts.append(v)
+			cols.append(col)
+	if _show_zones:
+		for zc in st.zones:
+			var zcol: Color = ZONE_COL.get(str(st.zones[zc]), Color(1, 1, 1, 0.3))
+			var y := mesher.height_floors(zc) * fh + 0.05
+			if floor_cut >= 0:
+				y = minf(y, float(floor_cut) * fh + 0.3)
+			add_quad.call(Vector3(zc.x + 0.06, y, zc.y + 0.06), Vector3(zc.x + 0.94, y, zc.y + 0.06), Vector3(zc.x + 0.94, y, zc.y + 0.94), Vector3(zc.x + 0.06, y, zc.y + 0.94), zcol)
+	for sp in _spots:
+		if sp is Vector3i:
+			var y2 := float(sp.z) * fh + 0.06
+			add_quad.call(Vector3(sp.x + 0.12, y2, sp.y + 0.12), Vector3(sp.x + 0.88, y2, sp.y + 0.12), Vector3(sp.x + 0.88, y2, sp.y + 0.88), Vector3(sp.x + 0.12, y2, sp.y + 0.88), Color(1.0, 0.9, 0.35, 0.6))
+	if not _ghost.is_empty():
+		var gp: Vector3i = _ghost["pos"]
+		var gc := Color(0.45, 1.0, 0.6, 0.55) if bool(_ghost.get("ok", true)) else Color(1.0, 0.4, 0.4, 0.55)
+		var a0 := Vector3(gp.x, float(gp.z) * fh + 0.02, gp.y)
+		var top := a0 + Vector3(0, fh, 0)
+		add_quad.call(top, top + Vector3(1, 0, 0), top + Vector3(1, 0, 1), top + Vector3(0, 0, 1), gc)
+		var side := Color(gc.r * 0.8, gc.g * 0.8, gc.b * 0.8, gc.a)
+		add_quad.call(top + Vector3(0, 0, 1), top + Vector3(1, 0, 1), a0 + Vector3(1, 0, 1), a0 + Vector3(0, 0, 1), side)
+		add_quad.call(top + Vector3(1, 0, 1), top + Vector3(1, 0, 0), a0 + Vector3(1, 0, 0), a0 + Vector3(1, 0, 1), side)
+		add_quad.call(top + Vector3(1, 0, 0), top, a0, a0 + Vector3(1, 0, 0), side)
+		add_quad.call(top, top + Vector3(0, 0, 1), a0 + Vector3(0, 0, 1), a0, side)
+	if verts.is_empty():
+		_overlay.mesh = null
+		return
+	var arr := []
+	arr.resize(Mesh.ARRAY_MAX)
+	arr[Mesh.ARRAY_VERTEX] = verts
+	arr[Mesh.ARRAY_COLOR] = cols
+	var m := ArrayMesh.new()
+	m.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arr)
+	_overlay.mesh = m
+	if _overlay.material_override == null:
+		var sm := StandardMaterial3D.new()
+		sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		sm.vertex_color_use_as_albedo = true
+		sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		sm.cull_mode = BaseMaterial3D.CULL_DISABLED
+		sm.no_depth_test = false
+		_overlay.material_override = sm
