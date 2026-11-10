@@ -175,7 +175,8 @@ func _place_waiting(state: CityState, dt: float) -> void:
 		if int(w["count"]) > 0:
 			var m := _move_into(state, int(t), int(w["count"]), -1)
 			w["count"] = int(w["count"]) - m
-		w["days_left"] = float(w["days_left"]) - dt
+		if not sim.offline:     # 미접속 중에는 대기 주민의 남은 날도 멈춘다(보호)
+			w["days_left"] = float(w["days_left"]) - dt
 		if int(w["count"]) > 0 and float(w["days_left"]) <= 0.0:
 			sim.say(state, "빈집을 끝내 못 찾은 %s %d명이 성채를 떠났다." % [sim.tname(int(t)), int(w["count"])], "bad")
 			state.stat_add("left", float(w["count"]))

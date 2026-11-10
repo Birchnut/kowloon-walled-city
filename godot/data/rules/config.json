@@ -29,7 +29,10 @@
   "start_hour": 6,
   "offline_speed": 0.25,
   "offline_max_real_hours": 8,
-  "_offline": "B 파트가 구현. 확정: 느리게 + 보호(최대 8시간). 0.25배속은 실험값"
+  "_offline": "확정: 느리게 + 보호(최대 8시간). 0.25배속은 실험값. 미접속 중 유예 시계·대기 주민 시계 정지, 아무도 떠나지 않음. 앱이 60초 넘게 멈췄다 돌아와도 같은 규칙",
+  "offline_step_mult": 12,
+  "_offline_step_mult": "미접속 빨리감기는 이 배수의 큰 스텝(6 × 1/48 = 1/8경제일)으로 돈다 — 8시간 정산이 1,000채에서 1초 안팎. 실험값",
+  "offline_min_gap_seconds": 60
  },
  "start": {
   "_status": "실험값. 세 계열 자재 12씩(GDD §8)",

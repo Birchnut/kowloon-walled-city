@@ -24,9 +24,8 @@ func on_new_game(state: CityState) -> void:
 	_done(state)
 
 
-func tick(state: CityState, _dt: float) -> void:
-	var si := roundi(state.econ_days / sim.step_days)
-	if si % 4 == 0:
+func tick(state: CityState, dt: float) -> void:
+	if sim.every(state, 4, dt):
 		_check(state)
 
 

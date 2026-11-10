@@ -11,9 +11,8 @@ const ORDER := ["broke", "power", "water", "labor", "needs_bad", "leaving", "sto
 const TONE_RANK := {"bad": 0, "warn": 1, "good": 2, "": 3}
 
 
-func tick(state: CityState, _dt: float) -> void:
-	var si := roundi(state.econ_days / sim.step_days)
-	if si % 2 != 0:
+func tick(state: CityState, dt: float) -> void:
+	if not sim.every(state, 2, dt):
 		return
 	var raw := _compute(state)
 	var mem: Dictionary = state.flags.get("alerts", {})

@@ -743,6 +743,8 @@ func tick(state: CityState, dt: float) -> void:
 		fill[g] = f
 		fills_saved[g] = snappedf(f, 0.0001)
 		var use := dmd * f
+		if sim.offline and f < _ok and not (sim.offline_log.get("short", {}) as Dictionary).has(g):
+			sim.offline_log["short"][g] = state.econ_days
 		state.stock[g] = maxf(0.0, have - use)
 		sim.flow_add(g, "cons", use)
 		state.stat_add("cons." + g, use)

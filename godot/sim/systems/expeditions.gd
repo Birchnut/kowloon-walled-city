@@ -94,6 +94,17 @@ func on_day_start(state: CityState) -> void:
 	_sync(state)
 
 
+func fast_forward(state: CityState, _econ_days: float, _before: Dictionary, lines: Array) -> void:
+	_sync(state)
+	_update(state)
+	var done: Array = []
+	for t: Dictionary in state.teams:
+		if t["state"] == "done":
+			done.append("탐험대 %d(%s)" % [int(t["id"]), _dname(str(t["dest"]))])
+	if not done.is_empty():
+		lines.append("돌아와 짐을 기다리는 탐험대: %s." % ", ".join(done))
+
+
 # ------------------------------------------------------------------ 글
 func _dname(id: String) -> String:
 	return str(_dest(id).get("name", id))
