@@ -94,6 +94,9 @@ func _ready() -> void:
 	for s in [inspect, plant, zone, policy, cards, record]:
 		s.ui = self
 		chrome.add_child(s)
+		if s.get("sheet") != null:
+			s.sheet.opened.connect(_sync_inset)
+			s.sheet.closed.connect(_sync_inset)
 	plant.finished.connect(_on_tool_finished.bind("plant"))
 	zone.finished.connect(_on_tool_finished.bind("zone"))
 	policy.finished.connect(_on_tool_finished.bind("policy"))
@@ -318,7 +321,17 @@ func set_tool(t: String) -> void:
 	verbs.set_active(t if t in SHEET_TOOLS else "")
 	_sync_suppress()
 	_sync_paint()
+	_sync_inset()
 	tool_changed.emit(tool)
+
+
+## 열린 하단 시트 높이를 뷰에 알린다 → 도시가 시트 위 빈 영역으로 올라온다.
+func _sync_inset() -> void:
+	var h := 0.0
+	for s in [plant, zone, policy, cards, inspect, record]:
+		if s != null and s.get("sheet") != null and s.sheet.is_open:
+			h = maxf(h, s.sheet.sheet_height())
+	Q.vcall("set_bottom_inset", [h])
 
 
 func _on_tool_finished(which: String) -> void:

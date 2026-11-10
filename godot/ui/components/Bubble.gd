@@ -50,8 +50,14 @@ func _ready() -> void:
 
 func _set_pop(v: float) -> void:
 	_pop = v
+	_apply_scale()
+
+
+## 아직 덜 찬 수금함은 절반 크기(도시를 가리지 않게). 거둘 만해지면 제 크기로 커진다.
+func _apply_scale() -> void:
 	pivot_offset = Vector2(size.x * 0.5, size.y)
-	scale = Vector2(v, v)
+	var base := 1.0 if (ready_now or hot) else 0.5
+	scale = Vector2(_pop, _pop) * base
 
 
 func _update_anim() -> void:
@@ -59,6 +65,7 @@ func _update_anim() -> void:
 	if not (ready_now or hot):
 		_ofs = Vector2.ZERO
 		_apply_pos()
+	_apply_scale()
 	queue_redraw()
 
 

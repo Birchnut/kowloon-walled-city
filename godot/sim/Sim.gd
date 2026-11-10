@@ -318,6 +318,7 @@ func _hud(state: CityState) -> Dictionary:
 		"title": state.identity.get("title", "대장"), "epithet": state.identity.get("epithet", ""),
 		"power_level": state.power_level, "cards": state.pending_cards.size(),
 		"water_cap": state.water_cap, "waiting": int(m.get("waiting", 0)), "alley_fund": state.alley_fund,
+		"floors": int(m.get("max_height", 0)), "tags": state.identity.get("tags", []),
 	}
 
 

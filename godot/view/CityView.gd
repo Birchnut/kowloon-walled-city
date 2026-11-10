@@ -58,6 +58,8 @@ var _frac := Vector2.ZERO
 var _t := 0.0
 var _tod_vals: Dictionary = {}
 var _shake := Vector2.ZERO
+var _inset_to := 0.0               # 아래에서 가려진 높이(이 Control 픽셀). UI의 하단 시트
+var _inset := 0.0
 
 # 연출
 var _wave_r := 1000.0
@@ -219,6 +221,8 @@ func _apply_camera() -> void:
 	var cr := target.dot(b.x) * p
 	# 기준점(부지 중심)이 화면 가운데보다 살짝 아래에 오도록(위 HUD·아래 버튼 띠 감안)
 	var cu := target.dot(b.y) * p + (float(cfg.r("pixel.center_y", 0.56)) - 0.5) * float(_ih)
+	# 하단 시트가 가린 만큼의 절반을 위로 올려, 남은 화면 가운데에 도시가 오게
+	cu -= _inset * 0.5 * _canvas_scale / float(_up)
 	var sx: float = floor(cr)
 	var sy: float = floor(cu)
 	_frac = Vector2(cr - sx, cu - sy)
@@ -284,6 +288,15 @@ func set_zoom(level: int) -> void:
 	zoom_i = level
 	_clamp_target()
 	_apply_camera()
+
+
+## 화면 아래쪽이 px 만큼 가려졌다고 알린다(UI 하단 시트). 도시가 남은 영역 가운데로 미끄러진다.
+func set_bottom_inset(px: float) -> void:
+	_inset_to = maxf(px, 0.0)
+
+
+func get_max_floor() -> int:
+	return mesher.top_z + 1 if mesher != null else 0
 
 
 func set_time_override(t: float) -> void:
@@ -797,6 +810,9 @@ func _update_uniforms() -> void:
 func _process(delta: float) -> void:
 	_t += delta
 	var cam_dirty := false
+	if not is_equal_approx(_inset, _inset_to):
+		_inset = move_toward(lerpf(_inset, _inset_to, minf(delta * 12.0, 1.0)), _inset_to, 0.5)
+		cam_dirty = true
 	if _yaw_t < 1.0:
 		_yaw_t = minf(_yaw_t + delta / 0.28, 1.0)
 		var e := _yaw_t * _yaw_t * (3.0 - 2.0 * _yaw_t)

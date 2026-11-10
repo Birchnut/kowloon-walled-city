@@ -8,7 +8,8 @@ signal cut_changed(n: int)
 signal rotate_pressed(dir: int)
 signal zoom_pressed(dir: int)
 
-const FEW := 3
+const FEW := 12          # 이 층수까지는 층마다 버튼(엘리베이터 버튼판). 넘으면 스테퍼.
+const FLOOR_H := 34.0     # 층 버튼 높이(촘촘하게)
 const SCRUB_PX := 22.0
 
 var cut: int = -1
@@ -123,6 +124,7 @@ func _rebuild() -> void:
 
 func _add_floor_button(z: int) -> void:
 	var b := _btn("%dF" % (z + 1), "")
+	b.min_size = Vector2(UI.TOUCH, FLOOR_H)
 	b.toggle_mode = true
 	b.set_meta("z", z)
 	b.pressed.connect(func() -> void: set_cut(z, true))

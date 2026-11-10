@@ -144,7 +144,7 @@ func query(state: CityState, name: String, args: Dictionary) -> Variant:
 			var d: Dictionary = defs[id]
 			var locked := not sim.is_unlocked(state, d.get("unlock"))
 			var c := _cost(state, id)
-			out.append({"id": id, "name": d.get("name", id), "desc": d.get("desc", ""), "cost": c, "locked": locked,
+			out.append({"id": id, "name": d.get("name", id), "desc": d.get("desc", ""), "sign": d.get("sign", ""), "cost": c, "locked": locked,
 				"lock_hint": str(sim.item("unlocks", str(d.get("unlock", ""))).get("hint", "")) if locked else "",
 				"free": float(c["money"]) == 0.0 and float(c["materials"]) == 0.0,
 				"affordable": state.money >= float(c["money"]) and state.materials >= float(c["materials"])})

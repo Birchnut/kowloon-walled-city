@@ -21,3 +21,24 @@ func _ready() -> void:
 		add_child(view)
 	var ui: Node = (load(UI_SCENE) as PackedScene).instantiate()
 	add_child(ui)
+	# 개발용 인자(skiptut, bot=, load= …)가 있으면 몰이 도구를 붙인다. tools/DevHarness.gd 참고.
+	var dev: Dictionary = DevHarnessLoader.wanted()
+	if not dev.is_empty():
+		var h: Node = DevHarnessLoader.make(dev, ui, view)
+		add_child(h)
+
+
+class DevHarnessLoader:
+	const PATH := "res://tools/DevHarness.gd"
+
+	static func wanted() -> Dictionary:
+		if not ResourceLoader.exists(PATH):
+			return {}
+		return (load(PATH) as GDScript).call("wanted")
+
+	static func make(dev: Dictionary, ui: Node, view: Node) -> Node:
+		var h: Node = (load(PATH) as GDScript).new()
+		h.set("args", dev)
+		h.set("ui", ui)
+		h.set("view", view)
+		return h
