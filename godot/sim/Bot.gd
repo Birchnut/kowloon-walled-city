@@ -33,10 +33,10 @@ func act(state: CityState) -> void:
 	_save = 0.0
 	_expedition(state, mem)
 	_utilities(state)
+	_upgrades(state)       # 승급 버튼이 뜨면 먼저 누른다(사람처럼)
 	_production(state)
 	_markets_services(state)
 	_contracts(state)
-	_upgrades(state)
 	_zone(state)
 
 

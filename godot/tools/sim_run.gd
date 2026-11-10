@@ -71,7 +71,7 @@ static func daily(sim: Sim, state: CityState, d: int) -> Dictionary:
 			houses += 1
 			if b["need_state"] == "ok":
 				basic_ok += 1
-	return {"day": d, "pop": pop, "money": int(state.money), "net": float(led.get("net", 0.0)), "tax": float(led.get("tax", 0.0)),
+	return {"day": d, "pop": pop, "money": int(state.money), "net": float(led.get("net", 0.0)), "tax": float(led.get("tax", 0.0)), "ledger": led,
 		"labor_spare": lab, "houses": houses, "houses_ok": basic_ok, "happiness": snappedf(state.happiness, 0.1),
 		"floors": state.floors_unlocked, "facilities": int(m.get("sites", 0)), "water": [snappedf(float(state.util.get("water", {}).get("supply", 0)), 1), snappedf(float(state.util.get("water", {}).get("demand", 0)), 1)],
 		"power": [snappedf(float(state.util.get("power", {}).get("supply", 0)), 1), snappedf(float(state.util.get("power", {}).get("demand", 0)), 1)]}

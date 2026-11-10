@@ -355,7 +355,7 @@ func _shrink_upgrade() -> void:
 	var ug: Array = L2[0].query(L2[1], "upgradable", {})
 	_ok(ug.size() == 1 and int(ug[0]["count"]) == 2, "upgradable 질의: 토박이 2채")
 	var bp: Dictionary = L2[0].query(L2[1], "upgrade_preview", {"bids": [c, d], "material": "wood"})
-	_ok(int(bp["movers"]) == 8 and int(bp["cap_to"]) == 16 and int(bp["vacancies"]) == 2 and bp.has("ok") and bp["cost"]["qty"] == 32, "upgrade_preview 합산: 이주 8, 정원 16, 빈자리 2, 자재 32")
+	_ok(int(bp["movers"]) == 8 and int(bp["cap_to"]) == 16 and int(bp["vacancies"]) == 2 and bp.has("ok") and int(bp["cost"]["qty"]) == 2 * int(DB["upgrade_costs"]["items"]["3to4"]["qty"]), "upgrade_preview 합산: 이주 8, 정원 16, 빈자리 2, 자재 2채분")
 
 
 func _batch_atomic() -> void:
