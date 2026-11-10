@@ -14,7 +14,7 @@ var mesher: CityMesher
 var _mmi: MultiMeshInstance3D
 var _mat: ShaderMaterial
 var _items: Array = []   # [{pos: Vector3, kind: int, seed: float}]
-var show_warn := false   # needs 렌즈가 켜지면 주의(노랑)도 보인다
+var show_warn := false   # needs 렌즈가 켜지면 주의(노랑)와 승급 가능(▲)도 보인다
 
 
 func setup(c: ViewCfg, v: Control, m: CityMesher) -> void:
@@ -106,8 +106,8 @@ func refresh(st: CityState) -> void:
 			var ns: String = str(b.get("need_state", "ok"))
 			if ns == "bad":
 				kind = KINDS["bad"]
-			elif bool(b.get("upgradable", false)):
-				kind = KINDS["up"]
+			elif bool(b.get("upgradable", false)) and show_warn:
+				kind = KINDS["up"]      # 승급 가능 ▲는 수요 렌즈를 켰을 때만(평소엔 도시를 덮는다 — 상단 알림 줄이 알려 준다)
 			elif ns == "warn" and show_warn:
 				kind = KINDS["warn"]
 		elif bk == "facility":
