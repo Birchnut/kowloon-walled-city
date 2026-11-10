@@ -836,13 +836,14 @@ func _scaffold_wrap(p: Vector3i, seed_v: int) -> void:
 ## 셀 없는 골조 칸: 모서리 기둥 + 위 보 + 바깥면 엇갈린 가새. 속이 보이는 열린 구조.
 func _build_support(p: Vector3i) -> void:
 	var b := cellv(p)
-	var ps := 0.09
+	var ps := 0.13
 	var h0 := b.y
 	var h1 := b.y + fh
 	var hs := ViewCfg.h3(p.x, p.y, p.z + 91)
-	var bamboo := p.z >= 2 and hs % 3 == 0
-	var post_c := BAMBOO_C if bamboo else STEEL_C
-	var post_t := Color("#f0d27a") if bamboo else STEEL_T
+	var bamboo := false
+	# 골조는 콘크리트 기둥 + 철 보 + 철 가새 → 대나무 비계(공사)와 한눈에 갈린다
+	var post_c := Color("#b4acbe")
+	var post_t := Color("#d8d2de")
 	# 모서리 기둥: 모서리를 공유하는 골조 칸 중 하나만 그린다
 	for cx in [0, 1]:
 		for cy in [0, 1]:
@@ -862,25 +863,25 @@ func _build_support(p: Vector3i) -> void:
 			if p.z == 0:
 				cbox(Vector3(x - 0.04, h0, z - 0.04), Vector3(x + ps + 0.04, h0 + 0.06, z + ps + 0.04), Color("#a8a0b0"), Color("#c9c2cc"))
 	# 위 보(가장자리마다 한 번): +x, +y 쪽은 늘, -x, -y 쪽은 이웃 골조가 없을 때만
-	var beam_c := STEEL_C.darkened(0.08)
+	var beam_c := Color("#4e4a6e")
 	for d in 4:
 		var nb: Vector3i = p + DIR[d]
 		if d >= 2 and voids.has(nb):
 			continue
-		fbox(p, d, 0.0, 1.0, 0.86, 1.0, -0.08, 0.0, tile("white"), tile("white"), beam_c, 15, 0.0, 0.0, STEEL_T)
+		fbox(p, d, 0.0, 1.0, 0.84, 1.0, -0.1, 0.0, tile("white"), tile("white"), beam_c, 15, 0.0, 0.0, Color("#7a74a0"))
 		# 바깥면 가새(이웃이 골조도 셀도 아니면 = 바깥 공기에 드러난 면)
 		if voids.has(nb) or state.cells.has(nb):
 			continue
-		var bc := BAMBOO_C if (hs + d) % 2 == 0 or bamboo else STEEL_C.lightened(0.1)
+		var bc := Color("#5a5478") if (hs + d) % 4 != 0 else BAMBOO_C
 		var flip := (hs / (d + 2)) % 2 == 0
 		var w := -0.03
 		var a0 := fp(p, d, 0.06, 0.0 if not flip else 0.86, w)
 		var a1 := fp(p, d, 0.94, 0.86 if not flip else 0.0, w)
-		_strut(a0, a1, NRM[d], bc, 0.05)
+		_strut(a0, a1, NRM[d], bc, 0.07)
 		if (hs / 7 + d) % 3 == 0:
 			var c0 := fp(p, d, 0.06, 0.86 if not flip else 0.0, w - 0.01)
 			var c1 := fp(p, d, 0.94, 0.0 if not flip else 0.86, w - 0.01)
-			_strut(c0, c1, NRM[d], bc, 0.05)
+			_strut(c0, c1, NRM[d], bc, 0.07)
 		if p.z >= 1 and (hs / 5 + d) % 4 == 0:
 			# 매달린 전선·등
 			fbox(p, d, 0.48, 0.52, 0.5, 0.86, -0.06, -0.02, tile("white"), tile("white"), Color("#3a3448"), 15)
