@@ -117,7 +117,7 @@ func _run(state: CityState, c: Dictionary) -> void:
 			if n < qty:
 				reason = "%s로 %d/%d개만 받음" % ["창고 자리가 모자라" if room < afford else "돈이 모자라", int(n), int(qty)]
 			else:
-				reason = "%d개 받음 (₩%d)" % [int(n), int(pay)]
+				reason = "%d개 받음 (%s)" % [int(n), Sim.won(pay)]
 	else:
 		var avail := floorf(float(state.stock.get(g, 0.0)) - float(c.get("reserve", 0.0)) + 1e-6)
 		n = maxf(0.0, minf(qty, avail))
@@ -131,7 +131,7 @@ func _run(state: CityState, c: Dictionary) -> void:
 			state.book("export", got)
 			sim.flow_add(g, "exp", n)
 			state.stat_add("exp." + g, n)
-			reason = ("%d/%d개만 보냄" % [int(n), int(qty)]) if n < qty else ("%d개 보냄 (₩%d)" % [int(n), int(got)])
+			reason = ("%d/%d개만 보냄" % [int(n), int(qty)]) if n < qty else ("%d개 보냄 (%s)" % [int(n), Sim.won(got)])
 	c["last"] = {"ok": ok, "reason": reason, "at": state.econ_days, "n": n}
 	state.stat_add("contract_rounds", 1.0)
 	if not ok:

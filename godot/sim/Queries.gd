@@ -118,7 +118,7 @@ static func _floor_progress(sim: Sim, state: CityState, z: int, need: int) -> Di
 	elif used >= need:
 		text = "%d층이 곧 열린다" % (z + 2)
 	else:
-		text = "%d층이 열리려면 %d층에 %d칸 더" % [z + 2, z + 1, need - used]
+		text = "%d층이 열리려면 %d층에 쓰이는 칸 %d개 더(빈집 제외)" % [z + 2, z + 1, need - used]
 	return {"z": z, "used": used, "need": need, "text": text}
 
 
@@ -148,7 +148,7 @@ static func _effect_text(sim: Sim, d: Dictionary) -> String:
 	if d.has("contract_slots"):
 		parts.append("계약 자리 +%d" % int(d["contract_slots"]))
 	if d.has("vice"):
-		parts.append("음성 수입 ₩%d/일" % int(d["vice"].get("income", 0)))
+		parts.append("음성 수입 %s/일" % Sim.won(float(d["vice"].get("income", 0))))
 	if "noise" in d.get("tags", []):
 		parts.append("시끄럽다(옆 칸 주거 행복 −)")
 	if d.get("open_sky", false):
@@ -247,7 +247,9 @@ static func _info(sim: Sim, state: CityState, args: Dictionary) -> Dictionary:
 	for u: String in d.get("supply", {}):
 		io.append("%s 공급 %s/일 (지금 %s)" % ["물" if u == "water" else "전기", _n(d["supply"][u]), _n(snappedf(float(d["supply"][u]) * eff, 0.1))])
 	if d.has("vice"):
-		io.append("음성 수입 ₩%s/일 (지금 ₩%s) · 열려 있는 동안 단속 위험 +%s/일" % [_n(d["vice"].get("income", 0)), _n(snappedf(float(b.get("vice_rate", 0.0)), 0.1)), _n(d["vice"].get("heat", 0))])
+		# 단속 위험: 기본값 + "지금"(가동률 × 정책 heat.gain 반영 — vice 질의의 heat_per_day와 같은 값)
+		var hn := snappedf(float(d["vice"].get("heat", 0.0)) * float(b.get("eff", 0.0)) * maxf(0.0, sim.mod(state, "heat.gain")), 0.1)
+		io.append("음성 수입 %s/일 (지금 %s) · 단속 위험 +%s/일 (지금 +%s)" % [Sim.won(float(d["vice"].get("income", 0))), Sim.won(float(b.get("vice_rate", 0.0))), _n(d["vice"].get("heat", 0)), _n(hn)])
 	var cause := str(b.get("cause", ""))
 	var ct: String = {"": "가동 중", "staff": "인력 부족", "input": "원료 부족", "water": "물 부족", "power": "전기 부족",
 		"money": "돈이 없어 멈춤", "storage": "창고가 가득", "paused": "일시 정지", "raid": "단속으로 폐쇄"}.get(cause, cause)

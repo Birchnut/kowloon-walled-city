@@ -50,7 +50,7 @@ func can(state: CityState, name: String, args: Dictionary) -> Variant:
 	if g != "":
 		for o: String in state.policies:
 			if o != id and state.policies[o] and str(sim.item("policies", o).get("group", "")) == g:
-				return {"ok": false, "reason": "'%s'과(와) 함께 켤 수 없다." % sim.item("policies", o).get("name", o), "code": "group"}
+				return {"ok": false, "reason": Sim.kr("'%s'과(와) 함께 켤 수 없다." % sim.item("policies", o).get("name", o)), "code": "group"}
 	return {"ok": true, "reason": "", "code": "ok"}
 
 
@@ -89,6 +89,14 @@ func tick(state: CityState, dt: float) -> void:
 		state.stat_add("policy_upkeep", c)
 
 
+## 설명 글의 {upkeep}·{upkeep_per_vice}를 데이터 값으로 채운다("유지비 ₩60/일").
+static func desc(p: Dictionary) -> String:
+	var t := str(p.get("desc", ""))
+	for k: String in ["upkeep_per_vice", "upkeep"]:
+		t = t.replace("{%s}" % k, Sim.won(float(p.get(k, 0))))
+	return t
+
+
 func query(state: CityState, name: String, _args: Dictionary) -> Variant:
 	if name != "policies":
 		return null
@@ -99,6 +107,6 @@ func query(state: CityState, name: String, _args: Dictionary) -> Variant:
 		var on := bool(state.policies.get(id, false))
 		var locked := max_s == 0
 		var cost := _cost_per_day(state, p)
-		items.append({"id": id, "name": p.get("name", id), "desc": p.get("desc", ""), "on": on, "locked": locked,
+		items.append({"id": id, "name": p.get("name", id), "desc": desc(p), "on": on, "locked": locked,
 			"lock_hint": "세입자 60명이 되면 정책 칸이 열린다" if locked else "", "upkeep": snappedf(cost, 0.1), "group": p.get("group", "")})
 	return {"slots": {"used": _on_count(state), "max": max_s}, "items": items}

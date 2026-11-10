@@ -75,7 +75,7 @@ func _grant(state: CityState, g: Dictionary) -> Array:
 	if money > 0.0:
 		state.money += money
 		state.book("reward", money)
-		out.append("₩%d" % int(money))
+		out.append(Sim.won(money))
 	var st: Dictionary = rw.get("stock", {})
 	for gd: String in st:
 		state.stock[gd] = float(state.stock.get(gd, 0.0)) + float(st[gd])
@@ -94,7 +94,7 @@ func _reward_text(state: CityState, g: Dictionary) -> Array:
 	var rw: Dictionary = g.get("rewards", {})
 	var out: Array = []
 	if float(rw.get("money", 0)) > 0.0:
-		out.append("₩%d" % int(rw["money"]))
+		out.append(Sim.won(float(rw["money"])))
 	for gd: String in rw.get("stock", {}):
 		out.append("%s %d" % [sim.gname(gd), int(rw["stock"][gd])])
 	for d: String in rw.get("reveal", []):

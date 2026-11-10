@@ -218,7 +218,24 @@ func say(state: CityState, text: String, tone: String = "") -> void:
 
 
 const _JOSA := [["이(가)", "이", "가"], ["을(를)", "을", "를"], ["은(는)", "은", "는"], ["과(와)", "과", "와"],
-	["으로(로)", "으로", "로"], ["(이)라", "이라", "라"]]
+	["으로(로)", "으로", "로"], ["(으)로", "으로", "로"], ["(이)라", "이라", "라"]]
+
+
+## 정수에 천 단위 쉼표: 33151 → "33,151", −320 → "−320"(반올림 없이 int로 자름 — 예전 %d와 같은 값).
+static func num(v: float) -> String:
+	var n := int(v)
+	var neg := n < 0
+	var s := str(absi(n))
+	var out := ""
+	while s.length() > 3:
+		out = "," + s.right(3) + out
+		s = s.left(s.length() - 3)
+	return ("−" if neg else "") + s + out
+
+
+## 문장 속 돈: "₩33,151"(음수는 "−₩320"). 시뮬이 만드는 글에서 돈은 모두 이것으로.
+static func won(v: float) -> String:
+	return ("−₩" + num(-v)) if int(v) < 0 else ("₩" + num(v))
 
 
 ## "이(가)" 같은 조사를 앞말 받침에 맞춘다.
@@ -235,7 +252,7 @@ static func kr(text: String) -> String:
 			var fin := code >= 0 and code < 11172 and code % 28 != 0
 			if code < 0 and back >= 0 and text[back] >= "0" and text[back] <= "9":
 				fin = text[back] in ["0", "1", "3", "6", "7", "8"]
-			if j[0] == "으로(로)" and code >= 0 and code % 28 == 8:
+			if (j[0] == "으로(로)" or j[0] == "(으)로") and code >= 0 and code % 28 == 8:
 				fin = false
 			text = text.substr(0, at) + (j[1] if fin else j[2]) + text.substr(at + (j[0] as String).length())
 			at = text.find(j[0])
@@ -358,7 +375,7 @@ func fast_forward(state: CityState, econ_days: float, real_seconds: float = -1.0
 	var rh := real_seconds / 3600.0 if real_seconds >= 0.0 else econ_days * float(cfg("time.seconds_per_day", 600)) / maxf(0.01, float(cfg("time.offline_speed", 0.25))) / 3600.0
 	lines.append("자리를 비운 %s 동안 성채의 시간은 %.1f일 흘렀다(미접속 중에는 %s배로 느리게)." % [_hours(rh), econ_days, str(cfg("time.offline_speed", 0.25))])
 	var dm := state.money - float(before["money"])
-	lines.append("금고 ₩%d → ₩%d (%s₩%d)." % [int(before["money"]), int(state.money), "+" if dm >= 0.0 else "−", int(absf(dm))])
+	lines.append("금고 %s → %s (%s%s)." % [won(float(before["money"])), won(state.money), "+" if dm >= 0.0 else "−", won(absf(dm))])
 	var made: Array = []
 	var used: Array = []
 	var bs: Dictionary = before["stats"]

@@ -38,6 +38,11 @@ func _complete(state: CityState, bid: int) -> void:
 	sim.say(state, "%s 완공." % sim.bdef(type).get("name", type))
 
 
+## 명령이 성공한 직후에도 층 해금을 본다(파트 C): 정시·스텝을 기다리지 않게(디버그 채우기·철거 뒤 등).
+func on_command(state: CityState, _name: String, _args: Dictionary, _result: Dictionary) -> void:
+	_check_floor(state)
+
+
 func floor_need() -> int:
 	return int(ceilf(float(sim.cfg("floors.threshold", 0.8)) * float(sim.cfg("floors.eligible_cells", 144)) - 1e-6))
 
@@ -63,7 +68,7 @@ func _free_reason(state: CityState, p: Vector3i) -> String:
 	if not _inside(p):
 		return "부지 밖이다."
 	if p.z >= state.floors_unlocked:
-		return "%d층은 아직 열리지 않았다(아래층을 80%% 채우면 열린다)." % (p.z + 1)
+		return "%d층은 아직 열리지 않았다(아래층 칸의 80%%가 쓰이면 열린다)." % (p.z + 1)
 	if state.cells.has(p):
 		return "이미 건물이 있다."
 	return ""
@@ -167,7 +172,7 @@ func _plan_zone(state: CityState, cells: Array) -> Dictionary:
 				extra.append(q)
 		var c := unit + _support_cost(extra.size())
 		if spent + c > money + 1e-9:
-			skipped.append({"pos": p, "reason": "돈이 모자란다(₩%d 필요)." % int(ceilf(c)), "code": "money"})
+			skipped.append({"pos": p, "reason": "돈이 모자란다(%s 필요)." % Sim.won(ceilf(c)), "code": "money"})
 			continue
 		spent += c
 		good.append(p)
@@ -224,10 +229,10 @@ func _can_build(state: CityState, args: Dictionary) -> Dictionary:
 	var goods: Dictionary = d.get("cost", {}).get("goods", {})
 	var cost := {"money": money, "goods": goods}
 	if state.money + 1e-9 < money:
-		return {"ok": false, "reason": "돈이 모자란다(₩%d 필요, 지금 ₩%d)." % [int(money), int(state.money)], "code": "money", "supports": sup.size(), "cost": cost, "support_cells": sup}
+		return {"ok": false, "reason": "돈이 모자란다(%s 필요, 지금 %s)." % [Sim.won(money), Sim.won(state.money)], "code": "money", "supports": sup.size(), "cost": cost, "support_cells": sup}
 	for g: String in goods:
 		if float(state.stock.get(g, 0.0)) + 1e-9 < float(goods[g]):
-			return {"ok": false, "reason": "%s이(가) 모자란다(%d 필요, 지금 %d)." % [sim.gname(g), int(goods[g]), int(state.stock.get(g, 0.0))], "code": "goods", "supports": sup.size(), "cost": cost, "support_cells": sup}
+			return {"ok": false, "reason": Sim.kr("%s이(가) 모자란다(%d 필요, 지금 %d)." % [sim.gname(g), int(goods[g]), int(state.stock.get(g, 0.0))]), "code": "goods", "supports": sup.size(), "cost": cost, "support_cells": sup}
 	return {"ok": true, "reason": "", "code": "ok", "supports": sup.size(), "cost": cost, "support_cells": sup}
 
 
@@ -393,7 +398,7 @@ func _demolish_preview(state: CityState, pos: Variant) -> Dictionary:
 		var d := sim.bdef(str(b["type"]))
 		title = "%s 철거" % d.get("name", b["type"])
 		var cost: Dictionary = d.get("cost", {})
-		var parts: Array = ["₩%d" % int(cost.get("money", 0))]
+		var parts: Array = [Sim.won(float(cost.get("money", 0)))]
 		for g: String in cost.get("goods", {}):
 			parts.append("%s %d" % [sim.gname(g), int(cost["goods"][g])])
 		lines.append("건설비(%s)는 돌려받지 못한다." % ", ".join(parts))

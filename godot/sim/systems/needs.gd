@@ -1001,6 +1001,9 @@ func augment(state: CityState, name: String, _args: Dictionary, out: Variant) ->
 			var ct := ""
 			if c != "":
 				ct = CAUSE_TEXT.get(c, c)
+				# 서비스(사당·학교…)는 시장이 아니다: "범위 밖"만. 상품·시장 수요만 "시장 범위 밖".
+				if c == "range" and str(rec.get("pick", "")).begins_with("svc:"):
+					ct = "범위 밖"
 				if picks.size() > 0:
 					ct = "%s — %s" % ["·".join(picks), ct]
 			var alt: Array = []
