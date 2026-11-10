@@ -598,7 +598,7 @@ func _alloc_signs() -> void:
 		var r := hs % 100
 		if same_near:
 			# 같은 글자가 바로 옆에 이미 걸려 있으면 작은 문패만(혹은 생략)
-			if r < 45:
+			if r < 82:
 				continue
 			size = "plaque"
 		elif int(cd["open"]) >= 2 and r < 20 and not big_near:
