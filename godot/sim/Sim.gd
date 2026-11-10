@@ -177,9 +177,33 @@ func run(state: CityState, effects: Variant) -> void:
 	Expr.apply(self, state, effects)
 
 
-## 글 속의 {t}를 지금 호칭으로.
+## 글 속의 {t}를 지금 호칭으로, "이(가)" 같은 조사를 앞말 받침에 맞게.
 func fmt(state: CityState, text: String) -> String:
-	return text.replace("{t}", str(state.identity.get("title", "대장")))
+	return kr(text.replace("{t}", str(state.identity.get("title", "대장"))))
+
+
+## 기록 한 줄(fmt를 거친다).
+func say(state: CityState, text: String, tone: String = "") -> void:
+	state.add_log(fmt(state, text), tone)
+
+
+const _JOSA := [["이(가)", "이", "가"], ["을(를)", "을", "를"], ["은(는)", "은", "는"], ["과(와)", "과", "와"],
+	["와(과)", "과", "와"], ["으로(로)", "으로", "로"], ["(이)라", "이라", "라"], ["(이)", "이", ""]]
+
+
+static func kr(text: String) -> String:
+	if text.find("(") < 0:
+		return text
+	for j: Array in _JOSA:
+		var at := text.find(j[0])
+		while at >= 0:
+			var code := (text.unicode_at(at - 1) - 0xAC00) if at > 0 else -1
+			var fin := code >= 0 and code < 11172 and code % 28 != 0
+			if j[0] == "으로(로)" and code >= 0 and code % 28 == 8:
+				fin = false
+			text = text.substr(0, at) + (j[1] if fin else j[2]) + text.substr(at + (j[0] as String).length())
+			at = text.find(j[0])
+	return text
 
 
 # ------------------------------------------------------------------ 진행
@@ -237,6 +261,9 @@ func fast_forward(state: CityState, hours: float) -> Dictionary:
 
 # ------------------------------------------------------------------ 명령·질의
 func can(state: CityState, name: String, args: Dictionary) -> Dictionary:
+	if name == "debug":
+		var on: bool = cfg("debug.enabled", false)
+		return {"ok": on, "reason": "" if on else "디버그가 꺼져 있다."}
 	for s: SimSystem in systems:
 		var r: Variant = s.can(state, name, args)
 		if r != null:
@@ -248,12 +275,19 @@ func apply(state: CityState, name: String, args: Dictionary) -> Dictionary:
 	var c := can(state, name, args)
 	if not c.get("ok", false):
 		return c
+	var res: Variant = _debug(state, args) if name == "debug" else null
 	for s: SimSystem in systems:
-		var r: Variant = s.apply(state, name, args)
-		if r != null:
-			touch()
-			return r
-	return {"ok": false, "reason": "지금은 할 수 없는 일이다 (%s)" % name}
+		if res != null:
+			break
+		res = s.apply(state, name, args)
+	if res == null:
+		return {"ok": false, "reason": "지금은 할 수 없는 일이다 (%s)" % name}
+	touch()
+	if res.get("ok", false):
+		for s: SimSystem in systems:
+			s.on_command(state, name, args, res)
+		touch()
+	return res
 
 
 func query(state: CityState, name: String, args: Dictionary) -> Variant:
@@ -303,3 +337,22 @@ func _cell_info(state: CityState, pos: Vector3i) -> Dictionary:
 	for s: SimSystem in systems:
 		s.describe(state, pos, cell, info)
 	return info
+
+
+## 개발용 명령. op: add_money|add_food|add_materials {amount} · set {field,value} · skip_hours {hours}
+##   unlock_all · unlock {id} · effects {effects:[...]} (Expr 효과를 그대로 실행 — 카드 강제, 가구·가게 소환 등)
+func _debug(state: CityState, args: Dictionary) -> Dictionary:
+	match str(args.get("op", "")):
+		"add_money": state.money += float(args.get("amount", 100))
+		"add_food": state.food += float(args.get("amount", 100))
+		"add_materials": state.materials += float(args.get("amount", 100))
+		"set": state.set(str(args.get("field", "")), args.get("value"))
+		"skip_hours": tick(state, float(args.get("hours", 1)))
+		"unlock": run(state, [["unlock", str(args.get("id", ""))]])
+		"unlock_all":
+			for file: String in ["unlocks"]:
+				for id: String in items(file):
+					run(state, [["unlock", id]])
+		"effects": run(state, args.get("effects", []))
+		_: return {"ok": false, "reason": "모르는 디버그 명령."}
+	return {"ok": true, "reason": ""}

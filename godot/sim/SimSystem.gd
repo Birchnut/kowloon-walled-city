@@ -55,6 +55,11 @@ func query(_state: CityState, _name: String, _args: Dictionary) -> Variant:
 	return null
 
 
+## 어느 시스템이든 명령을 성공적으로 처리한 직후 전부에게 알린다(예: 심자마자 수금함·물 용량 갱신).
+func on_command(_state: CityState, _name: String, _args: Dictionary, _result: Dictionary) -> void:
+	pass
+
+
 ## cell_info에 줄을 보탠다. info = {title, subtitle, lines[], actions[]}. cell이 비면 빈 칸.
 func describe(_state: CityState, _pos: Vector3i, _cell: Dictionary, _info: Dictionary) -> void:
 	pass

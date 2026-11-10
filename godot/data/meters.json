@@ -1,0 +1,64 @@
+{
+  "_comment": "지표의 목표값 = base + Σ(지표 이름 × 가중치[, 그 항의 절댓값 상한]). 실제 값은 목표를 향해 하루에 rate 비율로 따라간다. 지표 이름 목록은 sim/Metrics.gd 주석과 게임 안 query('metrics'). 전부 플레이스홀더.",
+  "items": {
+    "prestige": {
+      "start": 5, "base": 4, "rate": 0.3,
+      "terms": [
+        ["sum.prestige", 1.0, 45],
+        ["keep_columns", 0.9, 16],
+        ["sun_housing", 10],
+        ["quality_housing", 2.5, 8],
+        ["policy.care.mutual", 9],
+        ["policy.care.expel", -8],
+        ["policy.intake.workers", -3],
+        ["policy.look.green", 7],
+        ["policy.look.neon", 5],
+        ["policy.invest.living", 5],
+        ["population", 0.02, 12],
+        ["group.make", -0.25, 18],
+        ["housing.cage", -0.8, 20],
+        ["waiting", -0.4, 8],
+        ["informal_cells", -0.05, 6],
+        ["care_helpers", 0.3, 5]
+      ]
+    },
+    "notoriety": {
+      "start": 0, "base": 0, "rate": 0.3,
+      "terms": [
+        ["sum.notoriety", 1.0, 70],
+        ["alley_fund", 0.04, 30],
+        ["group.vice", 0.6, 25],
+        ["policy.permit.vice.promote", 8],
+        ["policy.care.expel", 4],
+        ["flag.uplink", 10],
+        ["policy.look.neon", 3],
+        ["count.hall", -3]
+      ]
+    },
+    "morale": {
+      "start": 50, "base": 50, "rate": 0.4,
+      "terms": [
+        ["food_short", -45],
+        ["quality_housing", 4.5, 12],
+        ["sun_housing", 12],
+        ["noise_housing", -5, 15],
+        ["sum.morale", 1.0, 22],
+        ["unemployed_ratio", -25],
+        ["waiting_ratio", -18],
+        ["cage_ratio", -30],
+        ["crowd_over", -40],
+        ["policy.tax.low", 4],
+        ["policy.tax.high", -8],
+        ["policy.care.mutual", 5],
+        ["policy.care.expel", -4],
+        ["policy.intake.workers", -2],
+        ["policy.invest.living", 5],
+        ["policy.look.green", 3],
+        ["care_helpers", 0.4, 6],
+        ["power_level", 3],
+        ["flag.bridges", 2, 6],
+        ["notoriety", -0.06]
+      ]
+    }
+  }
+}

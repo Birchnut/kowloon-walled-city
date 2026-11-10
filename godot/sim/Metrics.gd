@@ -6,7 +6,7 @@ extends RefCounted
 ## 주요 이름: population households waiting dependents workers unemployed jobs jobs_open jobs_open.<group>
 ##   hh.<가구유형> named.<인물> cells sites cells.<kind> count.<type> group.<group> biz.<group> mat.<자재>
 ##   housing.<유형> tag_count.<태그> sum.prestige|notoriety|morale max_height footprint avg_height keep_columns
-##   sun_housing noise_housing quality_housing cage_ratio unemployed_ratio waiting_ratio dependent_ratio
+##   vacancies sun_housing noise_housing quality_housing cage_ratio unemployed_ratio waiting_ratio dependent_ratio
 ##   family_share crowd_over food_days dominant(문자) policy.<axis>(문자) policy.<axis>.<값>=1
 ##   permit.<group>(문자) permit_level.<group> unlocked.<id>=1 flag.<이름> stat.<이름>
 
@@ -95,7 +95,7 @@ static func _cells(sim: Sim, state: CityState, m: Dictionary) -> void:
 	var noise := 0.0
 	var quality := 0.0
 	var housing := 0.0
-	for k: String in ["cells", "sites", "max_height", "sum.prestige", "sum.notoriety", "sum.morale"]:
+	for k: String in ["cells", "sites", "max_height", "vacancies", "sum.prestige", "sum.notoriety", "sum.morale"]:
 		m[k] = 0.0
 	for pos: Vector3i in state.cells:
 		var c: Dictionary = state.cells[pos]
@@ -118,6 +118,7 @@ static func _cells(sim: Sim, state: CityState, m: Dictionary) -> void:
 			_add(m, "tag_count." + str(t))
 		if kind == "housing":
 			_add(m, "housing." + str(c.get("type", "")))
+			_add(m, "vacancies", float(maxi(0, Ops.free_slots(sim, c))))
 			housing += 1.0
 			sun += Grid.sunlight(sim, state, pos)
 			quality += float(d.get("quality", 0.0)) + float(sim.item("materials", str(c.get("material", ""))).get("quality", 0.0))

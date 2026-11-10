@@ -1,0 +1,92 @@
+{
+  "_comment": "시스템별 수치(전부 플레이스홀더). 블록 이름 = 시스템 id. 각 시스템 파일(sim/systems/<id>.gd) 맨 위 주석에 규칙 설명이 있다. 하루 단위 값은 config.json pace의 배율을 탄다.",
+
+  "sun": { "_comment": "볕 0..1 = 머리 위가 열렸으면 sky, 옆이 트인 만큼 side, 이웃이 두 층 넘게 높으면 canyon만큼 깎임.", "sky": 0.6, "side": 0.4, "canyon": 0.3 },
+
+  "plots": { "cost_growth": 0.15, "demolish_cost": 3, "salvage": 0.5, "evict_morale": 1.0, "facility_material": "wood" },
+
+  "utilities": { "water_base": 14, "floor_base": 4 },
+
+  "economy": {
+    "start": { "money": 60, "food": 45, "materials": 22 },
+    "food_price": 0.4, "materials_price": 2.0,
+    "max_debt": 200, "money_reserve": 30,
+    "materials_target": 30, "materials_target_per_household": 0.3,
+    "materials_buy_per_day": 16, "materials_buy_per_household": 0.2,
+    "close_days": 3, "ban_close_per_day": 0.34,
+    "sun_floor": 0.3
+  },
+
+  "inflow": {
+    "start_households": ["laborer", "farmer", "laborer", "merchant"],
+    "arrive_from": 6, "arrive_to": 22,
+    "seeker_per_household": 0.03, "seeker_scale_max": 8,
+    "nowhere_base": 0.9, "nowhere_per_household": 0.03, "nowhere_max": 14,
+    "dependent_ratio": 0.2, "kin_chance": 0.6,
+    "nowhere_types": { "laborer": 5, "farmer": 1.5, "artisan": 1, "merchant": 1.5, "hustler": 0.4 },
+    "gate_base": 6, "gate_per_household": 0.06, "capacity_slack": 1, "gate_patience_days": 3,
+    "water_full_factor": 0.2,
+    "morale_ref": 50, "morale_k": 0.012,
+    "leave_below": 30, "morale_leave_k": 0.004,
+    "hunger_leave": 0.25,
+    "jobless_days": 4, "jobless_leave": 0.3,
+    "max_leave_share": 0.12
+  },
+
+  "care": { "expel_prestige": 2.0, "expel_morale": 3.0, "expel_notoriety": 0.4, "recover_as": "laborer" },
+
+  "growth": {
+    "require_anchor": true,
+    "budget_start": 3, "budget_base": 5.0, "budget_per_household": 0.09, "budget_cap_days": 1.5,
+    "site_interval_min": 15, "max_sites_base": 2, "max_sites_per_household": 0.04,
+    "biz_base": 0.6, "biz_per_slack": 0.45, "biz_demand_cap": 6,
+    "permit_weight": { "ban": 0, "allow": 1.0, "promote": 2.4 },
+    "group_base": { "farm": 1.0, "make": 1.0, "fun": 1.0, "vice": 1.2 },
+    "group_anchor": 1.5, "group_existing": 0.25, "group_people": 0.15,
+    "housing_bias": 1.5,
+    "housing_new": "room", "housing_scrap": "shack", "vacated_becomes": "room",
+    "materials_reserve": 4, "any_follow": 0.75, "any_rich": 40, "any_default": ["wood", "sheet"],
+    "concrete_needs_power": true, "reinforce_order": ["concrete", "brick", "sheet", "wood"],
+    "upgrade_base": 1.0, "upgrade_per_household": 0.03, "reinforce_weight": 2.0, "flat_min_sun": 0.25, "flat_cost": 2,
+    "cage": { "pressure": 5, "notoriety": 25, "per_day": 2 },
+    "score": {
+      "_comment": "자리 점수 가중치. noise=무작위 흔들림, anchor=앵커 끌림(거리마다 falloff, 층 차이는 dz배), adjacent=옆벽 칸당, isolated=지상 외딴 칸 감점, step=주변 평균보다 높은 층당 감점, height=업종별 층당 감점(음수면 높이 선호), zone_match/clash=구획, cluster=같은 업종 이웃 칸당, sun_housing=주거의 볕, nuisance=주거 옆 소음·먼지, repel=시끄러운 가게 옆 주거.",
+      "noise": 1.2,
+      "anchor": 5.0, "anchor_falloff": 0.45, "anchor_dz": 0.6, "anchor_same_group": 1.6, "anchor_other": 0.6, "anchor_public_housing": 1.3,
+      "adjacent": 0.7, "isolated": -2.5, "step": 0.9,
+      "height": { "housing": 0.25, "farm": -0.1, "make": 0.5, "fun": 0.6, "vice": 0.2 },
+      "zone_match": 2.5, "zone_clash": 5.0, "cluster": 0.5,
+      "sun_housing": 2.0, "nuisance": 0.6, "repel": 0.5, "cantilever_penalty": 2.0
+    },
+    "why": {
+      "_comment": "셀에 남는 '왜 여기에' 문장. {what}=지어진 것, {near}=바로 옆 가게·시설, {anchor}=가장 가까운 앵커, {zone}=구획.",
+      "near": "{near} 옆이라 {what}이(가) 붙었다.",
+      "anchor": "{anchor} 가까운 자리라 {what}이(가) 들어섰다.",
+      "adjacent": "옆집 벽에 기대어 {what}이(가) 붙었다.",
+      "cluster": "비슷한 것들이 모인 자리라 {what}도 따라 들어왔다.",
+      "zone": "{zone} 구획으로 칠해 둔 자리라 {what}이(가) 들어섰다.",
+      "sun": "볕이 잘 드는 자리라 {what}이(가) 됐다.",
+      "dark": "볕이 안 드는 구석이라 {what}이(가) 됐다.",
+      "ground": "지상이라 손님 받기 좋아 {what}이(가) 자리를 잡았다.",
+      "low": "오르내리기 쉬운 저층이라 {what}이(가) 자리를 잡았다.",
+      "gate": "대문에서 가까워 {what}이(가) 자리를 잡았다.",
+      "high": "높은 자리를 찾아 {what}이(가) 올라왔다.",
+      "edge": "담장 쪽 외진 자리라 {what}이(가) 들어섰다.",
+      "hidden": "대문에서 안 보이는 안쪽이라 {what}이(가) 숨어들었다.",
+      "water": "물이 가까워 {what}이(가) 들어섰다.",
+      "forced": "{t}의 결재로 들인 {what}.",
+      "cage": "대문 앞 줄이 길어지자 집주인이 방을 철망으로 쪼갰다.",
+      "default": "빈자리가 나서 {what}이(가) 들어섰다."
+    }
+  },
+
+  "collection": {
+    "base_cap": 30, "cap_days": 1.2, "ready_ratio": 0.5,
+    "skim_threshold": 0.8, "skim_grace_hours": 6, "skim_rate": 0.04, "skim_notoriety": 0.02,
+    "clean_notoriety": 0.05,
+    "prestige_k": 0.003, "notoriety_k": { "fun": 0.004, "vice": 0.008 },
+    "loot_chance": 0.5
+  },
+
+  "cards": { "per_day": 3, "max_pending": 9, "expire_days": 4, "default_cooldown": 6 }
+}

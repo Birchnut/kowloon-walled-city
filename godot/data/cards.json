@@ -1,0 +1,8 @@
+{
+  "_comment": "임시 — 곧 채움",
+  "missions": {},
+  "items": {
+    "misc_test": { "speaker": "복 할매", "title": "시험", "body": "{t}, 밥은 먹었나.", "weight": 1, "cooldown": 2,
+      "choices": [ { "label": "먹었다", "hint": "민심 +1", "tags": ["care"], "effects": [["morale", "+", 1]] }, { "label": "아직", "hint": "", "tags": [], "effects": [] } ] }
+  }
+}
