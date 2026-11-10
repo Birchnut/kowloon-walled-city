@@ -4,7 +4,7 @@ extends Node3D
 
 const FxShader := preload("res://view/shaders/fx.gdshader")
 const KINDS := {"steam": 0, "smoke": 1, "incense": 2, "sparks": 3, "drip": 4, "pigeons": 5, "dust": 6, "mote": 7}
-const COUNT := {"steam": 4, "smoke": 5, "incense": 3, "sparks": 5, "drip": 1, "pigeons": 6, "mote": 2}
+const COUNT := {"steam": 3, "smoke": 4, "incense": 3, "sparks": 5, "drip": 1, "pigeons": 6, "mote": 2}
 
 var cfg: ViewCfg
 var _mm: MultiMesh

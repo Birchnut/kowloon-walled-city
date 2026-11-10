@@ -132,10 +132,11 @@ void fragment() {
 		if (dot(c, c) > r * r + 0.3) { discard; }
 		float fade = (kind < 0.5) ? (1.0 - life) * 0.85 : (1.0 - life * life) * 0.9;
 		fade *= smoothstep(0.0, 0.08, life);
+		fade *= mix(1.0, 0.5, night);       // 밤엔 옅게: 덩어리를 가리는 안개가 되지 않게
 		if (fade < dth) { discard; }
-		col = (kind < 0.5) ? vec3(0.96, 0.96, 1.0) * mix(amb, vec3(1.0), 0.5) : smoke_col * amb;
+		col = (kind < 0.5) ? vec3(0.96, 0.96, 1.0) * mix(amb, vec3(1.0), 0.5 * (1.0 - night)) : smoke_col * amb;
 		if (c.y < 0.0 && kind < 0.5) { col *= 0.93; }
-		col += glow * 0.9;
+		col += glow * 0.35;
 	} else if (kind < 2.5) {
 		if ((1.0 - life) * 0.7 < dth) { discard; }
 		col = vec3(0.86, 0.84, 0.92) * mix(amb, vec3(1.0), 0.4) + glow * 0.6;

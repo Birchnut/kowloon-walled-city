@@ -313,7 +313,8 @@ func _frame(fc: Color, x: int, y: int, w: int, h: int) -> void:
 	# 매크로 단위 창틀(테두리 1매크로) + 유리
 	_m(x, y, w, h, fc)
 	var g := glass(Color(GLASS_DAY))
-	_m(x + 1, y + 1, w - 2, h - 2, g)
+	# 창틀은 1텍셀: 유리를 넓게 → 밤에 켜진 창이 크게 보인다
+	_rc(x * 2 + 1, y * 2 + 1, w * 2 - 2, h * 2 - 2, g)
 	# 창틀 아래 그림자, 창턱
 	_rc(x * 2, (y + h) * 2, w * 2, 1, Color(0.25, 0.2, 0.4, 1.0).lerp(fc, 0.35))
 	# 유리 반사(×2에서만: 홀수 열)

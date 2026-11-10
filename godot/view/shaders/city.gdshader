@@ -37,7 +37,8 @@ uniform vec3 tv_col = vec3(0.56, 0.82, 1.0);
 uniform vec3 candle_col = vec3(1.0, 0.6, 0.29);
 uniform float neon_gain = 1.2;
 uniform float window_spill = 0.5;
-uniform float bands = 4.0;
+uniform float bands = 3.0;
+uniform float light_dither = 0.0;     // 0 = 딱 끊기는 빛 고리(광원에 붙는다), 1 = 디더로 번짐
 uniform float ao_strength = 0.2;
 uniform float floor_grime = 0.1;
 uniform float time_s = 0.0;
@@ -214,7 +215,7 @@ void fragment() {
 	vec3 add = lg.rgb * neon_gain * night * powered + warm_col * lg.a * window_spill * min(win_level * 1.6, 1.0) * max(night, 0.0) * (0.25 + 0.75 * powered);
 	float inten = max(add.r, max(add.g, add.b));
 	if (inten > 0.02) {
-		float q = floor(inten * bands + dth) / bands;
+		float q = floor(min(inten, 1.0) * bands + mix(0.35, dth, light_dither)) / bands;
 		add *= q / inten;
 		float boost = (kind == 4 && is_glass) ? 1.8 : 1.0;
 		col += (base * 0.7 + 0.22) * add * boost;

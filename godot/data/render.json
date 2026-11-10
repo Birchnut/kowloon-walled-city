@@ -4,8 +4,9 @@
     "target_width": 270,
     "cell_half_px": 8,
     "storey_px": 8,
-    "zoom_levels": [1, 2, 4],
+    "zoom_levels": [1.25, 2, 4],
     "default_zoom": 0,
+    "center_y": 0.56,
     "elevation_deg": 30.0,
     "cut_elevation_deg": 30.0,
     "people_near_zoom": 4,
@@ -16,8 +17,9 @@
     "ao_strength": 0.22,
     "depth_haze": 0.035,
     "floor_grime": 0.06,
-    "neon_gain": 1.25,
-    "light_bands": 4.0
+    "neon_gain": 1.7,
+    "light_bands": 3.0,
+    "light_dither": 0.0
   },
   "post": { "quantize": false, "levels": 24.0 },
   "sun": { "noon_elevation_deg": 52.0, "min_elevation_deg": 14.0, "azimuth_morning_deg": -58.0, "azimuth_dusk_deg": 118.0, "moon_azimuth_deg": -35.0, "moon_elevation_deg": 48.0 },
@@ -41,7 +43,8 @@
     "window_warm": "#ffc46a",
     "window_tv": "#8fd0ff",
     "candle": "#ff9a4a",
-    "window_spill": 0.55,
+    "window_spill": 0.4,
+    "radius_scale": 0.7,
     "neon_radius": 2.2,
     "window_radius": 1.3
   },

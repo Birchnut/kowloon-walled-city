@@ -217,14 +217,17 @@ func _apply_camera() -> void:
 	var vh := float(_ih + 2)
 	_cam.size = vh / p
 	var cr := target.dot(b.x) * p
-	var cu := target.dot(b.y) * p
+	# 기준점(부지 중심)이 화면 가운데보다 살짝 아래에 오도록(위 HUD·아래 버튼 띠 감안)
+	var cu := target.dot(b.y) * p + (float(cfg.r("pixel.center_y", 0.56)) - 0.5) * float(_ih)
 	var sx: float = floor(cr)
 	var sy: float = floor(cu)
 	_frac = Vector2(cr - sx, cu - sy)
 	if not bool(cfg.r("pixel.subpixel_scroll", true)) or _yaw_t < 1.0:
 		_frac = Vector2.ZERO
 	# 0.25px 치우침: 픽셀 중심이 텍셀 경계에 걸리지 않게(줌 ×1에서 짝수 텍셀만 고르게)
-	var pos: Vector3 = b.x * ((sx - 0.25 + _shake.x) / p) + b.y * ((sy + 0.25 + _shake.y) / p) + b.z * CAM_DIST
+	# 픽셀 중심이 텍셀 경계에 걸리지 않게 0.1텍셀만큼 어긋나게 둔다(줌마다 텍셀/픽셀 비가 달라 치우침도 달라짐)
+	var bias := clampf(0.5 - 0.05 * float(_zoom_levels[zoom_i]), 0.05, 0.45)
+	var pos: Vector3 = b.x * ((sx - bias + _shake.x) / p) + b.y * ((sy + bias + _shake.y) / p) + b.z * CAM_DIST
 	_cam.transform = Transform3D(b, pos)
 	var ext := Vector3(vw / p, vh / p, 1.0)
 	_sky.scale = ext
@@ -249,7 +252,8 @@ func _apply_camera() -> void:
 
 
 func _default_target() -> Vector3:
-	return Vector3(cfg.grid.x * 0.5, cfg.floor_h * 2.2, cfg.grid.y * 0.5)
+	# 덩어리의 세로 중심쯤(가장 높은 탑의 1/3 높이)을 본다
+	return Vector3(cfg.grid.x * 0.5, cfg.floor_h * clampf(float(mesher.top_z) * 0.34, 0.6, 3.6), cfg.grid.y * 0.5)
 
 
 # ------------------------------------------------------------------ 공개 API
@@ -394,6 +398,7 @@ func _on_state_replaced() -> void:
 	_prev_kinds.clear()
 	for p in Game.state.cells:
 		_prev_kinds[p] = str(Game.state.cells[p].get("kind", ""))
+	mesher.prepare(Game.state)
 	target = _default_target()
 	rebuild_all()
 
@@ -432,12 +437,10 @@ func _refresh_lights() -> void:
 	for z in _floor_data.size():
 		all.append_array(_floor_data[z]["lights"])
 		em.append_array(_floor_data[z]["emitters"])
-	grid_tex.update_lights(all)
+	grid_tex.update_lights(all, float(cfg.r("light.radius_scale", 0.62)))
 	_all_emitters = em
 	_push_emitters()
 	_lights_dirty = false
-	if fx != null:
-		fx.call("set_motes", all)
 	if people != null:
 		var br: Array = []
 		for e in em:
@@ -742,7 +745,8 @@ func _update_uniforms() -> void:
 	_mat.set_shader_parameter("ao_strength", float(cfg.r("shade.ao_strength", 0.22)))
 	_mat.set_shader_parameter("floor_grime", float(cfg.r("shade.floor_grime", 0.1)))
 	_mat.set_shader_parameter("neon_gain", float(cfg.r("shade.neon_gain", 1.25)))
-	_mat.set_shader_parameter("bands", float(cfg.r("shade.light_bands", 4.0)))
+	_mat.set_shader_parameter("bands", float(cfg.r("shade.light_bands", 3.0)))
+	_mat.set_shader_parameter("light_dither", float(cfg.r("shade.light_dither", 0.0)))
 	_mat.set_shader_parameter("window_spill", float(cfg.r("light.window_spill", 0.55)))
 	_mat.set_shader_parameter("warm_col", _v3(ViewCfg.col(cfg.r("light.window_warm", "#ffc46a"))))
 	_mat.set_shader_parameter("tv_col", _v3(ViewCfg.col(cfg.r("light.window_tv", "#8fd0ff"))))
@@ -877,7 +881,7 @@ func _process(delta: float) -> void:
 			people.call("step", delta, tod())
 		if fx != null:
 			var cut_y := 1000.0 if floor_cut < 0 else float(floor_cut) * cfg.floor_h + 0.6
-			fx.call("set_frame", ppu(), float(_zoom_levels[zoom_i]), _t, night, work, amb, ng, grid_tex.origin(), grid_tex.inv_size(), cut_y)
+			fx.call("set_frame", ppu(), maxf(floor(float(_zoom_levels[zoom_i])), 1.0), _t, night, work, amb, ng, grid_tex.origin(), grid_tex.inv_size(), cut_y)
 			fx.call("prune", _t)
 			var pl: Vector4 = _mat.get_shader_parameter("plane")
 			fx.call("set_plane", _plane_t >= 0.0, Vector2(pl.x, pl.y), _plane_dir, _sun_dir(tod()), 13.0)

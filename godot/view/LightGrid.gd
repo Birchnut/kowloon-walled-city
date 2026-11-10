@@ -51,7 +51,7 @@ func update_heights(col_h: Dictionary) -> void:
 	hm_tex.update(hm_img)
 
 
-func update_lights(lights: Array) -> void:
+func update_lights(lights: Array, radius_scale: float = 1.0) -> void:
 	var n := LX * LZ * LY * 4
 	if _acc.size() != n:
 		_acc.resize(n)
@@ -59,7 +59,7 @@ func update_lights(lights: Array) -> void:
 	var fh := cfg.floor_h
 	for l in lights:
 		var pos: Vector3 = l["pos"]
-		var r: float = float(l["r"])
+		var r: float = maxf(float(l["r"]) * radius_scale, 0.55)
 		var warm: float = float(l.get("warm", 0.0))
 		var c: Color = l["color"]
 		var cr := c.r

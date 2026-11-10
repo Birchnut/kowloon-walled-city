@@ -107,8 +107,8 @@ func _process(_dt: float) -> void:
 		view.atlas.img.save_png(str(_args["dump_atlas"]))
 	if _label:
 		var st: CityState = Game.state
-		_label.text = "%s seed %d · %d일 %02d시 · 셀 %d · 각 %d 줌 ×%d 컷 %d\nQ/E 회전  R/F 층  휠 줌  T 시간  1-6 프리셋  P 전기  L 비행기" % [
-			_preset, _seed, st.day, int(view.tod() * 24.0), st.cells.size(), view.angle, int(view._zoom_levels[view.zoom_i]), view.floor_cut]
+		_label.text = "%s seed %d · %d일 %02d시 · 셀 %d · 각 %d 줌 ×%s 컷 %d\nQ/E 회전  R/F 층  휠 줌  T 시간  1-6 프리셋  P 전기  L 비행기" % [
+			_preset, _seed, st.day, int(view.tod() * 24.0), st.cells.size(), view.angle, view._zoom_levels[view.zoom_i], view.floor_cut]
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:

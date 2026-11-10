@@ -47,7 +47,7 @@ const P := {
 		"ground_biz": 0.85, "upper_biz": 0.3,
 		"biz": {"dentist": 6, "mahjong": 4, "karaoke": 4, "casino": 3, "loan_office": 2, "gambling_den": 2, "phishing_center": 3, "noodle_shop": 2, "bathhouse": 1, "night_stall": 0, "fireworks": 1, "repair_shop": 1},
 		"ground_fac": {"night_stall": 4, "generator": 1, "watch_post": 1, "well": 1, "shrine": 1, "stall": 2, "clinic": 1},
-		"roof": {"water_tank": 0.12, "pigeon_loft": 0.02}, "sites": 5, "waiting": 8, "alleys": 2, "courts": 1,
+		"roof": {"water_tank": 0.05, "pigeon_loft": 0.02}, "sites": 5, "waiting": 8, "alleys": 2, "courts": 1,
 		"people": {"hustler": 5, "merchant": 4, "laborer": 3, "dependent": 2, "artisan": 1},
 		"title": "회장", "epithet": "천 개의 치과와 잠들지 않는 마작"
 	},
@@ -58,7 +58,7 @@ const P := {
 		"ground_biz": 0.75, "upper_biz": 0.22,
 		"biz": {"fishball": 6, "noodle_works": 5, "metal_shop": 4, "plastic_works": 3, "tailor": 3, "repair_shop": 1, "noodle_shop": 1},
 		"ground_fac": {"scrapyard": 3, "generator": 2, "well": 1, "kitchen": 2, "watch_post": 1},
-		"roof": {"water_tank": 0.2, "rooftop_farm": 0.03}, "sites": 6, "waiting": 7, "alleys": 1, "courts": 1,
+		"roof": {"water_tank": 0.1, "rooftop_farm": 0.03}, "sites": 6, "waiting": 7, "alleys": 1, "courts": 1,
 		"people": {"laborer": 7, "artisan": 3, "dependent": 2, "merchant": 1},
 		"title": "공장장", "epithet": "어묵 냄새 나는 함석 미궁"
 	}

@@ -392,8 +392,8 @@ func step(delta: float, t: float) -> void:
 
 
 func _render() -> void:
-	var zf: int = int(view._zoom_levels[view.zoom_i])
-	var lod := 0 if zf <= 1 else (1 if zf <= 2 else 2)
+	var zf: float = float(view._zoom_levels[view.zoom_i])
+	var lod := 0 if zf < 1.6 else (1 if zf < 3.0 else 2)
 	for i in 3:
 		(_mmi[i] as MultiMeshInstance3D).visible = i == lod
 	var mm: MultiMesh = (_mmi[lod] as MultiMeshInstance3D).multimesh

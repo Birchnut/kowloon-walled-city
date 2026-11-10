@@ -31,6 +31,7 @@ var bridges: Dictionary = {}      # Vector3i(pos)*4+d 키 -> 상대 셀
 var stairs: Dictionary = {}       # (x,y,d) 키 -> [z0, z1]
 var chimney_cols: Dictionary = {} # Vector2i -> fx 종류
 var occupied: Dictionary = {}     # owner id -> true (사는 가구)
+var signs: Dictionary = {}        # fkey(p,d) -> "big"|"blade"|"plaque"|"board" (사업체당 하나)
 
 # 층 하나를 짓는 동안
 var mb: MeshBuf
@@ -99,6 +100,7 @@ func prepare(s: CityState) -> void:
 		by_floor[z].sort()
 	_derive_bridges()
 	_derive_stairs()
+	_alloc_signs()
 
 
 func height_floors(col: Vector2i) -> float:
@@ -270,6 +272,9 @@ func _build_box(p: Vector3i, c: Dictionary, rec: Dictionary, seed_v: int) -> voi
 					best = score
 					front = d
 	for d in 4:
+		if signs.has(fkey(p, d)):
+			front = d   # 간판이 걸린 면이 곧 가게 앞
+	for d in 4:
 		var nb2: Vector3i = p + DIR[d]
 		if solid.has(nb2):
 			continue
@@ -368,7 +373,8 @@ func _facade(p: Vector3i, d: int, c: Dictionary, rec: Dictionary, mat: String, s
 			var aw: String = str(rec.get("awning", ""))
 			if aw != "" and (ground or r1 < 0.5):
 				_awning(p, d, 0.03, 0.97, 0.72, 0.16, 0.34, ViewCfg.col(aw))
-			_sign(p, d, c, rec, seed_v, room2)
+			if signs.has(fkey(p, d)):
+				_sign(p, d, c, rec, seed_v, str(signs[fkey(p, d)]))
 			var fx: String = str(rec.get("fx", ""))
 			if fx == "steam":
 				emitter(fp(p, d, 0.8, 0.9, 0.12), "steam")
@@ -517,13 +523,105 @@ func _awning(p: Vector3i, d: int, u0: float, u1: float, v_top: float, drop: floa
 
 
 # ------------------------------------------------------------------ 간판
-func _sign(p: Vector3i, d: int, c: Dictionary, rec: Dictionary, seed_v: int, room2: bool) -> void:
+# 간판은 "사업체 하나에 하나"(가장 트인 외벽면). prepare()의 _alloc_signs()가 자리를 정한다.
+# 크기 4종: big(큰 세로 돌출, 글자 1:1) / blade(작은 돌출, 글자 1/2) / plaque(문 옆 작은 세로판) / board(문 위 작은 가로판)
+func _alloc_signs() -> void:
+	signs.clear()
+	var groups: Dictionary = {}
+	for p in state.cells:
+		var c: Dictionary = state.cells[p]
+		var kind: String = str(c.get("kind", ""))
+		if (kind != "business" and kind != "facility") or not solid.has(p):
+			continue
+		var rec: Dictionary = cfg.recipe(kind, str(c.get("type", "")))
+		var style: String = str(rec.get("sign_style", "none"))
+		if style == "none":
+			continue
+		if ViewCfg.sign_text(kind, str(c.get("type", ""))) == "" and style != "lantern":
+			continue
+		var owner: int = int(c.get("owner", 0))
+		var key: Variant = owner if (kind == "business" and owner != 0) else p
+		if not groups.has(key):
+			groups[key] = []
+		groups[key].append(p)
+	var cands: Array = []
+	for key in groups:
+		var best_s := -1.0
+		var best_p := Vector3i.ZERO
+		var best_d := 0
+		var best_open := 0
+		var cells_sorted: Array = groups[key]
+		cells_sorted.sort()
+		for p in cells_sorted:
+			for d in 4:
+				var nb: Vector3i = p + DIR[d]
+				if state.cells.has(nb):
+					continue
+				var open := 1
+				for k in [2, 3]:
+					var q: Vector3i = p + DIR[d] * k
+					if state.cells.has(q) or float(col_h.get(Vector2i(q.x, q.y), 0.0)) > float(p.z) + 0.5:
+						break
+					open += 1
+				var sc := float(open) * 10.0 + (6.0 if p.z == 0 else 0.0) - float(p.z) * 0.4 + float(ViewCfg.h3(p.x * 9 + p.y, p.z, d) % 40) / 10.0
+				if sc > best_s:
+					best_s = sc
+					best_p = p
+					best_d = d
+					best_open = open
+		if best_s >= 0.0:
+			var c2: Dictionary = state.cells[best_p]
+			cands.append({"p": best_p, "d": best_d, "open": best_open, "score": best_s, "text": ViewCfg.sign_text(str(c2.get("kind", "")), str(c2.get("type", ""))), "seed": int(c2.get("seed", 0))})
+	cands.sort_custom(func(x: Dictionary, y: Dictionary) -> bool:
+		if x["score"] != y["score"]:
+			return x["score"] > y["score"]
+		return x["p"] < y["p"])
+	var placed: Array = []
+	for cd in cands:
+		var p: Vector3i = cd["p"]
+		var d: int = cd["d"]
+		var hs := ViewCfg.h2(int(cd["seed"]), 300 + d)
+		var same_near := false
+		var big_near := false
+		var any_near := 0
+		for pl in placed:
+			var q: Vector3i = pl["p"]
+			var dist := absi(q.x - p.x) + absi(q.y - p.y)
+			var dz := absi(q.z - p.z)
+			if pl["text"] == cd["text"] and dist <= 2 and dz <= 3:
+				same_near = true
+			if pl["size"] == "big" and dist <= 2 and dz <= 3:
+				big_near = true
+			if dist <= 1 and dz <= 1 and int(pl["d"]) == d:
+				any_near += 1
+		var size := "plaque"
+		var r := hs % 100
+		if same_near:
+			# 같은 글자가 바로 옆에 이미 걸려 있으면 작은 문패만(혹은 생략)
+			if r < 45:
+				continue
+			size = "plaque"
+		elif int(cd["open"]) >= 2 and r < 20 and not big_near:
+			size = "big"
+		elif int(cd["open"]) >= 2 and r < 50:
+			size = "blade"
+		elif r < 78:
+			size = "plaque"
+		else:
+			size = "board"
+		if any_near >= 2 and size != "big":
+			continue
+		signs[fkey(p, d)] = size
+		placed.append({"p": p, "d": d, "text": cd["text"], "size": size})
+
+
+func _sign(p: Vector3i, d: int, c: Dictionary, rec: Dictionary, seed_v: int, size: String) -> void:
 	var kind: String = str(c.get("kind", ""))
 	var type: String = str(c.get("type", ""))
 	var style: String = str(rec.get("sign_style", "none"))
 	var text := ViewCfg.sign_text(kind, type)
 	var col := cfg.neon(rec.get("sign_color", "yellow"))
-	var hs := ViewCfg.h2(seed_v, 300 + d)
+	var hs := ViewCfg.h2(int(c.get("seed", 0)), 300 + d)
 	if style == "none":
 		return
 	if style == "lantern":
@@ -531,84 +629,75 @@ func _sign(p: Vector3i, d: int, c: Dictionary, rec: Dictionary, seed_v: int, roo
 			var u := 0.2 + 0.6 * float(i)
 			var lr := tile("lantern")
 			mb.quad2(fp(p, d, u - 0.25, 0.95, 0.2), fp(p, d, u + 0.25, 0.95, 0.2), fp(p, d, u + 0.25, 0.45, 0.2), fp(p, d, u - 0.25, 0.45, 0.2), NRM[d], sub(lr, 0, 0, 16, 8))
-		light(fp(p, d, 0.5, 0.6, 0.4), Color("#ff6a4a"), 1.5)
+		light(fp(p, d, 0.5, 0.6, 0.3), Color("#ff6a4a"), 1.4)
 	if text == "":
 		return
-	var tr := Rect2(atlas.sign_rect(text, true))
+	var neon_style := style == "neon"
+	var horizontal := size == "board"
+	var tr := Rect2(atlas.sign_rect(text, not horizontal))
 	if tr.size.x <= 0.0:
 		return
-	# 세로 돌출 간판: 벽에 수직인 판. 양면에 글자.
-	var bw := (tr.size.x + 2.0) * TX              # 판 너비(벽에서 바깥쪽)
-	var bh := (tr.size.y + 3.0) / 16.0            # 판 높이(층 단위)
-	var u := 0.0625 if hs % 2 == 0 else 0.9375
-	var v0 := 0.35 if p.z == 0 else (0.1 - float(hs % 3) * 0.1)
-	var w0 := 0.09
-	if not room2 or (hs / 7) % 100 >= 72:
-		# 좁은 골목(또는 일부): 벽에 붙인 납작 간판
-		_sign_flat(p, d, tr, col, style, hs)
-		return
-	var neon_style := style == "neon"
+	var sc := 1.0 if size == "big" else 0.5
 	var board := _neon_board(col, hs) if neon_style else Color(["#f4ecd8", "#c2463c", "#3f8f6a", "#f4ecd8"][hs % 4])
 	var tcol := col
 	if not neon_style:
 		tcol = Color("#c2463c") if board.r > 0.9 else Color("#fff6e0")
 		if board.r > 0.9 and hs % 3 == 0:
 			tcol = Color("#3b3558")
-	var th := 0.03
-	# 판 본체
-	fbox(p, d, u - th, u + th, v0, v0 + bh, w0, w0 + bw, tile("white"), tile("white"), board, 31)
-	# 지지대
-	fbox(p, d, u - 0.02, u + 0.02, v0 + bh - 0.08, v0 + bh - 0.03, 0.0, w0, tile("white"), tile("white"), Color("#5a5674"), 31)
-	# 글자(양면)
 	var tk := MeshBuf.K_NEON if neon_style else MeshBuf.K_PLAIN
 	var rnd := float(hs % 991) / 991.0
-	var ty1 := v0 + bh - 1.5 / 16.0
-	var ty0 := ty1 - tr.size.y / 16.0
-	var tw0 := w0 + TX
-	var tw1 := tw0 + tr.size.x * TX
-	# 오른쪽 면(+R을 보는 면): 왼쪽이 바깥
-	mb.quad(fp(p, d, u + th + 0.014, ty1, tw1), fp(p, d, u + th + 0.014, ty1, tw0), fp(p, d, u + th + 0.014, ty0, tw0), fp(p, d, u + th + 0.014, ty0, tw1), RGT[d], tr, tcol, rnd, tk)
-	mb.quad(fp(p, d, u - th - 0.014, ty1, tw0), fp(p, d, u - th - 0.014, ty1, tw1), fp(p, d, u - th - 0.014, ty0, tw1), fp(p, d, u - th - 0.014, ty0, tw0), -RGT[d], tr, tcol, rnd, tk)
-	if neon_style:
-		# 네온 테두리 관
-		for sgn in [-1.0, 1.0]:
-			var uu: float = u + sgn * (th + 0.014)
-			var nn: Vector3 = RGT[d] * sgn
-			var e := tile("white")
-			var es := sub(e, 0, 0, 2, 2)
-			var pts := [[w0, v0 + bh - 0.03, w0 + bw, v0 + bh], [w0, v0, w0 + bw, v0 + 0.03]]
-			for q in pts:
-				var a := fp(p, d, uu, q[3], q[0] if sgn < 0.0 else q[2])
-				var b := fp(p, d, uu, q[3], q[2] if sgn < 0.0 else q[0])
-				var cc := fp(p, d, uu, q[1], q[2] if sgn < 0.0 else q[0])
-				var dd := fp(p, d, uu, q[1], q[0] if sgn < 0.0 else q[2])
-				mb.quad(a, b, cc, dd, nn, es, col, rnd, MeshBuf.K_NEON)
-		light(fp(p, d, u, v0 + bh * 0.5, w0 + bw * 0.5), col, float(cfg.r("light.neon_radius", 2.2)))
+	var gw_t := tr.size.x * sc          # 글자 영역(텍셀)
+	var gh_t := tr.size.y * sc
+	if size == "big" or size == "blade":
+		# 벽에 수직으로 내민 세로 간판(양면)
+		var bw := (gw_t + 2.0) * TX
+		var bh := (gh_t + 3.0) / 16.0
+		var u := 0.0625 if hs % 2 == 0 else 0.9375
+		var v0 := (0.35 if p.z == 0 else (0.1 - float(hs % 3) * 0.1)) if size == "big" else (0.42 + 0.0625 * float(hs % 3))
+		var w0 := 0.09
+		var th := 0.03
+		fbox(p, d, u - th, u + th, v0, v0 + bh, w0, w0 + bw, tile("white"), tile("white"), board, 31)
+		fbox(p, d, u - 0.02, u + 0.02, v0 + bh - 0.08, v0 + bh - 0.03, 0.0, w0, tile("white"), tile("white"), Color("#5a5674"), 31)
+		var ty1 := v0 + bh - 1.5 / 16.0
+		var ty0 := ty1 - gh_t / 16.0
+		var tw0 := w0 + TX
+		var tw1 := tw0 + gw_t * TX
+		mb.quad(fp(p, d, u + th + 0.014, ty1, tw1), fp(p, d, u + th + 0.014, ty1, tw0), fp(p, d, u + th + 0.014, ty0, tw0), fp(p, d, u + th + 0.014, ty0, tw1), RGT[d], tr, tcol, rnd, tk)
+		mb.quad(fp(p, d, u - th - 0.014, ty1, tw0), fp(p, d, u - th - 0.014, ty1, tw1), fp(p, d, u - th - 0.014, ty0, tw1), fp(p, d, u - th - 0.014, ty0, tw0), -RGT[d], tr, tcol, rnd, tk)
+		if neon_style and size == "big":
+			# 네온 테두리 관(위·아래)
+			for sgn in [-1.0, 1.0]:
+				var uu: float = u + sgn * (th + 0.014)
+				var nn: Vector3 = RGT[d] * sgn
+				var es := sub(tile("white"), 0, 0, 2, 2)
+				for q in [[v0 + bh - 0.03, v0 + bh], [v0, v0 + 0.03]]:
+					var wa := w0 if sgn < 0.0 else w0 + bw
+					var wb := w0 + bw if sgn < 0.0 else w0
+					mb.quad(fp(p, d, uu, q[1], wa), fp(p, d, uu, q[1], wb), fp(p, d, uu, q[0], wb), fp(p, d, uu, q[0], wa), nn, es, col, rnd, MeshBuf.K_NEON)
+		if neon_style:
+			light(fp(p, d, u, v0 + bh * 0.5, w0 + bw * 0.5), col, 2.0 if size == "big" else 1.3)
+	else:
+		# 벽에 붙인 작은 판: plaque = 문 옆 세로, board = 문 위 가로
+		var bw2 := (gw_t + 2.0) / 16.0
+		var bh2 := (gh_t + 2.0) / 16.0
+		var u0 := 0.0625 if hs % 2 == 0 else 1.0 - 0.0625 - bw2
+		var v0b := 0.3 + 0.0625 * float(hs % 3)
+		if horizontal:
+			u0 = clampf(0.5 - bw2 * 0.5, 0.0, 1.0 - bw2)
+			v0b = 1.0 - bh2 - 0.03
+		fbox(p, d, u0, u0 + bw2, v0b, v0b + bh2, 0.0, 0.05, tile("white"), tile("white"), board, 15)
+		fquad(p, d, u0 + TX, u0 + TX + gw_t / 16.0, v0b + TX, v0b + TX + gh_t / 16.0, 0.066, tr, tcol, rnd, tk, false)
+		if neon_style:
+			light(fp(p, d, u0 + bw2 * 0.5, v0b + bh2 * 0.5, 0.3), col, 1.2)
 
 
 ## 네온 간판의 판 색: 낮에도 색이 보이는 어두운 중간톤(글자색과 보색에 가깝게).
 func _neon_board(col: Color, hs: int) -> Color:
 	var opts: Array[String] = ["#9a4a6e", "#3a8580", "#4f62a8", "#a8484a", "#62549a"]
 	var best := Color(opts[hs % opts.size()])
-	# 글자색과 너무 비슷하면 다른 판으로
 	if absf(best.h - col.h) < 0.12:
 		best = Color(opts[(hs + 2) % opts.size()])
 	return best
-
-
-func _sign_flat(p: Vector3i, d: int, tr: Rect2, col: Color, style: String, hs: int) -> void:
-	var neon_style := style == "neon"
-	var bw := (tr.size.x + 2.0) / 16.0
-	var bh := (tr.size.y + 2.0) / 16.0
-	var u0 := 0.0625 if hs % 2 == 0 else 1.0 - 0.0625 - bw
-	var v0 := 0.55 if p.z == 0 else 0.2
-	var board := _neon_board(col, hs) if neon_style else Color(["#f4ecd8", "#c2463c", "#3f8f6a"][hs % 3])
-	var tcol := col if neon_style else (Color("#c2463c") if board.r > 0.9 else Color("#fff6e0"))
-	fbox(p, d, u0, u0 + bw, v0, v0 + bh, 0.0, 0.05, tile("white"), tile("white"), board, 15)
-	var rnd := float(hs % 991) / 991.0
-	fquad(p, d, u0 + TX, u0 + TX + tr.size.x / 16.0, v0 + TX, v0 + TX + tr.size.y / 16.0, 0.066, tr, tcol, rnd, MeshBuf.K_NEON if neon_style else MeshBuf.K_PLAIN, false)
-	if neon_style:
-		light(fp(p, d, u0 + bw * 0.5, v0 + bh * 0.5, 0.4), col, 1.6)
 
 
 # ------------------------------------------------------------------ 다리·계단
@@ -680,7 +769,7 @@ func _rooftop(p: Vector3i, c: Dictionary, rec: Dictionary, mat: String, seed_v: 
 			what = str(k)
 			break
 	# 높은 꼭대기일수록 안테나
-	if what == "" and p.z >= 4 and (hs / 7) % 100 < 30:
+	if what == "" and p.z >= 4 and (hs / 7) % 100 < 20:
 		what = "antenna"
 	match what:
 		"antenna":
@@ -699,7 +788,7 @@ func _rooftop(p: Vector3i, c: Dictionary, rec: Dictionary, mat: String, seed_v: 
 			var cx2 := base.x + 0.375
 			var cz2 := base.z + 0.375
 			wbox(Vector3(cx2, base.y, cz2), Vector3(cx2 + 0.1875, base.y + fh * 0.7, cz2 + 0.1875), "white", "white", Color("#9aa3b8"), 31, 0.0, 0.0, Color("#4a4160"))
-	if what != "antenna" and (hs / 13) % 100 < 22:
+	if what != "antenna" and (hs / 13) % 100 < 12:
 		_antennas(base, hs / 3, 1)
 
 
