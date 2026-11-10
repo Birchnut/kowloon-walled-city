@@ -21,6 +21,8 @@ var _bridges: Array = []
 var _nightlife := false
 var _waiting_n := 0
 var _gate := Vector3.ZERO
+var _pop := 0
+var _tier_pool: Array = []
 
 
 func setup(c: ViewCfg, v: Control, m: CityMesher, lg: Texture3D) -> void:
@@ -160,11 +162,22 @@ func rebuild(st: CityState) -> void:
 	var gh := cfg.grid.y
 	var fh := cfg.floor_h
 	_nightlife = false
-	for b in st.businesses.values():
-		var g: String = str(b.get("group", ""))
-		if g == "fun" or g == "vice":
-			_nightlife = true
-			break
+	_pop = 0
+	_tier_pool = []
+	var bs: Variant = st.get("buildings")
+	if bs is Dictionary:
+		for b in (bs as Dictionary).values():
+			if not (b is Dictionary):
+				continue
+			if str(b.get("kind", "")) == "facility" and bool(b.get("active", true)):
+				var busy: String = str(cfg.recipe("facility", str(b.get("type", ""))).get("busy", "day"))
+				if busy == "night" or busy == "always":
+					_nightlife = true
+			elif str(b.get("kind", "")) == "house":
+				var n := int(b.get("residents", 0))
+				_pop += n
+				for i in mini(n, 3):
+					_tier_pool.append(int(b.get("tier", 1)))
 	for x in gw:
 		for y in gh:
 			var h := 0
@@ -201,9 +214,12 @@ func rebuild(st: CityState) -> void:
 				by_kind["inside"].append(kk)
 	_gate = Vector3(gw * 0.5, 0, gh + 1.3)
 	_waiting_n = 0
-	for h2 in st.households.values():
-		if h2.get("home", null) == null:
-			_waiting_n += mini(int(h2.get("size", 1)), 3)
+	var wt: Variant = st.get("waiting")
+	if wt is Dictionary:
+		for k in wt:
+			var w: Variant = wt[k]
+			if w is Dictionary:
+				_waiting_n += int(w.get("count", 0))
 	_waiting_n = mini(_waiting_n, 20)
 	# 사라진 자리의 사람은 없앤다
 	var keep: Array = []
@@ -238,7 +254,7 @@ func set_cut(n: int) -> void:
 # ------------------------------------------------------------------ 목표 인원
 func _targets(t: float) -> Dictionary:
 	var st: CityState = Game.state
-	var pop := float(st.population())
+	var pop := float(_pop)
 	var cap := float(cfg.r("people.max", 140))
 	var base := clampf(pop * 0.11, 3.0, cap)
 	var hr := t * 24.0
@@ -270,13 +286,12 @@ func _targets(t: float) -> Dictionary:
 	return out
 
 
-func _color_for(st: CityState) -> Array:
-	var ids: Array = st.households.keys()
-	if ids.is_empty():
-		return [cfg.household_color(""), _ri(16)]
-	var h: Dictionary = st.households[ids[_ri(ids.size())]]
-	var type: String = str(h.get("type", ""))
-	return [cfg.household_color(type), (type.hash() + _ri(3)) % 16]
+## 옷 색 = 계층(사는 사람 수만큼 뽑힐 확률). 높은 계층은 짙은 정장·흰 옷, 낮은 계층은 바랜 색.
+func _color_for(_st: CityState) -> Array:
+	if _tier_pool.is_empty():
+		return [cfg.tier_color(1, _ri(4)), _ri(16)]
+	var t: int = _tier_pool[_ri(_tier_pool.size())]
+	return [cfg.tier_color(t, _ri(5)), _ri(16)]
 
 
 func _spawn(kind: String, st: CityState) -> void:

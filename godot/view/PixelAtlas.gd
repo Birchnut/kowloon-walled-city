@@ -249,6 +249,93 @@ func _wall(pat: String, v: int, c0: Color, c1: Color, c2: Color, c3: Color, acc:
 					if _rnd() < 0.5:
 						_rc(x * 2, 14 - _ri(2) * 2, 2, 4, mx(c2, c3, 0.3))
 			_rc(0, 0, 16, 2, c2)
+		"boards":
+			# 가로 판벽(깔끔한 목조): 2텍셀 판 + 그림자 줄, 모서리 띠
+			for row in 8:
+				var tb: Color = [c0, mx(c0, c1, 0.2), c0, mx(c0, c1, 0.35)][(row + v) % 4]
+				_rc(0, row * 2, 16, 2, tb)
+				_rc(0, row * 2 + 1, 16, 1, mx(tb, c2, 0.3))
+			_rc(0, 0, 1, 16, mx(c1, c2, 0.5))
+			_rc(15, 0, 1, 16, mx(c1, c2, 0.5))
+			if v >= 2:
+				_rc(_ri(6) * 2 + 2, 14, 6, 2, mx(c1, c2, 0.4))
+		"battens":
+			# 세로 널 + 짙은 줄눈(옻칠한 고급 목조)
+			_rc(0, 0, 16, 16, c0)
+			for x in 4:
+				_rc(x * 4 + 3, 0, 1, 16, mx(c2, c3, 0.5))
+				_rc(x * 4, 0, 1, 16, lt(c0, 0.05))
+			_rc(0, 0, 16, 2, mx(c2, c3, 0.4))
+			_rc(0, 14, 16, 2, mx(c1, c2, 0.5))
+		"panel":
+			# 금속 패널(모듈): 큰 판 4장 + 이음 + 리벳
+			_rc(0, 0, 16, 16, c0)
+			_rc(0, 7, 16, 1, mx(c1, c2, 0.6))
+			_rc(7, 0, 1, 16, mx(c1, c2, 0.6))
+			_rc(8, 8, 8, 7, mx(c0, c1, 0.3 + 0.2 * float(v % 2)))
+			_rc(0, 0, 7, 7, lt(c0, 0.04))
+			for q in [Vector2i(1, 1), Vector2i(5, 1), Vector2i(9, 9), Vector2i(13, 9), Vector2i(1, 9), Vector2i(13, 1)]:
+				_px(q.x, q.y, mx(c1, c2, 0.7))
+			if v >= 2:
+				_m(_ri(7), 4 + _ri(3), 2, 2, mx(acc, c1, 0.4))
+			_rc(0, 15, 16, 1, mx(c1, c2, 0.6))
+		"clad":
+			# 매끈한 외장판: 가로 이음 2줄, 아주 옅은 반사
+			_rc(0, 0, 16, 16, c0)
+			_rc(0, 5, 16, 1, c1)
+			_rc(0, 11, 16, 1, c1)
+			_rc(0, 0, 16, 1, lt(c0, 0.04))
+			_rc(2 + (v % 3) * 4, 1, 1, 4, lt(c0, 0.06))
+		"curtain":
+			# 유리 커튼월: 은색 멀리언 격자 + 유리(밤에 켜진다)
+			_rc(0, 0, 16, 16, glass(mx(Color(GLASS_DAY), c2, 0.35)))
+			_rc(0, 0, 16, 2, c0)
+			_rc(0, 14, 16, 2, c1)
+			_rc(0, 0, 1, 16, c0)
+			_rc(8, 2, 1, 12, c1)
+			_rc(1, 8, 15, 1, c1)
+			_px(3, 4, glass(Color(GLASS_HI)))
+			_px(11, 10, glass(Color(GLASS_HI)))
+			_rc(2, 3, 1, 3, glass(Color(GLASS_HI)))
+		"render":
+			# 거친 미장: 얼룩 + 흘러내린 자국 + 떨어져 나간 자리
+			_rc(0, 0, 16, 16, c0)
+			for i in 4 + _ri(3):
+				_m(_ri(7), _ri(7), 1 + _ri(3), 1 + _ri(2), mx(c0, c1, 0.25 + 0.35 * _rnd()))
+			for i in 1 + _ri(2) + v:
+				var dx2 := _ri(16)
+				_rc(dx2, 2, 1, 4 + _ri(8), mx(c0, c2, 0.35))
+			if v >= 1:
+				_m(_ri(6), 2 + _ri(5), 2, 1, mx(c1, acc, 0.5))
+			_rc(0, 0, 16, 2, lt(c0, 0.04))
+			_rc(0, 14, 16, 2, mx(c1, c2, 0.35))
+		"mosaic":
+			# 작은 타일(홍콩 공동주택): 2텍셀 격자, 몇 장 빠짐
+			_rc(0, 0, 16, 16, c0)
+			for y in 8:
+				_rc(0, y * 2 + 1, 16, 1, mx(c0, c1, 0.55))
+			for x in 8:
+				_rc(x * 2 + 1, 0, 1, 16, mx(c0, c1, 0.4))
+			for i in 2 + v:
+				_m(_ri(8), _ri(8), 1, 1, mx(acc, c0, 0.4) if _rnd() < 0.5 else mx(c1, c2, 0.4))
+			_rc(0, 0, 16, 2, lt(c0, 0.03))
+		"smooth":
+			# 깨끗한 칠: 층 띠와 가는 줄눈
+			_rc(0, 0, 16, 16, c0)
+			_rc(0, 14, 16, 2, c1)
+			_rc(0, 13, 16, 1, mx(c0, c1, 0.5))
+			if v >= 2:
+				_rc(_ri(12), 3, 1, 6, mx(c0, c1, 0.4))
+		"formed":
+			# 송판 노출 콘크리트: 가로 송판 결 + 폼타이 구멍
+			_rc(0, 0, 16, 16, c0)
+			for y in [3, 7, 11]:
+				_rc(0, y, 16, 1, mx(c0, c1, 0.45))
+			for y in [1, 5, 9, 13]:
+				_rc(_ri(8), y, 4 + _ri(6), 1, mx(c0, c1, 0.25))
+			for q in [Vector2i(3, 5), Vector2i(12, 5), Vector2i(3, 13), Vector2i(12, 13)]:
+				_px(q.x, q.y, mx(c2, c3, 0.5))
+			_rc(0, 0, 16, 1, lt(c0, 0.04))
 		_:
 			_rc(0, 0, 16, 16, c0)
 			for i in 3 + _ri(3):
@@ -304,7 +391,7 @@ func _roof(pat: String, v: int, r0: Color, r1: Color, c2: Color, acc: Color) -> 
 
 
 # ------------------------------------------------------------------ 창·문
-const FRAMES := {"a": "#f6ecd4", "b": "#73b5a6", "c": "#c2604f", "d": "#5c4c72"}
+const FRAMES := {"a": "#f6ecd4", "b": "#73b5a6", "c": "#c2604f", "d": "#5c4c72", "e": "#e2e8ee", "f": "#3a3448"}
 const GLASS_DAY := "#6c84b2"
 const GLASS_HI := "#a3bbdc"
 
@@ -388,6 +475,54 @@ func _paint_windows() -> void:
 	# 창 불빛만(창틀 없이) — 내부 광원 표현용
 	_begin("win_glow")
 	_m(2, 2, 4, 4, glass(Color(GLASS_DAY)))
+	# ── v3 주거 창 ──
+	for k in FRAMES:
+		var fc3 := Color(FRAMES[k])
+		_begin("win_twin_" + k)     # 쌍창(T3 밀도)
+		_frame(fc3, 1, 2, 3, 4)
+		_frame(fc3, 4, 2, 3, 4)
+		_begin("win_band_" + k)     # 띠창(T4)
+		_m(0, 2, 8, 4, fc3)
+		_rc(0, 5, 16, 6, glass(Color(GLASS_DAY)))
+		for x in [5, 10]:
+			_rc(x, 5, 1, 6, fc3)
+		_rc(2, 6, 2, 1, glass(Color(GLASS_HI)))
+		_rc(0, 12, 16, 1, Color(0.25, 0.2, 0.4, 1.0).lerp(fc3, 0.35))
+		_begin("win_full_" + k)     # 바닥까지 통유리(T5)
+		_m(1, 1, 6, 7, fc3)
+		_rc(3, 3, 10, 13, glass(Color(GLASS_DAY)))
+		_rc(8, 3, 1, 13, fc3)
+		_rc(3, 9, 10, 1, fc3)
+		_rc(4, 4, 1, 3, glass(Color(GLASS_HI)))
+		_rc(10, 4, 1, 2, glass(Color(GLASS_HI)))
+		_begin("win_deep_" + k)     # 깊이 들어간 큰 창(콘크리트 T5)
+		_m(1, 1, 6, 6, Color("#4a4262"))
+		_m(1, 1, 6, 1, Color("#3a3452"))
+		_m(1, 1, 1, 6, Color("#5a5274"))
+		_rc(5, 5, 9, 8, glass(Color(GLASS_DAY)))
+		_rc(9, 5, 1, 8, fc3)
+		_rc(6, 6, 1, 2, glass(Color(GLASS_HI)))
+	# 격자창(목조 T4·T5): 나무 살 + 따뜻한 창호지 유리
+	_begin("win_lattice")
+	_m(1, 1, 6, 6, Color("#6a3e34"))
+	_rc(3, 3, 10, 10, glass(Color("#e8c890")))
+	for x in [5, 8, 11]:
+		_rc(x, 3, 1, 10, Color("#7a4a3c"))
+	for y in [6, 9]:
+		_rc(3, y, 10, 1, Color("#7a4a3c"))
+	_rc(2, 14, 12, 1, Color("#4a2c2c"))
+	_begin("win_full_warm")      # 목조 T5 통창: 짙은 나무틀
+	_m(1, 1, 6, 7, Color("#4a2c2c"))
+	_rc(3, 3, 10, 13, glass(Color("#7a8cb0")))
+	_rc(8, 3, 1, 13, Color("#5a3634"))
+	_rc(3, 7, 10, 1, Color("#5a3634"))
+	_rc(4, 4, 1, 2, glass(Color(GLASS_HI)))
+	_begin("win_louvre")         # 금속 루버
+	_m(1, 2, 6, 5, Color("#e2e8ee"))
+	_rc(3, 5, 10, 8, glass(Color(GLASS_DAY)))
+	for y in [5, 7, 9, 11]:
+		_rc(3, y, 10, 1, Color("#b8c4d0"))
+	_rc(2, 14, 12, 1, Color("#8a96aa"))
 
 
 # ------------------------------------------------------------------ 소품

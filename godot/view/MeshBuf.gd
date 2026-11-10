@@ -1,7 +1,7 @@
 class_name MeshBuf
 extends RefCounted
 ## MeshBuf — 쿼드/상자를 배열에 쌓아 ArrayMesh 하나로 만든다.
-## 정점 속성: COLOR.rgb = 색조, COLOR.a = 흔들림 가중치 / UV2.x = 난수(창·네온), UV2.y = 종류(K_*).
+## 정점 속성: COLOR.rgb = 색조, COLOR.a = 흔들림 가중치 / UV2.x = 칸 번호 + 난수(소수부), UV2.y = 종류(K_*).
 
 const INV := 1.0 / 512.0
 const K_PLAIN := 0.0
@@ -13,6 +13,7 @@ const K_INTERIOR := 5.0   # 층 컷 실내(해 그림자 없음, 밤엔 방 불�
 const K_WINDOW_OFF := 6.0 # 빈 방 창(안 켜짐)
 const K_BIZ := 7.0        # 가게 창(영업 시간에 켜짐)
 const K_SHAKE := 8.0      # 발전기: 덜덜 떨림
+const K_CANDLE := 9.0     # 전기 없는 집의 창(밤에 촛불만)
 
 var v := PackedVector3Array()
 var n := PackedVector3Array()
@@ -20,6 +21,8 @@ var uv := PackedVector2Array()
 var uv2 := PackedVector2Array()
 var col := PackedColorArray()
 var idx := PackedInt32Array()
+## 지금 짓는 칸의 번호(0 = 없음). UV2.x = owner + rnd(0..1) → 셰이더가 셀 상태 텍스처를 읽는다.
+var owner := 0
 
 const UP := Vector3(0, 1, 0)
 const WHITE := Color(1, 1, 1, 1)
@@ -48,7 +51,7 @@ func quad(p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, nrm: Vector3, r: R
 	uv.append(Vector2(x1, y0))
 	uv.append(Vector2(x1, y1))
 	uv.append(Vector2(x0, y1))
-	var u2 := Vector2(rnd, kind)
+	var u2 := Vector2(float(owner) + clampf(rnd, 0.0, 0.999), kind)
 	uv2.append(u2)
 	uv2.append(u2)
 	uv2.append(u2)
@@ -86,7 +89,7 @@ func cloth(p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, nrm: Vector3, r: 
 			v.append(p1); v.append(p0); v.append(p3); v.append(p2)
 		for i in 4:
 			n.append(nn)
-			uv2.append(Vector2(rnd, K_SWAY))
+			uv2.append(Vector2(float(owner) + clampf(rnd, 0.0, 0.999), K_SWAY))
 		var x0 := r.position.x * INV
 		var y0 := r.position.y * INV
 		var x1 := (r.position.x + r.size.x) * INV
