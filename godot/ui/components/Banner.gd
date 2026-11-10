@@ -128,7 +128,9 @@ func _next() -> void:
 	row.add_child(col)
 	if str(b["kicker"]) != "":
 		col.add_child(UI.label(str(b["kicker"]), "LabelGoldSmall"))
-	col.add_child(UI.label(str(b["title"]), "LabelHead", true))
+	# 긴 제목(발견 목록·해금 이름 여럿)은 한 단계 작은 글자 — 카드가 화면 가운데까지 내려오지 않게
+	var tt := str(b["title"])
+	col.add_child(UI.label(tt, "LabelHead" if tt.length() <= 14 and not tt.contains("\n") else "LabelBold", true))
 	if str(b["sub"]) != "":
 		col.add_child(UI.label(str(b["sub"]), "LabelSmall", true))
 	for c: Node in band.find_children("*", "Control", true, false):

@@ -186,24 +186,39 @@ class ProgressChip extends Button:
 		queue_redraw()
 
 	func _draw() -> void:
+		# 잠긴 다음 층: [자물쇠] nF / 막대 / "열림 n%" — '그 층이 n% 찼다'로 읽히지 않게(F13)
 		var r := Rect2(Vector2.ZERO, size)
 		draw_rect(r, UI.col("out"))
 		draw_rect(r.grow(-2), UI.col("ink1"))
-		# 잠긴 층: 점선 테두리 느낌
 		for x in range(4, int(size.x) - 4, 6):
 			draw_rect(Rect2(x, 4, 3, 2), UI.col("line"))
 		var f := UI.font("small")
 		var fs := UI.font_size("small")
 		var t1 := "%dF" % _f
 		var w1 := f.get_string_size(t1, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-		draw_string(f, Vector2(floorf((size.x - w1) * 0.5), 8 + f.get_ascent(fs)), t1, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, UI.col("dim"))
-		var bar := Rect2(6, 30, size.x - 12, 6)
+		var lock_w := 10.0
+		var x0 := floorf((size.x - (lock_w + 3.0 + w1)) * 0.5)
+		# 자물쇠(픽셀): 고리 + 몸통 + 열쇠 구멍
+		var lc := UI.col("paper3")
+		var ly := 10.0
+		draw_rect(Rect2(x0 + 2, ly, 6, 2), lc)
+		draw_rect(Rect2(x0 + 2, ly, 2, 6), lc)
+		draw_rect(Rect2(x0 + 6, ly, 2, 6), lc)
+		draw_rect(Rect2(x0, ly + 5, 10, 8), lc)
+		draw_rect(Rect2(x0 + 4, ly + 8, 2, 3), UI.col("ink1"))
+		draw_string(f, Vector2(x0 + lock_w + 3.0, 8 + f.get_ascent(fs)), t1, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, lc)
+		var bar := Rect2(6, 29, size.x - 12, 4)
 		draw_rect(bar, UI.col("ink0"))
 		var w := floorf(bar.size.x * clampf(_r, 0.0, 1.0) / 2.0) * 2.0
 		draw_rect(Rect2(bar.position, Vector2(w, bar.size.y)), UI.col("gold"))
-		var t2 := "%d%%" % int(floorf(clampf(_r, 0.0, 1.0) * 100.0))
+		var pct := int(floorf(clampf(_r, 0.0, 1.0) * 100.0))
+		# "열림 81%"는 레일 폭(64)을 넘는다 → 자물쇠 + 막대 + 숫자. 잠긴 층이 '81% 찼다'로는 안 읽힌다. 누르면 문장.
+		var t2 := "열림 %d%%" % pct
 		var w2 := f.get_string_size(t2, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
-		draw_string(f, Vector2(floorf((size.x - w2) * 0.5), 36 + f.get_ascent(fs) - 2), t2, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, UI.col("gold"))
+		if w2 > size.x - 6.0:
+			t2 = "%d%%" % pct
+			w2 = f.get_string_size(t2, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		draw_string(f, Vector2(floorf((size.x - w2) * 0.5), 35 + f.get_ascent(fs) - 2), t2, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, UI.col("gold"))
 
 	func info_text() -> String:
-		return "%dF가 열리려면 %dF에서 %d칸이 쓰여야 한다(지금 %d칸). 사람 사는 집과 완공 시설만 센다." % [_f, _f - 1, _need, _used]
+		return "%dF는 아직 잠겼다 — 열림까지 %d%%. %dF에서 %d칸이 쓰여야 열린다(지금 %d칸). 사람 사는 집과 완공 시설만 센다." % [_f, int(floorf(clampf(_r, 0.0, 1.0) * 100.0)), _f - 1, _need, _used]

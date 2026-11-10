@@ -678,6 +678,10 @@
   "after": 0.5
  },
  {
+  "shot": "wd10_keep_goal_trade",
+  "after": 0.8
+ },
+ {
   "press": "교역소",
   "region": [
    0,
@@ -685,7 +689,7 @@
    540,
    860
   ],
-  "after": 1.0
+  "after": 1.2
  },
  {
   "press": "교역소",
