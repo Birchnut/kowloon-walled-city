@@ -6,84 +6,352 @@
   "_max": "실험값(가정 A9): 탐험 거점 하나당 1팀, 최대 3팀. 주민 노동력과 분리(확정)"
  },
  "provision": {
-  "goods": ["veg", "noodles", "fishball"],
+  "goods": [
+   "veg",
+   "noodles",
+   "fishball"
+  ],
   "n": 10,
   "bonus": 0.25,
   "_status": "실험값(가정 A10): 끼니 10(채소·국수·어묵 중 재고 많은 것부터)을 실으면 주력·덤 +25%"
  },
  "items": {
   "furniture_alley": {
-   "name": "철거된 가구 골목", "band": "near", "seconds": 300, "map": [0.36, 0.62], "known": true,
+   "name": "철거된 가구 골목",
+   "band": "near",
+   "seconds": 300,
+   "map": [
+    0.36,
+    0.62
+   ],
+   "known": true,
    "desc": "문짝·장롱·판재가 쌓인 골목. 손수레 두어 번이면 끝난다.",
-   "primary": {"good": "wood", "min": 10, "max": 10},
-   "bonus": [{"good": "scrap", "min": 2, "max": 5, "chance": 1.0}, {"good": "parts", "min": 1, "max": 1, "chance": 0.03}],
-   "reveals": ["warehouse_district", "back_docks"], "cost": {"money": 0}
+   "primary": {
+    "good": "wood",
+    "min": 5,
+    "max": 5
+   },
+   "bonus": [
+    {
+     "good": "scrap",
+     "min": 2,
+     "max": 5,
+     "chance": 1.0
+    }
+   ],
+   "reveals": [
+    "warehouse_district",
+    "back_docks"
+   ],
+   "cost": {
+    "money": 0
+   }
   },
   "scrap_yard": {
-   "name": "고철 야적장", "band": "near", "seconds": 420, "map": [0.64, 0.6], "known": true,
+   "name": "고철 야적장",
+   "band": "near",
+   "seconds": 420,
+   "map": [
+    0.64,
+    0.6
+   ],
+   "known": true,
    "desc": "폐정비소 뒤 고철 더미. 프레임과 패널을 골라 온다.",
-   "primary": {"good": "metal", "min": 14, "max": 14},
-   "bonus": [{"good": "scrap", "min": 3, "max": 6, "chance": 1.0}, {"good": "parts", "min": 1, "max": 1, "chance": 0.04}],
-   "reveals": ["warehouse_district", "back_docks"], "cost": {"money": 0}
+   "primary": {
+    "good": "metal",
+    "min": 7,
+    "max": 7
+   },
+   "bonus": [
+    {
+     "good": "scrap",
+     "min": 3,
+     "max": 6,
+     "chance": 1.0
+    }
+   ],
+   "reveals": [
+    "warehouse_district",
+    "back_docks"
+   ],
+   "cost": {
+    "money": 0
+   }
   },
   "demolition_site": {
-   "name": "철거 공사장", "band": "near", "seconds": 600, "map": [0.5, 0.33], "known": true,
+   "name": "철거 공사장",
+   "band": "near",
+   "seconds": 600,
+   "map": [
+    0.5,
+    0.33
+   ],
+   "known": true,
    "desc": "헐린 아파트. 쓸 만한 블록과 프리캐스트 부재를 추린다.",
-   "primary": {"good": "concrete", "min": 20, "max": 20},
-   "bonus": [{"good": "scrap", "min": 2, "max": 5, "chance": 1.0}, {"good": "parts", "min": 1, "max": 1, "chance": 0.05}],
-   "reveals": ["warehouse_district", "back_docks"], "cost": {"money": 0}
+   "primary": {
+    "good": "concrete",
+    "min": 10,
+    "max": 10
+   },
+   "bonus": [
+    {
+     "good": "scrap",
+     "min": 2,
+     "max": 5,
+     "chance": 1.0
+    }
+   ],
+   "reveals": [
+    "warehouse_district",
+    "back_docks"
+   ],
+   "cost": {
+    "money": 0
+   }
   },
   "warehouse_district": {
-   "name": "외곽 창고 지대", "band": "mid", "seconds": 2700, "map": [0.18, 0.4], "known": false,
+   "name": "외곽 창고 지대",
+   "band": "mid",
+   "seconds": 2700,
+   "map": [
+    0.18,
+    0.4
+   ],
+   "known": false,
    "reveal_hint": "근거리 탐험에서 처음 돌아오면 알게 된다",
    "desc": "버려진 창고들. 자재를 골라 실어 오고, 본토 보따리상과 줄이 닿는다.",
-   "picks": ["wood", "metal", "concrete"],
-   "primary": {"good": "", "min": 50, "max": 56},
-   "bonus": [{"good": "flour", "min": 15, "max": 25, "chance": 1.0}, {"good": "cloth", "min": 8, "max": 14, "chance": 1.0}, {"good": "parts", "min": 1, "max": 1, "chance": 0.15}],
-   "finds": [{"type": "partner", "id": "mainland", "once": true}],
-   "reveals": ["timber_yard", "industrial_park"], "cost": {"money": 30}
+   "picks": [
+    "wood",
+    "metal",
+    "concrete"
+   ],
+   "primary": {
+    "good": "",
+    "min": 25,
+    "max": 28
+   },
+   "bonus": [
+    {
+     "good": "flour",
+     "min": 15,
+     "max": 25,
+     "chance": 1.0
+    },
+    {
+     "good": "cloth",
+     "min": 8,
+     "max": 14,
+     "chance": 1.0
+    },
+    {
+     "good": "parts",
+     "min": 1,
+     "max": 1,
+     "chance": 0.05
+    }
+   ],
+   "finds": [
+    {
+     "type": "partner",
+     "id": "mainland",
+     "once": true
+    }
+   ],
+   "reveals": [
+    "timber_yard",
+    "industrial_park"
+   ],
+   "cost": {
+    "money": 30
+   }
   },
   "back_docks": {
-   "name": "부두 뒷골목", "band": "mid", "seconds": 3600, "map": [0.84, 0.36], "known": false,
+   "name": "부두 뒷골목",
+   "band": "mid",
+   "seconds": 3600,
+   "map": [
+    0.84,
+    0.36
+   ],
+   "known": false,
    "reveal_hint": "근거리 탐험에서 처음 돌아오면 알게 된다",
    "desc": "밤에만 열리는 부두. 고물과 전자 부품, 그리고 암시장 사람들.",
-   "primary": {"good": "scrap", "min": 30, "max": 40},
-   "bonus": [{"good": "elec", "min": 6, "max": 10, "chance": 1.0}, {"good": "parts", "min": 1, "max": 1, "chance": 0.25}],
-   "finds": [{"type": "partner", "id": "docks", "once": true}],
-   "reveals": ["megasite", "old_plant"], "cost": {"money": 30}
+   "primary": {
+    "good": "scrap",
+    "min": 30,
+    "max": 40
+   },
+   "bonus": [
+    {
+     "good": "elec",
+     "min": 6,
+     "max": 10,
+     "chance": 1.0
+    },
+    {
+     "good": "parts",
+     "min": 1,
+     "max": 1,
+     "chance": 0.1
+    }
+   ],
+   "finds": [
+    {
+     "type": "partner",
+     "id": "docks",
+     "once": true
+    }
+   ],
+   "reveals": [
+    "megasite",
+    "old_plant"
+   ],
+   "cost": {
+    "money": 30
+   }
   },
   "timber_yard": {
-   "name": "산지 목재 야적장", "band": "far", "seconds": 14400, "map": [0.06, 0.12], "known": false,
+   "name": "산지 목재 야적장",
+   "band": "far",
+   "seconds": 14400,
+   "map": [
+    0.06,
+    0.12
+   ],
+   "known": false,
    "reveal_hint": "외곽 창고 지대를 다녀오거나 연구 '지도 제작'",
    "desc": "산 너머 제재소 터. 다녀오는 데 반나절, 목재가 산더미다.",
-   "primary": {"good": "wood", "min": 120, "max": 130},
-   "bonus": [{"good": "parts", "min": 1, "max": 2, "chance": 1.0}, {"good": "scrap", "min": 10, "max": 20, "chance": 1.0}],
-   "cost": {"money": 80}
+   "primary": {
+    "good": "wood",
+    "min": 60,
+    "max": 65
+   },
+   "bonus": [
+    {
+     "good": "parts",
+     "min": 1,
+     "max": 1,
+     "chance": 0.3
+    },
+    {
+     "good": "scrap",
+     "min": 10,
+     "max": 20,
+     "chance": 1.0
+    }
+   ],
+   "cost": {
+    "money": 80
+   }
   },
   "industrial_park": {
-   "name": "폐산업 단지", "band": "far", "seconds": 14400, "map": [0.92, 0.1], "known": false,
+   "name": "폐산업 단지",
+   "band": "far",
+   "seconds": 14400,
+   "map": [
+    0.92,
+    0.1
+   ],
+   "known": false,
    "reveal_hint": "외곽 창고 지대를 다녀오거나 연구 '지도 제작'",
    "desc": "문 닫은 공단. 철골을 뜯고 설비 부품을 챙긴다.",
-   "primary": {"good": "metal", "min": 120, "max": 130},
-   "bonus": [{"good": "parts", "min": 1, "max": 2, "chance": 1.0}, {"good": "scrap", "min": 10, "max": 20, "chance": 1.0}],
-   "cost": {"money": 80}
+   "primary": {
+    "good": "metal",
+    "min": 60,
+    "max": 65
+   },
+   "bonus": [
+    {
+     "good": "parts",
+     "min": 1,
+     "max": 1,
+     "chance": 0.3
+    },
+    {
+     "good": "scrap",
+     "min": 10,
+     "max": 20,
+     "chance": 1.0
+    }
+   ],
+   "cost": {
+    "money": 80
+   }
   },
   "megasite": {
-   "name": "버려진 대형 건설 현장", "band": "far", "seconds": 18000, "map": [0.5, 0.04], "known": false,
+   "name": "버려진 대형 건설 현장",
+   "band": "far",
+   "seconds": 18000,
+   "map": [
+    0.5,
+    0.04
+   ],
+   "known": false,
    "reveal_hint": "부두 뒷골목을 다녀오거나 연구 '지도 제작'",
    "desc": "짓다 만 고층 단지. 프리캐스트 부재가 줄지어 누워 있다.",
-   "primary": {"good": "concrete", "min": 150, "max": 160},
-   "bonus": [{"good": "parts", "min": 1, "max": 2, "chance": 1.0}, {"good": "scrap", "min": 10, "max": 20, "chance": 1.0}],
-   "cost": {"money": 80}
+   "primary": {
+    "good": "concrete",
+    "min": 75,
+    "max": 80
+   },
+   "bonus": [
+    {
+     "good": "parts",
+     "min": 1,
+     "max": 1,
+     "chance": 0.3
+    },
+    {
+     "good": "scrap",
+     "min": 10,
+     "max": 20,
+     "chance": 1.0
+    }
+   ],
+   "cost": {
+    "money": 80
+   }
   },
   "old_plant": {
-   "name": "옛 발전소", "band": "far", "seconds": 28800, "map": [0.9, 0.86], "known": false,
+   "name": "옛 발전소",
+   "band": "far",
+   "seconds": 28800,
+   "map": [
+    0.9,
+    0.86
+   ],
+   "known": false,
    "reveal_hint": "부두 뒷골목을 다녀오거나 연구 '지도 제작'",
    "desc": "녹슨 터빈이 서 있는 발전소. 처음 가면 열병합 도면을 찾는다.",
-   "primary": {"good": "parts", "min": 6, "max": 6},
-   "bonus": [{"good": "scrap", "min": 30, "max": 50, "chance": 1.0}, {"good": "metal", "min": 20, "max": 30, "chance": 1.0}],
-   "finds": [{"type": "blueprint", "id": "chp", "once": true}],
-   "cost": {"money": 80}
+   "primary": {
+    "good": "parts",
+    "min": 1,
+    "max": 2
+   },
+   "bonus": [
+    {
+     "good": "scrap",
+     "min": 30,
+     "max": 50,
+     "chance": 1.0
+    },
+    {
+     "good": "metal",
+     "min": 20,
+     "max": 30,
+     "chance": 1.0
+    }
+   ],
+   "finds": [
+    {
+     "type": "blueprint",
+     "id": "chp",
+     "once": true
+    }
+   ],
+   "cost": {
+    "money": 80
+   }
   }
  }
 }

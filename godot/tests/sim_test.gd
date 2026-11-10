@@ -542,7 +542,7 @@ func _exp_claim_rules() -> void:
 	sim.now_unix += 1
 	var c1 := sim.apply(st, "expedition_claim", {"team": 1})
 	var got := float(st.stock.get("metal", 0.0)) - wood0
-	_ok(c1.get("ok", false) and got >= 14.0 and (c1["rewards"] as Array).size() >= 1, "완료 뒤 수령: 철제 +%d, 보상 목록 %s" % [int(got), str(c1.get("rewards", []))])
+	_ok(c1.get("ok", false) and got >= 7.0 and (c1["rewards"] as Array).size() >= 1, "완료 뒤 수령: 철제 +%d, 보상 목록 %s" % [int(got), str(c1.get("rewards", []))])
 	var m1 := float(st.stock.get("metal", 0.0))
 	var c2 := sim.apply(st, "expedition_claim", {"team": 1})
 	_ok(not c2.get("ok", false) and float(st.stock.get("metal", 0.0)) == m1, "두 번째 수령은 아무것도 주지 않는다")
