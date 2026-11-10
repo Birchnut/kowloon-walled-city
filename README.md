@@ -14,12 +14,14 @@
 ## 문서
 | 문서 | 내용 |
 |---|---|
+| `docs/REPORT_v0.3.md` | **v0.3 작업 보고** — 지금 상태, 실제 시간 속도, 확인한 것·못 한 것, 정한 것, Jin이 고를 것 |
 | `docs/DESIGN_RESET.md` | Jin의 재기획 브리프(원문). [확정] 항목이 최우선 기준 |
 | `docs/DECISIONS.md` | Jin이 직접 정한 것(라운드별) |
 | `docs/GDD.md` | v0.3 설계: 계층·수요·생산·교역·탐험·진행 (디렉터 제안과 실험값) |
 | `docs/ASSUMPTIONS_AND_EXPERIMENTS.md` | 디렉터가 정한 가정 — Jin이 뒤집을 수 있는 것 |
 | `docs/ARCHITECTURE.md` | sim / view / ui 3층 구조와 계약 |
 | `docs/SIM_NOTES.md` · `VIEW_NOTES.md` · `UI_NOTES.md` | 각 층의 구현 메모와 자체 결정 목록 |
+| `docs/INTEG_NOTES.md` | 통합 점검표, 처음 하는 사람이 막히는 곳, 첫 접속 흐름 다시 돌리기 |
 | `docs/BALANCE_CHANGELOG.md` | 숫자를 바꾼 기록과 이유 |
 | `docs/data_tables/` | JSON에서 자동 생성한 검토용 표 (손으로 고치지 않는다) |
 | `research/ANNO1800_BENCHMARK.md` | Anno 1800 비교 조사 (수치는 미확인 표시) |
@@ -30,7 +32,10 @@
 ## 개발 도구
 ```
 tools/shot.sh "" out 30 540x960 skiptut load=mid tod=0.9 open=economy   # 실제 화면을 PNG로 (인자: godot/tools/DevHarness.gd)
-godot/tests/sim_test.sh                                                  # 시뮬 시험
-godot/tools/sim_run.gd                                                   # 봇 시나리오 (헤드리스)
+tools/shot.sh "" out 6000 540x960 script=res://tools/fixtures/first_session.json out=out trace=1   # 첫 접속 흐름을 실제 터치로 끝까지
+godot/tests/sim_test.sh                                                  # 시뮬 시험(캐시 비교 시험 짧은 판 포함)
+godot/tools/sim_run.gd                                                   # 봇 시나리오 (헤드리스) → simulation/reports/
+godot/tools/q_probe.gd                                                   # 실제 질의 JSON 찍기
 godot/tools/data_tables.py                                               # 검토용 표 재생성
+tools/deploy_pages.sh push                                               # 웹 빌드 → gh-pages
 ```
