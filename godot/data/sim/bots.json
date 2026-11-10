@@ -1,5 +1,5 @@
 {
- "_comment": "시나리오 봇(tools/sim_run.gd). pattern = 접속 패턴(patterns). 디버그 자재 없음: 세 계열 자재는 탐험과 건재상 계약으로만. family = 승급에 쓰는 자재를 하나로 고정(집중형). teams = 지을 탐험 거점 수. builder_money = 이 돈 이상이고 자재가 모자라면 건재상 계약. vice = 음성 시설(하우스·콜센터·카지노)과 뒷돈 정책. 나머지 키는 Bot.gd 참고.",
+ "_comment": "시나리오 봇(tools/sim_run.gd). pattern = 접속 패턴(patterns). 디버그 자재 없음: 세 계열 자재는 탐험과 건재상 계약으로만. family = 승급에 쓰는 자재를 하나로 고정(집중형). teams = 지을 탐험 거점 수. builder_money = 이 돈 이상이고 자재가 모자라면 건재상 계약. vice = 음성 시설(하우스·콜센터·카지노)과 뒷돈 정책. 나머지 키는 Bot.gd 참고. act_rounds = 한 손길(실제 1분)에 계획을 몇 바퀴 돌리나 — 접속이 짧은 패턴은 밀린 일을 몰아서 한다고 본다.",
  "status": "실험값",
  "items": {
   "balanced": {
@@ -499,7 +499,8 @@
    "vice": true,
    "vice_max": 1,
    "builder_money": 3000,
-   "base_money": 400
+   "base_money": 400,
+   "act_rounds": 2
   },
   "twice_a_day": {
    "name": "하루 2회 접속형",
@@ -554,7 +555,8 @@
    "vice": true,
    "vice_max": 1,
    "builder_money": 3000,
-   "base_money": 400
+   "base_money": 400,
+   "act_rounds": 3
   },
   "long_absence": {
    "name": "장기 부재 복귀형",

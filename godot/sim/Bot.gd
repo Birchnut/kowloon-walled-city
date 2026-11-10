@@ -39,13 +39,14 @@ func act(state: CityState, context: Dictionary = {}) -> void:
 	if float(c("expedition_per_day", 0)) > 0.0:
 		_expedition(state, mem)
 	_explore(state)
-	_utilities(state)
-	_upgrades(state)       # 승급 버튼이 뜨면 먼저 누른다(사람처럼)
-	_production(state)
-	_markets_services(state)
-	_contracts(state)
-	_zone(state)
-	_late(state)
+	for _r: int in int(c("act_rounds", 1)):   # 짧게 몰아 하는 접속: 한 손길에 여러 바퀴(밀린 일을 한꺼번에)
+		_utilities(state)
+		_upgrades(state)       # 승급 버튼이 뜨면 먼저 누른다(사람처럼)
+		_production(state)
+		_markets_services(state)
+		_contracts(state)
+		_zone(state)
+		_late(state)
 	_explore(state)        # 한 바퀴 돈 뒤 남은 팀(새 거점·돈)도 보낸다
 
 
@@ -118,46 +119,66 @@ func _meal_rich(state: CityState) -> bool:
 	return have > dem * 1.0 + 30.0
 
 
-## 목적지 고르기: 이번 접속 안에 돌아오면 근거리(필요한 계열), 아니면 다음 접속까지 끝나는 것 중 가장 큰 수확.
-## 처음 가 보는 중거리(거래처·원거리 발견)는 맞으면 먼저.
+## 목적지 고르기: 이번 접속 안에 돌아오는 곳이 있으면 그중 "남은 접속 동안 되풀이하면 얻는 양"이 큰 곳(근거리 손맛),
+## 없으면(접속이 거의 끝남·짧은 접속) 다음 접속까지 끝나는 곳 중 한 번에 가장 많이 주는 곳(원거리·중거리).
+## 처음 가 보는 중거리(거래처·원거리 발견)·옛 발전소(도면)는 맞으면 먼저.
+func _dest_value(d: Dictionary, fam: String) -> float:
+	var pg := str(d["primary"]["good"])
+	var amt := (float(d["primary"]["min"]) + float(d["primary"]["max"])) * 0.5
+	var v := 0.0
+	if not (d["picks"] as Array).is_empty() or pg == fam:
+		v = amt * 1.2
+	elif pg in ["wood", "metal", "concrete"]:
+		v = amt * (0.25 if str(c("family", "")) != "" else 0.9)
+	elif pg == "parts":
+		v = amt * float(c("parts_value", 10))
+	else:
+		v = amt * 0.2
+	if d["band"] == "far" and pg != "parts":
+		v += 1.5 * float(c("parts_value", 10))
+	return v
+
+
 func _choose_dest(state: CityState, q: Dictionary, left: float, gap: float, leaving: bool) -> Dictionary:
 	var fam := _family_need(state)
 	var best: Dictionary = {}
 	var best_v := -1.0
-	var window := left + gap if (leaving or left < 300.0) else left
+	var margin := 30.0
+	# 1) 이번 접속 안에 돌아오는 곳
+	if not leaving:
+		for d: Dictionary in q["dests"]:
+			if not d["known"] or float(d["cost"]["money"]) > state.money - _save - 40.0:
+				continue
+			var sec := float(d["seconds"])
+			if sec > left - margin:
+				continue
+			var v := _dest_value(d, fam) / sec * (left - margin)
+			if v > best_v:
+				best_v = v
+				best = d
+		if not best.is_empty():
+			return best
+	# 2) 다음 접속까지 끝나는 곳(한 번에 가장 많이)
+	var window := left + gap
 	for d: Dictionary in q["dests"]:
-		if not d["known"]:
-			continue
-		if float(d["cost"]["money"]) > state.money - _save - 40.0:
+		if not d["known"] or float(d["cost"]["money"]) > state.money - _save - 40.0:
 			continue
 		var sec := float(d["seconds"])
-		if sec > window + 1.0 and not (best.is_empty() and d["band"] == "near"):
+		if sec > window + 1.0:
 			continue
-		var pg := str(d["primary"]["good"])
-		var amt := (float(d["primary"]["min"]) + float(d["primary"]["max"])) * 0.5
-		var v := 0.0
-		if not (d["picks"] as Array).is_empty():
-			v = amt * 1.2
-		elif pg == fam:
-			v = amt * 1.2
-		elif pg in ["wood", "metal", "concrete"]:
-			v = amt * (0.25 if str(c("family", "")) != "" else 0.9)
-		elif pg == "parts":
-			v = amt * float(c("parts_value", 10))
-		else:
-			v = amt * 0.2
-		if d["band"] == "far" and pg != "parts":
-			v += 1.5 * float(c("parts_value", 10))
+		var v := _dest_value(d, fam)
 		if d["band"] == "mid" and int(d["visits"]) == 0:
 			v += 1000.0
-		if pg == "parts" and int(d["visits"]) == 0:
+		if str(d["primary"]["good"]) == "parts" and int(d["visits"]) == 0:
 			v += 500.0
-		# 접속 중 반복할 수 있으면 시간당으로 비교(근거리끼리), 떠날 땐 총량으로
-		if not leaving and left >= sec:
-			v = v / maxf(sec, 1.0) * 600.0
 		if v > best_v:
 			best_v = v
 			best = d
+	if best.is_empty():
+		# 아무것도 시간 안에 안 끝나면 가장 짧은 곳(다음 접속 때 받는다)
+		for d: Dictionary in q["dests"]:
+			if d["known"] and float(d["cost"]["money"]) <= state.money - _save - 40.0 and (best.is_empty() or float(d["seconds"]) < float(best["seconds"])):
+				best = d
 	return best
 
 
