@@ -1,14 +1,18 @@
 class_name Bot
 extends RefCounted
 ## Bot — 자동 플레이어(data/sim/bots.json). 사람처럼 Sim.apply()/query()만 쓴다(규칙을 건드리지 않는다).
-## "balanced": 주거를 칠하고, 물·전기·시장·서비스·생산·계약을 수요에 맞춰 붙이고, 노동력이 남는 만큼 승급한다.
-## 탐험(B 파트)이 아직 없으므로 세 계열 자재는 debug add_stock으로 "탐험 수확"을 흉내 낸다(expedition_per_day, 리포트에 표시).
+## 주거를 칠하고, 물·전기·시장·서비스·생산·계약을 수요에 맞춰 붙이고, 노동력이 남는 만큼 승급한다.
+## 세 계열 자재는 탐험(expedition_send/claim)과 비싼 건재상 계약으로만 얻는다(디버그 자재 없음 — expedition_per_day는 옛 흉내, 기본 0).
+## 접속 맥락(ctx): {now, session_left(실제 초), next_gap(다음 접속까지 실제 초), leaving(이번이 이번 접속의 마지막 손길)} —
+## 탐험 목적지를 "언제 다시 받을 수 있나"에 맞춰 고른다. 명령 수는 cmds(이름별)로 센다(리포트: 접속당 결정 수).
 ## 봇의 기억은 state.flags["bot"].
 
 var sim: Sim
 var id: String = ""
 var conf: Dictionary = {}
 var blocked: Dictionary = {}       # 이유 → 횟수(리포트용)
+var cmds: Dictionary = {}          # 명령 이름 → 성공 횟수(리포트용)
+var ctx: Dictionary = {}           # 이번 손길의 접속 맥락
 var _save: float = 0.0             # 꼭 필요한 시설을 위해 모으는 돈(이번 손길 동안 덜 급한 지출을 막는다)
 
 
@@ -27,22 +31,170 @@ func _block(why: String) -> void:
 
 
 # ------------------------------------------------------------------ 한 번의 손길(경제 1시간마다)
-func act(state: CityState) -> void:
+func act(state: CityState, context: Dictionary = {}) -> void:
+	ctx = context
 	var mem: Dictionary = state.flags.get("bot", {"exp_acc": 0.0})
 	state.flags["bot"] = mem
 	_save = 0.0
-	_expedition(state, mem)
+	if float(c("expedition_per_day", 0)) > 0.0:
+		_expedition(state, mem)
+	_explore(state)
 	_utilities(state)
 	_upgrades(state)       # 승급 버튼이 뜨면 먼저 누른다(사람처럼)
 	_production(state)
 	_markets_services(state)
 	_contracts(state)
 	_zone(state)
+	_late(state)
+	_explore(state)        # 한 바퀴 돈 뒤 남은 팀(새 거점·돈)도 보낸다
 
 
 func cmd(state: CityState, name: String, args: Dictionary) -> Dictionary:
 	var r := sim.apply(state, name, args)
+	if r.get("ok", false):
+		cmds[name] = int(cmds.get(name, 0)) + 1
 	return r
+
+
+# ------------------------------------------------------------------ 탐험(진짜)
+func _family_need(state: CityState) -> String:
+	var fam := str(c("family", ""))
+	if fam != "":
+		return fam
+	var mats: Array = sim.db["upgrade_costs"]["materials"]
+	var best := str(mats[0])
+	for m: String in mats:
+		if float(state.stock.get(m, 0.0)) < float(state.stock.get(best, 0.0)):
+			best = m
+	return best
+
+
+func _explore(state: CityState) -> void:
+	if not sim.enabled.has("expeditions"):
+		return
+	# 거점: 처음 하나는 바로, 늘리는 건 돈이 넉넉할 때
+	var bases := _count(state, "expedition_base")
+	var want := int(c("teams", 3))
+	if bases < want:
+		var need_money := 150.0 if bases == 0 else float(c("base_money", 400)) * float(bases)
+		if state.money - _save >= need_money:
+			_try_build(state, "expedition_base", _center(state), bases == 0)
+	var q: Dictionary = sim.query(state, "expeditions")
+	for t: Dictionary in q["teams"]:
+		if t["state"] == "done":
+			cmd(state, "expedition_claim", {"team": int(t["id"])})
+	q = sim.query(state, "expeditions")
+	var left := float(ctx.get("session_left", 1e9))
+	var gap := float(ctx.get("next_gap", 0.0))
+	var leaving := bool(ctx.get("leaving", false))
+	for t: Dictionary in q["teams"]:
+		if t["state"] != "idle" or t.get("retired", false):
+			continue
+		var dest := _choose_dest(state, q, left, gap, leaving)
+		if dest.is_empty():
+			continue
+		var prov := _meal_rich(state) and bool(c("provision", true))
+		var args := {"team": int(t["id"]), "dest": dest["id"], "provision": prov}
+		if not (dest["picks"] as Array).is_empty():
+			args["pick"] = _family_need(state)
+		var r := cmd(state, "expedition_send", args)
+		if not r.get("ok", false) and prov:
+			args["provision"] = false
+			r = cmd(state, "expedition_send", args)
+		if not r.get("ok", false):
+			_block("탐험 못 보냄: %s" % r.get("reason", ""))
+
+
+## 끼니가 넉넉한가(보급 10을 실어도 하루치 이상 남는가).
+func _meal_rich(state: CityState) -> bool:
+	var have := 0.0
+	for g: String in ["veg", "noodles", "fishball"]:
+		have += float(state.stock.get(g, 0.0))
+	var dem := float(_demand(state).get("meal", 0.0))
+	return have > dem * 1.0 + 30.0
+
+
+## 목적지 고르기: 이번 접속 안에 돌아오면 근거리(필요한 계열), 아니면 다음 접속까지 끝나는 것 중 가장 큰 수확.
+## 처음 가 보는 중거리(거래처·원거리 발견)는 맞으면 먼저.
+func _choose_dest(state: CityState, q: Dictionary, left: float, gap: float, leaving: bool) -> Dictionary:
+	var fam := _family_need(state)
+	var best: Dictionary = {}
+	var best_v := -1.0
+	var window := left + gap if (leaving or left < 300.0) else left
+	for d: Dictionary in q["dests"]:
+		if not d["known"]:
+			continue
+		if float(d["cost"]["money"]) > state.money - _save - 40.0:
+			continue
+		var sec := float(d["seconds"])
+		if sec > window + 1.0 and not (best.is_empty() and d["band"] == "near"):
+			continue
+		var pg := str(d["primary"]["good"])
+		var amt := (float(d["primary"]["min"]) + float(d["primary"]["max"])) * 0.5
+		var v := 0.0
+		if not (d["picks"] as Array).is_empty():
+			v = amt * 1.2
+		elif pg == fam:
+			v = amt * 1.2
+		elif pg in ["wood", "metal", "concrete"]:
+			v = amt * (0.25 if str(c("family", "")) != "" else 0.9)
+		elif pg == "parts":
+			v = amt * float(c("parts_value", 10))
+		else:
+			v = amt * 0.2
+		if d["band"] == "far" and pg != "parts":
+			v += 1.5 * float(c("parts_value", 10))
+		if d["band"] == "mid" and int(d["visits"]) == 0:
+			v += 1000.0
+		if pg == "parts" and int(d["visits"]) == 0:
+			v += 500.0
+		# 접속 중 반복할 수 있으면 시간당으로 비교(근거리끼리), 떠날 땐 총량으로
+		if not leaving and left >= sec:
+			v = v / maxf(sec, 1.0) * 600.0
+		if v > best_v:
+			best_v = v
+			best = d
+	return best
+
+
+# ------------------------------------------------------------------ 후반: 연구·회관·음성·정책
+func _late(state: CityState) -> void:
+	_trim_builder(state)
+	if sim.enabled.has("research") and bool(c("research", true)):
+		var rq: Dictionary = sim.query(state, "research")
+		if rq["can"]:
+			var pick: Dictionary = {}
+			for n: Dictionary in rq["nodes"]:
+				if n["state"] == "ready" and (pick.is_empty() or float(n["cost"]) < float(pick["cost"])):
+					pick = n
+			if not pick.is_empty() and state.money - _save >= float(pick["cost"]) + float(c("research_reserve", 1500)):
+				cmd(state, "research_start", {"id": pick["id"]})
+	# 성채 회관(최종 목표)
+	if sim.is_unlocked(state, "city_hall") and _count(state, "city_hall") == 0:
+		var d := sim.bdef("city_hall")
+		var ok := true
+		for g: String in d.get("cost", {}).get("goods", {}):
+			if float(state.stock.get(g, 0.0)) < float(d["cost"]["goods"][g]):
+				ok = false
+				_block("성채 회관: %s 모으는 중" % sim.gname(g))
+				if g == "parts":
+					_buy_extra(state, g)
+		if ok:
+			_try_build(state, "city_hall", _center(state))
+	# 음성 산업(수입) + 단속 위험 관리
+	if bool(c("vice", true)):
+		for t: String in c("vice_order", ["gambling_den", "callcenter", "casino"]):
+			if sim.is_unlocked(state, t) and _count(state, t) < int(c("vice_max", 1)) and state.money - _save > float(sim.bdef(t).get("cost", {}).get("money", 0)) * 2.0:
+				_try_build(state, t, _center(state), false)
+		if sim.enabled.has("policies"):
+			var pq: Dictionary = sim.query(state, "policies")
+			if state.heat >= float(c("bribe_at", 60)) and int(pq["slots"]["used"]) < int(pq["slots"]["max"]) and not state.policies.has("bribes"):
+				cmd(state, "policy_set", {"id": "bribes", "on": true})
+			elif state.heat < 20.0 and state.policies.has("bribes"):
+				cmd(state, "policy_set", {"id": "bribes", "on": false})
+	for pid: String in c("policies", []):
+		if not state.policies.has(pid) and sim.can(state, "policy_set", {"id": pid, "on": true}).get("ok", false):
+			cmd(state, "policy_set", {"id": pid, "on": true})
 
 
 # ------------------------------------------------------------------ 탐험 흉내
@@ -259,7 +411,7 @@ func _supplier_for(state: CityState, n: Dictionary, pick: String) -> String:
 func _unlocked_service(state: CityState, tag: String) -> String:
 	for id: String in sim.items("buildings"):
 		var d := sim.bdef(id)
-		if tag in d.get("services", []) and sim.is_unlocked(state, id) and not d.has("vice") and id != "city_hall":
+		if tag in d.get("services", []) and sim.is_unlocked(state, id) and float(d.get("vice", {}).get("income", 0.0)) <= 0.0 and id != "city_hall":
 			return id
 	return ""
 
@@ -331,7 +483,7 @@ func _production(state: CityState) -> void:
 	var meal := float(dem.get("meal", 0.0))
 	if meal > 0.0:
 		var have := _supply(state, "veg") + _supply(state, "noodles") + _supply(state, "fishball")
-		if have < meal * 1.2:
+		if have < meal * (2.0 if c("export_extra", false) else 1.2):
 			var order: Array = c("meal_order", ["noodle_mill", "garden", "fishball_factory"])
 			# 2종 수요(토박이 이상)를 위해 가장 적은 품목부터
 			if _pop(state, 3) + _pop(state, 4) + _pop(state, 5) > 0.0:
@@ -349,7 +501,7 @@ func _production(state: CityState) -> void:
 	for g: String in c("produce", ["candle", "clothes", "soap", "moonshine", "radio", "suit", "appliance"]):
 		if builds >= 2:
 			break
-		var need := float(dem.get(g, 0.0))
+		var need := float(dem.get(g, 0.0)) * (1.8 if c("export_extra", false) else 1.0)
 		if need <= 0.0:
 			continue
 		if _supply(state, g) >= need * 1.1:
@@ -428,14 +580,14 @@ func _contracts(state: CityState) -> void:
 
 
 func _exports(state: CityState, q: Dictionary, slots_free: int) -> void:
-	if slots_free <= 1:
+	if slots_free <= (0 if c("export_extra", false) else 1):
 		return
 	for o: Dictionary in q["offers"]:
 		if o["dir"] != "export" or not o["known"]:
 			continue
 		var g := str(o["good"])
 		var cap := sim.cap_of(state, g)
-		if float(state.stock.get(g, 0.0)) > cap * 0.8:
+		if float(state.stock.get(g, 0.0)) > cap * (0.35 if c("export_extra", false) else 0.8):
 			var dup := false
 			for k: Dictionary in state.contracts:
 				dup = dup or (k["good"] == g and k["dir"] == "export")
@@ -504,12 +656,16 @@ func _upgrades(state: CityState) -> void:
 			_block("돈이 모자라 %s 승급 보류" % sim.tname(t))
 			continue
 		var best := ""
+		var fam := str(c("family", ""))
 		for m: String in mats:
+			if fam != "" and m != fam:
+				continue
 			if float(state.stock.get(m, 0.0)) >= float(cost["qty"]) and (best == "" or float(state.stock[m]) > float(state.stock[best])):
 				best = m
 		if best == "":
 			_block("자재가 모자라 승급 보류(T%d→T%d)" % [t, t + 1])
 			mat_wait = maxi(mat_wait, t)
+			_buy_family(state)
 			continue
 		if mat_wait > t:
 			_block("위 계층 승급을 위해 자재를 모으는 중(T%d→T%d 보류)" % [t, t + 1])
@@ -535,6 +691,31 @@ func _goal_pop(state: CityState, t: int) -> float:
 			if cnd is Array and str(cnd[0]) == "pop.t%d" % t:
 				g = maxf(g, float(cnd[2]))
 	return g
+
+
+## 세 계열 자재가 모자라고 돈이 넉넉하면 건재상 계약(비싸게, 소량)을 맺는다. 넘치면 끊는다.
+func _buy_family(state: CityState) -> void:
+	if state.money < float(c("builder_money", 3000)):
+		return
+	var g := _family_need(state)
+	for k: Dictionary in state.contracts:
+		if k["good"] == g and k["dir"] == "import":
+			return
+	var r := cmd(state, "contract_sign", {"offer": "bd_" + g, "size": 2})
+	if not r.get("ok", false):
+		_block("건재상 계약 자리 없음(%s)" % sim.gname(g))
+
+
+func _trim_builder(state: CityState) -> void:
+	for k: Dictionary in state.contracts.duplicate():
+		if str(k["partner"]) != "builder":
+			continue
+		var g := str(k["good"])
+		var lim := 12.0 if g == "parts" else 120.0
+		if g == "scrap":
+			lim = 300.0
+		if float(state.stock.get(g, 0.0)) > lim or (g in ["wood", "metal", "concrete"] and state.money < float(c("builder_money", 3000)) * 0.4):
+			cmd(state, "contract_cancel", {"id": int(k["id"])})
 
 
 ## 설비 부품 같은 추가 상품: 건재상 계약(작게) — 없으면 디버그로 "원거리 탐험" 흉내.
