@@ -2,7 +2,7 @@ extends SceneTree
 ## sim_cache_fuzz — 캐시 차등 퍼즈(파트 C). 같은 씨앗의 두 시뮬(캐시 켬 / sim.no_cache)에 같은 무작위 명령을 넣고
 ## N스텝마다 CityState JSON 전체를 비교한다(주거 캐시 필드 psig·nsig·sdm·sdc만 뺀다).
 ## 실행: godot --headless --path godot -s res://tests/sim_cache_fuzz.gd -- [mode=short|long] [seeds=N] [days=D] [seed0=S] [every=K]
-##   short(기본, sim_test.sh): 씨앗 3 × 4경제일. long: 씨앗 20 × 32경제일.
+##   short(기본, sim_test.sh): 씨앗 3 × 4경제일. long: 씨앗 20 × 30경제일.
 ## 끝줄: "FUZZ: PASS …" 또는 "FUZZ: FAIL …"(첫 차이 경로·명령 기록과 함께).
 
 const IGNORE := ["psig", "nsig", "sdm", "sdc"]
@@ -11,6 +11,7 @@ var DB: Dictionary
 var rs: int = 1               # 퍼즈 자신의 RNG(시뮬 RNG와 무관)
 var trail: Array = []         # 최근 명령(실패 보고용)
 var counts: Dictionary = {}   # 명령 종류 → 성공 횟수
+var houses_first := false     # 씨앗 홀수: 첫 경제일은 주거만 칠하고(+돈) 시설은 그 뒤에 — 통합에서 찾은 캐시 버그의 순서
 
 
 func _init() -> void:
@@ -21,7 +22,7 @@ func _init() -> void:
 			a[kv[0]] = kv[1]
 	var mode := str(a.get("mode", "short"))
 	var seeds := int(a.get("seeds", 20 if mode == "long" else 3))
-	var days := float(a.get("days", 32 if mode == "long" else 4))
+	var days := float(a.get("days", 30 if mode == "long" else 4))
 	var seed0 := int(a.get("seed0", 1))
 	var every := int(a.get("every", 6))
 	DB = SimIO.load_db()
@@ -121,6 +122,7 @@ func _compare(sa: CityState, sb: CityState) -> String:
 # ------------------------------------------------------------------ 한 씨앗
 func run_seed(seed_v: int, days: float, every: int) -> String:
 	rs = (seed_v * 2654435761 + 12345) & 0xffffffff
+	houses_first = seed_v % 2 == 1
 	trail.clear()
 	var A := Sim.new()
 	A.setup(DB)
@@ -135,6 +137,7 @@ func run_seed(seed_v: int, days: float, every: int) -> String:
 	B.new_game(sb, seed_v)
 	sa.last_saved_unix = A.now_unix
 	sb.last_saved_unix = B.now_unix
+	var bot: Bot = Bot.new(A, "balanced") if seed_v % 2 == 0 else null
 	var sims := [A, B]
 	var sts := [sa, sb]
 	var end_days := sa.econ_days + days
@@ -155,6 +158,22 @@ func run_seed(seed_v: int, days: float, every: int) -> String:
 			var r := _both(sims, sts, cmd)
 			if r != "":
 				return "명령 결과 다름 %s — %s | 최근: %s" % [str(cmd).left(120), r, str(trail.slice(-6))]
+		# 봇 손길(씨앗 짝수): 괜찮은 플레이어의 명령을 A에서 받아 B에 그대로 넣는다 — 승급·층 해금까지 가게
+		if bot != null and ri(3) == 0:
+			bot.recorded = []
+			bot.act(sa)
+			sb.flags["bot"] = (sa.flags.get("bot", {}) as Dictionary).duplicate(true)
+			for rec: Array in bot.recorded:
+				var rb: Dictionary = B.apply(sb, rec[0], (rec[1] as Dictionary).duplicate(true))
+				var ra: Dictionary = rec[2]
+				counts["bot." + str(rec[0])] = int(counts.get("bot." + str(rec[0]), 0)) + (1 if ra.get("ok", false) else 0)
+				trail.append("bot %s%s" % [rec[0], str(rec[1]).left(50)])
+				if bool(ra.get("ok", false)) != bool(rb.get("ok", false)) or str(ra.get("reason", "")) != str(rb.get("reason", "")):
+					return "봇 명령 결과 다름 %s %s — %s / %s" % [rec[0], str(rec[1]).left(80), str(ra).left(100), str(rb).left(100)]
+			sa.events.clear()
+			sb.events.clear()
+			if trail.size() > 60:
+				trail = trail.slice(-40)
 		# 특수 동작
 		var roll := ri(100)
 		if roll < 3:
@@ -224,6 +243,10 @@ func _reload(sts: Array) -> Array:
 # ------------------------------------------------------------------ 무작위 명령(지금 상태로 유효한 쪽으로 기울여)
 func _gen(sim: Sim, st: CityState, step_n: int, unlocked_all: bool) -> Dictionary:
 	var w := ri(100)
+	if houses_first and step_n < 48:
+		if w < 80:
+			return _zone(sim, st)
+		return {"name": "debug", "args": {"op": "add_money", "n": float(200 + ri(800))}}
 	if not unlocked_all and step_n > 30 and ri(40) == 0:
 		return {"name": "debug", "args": {"op": "unlock_all"}}
 	if w < 22:
