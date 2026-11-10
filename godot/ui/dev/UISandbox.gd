@@ -8,6 +8,7 @@ extends Node
 ##   scn=<이름>            아래 _scn_* 시나리오를 자동으로 연기한다(스크린샷용)
 ##   tutorial=1            오프닝을 튼다(city=empty 와 함께)
 ##   tod=0..1              감상 시간 고정
+##   png=<경로> png_at=<초> 실제 창 크기로 한 장 찍고 종료(다른 화면비 확인용)
 
 var ui: UIRoot
 var view: MockView
@@ -38,6 +39,17 @@ func _ready() -> void:
 		view.set_time_override(float(args["tod"]))
 	if args.has("scn"):
 		_run.call_deferred(str(args["scn"]))
+	if args.has("png"):
+		_snap.call_deferred(str(args["png"]), float(args.get("png_at", "2.2")))
+
+
+## png=<절대 경로> [png_at=<초>] : 실제 창 크기 그대로 한 장 찍고 끝낸다.
+## (tools/shot.sh 의 무비 기록은 항상 540x960 이라 다른 화면비를 못 본다)
+func _snap(path: String, at: float) -> void:
+	await get_tree().create_timer(at).timeout
+	await RenderingServer.frame_post_draw
+	get_viewport().get_texture().get_image().save_png(path)
+	get_tree().quit()
 
 
 func _wait(sec: float) -> void:
