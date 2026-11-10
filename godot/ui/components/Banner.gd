@@ -1,13 +1,20 @@
 class_name Banner
 extends Control
-## Banner — 화면 가로를 가로지르는 현수막(해금·호칭 변화·첫 전기). 잠깐 떴다 사라진다. 터치를 먹지 않는다.
+## Banner — 축하·소식 카드(목표 달성·해금·등급·새 층·연구·단속). 상단 띠 바로 아래 왼쪽, 레일 앞까지.
+## 한 번에 하나만, 줄을 서서 짧게(기본 2초) 떴다 사라진다. 카드를 누르면 바로 넘긴다.
+## 카드 밖은 터치를 막지 않는다(도시·버튼을 그대로 누를 수 있다). 줄이 셋을 넘으면 나머지는 요약 한 장으로 합친다.
 ##
-##   banner.show_banner("새로 열림", "발전기", "시끄럽고 매캐하다. 그래도 밤이 밝아진다.", "gold")
+##   banner.show_banner("새로 열림", "발전기", "시끄럽고 매캐하다.", "gold", 2.0, "電")
 
-var y_ratio: float = 0.2
+const MAX_QUEUE := 3           # 기다리는 카드가 이보다 많으면 뒤는 요약 하나로
+const HOLD := 2.0
+
+var top_offset: float = 132.0      # 상단 띠 아래(UIRoot 가 맞춘다)
+var right_reserve: float = 76.0    # 우측 레일 자리
 var _queue: Array = []
 var _busy: bool = false
 var _band: Control = null
+var _tw: Tween = null
 
 
 func _init() -> void:
@@ -15,8 +22,19 @@ func _init() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 
-func show_banner(kicker: String, title: String, sub: String = "", tone: String = "red", hold: float = 3.0, glyph: String = "") -> void:
-	_queue.append({"kicker": kicker, "title": title, "sub": sub, "tone": tone, "hold": hold, "glyph": glyph})
+func show_banner(kicker: String, title: String, sub: String = "", tone: String = "red", hold: float = HOLD, glyph: String = "") -> void:
+	var b := {"kicker": kicker, "title": title, "sub": sub, "tone": tone, "hold": minf(hold, 3.0), "glyph": glyph}
+	if _queue.size() >= MAX_QUEUE:
+		var last: Dictionary = _queue[_queue.size() - 1]
+		if bool(last.get("summary", false)):
+			last["names"].append(_short(b))
+			_fill_summary(last)
+		else:
+			var s := {"summary": true, "names": [_short(last), _short(b)], "tone": "ink", "hold": HOLD, "glyph": "", "kicker": ""}
+			_fill_summary(s)
+			_queue[_queue.size() - 1] = s
+	else:
+		_queue.append(b)
 	if not _busy:
 		_next()
 
@@ -25,7 +43,51 @@ func is_busy() -> bool:
 	return _busy
 
 
+## 지금 카드가 차지한 아래 끝(토스트가 그 밑으로 비킨다). 없으면 0.
+func occupied_bottom() -> float:
+	if _band != null and is_instance_valid(_band) and _band.visible:
+		return _band.position.y + _band.size.y
+	return 0.0
+
+
+func clear() -> void:
+	_queue.clear()
+	_dismiss()
+
+
+static func _short(b: Dictionary) -> String:
+	var k := str(b.get("kicker", "")).split(" · ")[0]
+	var t := str(b.get("title", "")).replace("\n", " ")
+	var out := (k + " " + t) if k != "" else t
+	return out if out.length() <= 18 else out.substr(0, 17) + "…"
+
+
+static func _fill_summary(s: Dictionary) -> void:
+	var names: Array = s["names"]
+	s["title"] = "소식 %d가지" % names.size()
+	s["sub"] = " · ".join(names)
+
+
+func _dismiss() -> void:
+	if _tw != null and _tw.is_valid():
+		_tw.kill()
+	_tw = null
+	if _band != null and is_instance_valid(_band):
+		_band.queue_free()
+	_band = null
+	_next.call_deferred()
+
+
+func _on_band_input(e: InputEvent) -> void:
+	var tapped: bool = (e is InputEventScreenTouch and not e.pressed) or (e is InputEventMouseButton and not e.pressed and e.button_index == MOUSE_BUTTON_LEFT)
+	if tapped:
+		accept_event()
+		_dismiss()
+
+
 func _next() -> void:
+	if _band != null and is_instance_valid(_band):
+		return
 	if _queue.is_empty():
 		_busy = false
 		return
@@ -44,59 +106,50 @@ func _next() -> void:
 			bg = UI.col("ink0")
 
 	var band := PanelContainer.new()
-	band.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	band.mouse_filter = Control.MOUSE_FILTER_STOP     # 카드만 누름을 받는다(누르면 넘김) — 밖은 통과
+	band.gui_input.connect(_on_band_input)
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = bg
 	sb.border_color = line_col
-	sb.border_width_top = 2
-	sb.border_width_bottom = 2
-	sb.expand_margin_top = 2
-	sb.expand_margin_bottom = 2
-	sb.shadow_color = UI.col("out")
-	sb.shadow_size = 0
-	sb.content_margin_top = 12
-	sb.content_margin_bottom = 12
-	sb.content_margin_left = 16
-	sb.content_margin_right = 16
+	sb.set_border_width_all(2)
+	sb.content_margin_top = 6
+	sb.content_margin_bottom = 7
+	sb.content_margin_left = 10
+	sb.content_margin_right = 10
 	band.add_theme_stylebox_override("panel", sb)
-	var row := UI.hbox(14)
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	var row := UI.hbox(10)
 	band.add_child(row)
 	if str(b["glyph"]) != "":
-		row.add_child(SignTile.make(str(b["glyph"]), false, false))
-	var col := UI.vbox(2)
+		var tile := SignTile.make(str(b["glyph"]), false, false)
+		tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(tile)
+	var col := UI.vbox(1)
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(col)
 	if str(b["kicker"]) != "":
-		var k := UI.label(str(b["kicker"]), "LabelGoldSmall")
-		k.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		col.add_child(k)
-	var t := UI.label(str(b["title"]), "LabelHead", true)
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	col.add_child(t)
+		col.add_child(UI.label(str(b["kicker"]), "LabelGoldSmall"))
+	col.add_child(UI.label(str(b["title"]), "LabelHead", true))
 	if str(b["sub"]) != "":
-		var s := UI.label(str(b["sub"]), "LabelSmall", true)
-		s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		col.add_child(s)
+		col.add_child(UI.label(str(b["sub"]), "LabelSmall", true))
+	for c: Node in band.find_children("*", "Control", true, false):
+		(c as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(band)
 	_band = band
-	band.custom_minimum_size.x = size.x
-	band.position = Vector2(0, floorf(size.y * y_ratio / 2.0) * 2.0)
-	band.size = Vector2(size.x, 0)
+	var w := maxf(200.0, size.x - right_reserve - 16.0)
+	band.custom_minimum_size.x = w
+	band.position = Vector2(8, top_offset)
+	band.size = Vector2(w, 0)
 	band.modulate.a = 0.0
 	# 줄바꿈 라벨은 너비가 잡힌 다음에야 제 높이를 안다 → 한 프레임 뒤에 높이를 다시 맞춘다
 	await get_tree().process_frame
-	if not is_instance_valid(band):
+	if not is_instance_valid(band) or band != _band:
 		return
-	band.size = Vector2(size.x, 0)
-	band.modulate.a = 1.0
-	band.pivot_offset = Vector2(size.x * 0.5, band.size.y * 0.5)
-	band.scale = Vector2(1, 0.0)
-	col.modulate.a = 0.0
-	var tw := band.create_tween()
-	tw.tween_property(band, "scale:y", 1.0, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tw.tween_property(col, "modulate:a", 1.0, 0.15)
-	tw.tween_interval(float(b["hold"]))
-	tw.tween_property(band, "modulate:a", 0.0, 0.4)
-	tw.tween_callback(band.queue_free)
-	tw.tween_callback(_next)
+	band.size = Vector2(w, 0)
+	band.position = Vector2(-16, top_offset)
+	_tw = band.create_tween()
+	_tw.set_parallel(true)
+	_tw.tween_property(band, "modulate:a", 1.0, 0.12)
+	_tw.tween_property(band, "position:x", 8.0, 0.16).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	_tw.chain().tween_interval(float(b["hold"]))
+	_tw.chain().tween_property(band, "modulate:a", 0.0, 0.25)
+	_tw.chain().tween_callback(_dismiss)

@@ -109,7 +109,6 @@ func _ready() -> void:
 	toasts = ToastLayer.new()
 	add_child(toasts)
 	banner = Banner.new()
-	banner.y_ratio = 0.3
 	add_child(banner)
 	tutorial = Tutorial.new()
 	tutorial.ui = self
@@ -166,6 +165,8 @@ func _layout() -> void:
 	upgrade.set_area(top, bar)
 	toasts.top_offset = top + 8.0
 	toasts.right_reserve = rail.size.x + 12.0
+	banner.top_offset = top + 6.0
+	banner.right_reserve = rail.size.x + 12.0
 	tutorial.dialog.bottom_gap = bar
 	tutorial.dialog.top_offset = top + 8.0
 	_sync_inset()
@@ -179,7 +180,7 @@ func _process(delta: float) -> void:
 	if Game.state != null:
 		strip.set_time(Game.time_of_day())
 	# 토스트는 위쪽 대화·힌트 아래로 비킨다(겹쳐 읽히지 않게)
-	var t_off := maxf(top_h() + 8.0, tutorial.dialog.occupied_bottom() + 6.0)
+	var t_off := maxf(maxf(top_h() + 8.0, tutorial.dialog.occupied_bottom() + 6.0), banner.occupied_bottom() + 4.0)
 	if absf(toasts.top_offset - t_off) > 0.5:
 		toasts.top_offset = t_off
 	_poll_t -= delta
@@ -377,15 +378,14 @@ func _on_event(n: String, p: Dictionary) -> void:
 			if tone != "debug" or bool(Data.cfg("debug.enabled", false)):
 				toasts.push(tx, tone)
 		"unlock":
-			# 한꺼번에 열리면(목표·등급 하나에 넷씩) 현수막 하나로 묶는다 — 따로면 15초 넘게 화면 가운데를 가렸다
+			# 한꺼번에 열리면(목표·등급 하나에 넷씩) 카드 하나로 묶고, 같은 순간 끝난 목표가 있으면 그 카드에 싣는다
 			_unlock_pending.append(p)
-			if _unlock_pending.size() == 1:
-				get_tree().create_timer(0.3).timeout.connect(_flush_unlocks)
+			_celebrate_soon()
 		"milestone":
 			_banner_milestone(p)
 		"floor_unlocked":
 			var z := int(p.get("z", 0))
-			banner.show_banner("새 층", "%d층이 열렸다" % (z + 1), "아래층이 충분히 붐볐다. 이제 위로 쌓을 수 있다.", "jade", 3.0, "樓")
+			banner.show_banner("새 층", "%d층이 열렸다" % (z + 1), "레일에서 %dF를 골라 칠한다." % (z + 1), "jade", 2.4, "樓")
 			refresh_soon()
 		"power_changed":
 			if bool(p.get("on", false)):
@@ -398,7 +398,7 @@ func _on_event(n: String, p: Dictionary) -> void:
 		"goal_done":
 			_on_goal_done(p)
 		"research_done":
-			banner.show_banner("연구 끝", str(p.get("name", "")), "성채 › 연구에서 다음 것을 고른다.", "jade", 2.4, "學")
+			banner.show_banner("연구 끝", str(p.get("name", "")), "성채 › 연구에서 다음 것을 고른다.", "jade", 2.0, "學")
 			_badge_keep += 1
 			nav.set_badge("keep", _badge_keep)
 		"raid":
@@ -408,7 +408,7 @@ func _on_event(n: String, p: Dictionary) -> void:
 				for it: Variant in UI.to_array(UI.to_dict(cat).get("items", [])):
 					if it is Dictionary and str(it.get("id", "")) == nm:
 						nm = str(it.get("name", nm))
-			banner.show_banner("단속", "%s 닫혔다" % UI.josa(nm, "가", "이"), "벌금 ₩%s. 이틀 뒤 다시 연다. 뒷돈 정책이 위험을 늦춘다." % UI.num(float(p.get("fine", 0))), "red", 3.0, "警")
+			banner.show_banner("단속", "%s 닫혔다" % UI.josa(nm, "가", "이"), "벌금 ₩%s. 이틀 뒤 다시 연다. 뒷돈 정책이 위험을 늦춘다." % UI.num(float(p.get("fine", 0))), "red", 2.6, "警")
 		"raid_end":
 			toast("단속이 풀렸다. 닫혔던 곳이 다시 연다.", "good")
 		"contract_done":
@@ -499,13 +499,10 @@ static func goal_tip(id: String) -> Dictionary:
 	return {}
 
 
-## 목표 달성: 현수막(보상) → 토스트(다음 목표). 오프닝이 도는 중이면 현수막만 짧게(대사를 덮지 않게).
+## 목표 달성: 카드 하나(보상 + 같은 순간 열린 건물) → 토스트(다음 목표). 해금 이벤트와 0.3초 안에 모아 합친다.
 func _on_goal_done(p: Dictionary) -> void:
-	var rw: Array = []
-	for r: Variant in UI.to_array(p.get("rewards", [])):
-		rw.append(str(r))
-	var title := ("보상 " + " · ".join(rw)) if not rw.is_empty() else "해냈다"
-	banner.show_banner("목표 달성", title, str(p.get("text", "")), "jade", 1.8 if tutorial.running else 2.6, "成")
+	_goal_pending.append(p)
+	_celebrate_soon()
 	_after_goal.call_deferred()
 
 
@@ -526,23 +523,53 @@ func replay_tutorial() -> void:
 var _unlock_pending: Array = []
 
 
-func _flush_unlocks() -> void:
-	var ps := _unlock_pending.duplicate()
-	_unlock_pending.clear()
-	if ps.size() == 1:
-		_banner_unlock(ps[0])
+var _goal_pending: Array = []
+var _celebrate_armed := false
+
+
+func _celebrate_soon() -> void:
+	if _celebrate_armed:
 		return
+	_celebrate_armed = true
+	get_tree().create_timer(0.3).timeout.connect(_flush_celebrate)
+
+
+func _unlock_name(q: Variant) -> String:
+	var id := str(UI.to_dict(q).get("id", ""))
+	var nm := str(UI.to_dict(q).get("name", id))
+	if nm == id:
+		for cat: Variant in Q.list("build_menu"):
+			for it: Variant in UI.to_array(UI.to_dict(cat).get("items", [])):
+				if it is Dictionary and str(it.get("id", "")) == id:
+					nm = str(it.get("name", id))
+	return nm
+
+
+## 모인 목표·해금을 카드로: 목표마다 한 장(마지막 목표에 해금을 싣는다), 목표가 없으면 해금 한 장.
+func _flush_celebrate() -> void:
+	_celebrate_armed = false
+	var goals := _goal_pending.duplicate()
+	var ps := _unlock_pending.duplicate()
+	_goal_pending.clear()
+	_unlock_pending.clear()
 	var names: Array = []
 	for q: Variant in ps:
-		var id := str(UI.to_dict(q).get("id", ""))
-		var nm := str(UI.to_dict(q).get("name", id))
-		if nm == id:
-			for cat: Variant in Q.list("build_menu"):
-				for it: Variant in UI.to_array(UI.to_dict(cat).get("items", [])):
-					if it is Dictionary and str(it.get("id", "")) == id:
-						nm = str(it.get("name", id))
-		names.append(nm)
-	banner.show_banner("새로 지을 수 있다 · %d가지" % names.size(), " · ".join(names), "[짓기]에서 찾는다.", "gold", 3.0, "新")
+		names.append(_unlock_name(q))
+	for gi in goals.size():
+		var g: Dictionary = UI.to_dict(goals[gi])
+		var rw: Array = []
+		for r: Variant in UI.to_array(g.get("rewards", [])):
+			rw.append(str(r))
+		var sub := str(g.get("text", ""))
+		var title := ("보상 " + " · ".join(rw)) if not rw.is_empty() else "해냈다"
+		if gi == goals.size() - 1 and not names.is_empty():
+			title += "\n새로 지을 수 있다: " + " · ".join(names)
+			names.clear()
+		banner.show_banner("목표 달성", title, sub, "jade", 2.0 if tutorial.running else 2.4, "成")
+	if names.size() == 1:
+		_banner_unlock(ps[0])
+	elif names.size() > 1:
+		banner.show_banner("새로 지을 수 있다 · %d가지" % names.size(), " · ".join(names), "[짓기]에서 찾는다.", "gold", 2.4, "新")
 
 
 func _banner_unlock(p: Dictionary) -> void:
@@ -557,7 +584,7 @@ func _banner_unlock(p: Dictionary) -> void:
 				desc = str(it.get("effect_text", it.get("desc", "")))
 				if nm == id:
 					nm = str(it.get("name", id))
-	banner.show_banner("새로 지을 수 있다", nm, desc, "gold", 2.6, glyph.substr(0, 2))
+	banner.show_banner("새로 지을 수 있다", nm, desc, "gold", 2.2, glyph.substr(0, 2))
 
 
 func _banner_milestone(p: Dictionary) -> void:
