@@ -732,9 +732,14 @@ func _upgrades(state: CityState) -> void:
 		if mat_wait > t:
 			_block("위 계층 승급을 위해 자재를 모으는 중(T%d→T%d 보류)" % [t, t + 1])
 			continue
+		var keep_hall := false
 		for g: String in cost.get("extra", {}):
-			if float(state.stock.get(g, 0.0)) < float(cost["extra"][g]):
+			if float(state.stock.get(g, 0.0)) < float(cost["extra"][g]) + _hall_keep(state, g):
 				_buy_extra(state, g)
+				keep_hall = keep_hall or _hall_keep(state, g) > 0.0
+		if keep_hall:
+			_block("성채 회관에 쓸 %s을 남겨 둠(T%d→T%d 보류)" % ["설비 부품", t, t + 1])
+			continue
 		var r := cmd(state, "upgrade", {"bids": [int(b["id"])], "material": best})
 		if r.get("ok", false):
 			done += 1
