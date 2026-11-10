@@ -128,7 +128,7 @@ func cap_of(state: CityState, g: String) -> float:
 
 ## 시설의 인력 비율. workforce 시스템이 꺼져 있으면 1(노동 제약 없음). 일시정지·파산 정지면 0.
 func staff_of(b: Dictionary) -> float:
-	if b.get("paused", false) or b.get("money_stop", false):
+	if b.get("paused", false) or b.get("money_stop", false) or b.get("raided", false):
 		return 0.0
 	return float(b.get("staff", 0.0)) if enabled.has("workforce") else 1.0
 

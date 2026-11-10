@@ -14,6 +14,7 @@
   "production",
   "needs",
   "upgrades",
+  "vice",
   "finance",
   "alerts"
  ],
@@ -138,5 +139,15 @@
   "linger_days": 0.041666666666666664,
   "floor_cells": 12,
   "_status": "제안: 최대 4개, 조건이 꺼져도 1경제시간 유지(깜빡임 방지), 층 해금까지 12칸 이하면 알림"
+ },
+ "heat": {
+  "_status": "실험값(GDD §11, 확정: 직설 풍자 유지). 음성 시설(가동 중)마다 vice.heat/경제일을 더하고 decay_per_day로 식는다. warn에서 알림, raid에서 단속: 음성 시설 하나(가동 기여만큼의 확률)를 close_days 닫고 벌금 = max(fine_min, 그 시설 수입 × fine_days_income), 그 뒤 위험 −after_raid_drop.",
+  "decay_per_day": 6.0,
+  "warn": 50,
+  "raid": 80,
+  "close_days": 2.0,
+  "fine_min": 100,
+  "fine_days_income": 2.0,
+  "after_raid_drop": 40.0
  }
 }
