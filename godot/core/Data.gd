@@ -1,5 +1,5 @@
 extends Node
-## Data — res://data/*.json 을 파일명(확장자 제외)으로 전부 읽는다.
+## Data — res://data/**/*.json 을 파일명(확장자 제외)으로 전부 읽는다(하위 폴더 포함, 이름은 겹치면 안 된다).
 ## 파일을 추가하면 자동으로 잡힌다. 코드 수정 불필요. F5로 핫리로드(Game이 호출).
 ##
 ## 콘텐츠 파일 형식: { "_comment": "...", "items": { "<id>": { "name": "...", ... } } }
@@ -20,25 +20,37 @@ func _ready() -> void:
 func load_all() -> void:
 	files.clear()
 	errors.clear()
-	var dir := DirAccess.open(DATA_DIR)
-	if dir == null:
-		_err("data 폴더를 열 수 없음: %s" % DATA_DIR)
+	var paths: Array[String] = []
+	_scan(DATA_DIR, paths)
+	if paths.is_empty():
+		_err("data 폴더가 비었거나 열 수 없음: %s" % DATA_DIR)
 		return
-	var names: Array[String] = []
-	for f in dir.get_files():
-		if f.ends_with(".json"):
-			names.append(f)
-	names.sort()
-	for f in names:
-		var path := "%s/%s" % [DATA_DIR, f]
+	paths.sort()
+	for path in paths:
+		var key := path.get_file().get_basename()
+		if files.has(key):
+			_err("데이터 파일 이름이 겹침(폴더가 달라도 안 된다): %s" % path)
+			continue
 		var text := FileAccess.get_file_as_string(path)
 		var json := JSON.new()
 		var rc := json.parse(text)
 		if rc != OK:
-			_err("%s:%d JSON 오류: %s" % [f, json.get_error_line(), json.get_error_message()])
+			_err("%s:%d JSON 오류: %s" % [path, json.get_error_line(), json.get_error_message()])
 			continue
-		files[f.get_basename()] = json.data
+		files[key] = json.data
 	reloaded.emit()
+
+
+## data/ 아래를 하위 폴더까지 훑어 *.json 경로를 모은다.
+func _scan(dir_path: String, out: Array[String]) -> void:
+	var dir := DirAccess.open(dir_path)
+	if dir == null:
+		return
+	for f in dir.get_files():
+		if f.ends_with(".json"):
+			out.append("%s/%s" % [dir_path, f])
+	for d in dir.get_directories():
+		_scan("%s/%s" % [dir_path, d], out)
 
 
 ## 파일 루트 통째로. 없으면 빈 Dictionary.

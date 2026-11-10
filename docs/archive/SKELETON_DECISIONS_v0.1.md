@@ -1,3 +1,5 @@
+> **SUPERSEDED (2026-11-11)** — 분재(자동 성장) 시기의 문서. 현재 기준이 아니다. 지금 기준은 `docs/DESIGN_RESET.md`(오너 브리프) → `docs/DECISIONS.md` → `docs/GDD.md` v0.3.
+
 # 구룡성채 — Godot 골격에서 Claude가 임의로 정한 것들 (승인 요청)
 
 > 2026-11-10, 작업 배치 B(Godot 골격). DECISIONS.md에 없어서 골격을 돌리기 위해 Claude가 **임시로** 정한 항목 전부다.

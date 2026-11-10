@@ -1,3 +1,5 @@
+> **SUPERSEDED (2026-11-11)** — 분재(자동 성장) 시기의 문서. 현재 기준이 아니다. 지금 기준은 `docs/DESIGN_RESET.md`(오너 브리프) → `docs/DECISIONS.md` → `docs/GDD.md` v0.3.
+
 # 구룡성채 — 디렉터 방향서 (v0.2, 2026-11-10)
 
 > 이 문서는 **디렉터(Claude)가 내린 판단**이다. Jin이 직접 고른 것은 `DECISIONS.md`, 내가 정한 것은 여기.
