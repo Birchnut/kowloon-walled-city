@@ -1252,13 +1252,14 @@ func _big_sign(lft: Vector3i, d: int, c: Dictionary, rec: Dictionary, seed_v: in
 	var u0 := 1.0 - bw * 0.5    # 두 칸 폭(0..2)의 가운데
 	var v0 := 1.0 - bh - 0.02
 	if kind == "hall":
-		v0 = 0.98 - bh
+		v0 = 0.5 - bh * 0.5   # 회관: 붉은 기둥 사이, 처마 아래 가운데
 	var board := Color("#3a2a3e") if neon_style else (Color("#b0303a") if kind == "hall" else Color("#f4ecd8"))
 	var tcol := col if neon_style else (Color("#f2d27a") if kind == "hall" else Color("#c2463c"))
 	var tk := MeshBuf.K_NEON if neon_style else MeshBuf.K_PLAIN
 	var rnd := float(seed_v % 991) / 991.0
 	# 판(조금 내밀어 단다)
-	fbox(lft, d, u0, u0 + bw, v0, v0 + bh, 0.0, 0.08, tile("white"), tile("white"), board, 31)
+	var wo := 0.0 if kind != "hall" else 0.0
+	fbox(lft, d, u0, u0 + bw, v0, v0 + bh, wo, wo + 0.08, tile("white"), tile("white"), board, 31)
 	if neon_style:
 		fbox(lft, d, u0 - 0.03, u0 + bw + 0.03, v0 - 0.03, v0, 0.0, 0.09, tile("white"), tile("white"), col, 15, rnd, MeshBuf.K_NEON)
 		fbox(lft, d, u0 - 0.03, u0 + bw + 0.03, v0 + bh, v0 + bh + 0.03, 0.0, 0.09, tile("white"), tile("white"), col, 15, rnd, MeshBuf.K_NEON)

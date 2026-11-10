@@ -148,9 +148,20 @@ static func build(preset: String, seed_v: int = 1, grid: Vector3i = Vector3i(12,
 	var tiers: Array = cfg["tiers"]
 	# ── 4. 2×2 시설
 	for ty in cfg["f2"]:
-		for attempt in 60:
+		for attempt in 80:
+			# 바깥쪽(앞면이 보이는 자리)을 먼저 찾는다
 			var ox := 1 + r.i(gw - 3)
 			var oy := 1 + r.i(gh - 3)
+			if attempt < 50:
+				match r.i(4):
+					0:
+						ox = 0
+					1:
+						ox = gw - 2
+					2:
+						oy = 0
+					_:
+						oy = gh - 2
 			var oz := 0 if r.f() < 0.75 else 1
 			var ok := true
 			for dx in 2:
@@ -161,6 +172,13 @@ static func build(preset: String, seed_v: int = 1, grid: Vector3i = Vector3i(12,
 			if not ok:
 				continue
 			var o := Vector3i(ox, oy, oz)
+			if ty == "landmark_hall":
+				# 회관은 꼭대기: 위를 비운다(지붕이 보이게)
+				for dx in 2:
+					for dy in 2:
+						for z2 in range(oz + 1, max_h + 1):
+							occ.erase(Vector3i(ox + dx, oy + dy, z2))
+						hmap[Vector2i(ox + dx, oy + dy)] = oz + 1
 			for dx in 2:
 				for dy in 2:
 					var q2 := Vector3i(ox + dx, oy + dy, oz)
@@ -175,6 +193,11 @@ static func build(preset: String, seed_v: int = 1, grid: Vector3i = Vector3i(12,
 			for attempt in 40:
 				var x := r.i(gw)
 				var y := r.i(gh)
+				if attempt < 25 and r.f() < 0.7:
+					if r.f() < 0.5:
+						x = [0, gw - 1][r.i(2)]
+					else:
+						y = [0, gh - 1][r.i(2)]
 				var z := 0 if r.f() < 0.7 else r.i(maxi(int(hmap[Vector2i(x, y)]), 1))
 				var q := Vector3i(x, y, z)
 				var form := ""
@@ -182,6 +205,9 @@ static func build(preset: String, seed_v: int = 1, grid: Vector3i = Vector3i(12,
 					# 열린 것들은 기둥 꼭대기에(위에 아무것도 없게)
 					z = int(hmap[Vector2i(x, y)])
 					if z >= max_h:
+						continue
+					var below: Dictionary = s.cells.get(Vector3i(x, y, z - 1), {})
+					if z > 0 and (str(occ.get(Vector3i(x, y, z - 1), "")) != "cell" or str(below.get("kind", "house")) == "facility"):
 						continue
 					q = Vector3i(x, y, z)
 					form = "top"

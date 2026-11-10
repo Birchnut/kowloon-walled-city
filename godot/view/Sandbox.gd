@@ -142,6 +142,11 @@ func _process(_dt: float) -> void:
 		var f := FileAccess.open(str(_args["save_state"]), FileAccess.WRITE)
 		if f:
 			f.store_string(JSON.stringify(Game.state.to_dict()))
+	if _args.has("list") and _frame == 3:
+		for bid in Game.state.buildings:
+			var b: Dictionary = Game.state.buildings[bid]
+			if str(b.get("kind", "")) == "facility":
+				print("FAC ", b.get("type"), " ", b.get("pos"), " size ", b.get("size"), " active ", b.get("active"))
 	if _args.has("apitest") and _frame == 4:
 		_apitest()
 	if _args.has("perf") and _frame == 6:
