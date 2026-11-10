@@ -1,20 +1,128 @@
 {
-  "_comment": "전역 설정. 수치는 전부 플레이스홀더 — 플레이하며 튠한다. systems = 켜진 규칙 묶음(순서대로 실행). 하나를 지우면 그 규칙이 없는 게임이 된다.",
-  "grid": { "width": 12, "height": 12, "max_floors": 10, "gate": [5, 11], "_gate": "대문이 있는 기둥(x,y). 가게는 대문 쪽 저층을 좋아한다." },
-  "time": {
-    "seconds_per_game_day": 600,
-    "start_hour": 6,
-    "offline_game_hours_per_real_hour": 3,
-    "offline_max_real_hours": 24,
-    "_offline": "미접속 실제 1시간 = 도시 3시간. 최대 실제 24시간(= 도시 3일)까지만 쌓인다."
-  },
-  "seed": 0,
-  "pace": {
-    "_comment": "전체 속도 다이얼. 지금은 '30 도시일에 빽빽한 성채' 기준(MVP 확인용). 실제 한 달 페이스는 여기서 낮춘다.",
-    "growth_mult": 1.0,
-    "inflow_mult": 1.0,
-    "economy_mult": 1.0
-  },
-  "systems": ["clock", "plots", "policy", "utilities", "inflow", "care", "economy", "growth", "collection", "meters", "unlocks", "cards", "identity"],
-  "debug": { "enabled": true }
+ "_comment": "전역 설정. 단위: 시간 = 경제일(1경제일 = 접속 중 실제 600초), 돈 = ₩, 거리 = 칸. status: 키마다 _status. systems = 켜진 규칙 묶음(이 순서로 매 스텝 실행). 하나를 지워도 게임은 돈다.",
+ "status": "제안",
+ "systems": [
+  "progression",
+  "space",
+  "contracts",
+  "workforce",
+  "utilities",
+  "production",
+  "needs",
+  "upgrades",
+  "finance"
+ ],
+ "grid": {
+  "width": 12,
+  "height": 12,
+  "max_floors": 10,
+  "_status": "확정(12×12, 최대 10층)"
+ },
+ "time": {
+  "seconds_per_day": 600,
+  "_seconds_per_day": "확정: 하루 10분",
+  "step_days": 0.020833333333333332,
+  "_step_days": "고정 스텝 = 1/48 경제일(실제 12.5초). 제안",
+  "start_hour": 6,
+  "offline_speed": 0.25,
+  "offline_max_real_hours": 8,
+  "_offline": "B 파트가 구현. 확정: 느리게 + 보호(최대 8시간). 0.25배속은 실험값"
+ },
+ "start": {
+  "_status": "실험값. 세 계열 자재 12씩(GDD §8)",
+  "money": 600,
+  "stock": {
+   "wood": 12,
+   "metal": 12,
+   "concrete": 12,
+   "scrap": 30,
+   "veg": 30
+  }
+ },
+ "distance": {
+  "vertical_weight": 2,
+  "max_floor_delta": 2,
+  "_status": "실험값: |dx|+|dy|+2|dz|, 층 차 최대 2. 2×2는 가장 가까운 칸"
+ },
+ "floors": {
+  "threshold": 0.8,
+  "_threshold": "확정 80%",
+  "eligible_cells": 144,
+  "support_cost": 0,
+  "_support_cost": "실험값: 골조 공짜",
+  "_used": "쓰이는 칸 = 주민 1명 이상인 주거 + 완공 시설(2×2는 4칸). 빈 판잣집·공사장·골조만 있는 칸은 0. 제안"
+ },
+ "zone": {
+  "shack_cost": 5,
+  "_status": "실험값: 판잣집 한 칸 ₩"
+ },
+ "storage": {
+  "_status": "실험값(디렉터 수정 2): 소비재·원료 200 + 창고당 300, 건축자재 200 + 창고당 200 — 상품별 한도",
+  "goods_base": 200,
+  "goods_per_warehouse": 300,
+  "material_base": 200,
+  "material_per_warehouse": 200
+ },
+ "population": {
+  "_status": "실험값",
+  "move_in_per_day": 8,
+  "_move_in": "주거 하나에 경제일당 들어오는 주민(행복 50 기준, 행복 100이면 1.5배)",
+  "move_out_per_day": 2,
+  "_move_out": "유예가 끝난 뒤 경제일당 떠나는 주민",
+  "grace_days": 3,
+  "_grace": "확정 구조(충분한 유예) · 3경제일은 실험값",
+  "ok_ratio": 0.9,
+  "_ok_ratio": "이 비율 이상이면 수요 '충족'",
+  "short_recover_mult": 2.0,
+  "_short_recover": "충족되면 부족 일수가 이 배속으로 줄어든다",
+  "advance_tax_bonus": 0.1,
+  "luxury_tax_bonus": 0.15,
+  "happiness_base": 50,
+  "happiness_per_luxury": 12,
+  "happiness_basic_short": -5,
+  "noise_penalty": 6,
+  "tax_mult_min": 0.85,
+  "tax_mult_max": 1.15
+ },
+ "workforce": {
+  "_status": "제안: 우선순위 순서로 채우고, 같은 순위 안에서는 비율로",
+  "priority": [
+   "utility",
+   "service",
+   "food",
+   "goods",
+   "other",
+   "vice"
+  ],
+  "service_off": 0.5,
+  "service_on": 0.6
+ },
+ "finance": {
+  "ledger_days": 14,
+  "broke_resume_days": 1.0,
+  "_broke": "파산(돈 0)으로 멈춘 시설은 유지비 1일치가 모이면 다시 켠다"
+ },
+ "contracts": {
+  "base_slots": 0,
+  "slots_per_post": 2,
+  "first_delay_h": 1,
+  "_status": "실험값"
+ },
+ "upgrade": {
+  "waiting_days": 3,
+  "_status": "제안(GDD §3.3): 대기 3경제일"
+ },
+ "debug": {
+  "enabled": true
+ },
+ "confirmed": {
+  "tier_caps": [
+   4,
+   8,
+   12,
+   8,
+   6
+  ],
+  "_status": "확정 값의 검증 기준. 실험 브랜치에서 정원을 바꾸려면 여기도 같이 바꾼다(의도적 변경만)."
+ }
 }

@@ -1,0 +1,186 @@
+{
+ "_comment": "해금 단계. cond = Expr 조건(지표: pop.t1..t5 = 계층 인구(대기 포함), count.<시설 id> = 완공 수, money, day). 한 번 열리면 닫히지 않는다(제안 A8). grade_name/title이 있으면 그 단계에서 성채 등급·호칭이 바뀐다(milestone = order). features = B 파트가 읽는 기능 해금(정책 칸 등).",
+ "status": "제안(GDD §9)",
+ "items": {
+  "start": {
+   "order": 0,
+   "cond": [],
+   "unlocks": [
+    "house",
+    "stall",
+    "rain_catcher",
+    "garden",
+    "expedition_base",
+    "shrine",
+    "warehouse"
+   ],
+   "grade_name": "공터",
+   "title": "대장"
+  },
+  "t1_20": {
+   "order": 1,
+   "cond": [
+    [
+     "pop.t1",
+     ">=",
+     20
+    ]
+   ],
+   "unlocks": [
+    "noodle_mill",
+    "candle_shop",
+    "trade_post"
+   ],
+   "grade_name": "판자촌"
+  },
+  "t1_50": {
+   "order": 2,
+   "cond": [
+    [
+     "pop.t1",
+     ">=",
+     50
+    ]
+   ],
+   "unlocks": [
+    "tailor",
+    "distillery",
+    "teahouse",
+    "water_tower",
+    "scrapyard"
+   ]
+  },
+  "t2_1": {
+   "order": 3,
+   "cond": [
+    [
+     "pop.t2",
+     ">=",
+     1
+    ]
+   ],
+   "unlocks": [
+    "market2",
+    "soap_shop",
+    "dentist",
+    "mahjong"
+   ],
+   "grade_name": "골목",
+   "title": "통장"
+  },
+  "t2_60": {
+   "order": 4,
+   "cond": [
+    [
+     "pop.t2",
+     ">=",
+     60
+    ]
+   ],
+   "unlocks": [
+    "fishball_factory",
+    "bathhouse",
+    "generator",
+    "gambling_den",
+    "study"
+   ],
+   "features": [
+    "policy_slot_1"
+   ]
+  },
+  "t3_1": {
+   "order": 5,
+   "cond": [
+    [
+     "pop.t3",
+     ">=",
+     1
+    ]
+   ],
+   "unlocks": [
+    "market3",
+    "radio_shop",
+    "karaoke",
+    "water_ext",
+    "power_ext"
+   ],
+   "grade_name": "성채",
+   "title": "성주"
+  },
+  "t3_100": {
+   "order": 6,
+   "cond": [
+    [
+     "pop.t3",
+     ">=",
+     100
+    ]
+   ],
+   "unlocks": [
+    "power_plant",
+    "water_plant",
+    "suit_shop",
+    "fake_shop",
+    "callcenter"
+   ],
+   "features": [
+    "policy_slot_2"
+   ]
+  },
+  "t4_1": {
+   "order": 7,
+   "cond": [
+    [
+     "pop.t4",
+     ">=",
+     1
+    ]
+   ],
+   "unlocks": [
+    "market4",
+    "assembly",
+    "casino",
+    "fireworks",
+    "roof_garden"
+   ],
+   "grade_name": "구룡",
+   "title": "회장"
+  },
+  "t4_60": {
+   "order": 8,
+   "cond": [
+    [
+     "pop.t4",
+     ">=",
+     60
+    ]
+   ],
+   "unlocks": [
+    "city_hall",
+    "chp"
+   ],
+   "features": [
+    "policy_slot_3"
+   ]
+  },
+  "t5_40": {
+   "order": 9,
+   "cond": [
+    [
+     "pop.t5",
+     ">=",
+     40
+    ],
+    [
+     "count.city_hall",
+     ">=",
+     1
+    ]
+   ],
+   "unlocks": [],
+   "grade_name": "구룡성채",
+   "title": "따거",
+   "final": true
+  }
+ }
+}
