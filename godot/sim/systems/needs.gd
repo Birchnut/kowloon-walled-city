@@ -355,6 +355,8 @@ class Ent:
 	var fast: bool = false       # stable이고 prefer 판정이 없다 → 주거가 그대로면 바로 재사용
 	var skip: PackedInt32Array = PackedInt32Array()   # 이번 스텝에 2단계를 건너뛸 수 있는 후보 주거(순번)
 	var skip_r: float = 0.0
+	var hr0: float = 0.0         # 2단계 뒤 주민 수 합(주민 0명으로 시작한 주거 / 1명 이상) — 도시 행복 평균용
+	var hr1: float = 0.0
 	var dem_id: int = -1         # 같은 소비 묶음(dem)끼리 주민 합을 모은다
 	var p2: Array = [null, null] # 주민 0 / 1명 이상일 때의 2단계 결과
 	var deps: PackedInt32Array = PackedInt32Array()   # 기댄 환경 칸(_env 순번)
@@ -597,6 +599,8 @@ func tick(state: CityState, dt: float) -> void:
 		e.listed = false
 		e.skip.clear()
 		e.skip_r = 0.0
+		e.hr0 = 0.0
+		e.hr1 = 0.0
 	_stepno += 1
 	var fills: Dictionary = state.flags.get("fill", {})
 	_env.resize(_ngoods.size() + 2)
@@ -713,9 +717,16 @@ func tick(state: CityState, dt: float) -> void:
 	var dsum := PackedFloat64Array()
 	dsum.resize(_dems.size())
 	dsum.fill(0.0)
+	var dorder := PackedInt32Array()   # 주거 순서로 처음 나온 소비 묶음 순서(캐시 이력과 무관 → 결정론)
+	var seen := PackedByteArray()
+	seen.resize(_dems.size())
+	seen.fill(0)
 	for e: Ent in used:
 		dsum[e.dem_id] += e.rsum
-	for di: int in _dems.size():
+		if seen[e.dem_id] == 0:
+			seen[e.dem_id] = 1
+			dorder.append(e.dem_id)
+	for di: int in dorder:
 		if dsum[di] <= 0.0:
 			continue
 		var dd: Dictionary = _dems[di]
@@ -723,7 +734,9 @@ func tick(state: CityState, dt: float) -> void:
 			demand[g] = float(demand.get(g, 0.0)) + dsum[di] * float(dd[g]) * dt
 	var fill := {}
 	var fills_saved := {}
-	for g: String in demand:
+	for g: String in _ngoods:     # 상품 순서를 데이터 순서로 고정(묶음 캐시 이력과 무관하게 같은 순서 → 저장·불러오기 결정론)
+		if not demand.has(g):
+			continue
 		var dmd: float = demand[g]
 		var have := float(state.stock.get(g, 0.0))
 		var f := 1.0 if have >= dmd else have / dmd
@@ -749,8 +762,7 @@ func tick(state: CityState, dt: float) -> void:
 			continue
 		var pp: P2 = e.p2[1]
 		if pp != null and ((pp.vstep == sn and pp.vok) or _p2valid(pp, fill, state)):
-			hap_sum += pp.hp * e.skip_r
-			hap_w += e.skip_r
+			e.hr1 += e.skip_r
 			dbg_slow += e.skip.size()
 		else:
 			todo2.append_array(e.skip)
@@ -839,8 +851,10 @@ func tick(state: CityState, dt: float) -> void:
 				state.flags["left_today"] = lt
 		# 세수(₩/경제일)
 		b["tax"] = float(res) * p.taxk
-		hap_sum += hp * float(res)
-		hap_w += float(res)
+		if rpos:
+			e.hr1 += float(res)
+		else:
+			e.hr0 += float(res)
 		var ns := "bad" if bad else ("warn" if p.any_unmet else "ok")
 		var upg: Variant = b.get("upgrading")
 		var ready: bool = res >= cap and p.basic_all and p.adv_all and upg == null and bool(_has_up.get(t, false))
@@ -854,6 +868,13 @@ func tick(state: CityState, dt: float) -> void:
 			b["upgradable"] = up
 			b["ready"] = ready
 			state.emit("building_changed", {"bid": int(b["id"])})
+	# 도시 행복 = 주민 가중 평균. 묶음 순서(주거 순서로 처음 나온 순)로 더해 건너뛰기 여부와 무관하게 같은 값.
+	for e: Ent in used:
+		for k: int in 2:
+			var w := e.hr0 if k == 0 else e.hr1
+			if w > 0.0:
+				hap_sum += (e.p2[k] as P2).hp * w
+				hap_w += w
 	state.happiness = hap_sum / hap_w if hap_w > 0.0 else 50.0
 
 

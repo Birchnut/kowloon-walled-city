@@ -8,7 +8,7 @@ extends SimSystem
 ##  내부 판매는 세수에 이미 들어 있으므로 매출로 따로 잡지 않는다(이중 수입 금지).
 ## 끄면: 세수·유지비가 없다(금고는 건설·교역으로만 움직인다).
 
-const LINES := ["tax", "upkeep", "import", "export", "build", "vice"]
+const LINES := ["tax", "upkeep", "import", "export", "build", "vice", "reward", "fine"]
 
 
 func tick(state: CityState, dt: float) -> void:
@@ -83,7 +83,7 @@ func on_day_end(state: CityState, ended: int) -> void:
 	state.ledger["today"] = {}
 
 
-const LINE_NAME := {"tax": "세수", "upkeep": "유지비", "import": "수입(교역)", "export": "수출(교역)", "build": "건설·승급", "vice": "음성 수입"}
+const LINE_NAME := {"tax": "세수", "upkeep": "유지비", "import": "수입(교역)", "export": "수출(교역)", "build": "건설·승급", "vice": "음성 수입", "reward": "목표 보상", "fine": "벌금·뒷돈"}
 
 
 func augment(state: CityState, name: String, _args: Dictionary, out: Variant) -> void:
@@ -117,6 +117,10 @@ func augment(state: CityState, name: String, _args: Dictionary, out: Variant) ->
 			avg[l] = snappedf(s / float(maxi(1, days.size())), 0.1)
 			lines.append({"id": l, "name": LINE_NAME[l], "amount": avg[l]})
 		var net := 0.0
+		var tnet := 0.0
 		for l: String in LINES:
 			net += float(avg[l])
+			tnet += float(t[l])
+		avg["net"] = snappedf(net, 0.1)
+		t["net"] = snappedf(tnet, 0.1)
 		out["finance"] = {"today": t, "avg": avg, "lines": lines, "net": snappedf(net, 0.1), "days": days.size()}

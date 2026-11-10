@@ -308,6 +308,7 @@ func _claim(state: CityState, args: Dictionary) -> Dictionary:
 		t["state"] = "idle"
 		t["reward"] = {}
 		t["finds"] = []
+		state.stat_add("exp_claims_" + str(_dest(str(t["dest"])).get("band", "near")), 1.0)
 		t["dest"] = ""
 		claimed += 1
 		state.stat_add("exp_claims", 1.0)

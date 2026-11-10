@@ -2,7 +2,8 @@ class_name Metrics
 extends RefCounted
 ## Metrics — 상태에서 이름 붙은 숫자를 뽑는다(해금 조건식·봇·리포트 공용). 규칙 없음, 읽기만.
 ## 이름: day, money, pop, pop.t1..t5(대기 주민 포함), houses.t1..t5, full.t1..t5, count.<시설 id>(완공),
-##       sites, stock.<상품>, floors, happiness, power.supply, water.supply
+##       sites, stock.<상품>, floors, happiness, power.supply, water.supply, contracts, research.done, policies.on, heat,
+##       stat.<state.stats 키>(예: stat.exp_sent, stat.exp_claims, stat.exp_claims_mid/far)
 
 
 static func compute(sim: Sim, state: CityState) -> Dictionary:
@@ -43,4 +44,16 @@ static func compute(sim: Sim, state: CityState) -> Dictionary:
 		m["stock." + g] = float(state.stock[g])
 	for u: String in ["water", "power"]:
 		m[u + ".supply"] = float(state.util.get(u, {}).get("supply", 0.0))
+	m["contracts"] = float(state.contracts.size())
+	m["research.done"] = float(state.research.get("done", {}).size())
+	var pol := 0.0
+	for p: String in state.policies:
+		if state.policies[p]:
+			pol += 1.0
+	m["policies.on"] = pol
+	m["heat"] = state.heat
+	for k: String in state.stats:
+		var v: Variant = state.stats[k]
+		if v is float or v is int:
+			m["stat." + k] = float(v)
 	return m
