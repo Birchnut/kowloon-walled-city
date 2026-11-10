@@ -1,11 +1,27 @@
 {
-  "_comment": "가구 유형. 누가 오느냐가 도시를 정한다.",
+  "_comment": "가구 유형. 누가 오느냐가 도시를 정한다. 수치(플레이스홀더): size=[최소,최대] 식구, works=일할 수 있나, eat=1인당 하루 식량, dues=하루에 내는 돈(일이 있을 때만), pull=하루에 오는 가구 수를 정하는 가중합(base + Σ 지표×가중치[, 상한]), job_pref=업종별 일자리 선호, sun=볕 드는 집을 얼마나 따지나, family=가족 단위인 정도(돌봄 정책 반응), kin_leave=딸린 식구가 쫓겨나면 같이 떠날 확률.",
   "items": {
-    "laborer":   { "name": "일꾼",   "desc": "시키는 일은 한다. 일터만 있으면 온다." },
-    "farmer":    { "name": "농사꾼", "desc": "흙과 볕을 찾아온다." },
-    "artisan":   { "name": "기술자", "desc": "손재주가 밥줄. 전기와 자재를 따진다." },
-    "merchant":  { "name": "장사꾼", "desc": "사람 많은 곳에 좌판을 편다." },
-    "hustler":   { "name": "건달",   "desc": "돈 냄새와 느슨한 단속을 좋아한다." },
-    "dependent": { "name": "갈 곳 없는 사람", "desc": "노인, 병자, 아이. 지금은 일을 못 한다." }
+    "laborer":   { "name": "일꾼",   "desc": "시키는 일은 한다. 일터만 있으면 온다.",
+                   "size": [1, 2], "works": true, "eat": 1.0, "dues": 0.9, "sun": 0.3, "family": 0.2, "kin_leave": 0.15,
+                   "pull": { "base": 0.25, "terms": [["jobs_open", 0.12, 3.0], ["permit_level.make", 0.25], ["policy.intake.workers", 0.5]] },
+                   "job_pref": { "make": 3, "farm": 1, "fun": 1, "vice": 1, "public": 2 } },
+    "farmer":    { "name": "농사꾼", "desc": "흙과 볕을 찾아온다.",
+                   "size": [2, 4], "works": true, "eat": 1.0, "dues": 0.8, "sun": 1.0, "family": 0.9, "kin_leave": 0.6,
+                   "pull": { "base": 0.0, "terms": [["permit_level.farm", 0.35], ["jobs_open.farm", 0.3, 2.0], ["policy.look.green", 0.6], ["policy.material.wood", 0.3], ["prestige", 0.012], ["sun_housing", 0.5], ["notoriety", -0.012]] },
+                   "job_pref": { "farm": 4, "public": 2, "make": 1, "fun": 1, "vice": 0 } },
+    "artisan":   { "name": "기술자", "desc": "손재주가 밥줄. 전기와 자재를 따진다.",
+                   "size": [2, 3], "works": true, "eat": 1.0, "dues": 1.3, "sun": 0.5, "family": 0.7, "kin_leave": 0.5,
+                   "pull": { "base": 0.0, "terms": [["permit_level.make", 0.3], ["jobs_open.make", 0.25, 2.0], ["power_level", 0.35], ["policy.material.sheet", 0.3], ["policy.material.masonry", 0.4], ["policy.invest.utility", 0.3], ["prestige", 0.008]] },
+                   "job_pref": { "make": 4, "public": 2, "fun": 1, "farm": 1, "vice": 1 } },
+    "merchant":  { "name": "장사꾼", "desc": "사람 많은 곳에 좌판을 편다.",
+                   "size": [1, 3], "works": true, "eat": 1.0, "dues": 1.2, "sun": 0.3, "family": 0.5, "kin_leave": 0.3,
+                   "pull": { "base": 0.0, "terms": [["permit_level.fun", 0.35], ["jobs_open.fun", 0.25, 2.0], ["population", 0.002, 1.2], ["policy.look.neon", 0.7], ["prestige", 0.008], ["notoriety", 0.006]] },
+                   "job_pref": { "fun": 4, "vice": 2, "make": 1, "farm": 1, "public": 1 } },
+    "hustler":   { "name": "건달",   "desc": "돈 냄새와 느슨한 단속을 좋아한다.",
+                   "size": [1, 1], "works": true, "eat": 1.0, "dues": 1.5, "sun": 0.0, "family": 0.0, "kin_leave": 0.02,
+                   "pull": { "base": -0.2, "terms": [["permit_level.vice", 0.6], ["jobs_open.vice", 0.4, 3.0], ["notoriety", 0.03, 2.0], ["alley_fund", 0.004, 1.5], ["permit_level.fun", 0.1], ["count.watch_post", -0.3]] },
+                   "job_pref": { "vice": 4, "fun": 2, "make": 0, "farm": 0, "public": 0 } },
+    "dependent": { "name": "갈 곳 없는 사람", "desc": "노인, 병자, 아이. 지금은 일을 못 한다.",
+                   "size": [1, 2], "works": false, "eat": 0.8, "dues": 0.0, "sun": 0.6, "family": 1.0, "kin_leave": 0.0 }
   }
 }

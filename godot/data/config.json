@@ -1,8 +1,20 @@
 {
-  "_comment": "전역 설정. 수치는 전부 플레이스홀더 — 플레이하며 튠한다.",
-  "grid": { "width": 12, "height": 12, "max_floors": 10 },
-  "time": { "seconds_per_game_day": 600, "start_hour": 6, "offline_max_days": 3 },
+  "_comment": "전역 설정. 수치는 전부 플레이스홀더 — 플레이하며 튠한다. systems = 켜진 규칙 묶음(순서대로 실행). 하나를 지우면 그 규칙이 없는 게임이 된다.",
+  "grid": { "width": 12, "height": 12, "max_floors": 10, "gate": [5, 11], "_gate": "대문이 있는 기둥(x,y). 가게는 대문 쪽 저층을 좋아한다." },
+  "time": {
+    "seconds_per_game_day": 600,
+    "start_hour": 6,
+    "offline_game_hours_per_real_hour": 3,
+    "offline_max_real_hours": 24,
+    "_offline": "미접속 실제 1시간 = 도시 3시간. 최대 실제 24시간(= 도시 3일)까지만 쌓인다."
+  },
   "seed": 0,
-  "systems": [],
+  "pace": {
+    "_comment": "전체 속도 다이얼. 지금은 '30 도시일에 빽빽한 성채' 기준(MVP 확인용). 실제 한 달 페이스는 여기서 낮춘다.",
+    "growth_mult": 1.0,
+    "inflow_mult": 1.0,
+    "economy_mult": 1.0
+  },
+  "systems": ["clock", "plots", "policy", "utilities", "inflow", "care", "economy", "growth", "collection", "meters", "unlocks", "cards", "identity"],
   "debug": { "enabled": true }
 }

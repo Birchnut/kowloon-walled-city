@@ -198,22 +198,82 @@ func from_dict(d: Dictionary) -> void:
 	_fix_ints()
 
 
-## JSON 왕복 후 float가 된 정수 필드를 되돌린다(셀·가구·사업체의 알려진 정수 키).
+## JSON 왕복 후 float가 된 정수 필드를 되돌린다. 키 이름으로 판단(재귀) — 새 정수 키는 _INT_KEYS에 추가.
+const _INT_KEYS := ["id", "uid", "owner", "built_day", "seed", "size", "job", "arrived_day", "opened_day",
+	"day", "kin", "anchor", "until", "since", "point", "count", "jobs"]
+const _INT_LIST_KEYS := ["workers", "residents"]
+
+
 func _fix_ints() -> void:
-	for c in cells.values():
-		for k in ["owner", "built_day", "seed"]:
-			if c.has(k):
-				c[k] = int(c[k])
-	for coll in [households, businesses, collect_points]:
-		for e in coll.values():
-			for k in ["id", "size", "job", "arrived_day", "opened_day"]:
-				if e.has(k):
-					e[k] = int(e[k])
-			if e.has("workers"):
+	for coll: Variant in [cells, households, businesses, collect_points, pending_cards, logbook, flags, stats]:
+		_fix_ints_in(coll)
+	for k: Variant in unlocked:
+		unlocked[k] = int(unlocked[k])
+
+
+static func _fix_ints_in(v: Variant) -> void:
+	if v is Dictionary:
+		for k: Variant in v:
+			var x: Variant = v[k]
+			if x is float and k is String and k in _INT_KEYS:
+				v[k] = int(x)
+			elif x is Array and k is String and k in _INT_LIST_KEYS:
 				var w := []
-				for x in e["workers"]:
-					w.append(int(x))
-				e["workers"] = w
-	for c in pending_cards:
-		if c.has("uid"):
-			c["uid"] = int(c["uid"])
+				for e: Variant in x:
+					w.append(int(e))
+				v[k] = w
+			elif x is Dictionary or x is Array:
+				_fix_ints_in(x)
+	elif v is Array:
+		for e: Variant in v:
+			_fix_ints_in(e)
+
+
+# ------------------------------------------------------------------ JSON (SIM 추가)
+## 저장·스냅샷은 반드시 이 한 쌍으로. 키를 정렬하지 않는다(순서 = 삽입 순서 = 결정론의 일부).
+func to_json() -> String:
+	settle()
+	return JSON.stringify(to_dict(), "", false)
+
+
+func from_json(text: String) -> bool:
+	var parsed: Variant = JSON.parse_string(text)
+	if not (parsed is Dictionary):
+		return false
+	from_dict(parsed)
+	return true
+
+
+## 모든 float를 "JSON에 썼다 읽은 값"으로 제자리에서 맞춘다(15자리).
+## 이렇게 해 두면 저장 후 계속한 게임과 불러와 이어한 게임이 비트 단위로 같다.
+## Sim이 매일 자정에, Game이 저장 직전에 부른다. 컨테이너를 갈아끼우지 않으므로 뷰의 참조는 안전.
+func settle() -> void:
+	for f: String in _FIELDS:
+		var v: Variant = get(f)
+		if v is float:
+			set(f, _settle_f(v))
+		elif v is Dictionary or v is Array:
+			_settle_in(v)
+
+
+static func _settle_f(x: float) -> float:
+	if x == floorf(x) and absf(x) < 1.0e15:
+		return x
+	return float(JSON.parse_string(JSON.stringify(x)))
+
+
+static func _settle_in(v: Variant) -> void:
+	if v is Dictionary:
+		for k: Variant in v:
+			var x: Variant = v[k]
+			if x is float:
+				v[k] = _settle_f(x)
+			elif x is Dictionary or x is Array:
+				_settle_in(x)
+	elif v is Array:
+		for i: int in v.size():
+			var x: Variant = v[i]
+			if x is float:
+				v[i] = _settle_f(x)
+			elif x is Dictionary or x is Array:
+				_settle_in(x)

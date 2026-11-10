@@ -1,10 +1,15 @@
 {
-  "_comment": "자재. name=표시명, tags=명물 태그. 수치는 SIM 담당, 외형은 visuals.json(VIEW 담당).",
+  "_comment": "자재. name=표시명, tags=명물 태그. 외형은 visuals.json(VIEW 담당). 수치(플레이스홀더): cost=칸당 자재, build_hours=공사 시간, load=이 자재 위로 더 올릴 수 있는 층 수(약한 자재가 아래 깔리면 그 기둥은 낮게 멈춘다), quality=주거 품질 보정, tier=등급(보강 순서).",
   "items": {
-    "scrap":    { "name": "폐자재", "desc": "주워 온 판자, 비닐, 함석 조각. 공짜지만 오래 못 간다.", "tags": ["판자"] },
-    "wood":     { "name": "목재",   "desc": "따뜻하고 가볍다. 불에 약하다.", "tags": ["목조"] },
-    "sheet":    { "name": "함석",   "desc": "싸고 빠르다. 여름엔 찜통, 비 오면 북소리.", "tags": ["함석"] },
-    "brick":    { "name": "벽돌",   "desc": "튼튼하고 조용하다. 느리고 비싸다.", "tags": ["벽돌"] },
-    "concrete": { "name": "콘크리트", "desc": "높이 올릴 수 있다. 차갑다.", "tags": ["콘크리트"] }
+    "scrap":    { "name": "폐자재", "desc": "주워 온 판자, 비닐, 함석 조각. 공짜지만 오래 못 간다.", "tags": ["판자"],
+                  "cost": 0, "build_hours": 2, "load": 2, "quality": -1.0, "tier": 0 },
+    "wood":     { "name": "목재",   "desc": "따뜻하고 가볍다. 불에 약하다.", "tags": ["목조"],
+                  "cost": 2, "build_hours": 4, "load": 3, "quality": 1.0, "tier": 1 },
+    "sheet":    { "name": "함석",   "desc": "싸고 빠르다. 여름엔 찜통, 비 오면 북소리.", "tags": ["함석"],
+                  "cost": 2, "build_hours": 3, "load": 4, "quality": -0.3, "tier": 1 },
+    "brick":    { "name": "벽돌",   "desc": "튼튼하고 조용하다. 느리고 비싸다.", "tags": ["벽돌"],
+                  "cost": 4, "build_hours": 6, "load": 6, "quality": 1.0, "tier": 2 },
+    "concrete": { "name": "콘크리트", "desc": "높이 올릴 수 있다. 차갑다.", "tags": ["콘크리트"],
+                  "cost": 5, "build_hours": 8, "load": 12, "quality": 0.3, "tier": 3 }
   }
 }
