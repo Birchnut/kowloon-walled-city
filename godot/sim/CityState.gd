@@ -185,7 +185,7 @@ const _FIELDS := [
 const _INT_FIELDS := ["rng_seed", "rng_state", "day", "floors_unlocked", "milestone", "next_id", "clock_offset", "last_saved_unix"]
 ## JSON 왕복 후 float가 된 정수 값을 키 이름으로 되돌린다(재귀). 새 정수 키는 여기에 추가.
 const _INT_KEYS := ["id", "bid", "tier", "residents", "cap", "size", "seed", "count", "day", "visits", "to", "have",
-	"layout_rev", "milestone", "grade", "started_unix", "completes_unix", "built", "floor", "target"]
+	"layout_rev", "milestone", "grade", "started_unix", "completes_unix", "built", "floor", "target", "nsig", "sdm", "sdc"]
 
 
 func to_dict() -> Dictionary:

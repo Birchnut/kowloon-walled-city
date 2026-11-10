@@ -13,63 +13,79 @@ const U := ["water", "power"]
 
 func tick(state: CityState, _dt: float) -> void:
 	var res := {"water": 0.0, "power": 0.0}
-	for b: Dictionary in state.buildings.values():
-		if b["kind"] != "house":
+	var nt := sim.max_tier()
+	var wt := PackedFloat64Array()
+	var pt := PackedFloat64Array()
+	wt.resize(nt + 1)
+	pt.resize(nt + 1)
+	for t: int in range(1, nt + 1):
+		wt[t] = float(sim.tier(t).get("water", 0.0))
+		pt[t] = float(sim.tier(t).get("power", 0.0))
+	var rw := 0.0
+	var rp := 0.0
+	for b: Dictionary in sim.cover(state)["houses"]:
+		var ri: int = b["residents"]
+		if ri <= 0:
 			continue
-		var r := float(b["residents"])
-		if r <= 0.0:
-			continue
-		var td := sim.tier(int(b["tier"]))
-		res["water"] += r * float(td.get("water", 0.0))
-		res["power"] += r * float(td.get("power", 0.0))
+		var r := float(ri)
+		var ti: int = b["tier"]
+		rw += r * wt[ti]
+		rp += r * pt[ti]
 		var ex: Dictionary = b.get("util_extra", {})
-		for u: String in ex:
-			res[u] = float(res.get(u, 0.0)) + r * float(ex[u])
+		if not ex.is_empty():
+			for u: String in ex:
+				res[u] = float(res.get(u, 0.0)) + r * float(ex[u])
+	res["water"] += rw
+	res["power"] += rp
 	var cov := sim.cover(state)
-	var supply := {"water": 0.0, "power": 0.0}
-	var groups := {}
-	var order: Array = []
-	var fac_dem := {"water": 0.0, "power": 0.0}
-	for bid: int in cov["by_prio"]:
-		if not state.buildings.has(bid):
-			continue
-		var b: Dictionary = state.buildings[bid]
-		var d := sim.bdef(str(b["type"]))
-		var staff := sim.staff_of(b)
-		var sup: Dictionary = d.get("supply", {})
-		for u: String in sup:
+	var groups: Array = cov["groups"]
+	var sw := 0.0
+	var sp := 0.0
+	var fdw := 0.0
+	var fdp := 0.0
+	var gtw := PackedFloat64Array()
+	var gtp := PackedFloat64Array()
+	for g: Array in groups:
+		var tw := 0.0
+		var tp := 0.0
+		for f: Array in g[1]:
+			var b: Dictionary = f[0]
+			var staff := sim.staff_of(b)
 			var k := staff
-			if float(d.get("power", 0.0)) > 0.0:
+			if f[4] > 0.0:
 				k = minf(k, float(b.get("p_ratio", 0.0)))
-			supply[u] += float(sup[u]) * k
-		var p := str(d.get("priority", "other"))
-		if not groups.has(p):
-			groups[p] = []
-			order.append(p)
-		var want := {}
-		for u: String in U:
-			var amt := float(d.get(u, 0.0)) * staff
-			if amt > 0.0:
-				want[u] = amt
-				fac_dem[u] += amt
-		groups[p].append([b, want])
+			if f[1] > 0.0:
+				sw += float(f[1]) * k
+			if f[2] > 0.0:
+				sp += float(f[2]) * k
+			var aw: float = float(f[3]) * staff
+			if aw > 0.0:
+				tw += aw
+				fdw += aw
+			var ap: float = float(f[4]) * staff
+			if ap > 0.0:
+				tp += ap
+				fdp += ap
+		gtw.append(tw)
+		gtp.append(tp)
+	var supply := {"water": sw, "power": sp}
+	var fac_dem := {"water": fdw, "power": fdp}
 	var out := {}
 	for u: String in U:
 		var s: float = supply[u]
 		var rd: float = res[u]
 		var rr := 1.0 if rd <= 1e-9 else minf(1.0, s / rd)
 		var left := maxf(0.0, s - rd)
-		for p: String in order:
-			var tot := 0.0
-			for pair: Array in groups[p]:
-				tot += float(pair[1].get(u, 0.0))
+		var wi := 3 if u == "water" else 4
+		var key := "w_ratio" if u == "water" else "p_ratio"
+		var gt := gtw if u == "water" else gtp
+		for gi: int in groups.size():
+			var tot: float = gt[gi]
 			var fr := 1.0 if tot <= 1e-9 else minf(1.0, left / tot)
 			left = maxf(0.0, left - tot * fr)
-			for pair: Array in groups[p]:
-				var b: Dictionary = pair[0]
-				var d := sim.bdef(str(b["type"]))
-				if float(d.get(u, 0.0)) > 0.0:
-					b["w_ratio" if u == "water" else "p_ratio"] = fr
+			for f: Array in groups[gi][1]:
+				if float(f[wi]) > 0.0:
+					f[0][key] = fr
 		var fd: float = fac_dem[u]
 		out[u] = {"supply": s, "demand": rd + fd, "res_demand": rd, "fac_demand": fd, "res_ratio": rr,
 			"fac_ratio": 1.0 if fd <= 1e-9 else clampf((s - rd) / fd, 0.0, 1.0)}

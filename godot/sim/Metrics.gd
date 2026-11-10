@@ -8,24 +8,33 @@ extends RefCounted
 static func compute(sim: Sim, state: CityState) -> Dictionary:
 	var m := {"day": float(state.day), "econ_days": state.econ_days, "money": state.money,
 		"floors": float(state.floors_unlocked), "happiness": state.happiness, "sites": 0.0, "pop": 0.0}
-	for t: int in range(1, sim.max_tier() + 1):
-		m["pop.t%d" % t] = 0.0
-		m["houses.t%d" % t] = 0.0
-		m["full.t%d" % t] = 0.0
-	for b: Dictionary in state.buildings.values():
-		if b["kind"] == "house":
-			var t := int(b["tier"])
-			var r := float(b.get("residents", 0))
-			m["pop.t%d" % t] += r
-			m["houses.t%d" % t] += 1.0
-			if int(b["residents"]) >= int(b["cap"]):
-				m["full.t%d" % t] += 1.0
-			m["pop"] += r
-		elif b["kind"] == "facility":
-			var k := "count." + str(b["type"])
-			m[k] = float(m.get(k, 0.0)) + 1.0
-		elif b["kind"] == "site":
-			m["sites"] += 1.0
+	var nt := sim.max_tier()
+	var pop := PackedFloat64Array()
+	pop.resize(nt + 1)
+	pop.fill(0.0)
+	var hs := pop.duplicate()
+	var full := pop.duplicate()
+	var cov := sim.cover(state)
+	for b: Dictionary in cov["houses"]:
+		var t: int = b["tier"]
+		var r: int = b["residents"]
+		if t < 0 or t > nt:
+			continue
+		pop[t] += float(r)
+		hs[t] += 1.0
+		if r >= int(b["cap"]):
+			full[t] += 1.0
+	var total := 0.0
+	for t: int in range(1, nt + 1):
+		m["pop.t%d" % t] = pop[t]
+		m["houses.t%d" % t] = hs[t]
+		m["full.t%d" % t] = full[t]
+		total += pop[t]
+	m["pop"] = total
+	for b: Dictionary in cov["facs"]:
+		var k := "count." + str(b["type"])
+		m[k] = float(m.get(k, 0.0)) + 1.0
+	m["sites"] = float((cov["sites"] as Array).size())
 	for t: Variant in state.waiting:
 		var n := float(state.waiting[t].get("count", 0))
 		m["pop.t%d" % int(t)] = float(m.get("pop.t%d" % int(t), 0.0)) + n

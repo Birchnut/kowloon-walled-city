@@ -39,7 +39,7 @@ func _plan(state: CityState, args: Dictionary) -> Dictionary:
 			return {"ok": false, "reason": "주거가 아니다."}
 		if b.get("upgrading") != null:
 			return {"ok": false, "reason": "이미 승급 공사 중인 주거가 있다."}
-		if not b.get("upgradable", false):
+		if not b.get("ready", b.get("upgradable", false)):
 			return {"ok": false, "reason": "아직 승급 조건이 안 된 주거가 있다(만실 + 기본·승급 수요 충족)."}
 		var c := _cost(int(b["tier"]))
 		money += float(c.get("money", 0))
@@ -88,6 +88,7 @@ func apply(state: CityState, name: String, args: Dictionary) -> Variant:
 		var t := int(b["tier"])
 		b["upgrading"] = {"to": t + 1, "material": mat, "done_at": state.econ_days + float(_cost(t).get("days", 0.05))}
 		b["upgradable"] = false
+		b["ready"] = false
 		state.cells[b["pos"]]["scaffold"] = true
 		state.emit("cell_changed", {"pos": b["pos"]})
 		state.emit("building_changed", {"bid": bid})
@@ -97,11 +98,12 @@ func apply(state: CityState, name: String, args: Dictionary) -> Variant:
 
 # ------------------------------------------------------------------ 틱: 공사 완료 · 대기 주민
 func tick(state: CityState, dt: float) -> void:
-	for bid: int in state.buildings.keys():
-		var b: Dictionary = state.buildings[bid]
-		if b["kind"] == "house" and b.get("upgrading") != null and state.econ_days + 1e-9 >= float(b["upgrading"]["done_at"]):
+	for b: Dictionary in sim.cover(state)["houses"]:
+		var up: Variant = b.get("upgrading")
+		if up != null and state.econ_days + 1e-9 >= float(up["done_at"]):
 			_finish(state, b)
-	_place_waiting(state, dt)
+	if not state.waiting.is_empty():
+		_place_waiting(state, dt)
 
 
 func _finish(state: CityState, b: Dictionary) -> void:
@@ -117,6 +119,10 @@ func _finish(state: CityState, b: Dictionary) -> void:
 	b["residents"] = res - movers
 	b["upgrading"] = null
 	b["needs"] = {}
+	b.erase("psig")
+	b.erase("nsig")
+	b.erase("sdm")
+	b.erase("sdc")
 	b["grow"] = 0.0
 	b["leave"] = 0.0
 	var c: Dictionary = state.cells[b["pos"]]
@@ -222,7 +228,7 @@ func augment(state: CityState, name: String, _args: Dictionary, out: Variant) ->
 	for g: String in c.get("extra", {}):
 		if float(state.stock.get(g, 0.0)) + 1e-9 < float(c["extra"][g]):
 			u["blockers"].append("%s %d개가 필요하다." % [sim.gname(g), int(c["extra"][g])])
-	u["ready"] = bool(b.get("upgradable", false)) and (u["blockers"] as Array).is_empty()
+	u["ready"] = bool(b.get("ready", b.get("upgradable", false))) and (u["blockers"] as Array).is_empty()
 	u["preview"] = _preview(state, [b])
 
 

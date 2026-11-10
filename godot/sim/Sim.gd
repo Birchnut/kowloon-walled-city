@@ -19,6 +19,10 @@ var errors: Array = []             # 데이터 검증 오류(한국어)
 var cover_cache: Dictionary = {}   # Cover.gd가 만든 배치 파생 캐시(저장 안 함)
 var _cover_key: String = ""
 var _fa: Dictionary = {}            # 이번 스텝의 상품 흐름 누적(스텝 끝에 state.flow로 접는다)
+var _cfgc: Dictionary = {}          # cfg() 경로 캐시(setup마다 비움)
+var _defs: Dictionary = {}          # 건물 id → 정의(bdef 빠른 길)
+var _tiers: Array = []              # tier int → tiers.json 항목(0번은 빈 칸)
+var _goods: Dictionary = {}         # 상품 id → 정의
 
 
 func setup(data_files: Dictionary) -> void:
@@ -26,7 +30,14 @@ func setup(data_files: Dictionary) -> void:
 	W = int(cfg("grid.width", 12))
 	H = int(cfg("grid.height", 12))
 	F = int(cfg("grid.max_floors", 10))
+	_cfgc.clear()
 	step_days = float(cfg("time.step_days", 1.0 / 48.0))
+	_defs = items("buildings")
+	_goods = items("goods")
+	_tiers = [{}]
+	for i: int in range(1, items("tiers").size() + 1):
+		var td: Variant = items("tiers").get("t%d" % i, {})
+		_tiers.append(td if td is Dictionary else {})
 	errors = Validate.check(db)
 	for e: String in errors:
 		push_error("[데이터] " + e)
@@ -48,7 +59,13 @@ func setup(data_files: Dictionary) -> void:
 
 # ------------------------------------------------------------------ 데이터
 func cfg(path: String, default: Variant = null) -> Variant:
-	return dig(db.get("config", {}), path, default)
+	var v: Variant
+	if _cfgc.has(path):
+		v = _cfgc[path]
+	else:
+		v = dig(db.get("config", {}), path, null)
+		_cfgc[path] = v
+	return default if v == null else v
 
 
 func items(file: String) -> Dictionary:
@@ -62,11 +79,13 @@ func item(file: String, id: String) -> Dictionary:
 
 
 func bdef(type: String) -> Dictionary:
-	return item("buildings", type)
+	var d: Variant = _defs.get(type)
+	return d if d is Dictionary else {}
 
 
 func good(id: String) -> Dictionary:
-	return item("goods", id)
+	var d: Variant = _goods.get(id)
+	return d if d is Dictionary else {}
 
 
 func gname(id: String) -> String:
@@ -75,6 +94,8 @@ func gname(id: String) -> String:
 
 ## tier int(1..5) → tiers.json 항목.
 func tier(t: int) -> Dictionary:
+	if t > 0 and t < _tiers.size():
+		return _tiers[t]
 	return item("tiers", "t%d" % t)
 
 
@@ -83,7 +104,7 @@ func tname(t: int) -> String:
 
 
 func max_tier() -> int:
-	return items("tiers").size()
+	return _tiers.size() - 1 if _tiers.size() > 1 else items("tiers").size()
 
 
 static func dig(root: Variant, path: String, default: Variant) -> Variant:

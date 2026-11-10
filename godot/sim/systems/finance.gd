@@ -14,13 +14,12 @@ const LINES := ["tax", "upkeep", "import", "export", "build", "vice"]
 func tick(state: CityState, dt: float) -> void:
 	var tax := 0.0
 	var vice := 0.0
-	var fac: Array = []
-	for b: Dictionary in state.buildings.values():
-		if b["kind"] == "house":
-			tax += float(b.get("tax", 0.0))
-		elif b["kind"] == "facility":
-			vice += float(b.get("vice_rate", 0.0))
-			fac.append(b)
+	var cov := sim.cover(state)
+	var fac: Array = cov["facs"]
+	for b: Dictionary in cov["houses"]:
+		tax += float(b["tax"])
+	for b: Dictionary in fac:
+		vice += float(b.get("vice_rate", 0.0))
 	state.money += tax * dt
 	state.book("tax", tax * dt)
 	state.stat_add("tax_total", tax * dt)

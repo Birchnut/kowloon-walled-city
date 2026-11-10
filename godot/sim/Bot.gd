@@ -461,7 +461,7 @@ func _upgrades(state: CityState) -> void:
 	# 높은 계층부터(자재를 위쪽 승급에 먼저 쓴다)
 	var cands: Array = []
 	for b: Dictionary in state.buildings.values():
-		if b["kind"] == "house" and b.get("upgradable", false):
+		if b["kind"] == "house" and b.get("ready", false):
 			cands.append(b)
 	cands.sort_custom(func(a: Dictionary, b2: Dictionary) -> bool:
 		return int(a["tier"]) > int(b2["tier"]) if int(a["tier"]) != int(b2["tier"]) else int(a["id"]) < int(b2["id"]))
@@ -487,7 +487,7 @@ func _upgrades(state: CityState) -> void:
 				and _pop(state, nt) >= _goal_pop(state, nt) and lower_spare < 3.0 * float(c("spare_cap", 16)):
 			_block("%s 노동력이 넉넉해 승급 보류(자재 아낌)" % sim.tname(nt))
 			continue
-		if b["kind"] != "house" or not b.get("upgradable", false):
+		if b["kind"] != "house" or not b.get("ready", false):
 			continue
 		var t := int(b["tier"])
 		# 하위 계층 노동력이 남을 때만(상위가 하위를 대신하지 않는다)

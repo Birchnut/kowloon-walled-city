@@ -7,9 +7,9 @@ extends SimSystem
 
 # ------------------------------------------------------------------ 틱: 공사 진행 · 층 해금
 func tick(state: CityState, dt: float) -> void:
-	for bid: int in state.buildings.keys():
-		var b: Dictionary = state.buildings[bid]
-		if b["kind"] != "site":
+	for bid: int in (sim.cover(state)["sites"] as Array).duplicate():
+		var b: Dictionary = state.buildings.get(bid, {})
+		if b.get("kind", "") != "site":
 			continue
 		var d := sim.bdef(str(b["type"]))
 		b["progress"] = minf(1.0, float(b["progress"]) + dt / maxf(float(d.get("build_days", 0.05)), 1e-6))
@@ -46,7 +46,7 @@ func _check_floor(state: CityState) -> void:
 	if state.floors_unlocked >= sim.F:
 		return
 	var z := state.floors_unlocked - 1
-	if Cover.used_cells(state, z) >= floor_need():
+	if Cover.used_cells_fast(sim, state, z) >= floor_need():
 		state.floors_unlocked += 1
 		state.emit("floor_unlocked", {"z": z + 1})
 		state.stats["floor_%d_day" % (z + 2)] = state.econ_days

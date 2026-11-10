@@ -29,6 +29,30 @@ func setup(s: Sim) -> void:
 	_has_up.clear()
 	for t: int in range(1, sim.max_tier() + 1):
 		_has_up[t] = not sim.item("upgrade_costs", "%dto%d" % [t, t + 1]).is_empty()
+	_grades.clear()
+	_tags.clear()
+	for id: String in sim.items("buildings"):
+		var d := sim.bdef(id)
+		if d.has("market") and not (int(d["market"]) in _grades):
+			_grades.append(int(d["market"]))
+		for tg: String in d.get("services", []):
+			if not (tg in _tags):
+				_tags.append(tg)
+	_grades.sort()
+	_acc_key = ""
+	_pents.clear()
+	_pacc = -1
+	_dems.clear()
+	_dem_of.clear()
+	_last_used.clear()
+	_ngoods.clear()
+	_gidx.clear()
+	for id: String in sim.items("needs"):
+		for o: Dictionary in sim.item("needs", id).get("options", []):
+			if o.has("good") and not (str(o["good"]) in _ngoods):
+				_gidx[str(o["good"])] = _ngoods.size()
+				_ngoods.append(str(o["good"]))
+	_uidx = {"water": _ngoods.size(), "power": _ngoods.size() + 1}
 	by_tier.clear()
 	for id: String in sim.items("needs"):
 		var n: Dictionary = sim.item("needs", id).duplicate(true)
@@ -50,6 +74,13 @@ func setup(s: Sim) -> void:
 				oo["kind"] = "market"
 			opts.append(oo)
 		n["options"] = opts
+		var bk := {}
+		for o: Dictionary in opts:
+			bk[o["key"]] = o
+		n["_by_key"] = bk
+		for o: Dictionary in opts:
+			if o["kind"] == "good":
+				o["_mkey"] = "mkt:%d" % int(sim.good(o["good"]).get("grade", 1))
 		for o: Dictionary in opts:
 			if o.get("prefer", false):
 				n["_has_prefer"] = true
@@ -99,143 +130,597 @@ func _util_ratio(state: CityState, u: String) -> float:
 	return float(state.util[u].get("res_ratio", 1.0))
 
 
-## 옵션 하나를 지금 쓸 수 있나. 반환 [cause, ratio_hint]
-var _av: Dictionary = {}       # 이번 주거의 옵션별 _avail 결과(1단계 동안 재고·가동 상태가 안 바뀌므로 캐시)
+## 옵션 하나를 지금 쓸 수 있나. 반환 cause("" = 된다).
+## 1단계(고르기) 동안 재고·가동 상태가 안 바뀌므로 "덮임 등급"(cls) × 옵션 단위로 한 스텝 캐시한다.
+var _av: Dictionary = {}       # 지금 계산 중인 접근 등급의 옵션별 결과
+var _tab: Dictionary = {}      # 지금 계산 중인 접근 등급의 시장·서비스 원인표
 
 
-func _avail(state: CityState, o: Dictionary, mk: Array, sv: Dictionary) -> String:
+func _avail(state: CityState, o: Dictionary) -> String:
+	var kd: String = o["kind"]
+	if kd == "good":
+		_deps[_gidx[o["good"]]] = true
+	elif kd == "utility":
+		_deps[_uidx[o["utility"]]] = true
 	var k: String = o["key"]
 	if _av.has(k):
 		return _av[k]
-	var r := _avail_raw(state, o, mk, sv)
+	var r := _avail_raw(state, o)
 	_av[k] = r
 	return r
 
 
-func _avail_raw(state: CityState, o: Dictionary, mk: Array, sv: Dictionary) -> String:
+func _avail_raw(state: CityState, o: Dictionary) -> String:
 	match str(o["kind"]):
 		"good":
-			var c := _market_cause(state, mk, int(sim.good(o["good"]).get("grade", 1)))
+			var c: String = _tab.get(o["_mkey"], "grade")
 			if c != "":
 				return c
 			return "" if float(state.stock.get(o["good"], 0.0)) > 1e-9 else "stock"
-		"service":
-			return _service_cause(state, sv, str(o["service"]))
-		"market":
-			return _market_cause(state, mk, int(o["market"]))
+		"service", "market":
+			return _tab.get(o["key"], "range")
 		"utility":
 			var u := str(o["utility"])
 			return "" if _util_ratio(state, u) >= 0.5 else u
 	return "range"
 
 
+## 접근 등급(acls): 덮임 등급(cls)마다 "시장 등급별·서비스별 원인"을 계산해 같은 것끼리 묶는다.
+## 범위 시설의 가동 상태(active, 전기 원인)가 바뀌거나 배치가 바뀔 때만 다시 계산한다.
+var _grades: Array = []
+var _tags: Array = []
+var _acc_key: String = ""
+var _acc_sig: PackedByteArray = PackedByteArray()
+var _acc_ver: int = 0
+# 스텝을 넘어 재사용하는 묶음: 접근 등급 + "재고 있음/공급률 충분/물·전기 충분" 여부가 그대로일 때만.
+var _pents: Dictionary = {}        # t*100000 + acls → {psig → Ent}
+var _pacc: int = -1
+var _last_used: Array = []
+var _ngoods: Array = []            # 수요에 나오는 상품
+var _pgen: int = 0                 # _pents를 비울 때마다 +1
+var _stepno: int = 0
+var _env: PackedByteArray = PackedByteArray()   # 상품(재고 있음·공급률 충분) + 물·전기(0.5 이상·충분) 비트
+var _gidx: Dictionary = {}
+var _uidx: Dictionary = {}
+var _deps: Dictionary = {}
+var _dems: Array = []              # 서로 다른 소비 묶음(dem)
+var _dem_of: Dictionary = {}
+# 주거별(cover.houses 순서) 지난 스텝 기억 — 아무것도 안 변한 주거는 건너뛴다(결과는 같다).
+var _cov_ref: Variant = null
+var _hent: Array = []
+var _hp2: Array = []
+var _hres: PackedInt32Array = PackedInt32Array()
+var _hset: PackedByteArray = PackedByteArray()
+var _aff_last: Array = []
+var _off_last := false
+var _acls_of: PackedInt32Array = PackedInt32Array()   # cls → acls
+var _acls_tab: Array = []                              # acls → {"mkt:g"/"svc:tag": cause}
+var _acls_noise: PackedInt32Array = PackedInt32Array()
+
+
+func _access(state: CityState, cov: Dictionary) -> void:
+	var ranged: Array = cov["ranged"]
+	var sig := PackedByteArray()
+	sig.resize(ranged.size())
+	for i: int in ranged.size():
+		var f: Dictionary = ranged[i]
+		sig[i] = (1 if f.get("active", false) else 0) + (2 if str(f.get("cause", "")) == "power" else 0)
+	var key := "%d:%d" % [state.get_instance_id(), state.layout_rev()]
+	if key == _acc_key and sig == _acc_sig:
+		return
+	_acc_key = key
+	_acc_sig = sig
+	_acc_ver += 1
+	var cls_mk: Array = cov["cls_mk"]
+	var cls_sv: Array = cov["cls_sv"]
+	var cls_noise: Array = cov["cls_noise"]
+	_acls_of.resize(cls_mk.size())
+	_acls_tab.clear()
+	_acls_noise.clear()
+	var seen := {}
+	for ci: int in cls_mk.size():
+		var tab := {}
+		var parts: PackedStringArray = []
+		for g: int in _grades:
+			var c := _market_cause(state, cls_mk[ci], g)
+			tab["mkt:%d" % g] = c
+			parts.append(c)
+		for tg: String in _tags:
+			var c := _service_cause(state, cls_sv[ci], tg)
+			tab["svc:" + tg] = c
+			parts.append(c)
+		var k := "%s#%d" % ["|".join(parts), int(cls_noise[ci])]
+		var a: int = seen.get(k, -1)
+		if a < 0:
+			a = _acls_tab.size()
+			seen[k] = a
+			_acls_tab.append(tab)
+			_acls_noise.append(int(cls_noise[ci]))
+		_acls_of[ci] = a
+
+
+func _fillv(fills: Dictionary, g: String) -> float:
+	_deps[_gidx[g]] = true
+	return float(fills.get(g, 1.0))
+
+
 ## 지금 고른 상품 o보다 넉넉한(지난 스텝 공급률 ≥ ok, 재고 있음, 접근 가능) 대체품이 있나.
-func _has_better(state: CityState, opts: Array, o: Dictionary, mk: Array, sv: Dictionary, fills: Dictionary) -> bool:
+func _has_better(state: CityState, opts: Array, o: Dictionary, fills: Dictionary) -> bool:
 	for a: Dictionary in opts:
-		if a != o and a["kind"] == "good" and float(fills.get(a["good"], 1.0)) >= _ok and _avail(state, a, mk, sv) == "":
+		if a["key"] != o["key"] and a["kind"] == "good" and _fillv(fills, a["good"]) >= _ok and _avail(state, a) == "":
 			return true
 	return false
 
 
-func _pick(state: CityState, n: Dictionary, rec: Dictionary, mk: Array, sv: Dictionary, r: float) -> Array:
+## 수요 하나의 선택. 주거마다 다른 것은 prefer 유틸리티(남는 공급 몫)뿐이라 그 판정은 mask 비트로 받는다:
+## 판정에 닿으면 _hits에 [need 순번, 유틸리티, 1인 몫]을 남기고, 결과는 (mask >> idx) & 1.
+var _hits: Array = []
+
+
+var _volatile := false   # 이번 묶음 계산이 재고 "양"(정렬)에 기대었나 → 다음 스텝에 재사용 불가
+
+
+func _pick(state: CityState, n: Dictionary, pick_str: String, idx: int, mask: int) -> Array:
 	var count := int(n.get("count", 1))
 	var opts: Array = n["options"]
 	if opts.size() <= count:
 		return opts
-	var by_key := {}
-	for o: Dictionary in opts:
-		by_key[o["key"]] = o
+	var by_key: Dictionary = n["_by_key"]
 	var keep: Array = []
+	var inkeep := {}
+	var infail := {}
 	var failed: Array = []
 	var fills: Dictionary = state.flags.get("fill", {})
-	for k: String in str(rec.get("pick", "")).split(",", false):
-		if by_key.has(k):
+	for k: String in pick_str.split(",", false):
+		if by_key.has(k) and not inkeep.has(k) and not infail.has(k):
 			var o: Dictionary = by_key[k]
-			var bad := _avail(state, o, mk, sv) != ""
+			var bad := _avail(state, o) != ""
 			# 재고가 조금씩만 들어와 매 스텝 바닥나는 상품(지난 스텝 공급률 < ok)도 끊긴 것으로 본다 — 넉넉한 대체품이 있으면 갈아탄다
-			if not bad and o["kind"] == "good" and float(fills.get(o["good"], 1.0)) < _ok:
-				bad = _has_better(state, opts, o, mk, sv, fills)
+			if not bad and o["kind"] == "good" and _fillv(fills, o["good"]) < _ok:
+				bad = _has_better(state, opts, o, fills)
 			if not bad:
 				keep.append(o)
+				inkeep[k] = true
 			else:
 				failed.append(o)
+				infail[k] = true
 	# 대부분의 스텝: 고른 것이 그대로 유효하면 바로 끝(갈아탈 prefer 선택지가 없을 때)
 	if failed.is_empty() and keep.size() == count and (not n.get("_has_prefer", false) or keep[0].get("prefer", false)):
 		return keep
 	for o: Dictionary in opts:
-		if o.get("prefer", false) and not (o in keep) and _avail(state, o, mk, sv) == "":
+		if o.get("prefer", false) and not inkeep.has(o["key"]) and _avail(state, o) == "":
 			if o["kind"] == "utility":
-				var u := str(o["utility"])
-				var need := r * float(o.get("amount", 0.0))
-				if _util_ratio(state, u) < _ok or float(_spare.get(u, 0.0)) < need:
+				if _util_ratio(state, str(o["utility"])) < _ok:
 					continue
-				_spare[u] = float(_spare.get(u, 0.0)) - need
+				_hits.append([idx, str(o["utility"]), float(o.get("amount", 0.0))])
+				if ((mask >> idx) & 1) == 0:
+					continue
 			keep.push_front(o)
+			inkeep[o["key"]] = true
 	# 새로 고를 때는 재고가 가장 많은 상품부터(같은 묶음 안에서 소비가 한 품목에 몰리지 않게)
 	var cand: Array = []
+	var ngood := 0
 	for o: Dictionary in opts:
-		if not (o in keep) and not (o in failed) and not (o.get("prefer", false) and o["kind"] == "utility") and _avail(state, o, mk, sv) == "" \
-				and (o["kind"] != "good" or float(fills.get(o["good"], 1.0)) >= _ok):
+		var k: String = o["key"]
+		if not inkeep.has(k) and not infail.has(k) and not (o.get("prefer", false) and o["kind"] == "utility") and _avail(state, o) == "" \
+				and (o["kind"] != "good" or _fillv(fills, o["good"]) >= _ok):
 			cand.append(o)
-	if cand.size() > 1:
+			if o["kind"] == "good":
+				ngood += 1
+	if cand.size() > 1 and keep.size() < count:
+		if ngood > 1:
+			_volatile = true
 		cand.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 			return (float(state.stock.get(a.get("good", ""), 0.0)) if a["kind"] == "good" else 0.0) > (float(state.stock.get(b.get("good", ""), 0.0)) if b["kind"] == "good" else 0.0))
 	for o: Dictionary in cand:
 		if keep.size() >= count:
 			break
 		keep.append(o)
+		inkeep[o["key"]] = true
 	for o: Dictionary in opts:
 		if keep.size() >= count:
 			break
-		if not (o in keep) and not (o in failed) and not (o.get("prefer", false) and o["kind"] == "utility") and _avail(state, o, mk, sv) == "":
+		var k: String = o["key"]
+		if not inkeep.has(k) and not infail.has(k) and not (o.get("prefer", false) and o["kind"] == "utility") and _avail(state, o) == "":
 			keep.append(o)
+			inkeep[k] = true
 	for o: Dictionary in failed + opts:
 		if keep.size() >= count:
 			break
-		if not (o in keep):
+		if not inkeep.has(o["key"]):
 			keep.append(o)
+			inkeep[o["key"]] = true
 	return keep.slice(0, count)
+
+
+# ------------------------------------------------------------------ 묶음 계산(성능)
+## 같은 계층 + 같은 덮임 등급(cls) + 같은 현재 선택(psig) + 같은 prefer 판정(mask)인 주거는 1단계 결과가 같다.
+## 그래서 그 묶음(Ent)을 스텝마다 한 번만 계산하고, 주거마다는 주민 수만 더한다. 결과는 주거별 계산과 같다
+## (소비 합계의 덧셈 순서만 달라 부동소수 끝자리만 다를 수 있다).
+class Ent:
+	var t: int = 0
+	var ci: int = 0
+	var picks: Array = []        # need 순번 → [옵션 dict…]
+	var causes: Array = []       # need 순번 → [cause…]
+	var pick_strs: Array = []    # need 순번 → "키,키"
+	var psig: String = ""
+	var dem: Dictionary = {}     # 상품 → 1인·1경제일 소비(원인 ""인 상품만)
+	var extra: Dictionary = {}   # 유틸리티 → 1인 추가 수요
+	var hits: Array = []         # [[idx, u, amount]] — 주거마다 판정할 prefer
+	var vars: Dictionary = {}    # mask → Ent
+	var rsum: float = 0.0
+	var listed: bool = false
+	var volatile: bool = false   # 재고 양에 따른 정렬로 골랐다 → 이번 스텝에만 유효
+	var stable: bool = false     # 들어간 선택 = 나온 선택(다음 스텝에도 같은 묶음)
+	var fast: bool = false       # stable이고 prefer 판정이 없다 → 주거가 그대로면 바로 재사용
+	var skip: PackedInt32Array = PackedInt32Array()   # 이번 스텝에 2단계를 건너뛸 수 있는 후보 주거(순번)
+	var skip_r: float = 0.0
+	var dem_id: int = -1         # 같은 소비 묶음(dem)끼리 주민 합을 모은다
+	var p2: Array = [null, null] # 주민 0 / 1명 이상일 때의 2단계 결과
+	var deps: PackedInt32Array = PackedInt32Array()   # 기댄 환경 칸(_env 순번)
+	var depv: PackedByteArray = PackedByteArray()    # 그때의 값
+	var vstep: int = -1
+	var vok: bool = true
+
+
+class P2:
+	var dk: Array = []           # 기댄 값: 상품 id 또는 "@water"/"@power"
+	var dv: Array = []
+	var vstep: int = -1
+	var vok: bool = true
+	var ratios: Array = []
+	var dcauses: Array = []      # 표시용 cause(충족이면 "")
+	var met: Array = []
+	var nsig: int = 0
+	var target: int = 0
+	var all_ok: bool = true      # 여유를 뺀 모든 수요 충족
+	var any_unmet: bool = false
+	var basic_all: bool = true
+	var adv_all: bool = true
+	var hp: float = 50.0
+	var taxk: float = 0.0
+	var nonlux: Array = []       # 여유가 아닌 수요 순번(부족 일수를 센다)
+	var basic: Array = []        # 순번 → 기본 수요인가
+	var unmet_mask: int = 0      # 안 채워진 비여유 수요 비트
+	var met_mask: int = 0        # 채워진 비여유 수요 비트
+	var basic_mask: int = 0      # 기본 수요 비트
+
+
+func _psig_of(t: int, b: Dictionary) -> String:
+	var needs: Dictionary = b["needs"]
+	var parts: PackedStringArray = []
+	for n: Dictionary in by_tier.get(t, []):
+		var rec: Variant = needs.get(n["id"])
+		if not (rec is Dictionary):
+			rec = {"ratio": 0.0, "short_days": 0.0, "pick": ""}
+			needs[n["id"]] = rec
+		parts.append(str(rec.get("pick", "")))
+	return "%d:%s" % [t, "|".join(parts)]
+
+
+var dbg_made := 0      # 성능 탐침용 계수: 묶음을 새로 계산한 횟수
+var dbg_slow := 0      # 성능 탐침용 계수: 2단계를 건너뛴 주거 수
+
+
+func _make_ent(state: CityState, t: int, ci: int, psig: String, mask: int) -> Ent:
+	dbg_made += 1
+	var e := Ent.new()
+	e.t = t
+	e.ci = ci
+	var cur := psig.substr(psig.find(":") + 1).split("|")
+	var parts: PackedStringArray = []
+	_hits.clear()
+	_volatile = false
+	_deps.clear()
+	var i := 0
+	for n: Dictionary in by_tier.get(t, []):
+		var ps: String = cur[i] if i < cur.size() else ""
+		var picks := _pick(state, n, ps, i, mask)
+		var keys: PackedStringArray = []
+		var causes: Array = []
+		var per := float(n.get("amount", 0.0)) / float(maxi(1, int(n.get("count", 1))))
+		for o: Dictionary in picks:
+			keys.append(o["key"])
+			var c := _avail(state, o)
+			causes.append(c)
+			if o["kind"] == "good" and c == "":
+				e.dem[o["good"]] = float(e.dem.get(o["good"], 0.0)) + per
+			if o["kind"] == "utility" and o.has("amount"):
+				e.extra[o["utility"]] = float(e.extra.get(o["utility"], 0.0)) + float(o["amount"])
+		var js := ",".join(keys)
+		e.picks.append(picks)
+		e.causes.append(causes)
+		e.pick_strs.append(js)
+		parts.append(js)
+		i += 1
+	e.psig = "%d:%s" % [t, "|".join(parts)]
+	e.stable = e.psig == psig
+	e.hits = _hits.duplicate()
+	e.volatile = _volatile
+	e.fast = e.stable and e.hits.is_empty() and not e.volatile
+	var dk := str(e.dem)
+	if not _dem_of.has(dk):
+		_dem_of[dk] = _dems.size()
+		_dems.append(e.dem)
+	e.dem_id = _dem_of[dk]
+	for d: int in _deps:
+		e.deps.append(d)
+		e.depv.append(_env[d])
+	e.vstep = _stepno
+	e.vok = true
+	return e
+
+
+## 이 묶음이 이번 스텝에도 맞나(기댄 환경 값이 그대로인가). 스텝마다 한 번만 본다.
+func _valid(e: Ent) -> bool:
+	if e.vstep == _stepno:
+		return e.vok
+	e.vstep = _stepno
+	var ok := not e.volatile
+	if ok:
+		for k: int in e.deps.size():
+			if _env[e.deps[k]] != e.depv[k]:
+				ok = false
+				break
+	e.vok = ok
+	return ok
+
+
+func _p2valid(p: P2, fill: Dictionary, state: CityState) -> bool:
+	if p.vstep == _stepno:
+		return p.vok
+	p.vstep = _stepno
+	var ok := true
+	for k: int in p.dk.size():
+		var key: String = p.dk[k]
+		var v := _util_ratio(state, key.substr(1)) if key.begins_with("@") else float(fill.get(key, 1.0))
+		if v != float(p.dv[k]):
+			ok = false
+			break
+	p.vok = ok
+	return ok
+
+
+func _phase2(state: CityState, e: Ent, rpos: bool, fill: Dictionary, noise: int) -> P2:
+	var p := P2.new()
+	var t := e.t
+	var target_f := 0.0
+	var adv_met := 0
+	var lux_met := 0
+	var basic_short := 0
+	var i := 0
+	for n: Dictionary in by_tier.get(t, []):
+		var picks: Array = e.picks[i]
+		var causes: Array = e.causes[i]
+		var count := maxi(1, int(n.get("count", 1)))
+		var sum := 0.0
+		var cause := ""
+		for j: int in picks.size():
+			var o: Dictionary = picks[j]
+			var c: String = causes[j]
+			var x := 0.0
+			if c == "":
+				match str(o["kind"]):
+					"good":
+						x = float(fill.get(o["good"], 1.0)) if rpos else 1.0
+						if rpos:
+							p.dk.append(o["good"])
+							p.dv.append(x)
+						if x < _ok:
+							c = "stock"
+					"utility":
+						x = _util_ratio(state, str(o["utility"]))
+						p.dk.append("@" + str(o["utility"]))
+						p.dv.append(x)
+						if x < _ok:
+							c = str(o["utility"])
+					_:
+						x = 1.0
+			if cause == "" and c != "":
+				cause = c
+			sum += x
+		var ratio := clampf(sum / float(count), 0.0, 1.0)
+		var met := ratio >= _ok - 1e-9
+		p.ratios.append(ratio)
+		p.dcauses.append(cause if ratio < _ok else "")
+		p.met.append(met)
+		var role := str(n["role"])
+		p.basic.append(role == "basic")
+		if role == "basic":
+			p.basic_mask |= 1 << i
+		i += 1
+		if role == "luxury":
+			if met:
+				lux_met += 1
+			continue
+		p.nonlux.append(i - 1)
+		if met:
+			p.met_mask |= 1 << (i - 1)
+		else:
+			p.unmet_mask |= 1 << (i - 1)
+		if not met:
+			p.all_ok = false
+			p.any_unmet = true
+		if role == "basic":
+			target_f += float(n.get("share", 0)) * clampf(ratio / _ok, 0.0, 1.0)
+			if not met:
+				basic_short += 1
+				p.basic_all = false
+		else:
+			if met:
+				adv_met += 1
+			else:
+				p.adv_all = false
+	p.nsig = [p.ratios, p.dcauses].hash()
+	var td := sim.tier(t)
+	p.target = mini(int(td.get("cap", 4)), int(floorf(target_f + 1e-6)))
+	var hp: float = _c["happiness_base"] + float(lux_met) * _c["happiness_per_luxury"] \
+		+ float(basic_short) * _c["happiness_basic_short"] - float(noise) * _c["noise_penalty"]
+	p.hp = clampf(hp, 0.0, 100.0)
+	var hm := lerpf(_c["tax_mult_min"], _c["tax_mult_max"], p.hp / 100.0)
+	p.taxk = float(td.get("tax", 0.0)) * (1.0 + float(adv_met) * _c["advance_tax_bonus"] + float(lux_met) * _c["luxury_tax_bonus"]) * hm
+	return p
+
+
+## 계층별 "지금 승급 비용을 낼 수 있나"(돈 + 세 계열 중 하나 이상 + 추가 상품). 승급 표시(▲)는 이것까지 본다.
+func _affordable(state: CityState) -> Array:
+	var out: Array = [false]
+	var mats: Array = sim.db.get("upgrade_costs", {}).get("materials", [])
+	for t: int in range(1, sim.max_tier() + 1):
+		var ok := bool(_has_up.get(t, false))
+		if ok:
+			var c := sim.item("upgrade_costs", "%dto%d" % [t, t + 1])
+			ok = state.money + 1e-9 >= float(c.get("money", 0))
+			var anym := false
+			for m: String in mats:
+				if float(state.stock.get(m, 0.0)) + 1e-9 >= float(c.get("qty", 0)):
+					anym = true
+			ok = ok and anym
+			for g: String in c.get("extra", {}):
+				ok = ok and float(state.stock.get(g, 0.0)) + 1e-9 >= float(c["extra"][g])
+		out.append(ok)
+	return out
 
 
 # ------------------------------------------------------------------ 틱
 func tick(state: CityState, dt: float) -> void:
 	var cov := sim.cover(state)
-	var demand := {}
-	var work: Array = []
+	var clsmap: Dictionary = cov["cls"]
+	_access(state, cov)
+	var houses: Array = cov["houses"]
 	_spare.clear()
 	for u: String in state.util:
 		_spare[u] = float(state.util[u].get("supply", 0.0)) - float(state.util[u].get("demand", 0.0))
-	# 1단계: 고르기 + 도시 수요 합산
-	for b: Dictionary in state.buildings.values():
-		if b["kind"] != "house":
+	# 1단계: 고르기(묶음 단위) + 묶음별 주민 합
+	for e: Ent in _last_used:
+		e.rsum = 0.0
+		e.listed = false
+		e.skip.clear()
+		e.skip_r = 0.0
+	_stepno += 1
+	var fills: Dictionary = state.flags.get("fill", {})
+	_env.resize(_ngoods.size() + 2)
+	for gi: int in _ngoods.size():
+		var g: String = _ngoods[gi]
+		_env[gi] = (1 if float(state.stock.get(g, 0.0)) > 1e-9 else 0) + (2 if float(fills.get(g, 1.0)) >= _ok else 0)
+	for u: String in _uidx:
+		var ur := _util_ratio(state, u)
+		_env[_uidx[u]] = (1 if ur >= 0.5 else 0) + (2 if ur >= _ok else 0)
+	if _pacc != _acc_ver:
+		_pents.clear()
+		_pacc = _acc_ver
+	if not is_same(cov, _cov_ref) or _hent.size() != houses.size():
+		_cov_ref = cov
+		_hent.resize(houses.size())
+		_hent.fill(null)
+		_hp2.resize(houses.size())
+		_hp2.fill(null)
+		_hres.resize(houses.size())
+		_hset.resize(houses.size())
+		_hset.fill(0)
+	var offline := sim.offline
+	var aff := _affordable(state)
+	var fast2 := aff == _aff_last and offline == _off_last
+	_aff_last = aff
+	_off_last = offline
+	var todo2 := PackedInt32Array()   # 2단계를 돌릴 주거 순번(주거 순서 유지)
+	var ents: Dictionary = _pents
+	var avc: Dictionary = {}       # ci → {옵션 키 → cause}
+	var used: Array = []           # 이번 스텝에 쓰인 Ent(주민 합 순서 고정)
+	var went: Array = []           # 주거 순서대로 그 주거의 Ent
+	went.resize(houses.size())
+	var hi := 0
+	var sn := _stepno
+	for b: Dictionary in houses:
+		var ri: int = b["residents"]
+		var r := float(ri)
+		var le: Ent = _hent[hi]
+		if le != null and le.fast and ((le.vstep == sn and le.vok) or _valid(le)) and b.get("psig") == le.psig:
+			if not le.listed:
+				le.listed = true
+				used.append(le)
+			le.rsum += r
+			went[hi] = le
+			if fast2 and ri > 0 and _hset[hi] == 1 and _hres[hi] == ri:
+				le.skip.append(hi)
+				le.skip_r += r
+			else:
+				todo2.append(hi)
+			hi += 1
 			continue
-		var hb := int(b["id"])
-		_av.clear()
-		var mk: Array = cov["markets"].get(hb, [])
-		var sv: Dictionary = cov["services"].get(hb, {})
-		var r := float(b["residents"])
-		var rows: Array = []
-		var extra := {}
-		for n: Dictionary in by_tier.get(int(b["tier"]), []):
-			var rec: Dictionary = b["needs"].get(n["id"], {"ratio": 0.0, "short_days": 0.0, "pick": ""})
-			b["needs"][n["id"]] = rec
-			var picks := _pick(state, n, rec, mk, sv, r)
-			var keys: Array = []
-			var causes: Array = []
-			var per := float(n.get("amount", 0.0)) / float(maxi(1, int(n.get("count", 1))))
-			for o: Dictionary in picks:
-				keys.append(o["key"])
-				var c := _avail(state, o, mk, sv)
-				causes.append(c)
-				if o["kind"] == "good" and c == "" and r > 0.0:
-					demand[o["good"]] = float(demand.get(o["good"], 0.0)) + r * per * dt
-				if o["kind"] == "utility" and o.has("amount"):
-					extra[o["utility"]] = float(extra.get(o["utility"], 0.0)) + float(o["amount"])
-			rec["pick"] = ",".join(keys)
-			rows.append([n, rec, picks, causes])
-		b["util_extra"] = extra
-		work.append([b, rows])
+		var t: int = b["tier"]
+		var ci: int = _acls_of[clsmap[b["id"]]]
+		var ps: Variant = b.get("psig")
+		if not (ps is String):
+			ps = _psig_of(t, b)
+			b["psig"] = ps
+		var gk := t * 100000 + ci
+		var bucket: Dictionary
+		if ents.has(gk):
+			bucket = ents[gk]
+		else:
+			bucket = {}
+			ents[gk] = bucket
+		var e: Ent = bucket.get(ps)
+		if e == null or not _valid(e):
+			if not avc.has(ci):
+				avc[ci] = {}
+			_av = avc[ci]
+			_tab = _acls_tab[ci]
+			e = _make_ent(state, t, ci, ps, 0)
+			bucket[ps] = e
+		if not e.hits.is_empty():
+			var mask := 0
+			for h: Array in e.hits:
+				var u: String = h[1]
+				var need: float = r * float(h[2])
+				if float(_spare.get(u, 0.0)) >= need:
+					_spare[u] = float(_spare.get(u, 0.0)) - need
+					mask |= 1 << int(h[0])
+			if mask != 0:
+				var v: Ent = e.vars.get(mask)
+				if v == null or not _valid(v):
+					if not avc.has(ci):
+						avc[ci] = {}
+					_av = avc[ci]
+					_tab = _acls_tab[ci]
+					v = _make_ent(state, t, ci, ps, mask)
+					e.vars[mask] = v
+				e = v
+		if not e.listed:
+			e.listed = true
+			used.append(e)
+		if r > 0.0:
+			e.rsum += r
+		if ps != e.psig:
+			var needs: Dictionary = b["needs"]
+			var i := 0
+			for n: Dictionary in by_tier.get(t, []):
+				var rec: Variant = needs.get(n["id"])
+				if not (rec is Dictionary):
+					rec = {"ratio": 0.0, "short_days": 0.0, "pick": ""}
+					needs[n["id"]] = rec
+				rec["pick"] = e.pick_strs[i]
+				i += 1
+			b["psig"] = e.psig
+		b["util_extra"] = e.extra
+		went[hi] = e
+		_hent[hi] = e
+		todo2.append(hi)
+		hi += 1
 	# 재고/수요 비율로 공평하게 나눠 소비
+	var demand := {}
+	var dsum := PackedFloat64Array()
+	dsum.resize(_dems.size())
+	dsum.fill(0.0)
+	for e: Ent in used:
+		dsum[e.dem_id] += e.rsum
+	for di: int in _dems.size():
+		if dsum[di] <= 0.0:
+			continue
+		var dd: Dictionary = _dems[di]
+		for g: String in dd:
+			demand[g] = float(demand.get(g, 0.0)) + dsum[di] * float(dd[g]) * dt
 	var fill := {}
 	var fills_saved := {}
 	for g: String in demand:
@@ -244,93 +729,85 @@ func tick(state: CityState, dt: float) -> void:
 		var f := 1.0 if have >= dmd else have / dmd
 		fill[g] = f
 		fills_saved[g] = snappedf(f, 0.0001)
-		var used := dmd * f
-		state.stock[g] = maxf(0.0, have - used)
-		sim.flow_add(g, "cons", used)
-		state.stat_add("cons." + g, used)
+		var use := dmd * f
+		state.stock[g] = maxf(0.0, have - use)
+		sim.flow_add(g, "cons", use)
+		state.stat_add("cons." + g, use)
 	state.flags["fill"] = fills_saved
-	# 2단계: 충족도 · 인원 · 행복 · 세수
+	_last_used = used
+	# 2단계: 충족도 · 인원 · 행복 · 세수 (묶음 결과 + 주거별 부족 일수·입주·퇴거)
 	var grace: float = _c["grace_days"]
 	var rec_mult: float = _c["short_recover_mult"]
 	var mi: float = _c["move_in_per_day"]
 	var mo: float = _c["move_out_per_day"]
 	var hap_sum := 0.0
 	var hap_w := 0.0
-	for wk: Array in work:
-		var b: Dictionary = wk[0]
-		var t := int(b["tier"])
-		var td := sim.tier(t)
-		var target_f := 0.0
-		var adv_met := 0
-		var lux_met := 0
-		var basic_short := 0
-		var any_unmet := false
-		var bad := false
-		var adv_all := true
-		var basic_all := true
-		for row: Array in wk[1]:
-			var n: Dictionary = row[0]
-			var rec: Dictionary = row[1]
-			var picks: Array = row[2]
-			var causes: Array = row[3]
-			var count := maxi(1, int(n.get("count", 1)))
-			var sum := 0.0
-			var cause := ""
-			for i: int in picks.size():
-				var o: Dictionary = picks[i]
-				var c: String = causes[i]
-				var x := 0.0
-				if c == "":
-					match str(o["kind"]):
-						"good":
-							x = float(fill.get(o["good"], 1.0)) if float(b["residents"]) > 0.0 else 1.0
-							if x < _ok:
-								c = "stock"
-						"utility":
-							x = _util_ratio(state, str(o["utility"]))
-							if x < _ok:
-								c = str(o["utility"])
-						_:
-							x = 1.0
-				if cause == "" and c != "":
-					cause = c
-				sum += x
-			var ratio := clampf(sum / float(count), 0.0, 1.0)
-			rec["ratio"] = ratio
-			rec["cause"] = cause if ratio < _ok else ""
-			var met := ratio >= _ok - 1e-9
-			var role := str(n["role"])
-			if role == "luxury":
-				if met:
-					lux_met += 1
-				continue
-			if met:
-				rec["short_days"] = maxf(0.0, float(rec.get("short_days", 0.0)) - rec_mult * dt)
-			else:
-				rec["short_days"] = float(rec.get("short_days", 0.0)) + dt
-				any_unmet = true
-			if role == "basic":
-				target_f += float(n.get("share", 0)) * clampf(ratio / _ok, 0.0, 1.0)
-				if not met:
-					basic_short += 1
-					basic_all = false
-					if float(rec["short_days"]) >= grace:
-						bad = true
-			else:
-				if met:
-					adv_met += 1
-				else:
-					adv_all = false
-		var cap := int(b["cap"])
-		var target := mini(cap, int(floorf(target_f + 1e-6)))
+	# 지난 스텝과 같은 묶음·같은 2단계 결과·같은 주민 수이고 "가라앉은"(아무것도 안 변하는) 주거는 건너뛴다.
+	var extra2 := false
+	for e: Ent in used:
+		if e.skip.is_empty():
+			continue
+		var pp: P2 = e.p2[1]
+		if pp != null and ((pp.vstep == sn and pp.vok) or _p2valid(pp, fill, state)):
+			hap_sum += pp.hp * e.skip_r
+			hap_w += e.skip_r
+			dbg_slow += e.skip.size()
+		else:
+			todo2.append_array(e.skip)
+			extra2 = true
+	if extra2:
+		todo2.sort()
+	for hix: int in todo2:
+		var b: Dictionary = houses[hix]
+		var e: Ent = went[hix]
+		var old_res: int = b["residents"]
+		var rpos := old_res > 0
+		var t: int = b["tier"]
+		var p: P2 = e.p2[1 if rpos else 0]
+		if p == null or not _p2valid(p, fill, state):
+			p = _phase2(state, e, rpos, fill, _acls_noise[e.ci])
+			p.vstep = _stepno
+			e.p2[1 if rpos else 0] = p
+		var tl: Array = by_tier.get(t, [])
+		var needs: Dictionary = b["needs"]
+		if b.get("nsig", -1) != p.nsig:
+			for i: int in tl.size():
+				var rec: Dictionary = needs[tl[i]["id"]]
+				rec["ratio"] = p.ratios[i]
+				rec["cause"] = p.dcauses[i]
+			b["nsig"] = p.nsig
+		# 부족 일수: 안 채워진 수요는 유예(grace)까지 늘고(미접속 중엔 멈춤), 채워진 수요는 0까지 줄어든다.
+		# sdm = 부족 일수 > 0인 수요의 비트, sdc = 유예에 닿은(꽉 찬) 수요의 비트. 꽉 찬 수요는 더 늘지 않는다.
+		var sdm: int = b.get("sdm", -1)
+		var sdc: int = b.get("sdc", 0)
+		var todo: int = (p.unmet_mask & ~sdc) | (sdm & p.met_mask)
+		if todo != 0:
+			var nm := sdm & ~todo if sdm >= 0 else 0
+			var nc := sdc & ~todo
+			for i: int in p.nonlux:
+				if (todo >> i) & 1 == 0:
+					continue
+				var rec: Dictionary = needs[tl[i]["id"]]
+				var sd := float(rec.get("short_days", 0.0))
+				if p.met[i]:
+					sd = maxf(0.0, sd - rec_mult * dt)
+				elif not offline:
+					sd = minf(grace, sd + dt)
+				rec["short_days"] = sd
+				if sd > 0.0:
+					nm |= 1 << i
+				if sd >= grace:
+					nc |= 1 << i
+			b["sdm"] = nm
+			b["sdc"] = nc
+			sdc = nc
+		var bad := (p.unmet_mask & p.basic_mask & sdc) != 0
+		var cap: int = b["cap"]
+		var target := mini(cap, p.target)
 		b["target"] = target
-		# 행복
-		var hp: float = _c["happiness_base"] + float(lux_met) * _c["happiness_per_luxury"] \
-			+ float(basic_short) * _c["happiness_basic_short"] - float(cov["noise"].get(int(b["id"]), 0)) * _c["noise_penalty"]
-		hp = clampf(hp, 0.0, 100.0)
+		var hp := p.hp
 		b["happiness"] = hp
 		# 입주·퇴거
-		var old_res := int(b["residents"])
 		var res := old_res
 		if res < target:
 			b["leave"] = 0.0
@@ -340,7 +817,7 @@ func tick(state: CityState, dt: float) -> void:
 				b["grow"] = float(b["grow"]) - 1.0
 			if res >= target:
 				b["grow"] = 0.0
-		elif res > target and bad:
+		elif res > target and bad and not offline:
 			b["grow"] = 0.0
 			b["leave"] = float(b.get("leave", 0.0)) + mo * dt
 			while float(b["leave"]) >= 1.0 and res > target:
@@ -361,15 +838,21 @@ func tick(state: CityState, dt: float) -> void:
 				lt[str(t)] = int(lt.get(str(t), 0)) + (old_res - res)
 				state.flags["left_today"] = lt
 		# 세수(₩/경제일)
-		var hm := lerpf(_c["tax_mult_min"], _c["tax_mult_max"], hp / 100.0)
-		b["tax"] = float(res) * float(td.get("tax", 0.0)) * (1.0 + float(adv_met) * _c["advance_tax_bonus"] + float(lux_met) * _c["luxury_tax_bonus"]) * hm
+		b["tax"] = float(res) * p.taxk
 		hap_sum += hp * float(res)
 		hap_w += float(res)
-		var ns := "bad" if bad else ("warn" if any_unmet else "ok")
-		var up: bool = res >= cap and basic_all and adv_all and b.get("upgrading") == null and bool(_has_up.get(t, false))
-		if res != old_res or ns != str(b["need_state"]) or up != bool(b["upgradable"]):
+		var ns := "bad" if bad else ("warn" if p.any_unmet else "ok")
+		var upg: Variant = b.get("upgrading")
+		var ready: bool = res >= cap and p.basic_all and p.adv_all and upg == null and bool(_has_up.get(t, false))
+		var up: bool = ready and bool(aff[t])
+		_hp2[hix] = p
+		_hres[hix] = res
+		_hset[hix] = 1 if ((p.unmet_mask & ~int(b.get("sdc", 0))) == 0 and (int(b.get("sdm", 0)) & p.met_mask) == 0 and res >= target and float(b["grow"]) == 0.0 \
+			and float(b["leave"]) == 0.0 and upg == null) else 0
+		if res != old_res or ns != str(b["need_state"]) or up != bool(b["upgradable"]) or ready != bool(b.get("ready", false)):
 			b["need_state"] = ns
 			b["upgradable"] = up
+			b["ready"] = ready
 			state.emit("building_changed", {"bid": int(b["id"])})
 	state.happiness = hap_sum / hap_w if hap_w > 0.0 else 50.0
 
