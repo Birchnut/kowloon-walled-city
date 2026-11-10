@@ -93,7 +93,7 @@ func _select(cells: Array) -> void:
 
 # ------------------------------------------------------------------ 주거
 func _house() -> void:
-	_set_height(0.52)
+	_set_height(0.5)
 	sheet.title = str(info.get("title", "집"))
 	_select([pos])
 	var chips := UI.hbox(6)
@@ -161,9 +161,13 @@ func _house() -> void:
 	var blockers := UI.to_array(up.get("blockers", []))
 	if not ready and not blockers.is_empty():
 		var parts := PackedStringArray()
-		for x: Variant in blockers:
+		for x: Variant in blockers.slice(0, 1):
 			parts.append("· " + str(x))
-		var bl := UI.label("  ".join(parts), "LabelSmall", true)
+		if blockers.size() > 1:
+			parts.append("· 그 밖에 %d가지 — 위 수요 목록의 노랑·빨강" % (blockers.size() - 1))
+		var bl := UI.label("\n".join(parts), "LabelSmall")
+		bl.clip_text = true
+		bl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		bl.add_theme_color_override("font_color", UI.col("gold"))
 		_foot.add_child(bl)
 	elif to_name == "" and not blockers.is_empty():
@@ -197,12 +201,18 @@ func _need_row(n: Dictionary) -> Control:
 	dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	h.add_child(dot)
-	var nm := UI.label(str(n.get("name", "")), "LabelSmall")
-	nm.custom_minimum_size.x = 150
-	nm.clip_text = true
-	h.add_child(nm)
 	var using := str(n.get("using", ""))
+	var nm := UI.label(str(n.get("name", "")), "LabelSmall")
+	h.add_child(nm)
+	var us := UI.label(("· " + using) if using != "" and using != str(n.get("name", "")) else "", "LabelDim")
+	us.custom_minimum_size.x = 40
+	us.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	us.clip_text = true
+	us.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	h.add_child(us)
 	var bar := RatioBar.make(float(n.get("ratio", 0.0)), st, 8)
+	bar.custom_minimum_size.x = 120
+	bar.size_flags_horizontal = Control.SIZE_SHRINK_END
 	h.add_child(bar)
 	var pct := UI.label("%d%%" % int(round(float(n.get("ratio", 0.0)) * 100.0)), "LabelDim")
 	pct.custom_minimum_size.x = 52
@@ -213,16 +223,16 @@ func _need_row(n: Dictionary) -> Control:
 	else:
 		h.add_child(UI.spacer(false, Vector2(24, 0)))
 	var ct := str(n.get("cause_text", ""))
-	var sub := ct if ct != "" else (("쓰는 것: " + using) if using != "" and st == "ok" else "")
+	var sub := ct
 	if sub != "":
 		var l := UI.label(sub, "LabelSmall")
 		l.clip_text = true
 		l.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		l.add_theme_color_override("font_color", UI.col("dim") if ct == "" else (UI.col("red_hi") if st == "bad" else UI.col("gold")))
+		l.add_theme_color_override("font_color", UI.col("red_hi") if st == "bad" else UI.col("gold"))
 		var m := UI.margin(14, 0, 0, 0)
 		m.add_child(l)
 		v.add_child(m)
-	b.custom_minimum_size = Vector2(0, maxf(v.get_combined_minimum_size().y, 34.0 if sub == "" else 52.0))
+	b.custom_minimum_size = Vector2(0, 32.0 if sub == "" else 56.0)
 	if not jmp.is_empty():
 		b.pressed.connect(func() -> void: ui.jump(jmp))
 	return b

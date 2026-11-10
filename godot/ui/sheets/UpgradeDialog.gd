@@ -86,7 +86,7 @@ func _place() -> void:
 	if not is_inside_tree():
 		return
 	var vh := size.y
-	var h := clampf(vh * 0.74, 520.0, vh - _bar - _top - 40.0)
+	var h := clampf(vh * 0.64, 560.0, vh - _bar - _top - 40.0)
 	_panel.position = Vector2(0, vh - _bar - h)
 	_panel.size = Vector2(size.x, h)
 	_scrim.position = Vector2(0, _top)
@@ -290,7 +290,7 @@ class MatCard extends Button:
 		var c := MatCard.new()
 		c.theme_type_variation = "ButtonFlat"
 		c.focus_mode = Control.FOCUS_NONE
-		c.custom_minimum_size = Vector2(150, 210)
+		c.custom_minimum_size = Vector2(150, 222)
 		var v := UI.vbox(2)
 		v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		v.offset_left = 6
@@ -315,7 +315,7 @@ class MatCard extends Button:
 
 	func set_state(sel: bool, have: int, need: int) -> void:
 		_sel = sel
-		_have.text = "보유 %d / 필요 %d" % [have, need]
+		_have.text = "보유 %d/%d" % [have, need]
 		_have.add_theme_color_override("font_color", UI.col("jade_hi") if have >= need else UI.col("red_hi"))
 		queue_redraw()
 

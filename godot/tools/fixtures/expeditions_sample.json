@@ -1,0 +1,20 @@
+{
+ "_comment": "개발용 견본: query('expeditions') 계약 모양(ARCHITECTURE)을 GDD §8 표로 채운 것. B 파트 데이터가 오기 전 지도·카드·팀 줄 확인용(DevHarness fakeexp=expeditions_sample). 게임에서는 쓰지 않는다.",
+ "teams": [
+  {"id": 1, "name": "1팀", "state": "out", "dest": "furniture_alley", "dest_name": "철거된 가구 골목", "seconds_left": 132, "total_seconds": 300, "reward_text": "목재 10~"},
+  {"id": 2, "name": "2팀", "state": "done", "dest": "scrap_yard", "dest_name": "고철 야적장", "seconds_left": 0, "total_seconds": 420, "reward_text": "철제 10 · 고물 6"},
+  {"id": 3, "name": "3팀", "state": "idle", "dest": "", "dest_name": "", "seconds_left": 0, "total_seconds": 0, "reward_text": ""}
+ ],
+ "slots": {"have": 3, "max": 3},
+ "dests": [
+  {"id": "furniture_alley", "name": "철거된 가구 골목", "desc": "문짝·가구·판재를 뜯어 온다.", "map": [0.30, 0.36], "band": "near", "seconds": 300, "primary": {"good": "wood", "name": "목재", "min": 10, "max": 10}, "picks": [], "bonus_text": "고물 3~6", "cost": {"money": 0}, "known": true, "locked_hint": "", "visits": 4, "new": false},
+  {"id": "scrap_yard", "name": "고철 야적장", "desc": "폐정비소 뒤 프레임과 패널.", "map": [0.70, 0.40], "band": "near", "seconds": 420, "primary": {"good": "metal", "name": "철제", "min": 10, "max": 10}, "picks": [], "bonus_text": "고물 4~8", "cost": {"money": 0}, "known": true, "locked_hint": "", "visits": 2, "new": false},
+  {"id": "demolition", "name": "철거 공사장", "desc": "재사용 블록과 프리캐스트 부재.", "map": [0.42, 0.66], "band": "near", "seconds": 600, "primary": {"good": "concrete", "name": "콘크리트 부재", "min": 12, "max": 12}, "picks": [], "bonus_text": "고물 2~5", "cost": {"money": 0}, "known": true, "locked_hint": "", "visits": 0, "new": true},
+  {"id": "warehouses", "name": "외곽 창고 지대", "desc": "큰 물량과 생활 원료. 누군가 장부를 두고 갔다.", "map": [0.16, 0.70], "band": "mid", "seconds": 2700, "primary": {"good": "wood", "name": "고른 자재", "min": 30, "max": 30}, "picks": [{"good": "wood", "name": "목재"}, {"good": "metal", "name": "철제"}, {"good": "concrete", "name": "콘크리트 부재"}], "bonus_text": "원료 묶음 · 본토 보따리상을 만날지도", "cost": {"money": 40}, "known": true, "locked_hint": "", "visits": 0, "new": false},
+  {"id": "docks", "name": "부두 뒷골목", "desc": "밤배가 들어오는 곳.", "map": [0.86, 0.74], "band": "mid", "seconds": 3600, "primary": {"good": "scrap", "name": "고물", "min": 30, "max": 30}, "picks": [], "bonus_text": "전자 부품 · 부두 암시장 발견", "cost": {"money": 60}, "known": true, "locked_hint": "", "visits": 0, "new": false},
+  {"id": "timber_yard", "name": "산지 목재 야적장", "desc": "", "map": [0.14, 0.12], "band": "far", "seconds": 14400, "primary": {"good": "wood", "name": "목재", "min": 110, "max": 110}, "picks": [], "bonus_text": "설비 부품 1~2", "cost": {"money": 120}, "known": false, "locked_hint": "지도 제작(연구)으로 길이 열린다", "visits": 0, "new": false},
+  {"id": "power_station", "name": "옛 발전소", "desc": "녹슨 터빈과 도면 서랍.", "map": [0.80, 0.10], "band": "far", "seconds": 28800, "primary": {"good": "parts", "name": "설비 부품", "min": 6, "max": 6}, "picks": [], "bonus_text": "열병합 도면(첫 방문)", "cost": {"money": 200}, "known": true, "locked_hint": "", "visits": 0, "new": false}
+ ],
+ "provision": {"good_text": "끼니 10", "bonus_text": "수확 +25%", "enough": true},
+ "materials": [{"id": "wood", "name": "목재", "have": 32}, {"id": "metal", "name": "철제", "have": 8}, {"id": "concrete", "name": "콘크리트 부재", "have": 21}]
+}
