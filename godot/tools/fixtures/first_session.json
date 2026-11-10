@@ -1,0 +1,957 @@
+[
+{
+"wait": 1.5
+},
+{
+"tap": [
+270,
+500
+]
+},
+{
+"tap": [
+270,
+500
+],
+"after": 0.5
+},
+{
+"tap": [
+270,
+500
+],
+"after": 0.5
+},
+{
+"tap": [
+270,
+500
+],
+"after": 0.5
+},
+{
+"shot": "wa00_hint",
+"after": 0.5
+},
+{
+"press": "짓기",
+"region": [
+0,
+860,
+540,
+960
+]
+},
+{
+"press": "주거 구역",
+"after": 1.0
+},
+{
+"paint": [
+[
+2,
+2,
+0
+],
+[
+3,
+2,
+0
+],
+[
+4,
+2,
+0
+],
+[
+5,
+2,
+0
+],
+[
+5,
+3,
+0
+],
+[
+4,
+3,
+0
+],
+[
+3,
+3,
+0
+],
+[
+2,
+3,
+0
+]
+],
+"after": 1.0
+},
+{
+"shot": "wa01_painted",
+"after": 0.5
+},
+{
+"press": "짓기",
+"region": [
+0,
+780,
+540,
+880
+]
+},
+{
+"shot": "wa02_zoned",
+"after": 0.8
+},
+{
+"q": "hud",
+"keys": [
+"money",
+"next_goal.text",
+"tutorial"
+]
+},
+{
+"tap": [
+270,
+500
+],
+"after": 1.0
+},
+{
+"tap": [
+270,
+500
+],
+"after": 0.5
+},
+{
+"shot": "wa03_stall_menu",
+"after": 1.0
+},
+{
+"press": "좌판",
+"region": [
+0,
+560,
+540,
+880
+]
+},
+{
+"shot": "wa04_place_stall",
+"after": 1.0
+},
+{
+"cell": [
+3,
+4,
+0
+],
+"top": false,
+"after": 0.5
+},
+{
+"shot": "wa05_stall_ghost",
+"after": 0.5
+},
+{
+"press": "확정",
+"region": [
+0,
+700,
+540,
+880
+]
+},
+{
+"shot": "wa06_stall_built",
+"after": 1.0
+},
+{
+"press": "빗물받이",
+"region": [
+0,
+560,
+540,
+880
+],
+"after": 2.0
+},
+{
+"cell": [
+7,
+2,
+0
+],
+"top": false,
+"after": 1.0
+},
+{
+"press": "확정",
+"region": [
+0,
+700,
+540,
+880
+]
+},
+{
+"press": "옥상 텃밭",
+"region": [
+0,
+560,
+540,
+880
+],
+"after": 2.0
+},
+{
+"cell": [
+7,
+4,
+0
+],
+"top": false,
+"after": 1.0
+},
+{
+"shot": "wa07_garden_ghost",
+"after": 0.3
+},
+{
+"press": "확정",
+"region": [
+0,
+700,
+540,
+880
+]
+},
+{
+"shot": "wa08_after_garden",
+"after": 1.0
+},
+{
+"q": "hud",
+"keys": [
+"money",
+"pop_total",
+"tutorial",
+"next_goal",
+"alerts"
+]
+},
+{
+"wait": 6
+},
+{
+"shot": "wa09_movein",
+"after": 0.5
+},
+{
+"tap": [
+270,
+700
+]
+},
+{
+"tap": [
+270,
+700
+],
+"after": 0.6
+},
+{
+"cell": [
+3,
+2,
+0
+],
+"after": 1.0
+},
+{
+"shot": "wa10_inspect",
+"after": 1.0
+},
+{
+"tap": [
+270,
+300
+],
+"after": 0.5
+},
+{
+"tap": [
+270,
+300
+],
+"after": 0.6
+},
+{
+"shot": "wa11_alert_say",
+"after": 1.0
+},
+{
+"tap": [
+270,
+500
+],
+"after": 0.5
+},
+{
+"tap": [
+270,
+500
+],
+"after": 0.6
+},
+{
+"tap": [
+270,
+500
+],
+"after": 0.5
+},
+{
+"tap": [
+270,
+500
+],
+"after": 0.6
+},
+{
+"shot": "wa12_end",
+"after": 1.0
+},
+{
+"q": "hud",
+"keys": [
+"money",
+"pop_total",
+"tutorial",
+"next_goal",
+"alerts"
+]
+},
+{
+"say": "--- B: 탐험"
+},
+{
+"speed": 16
+},
+{
+"until": {
+"q": "hud",
+"key": "next_goal.id",
+"eq": "g_base"
+},
+"max": 60
+},
+{
+"speed": 1
+},
+{
+"shot": "wb01_goal_base",
+"after": 1.0
+},
+{
+"press": "성채",
+"region": [
+0,
+860,
+540,
+960
+],
+"after": 0.5
+},
+{
+"shot": "wb02_keep_goal",
+"after": 1.2
+},
+{
+"press": "탐험 거점",
+"region": [
+0,
+300,
+540,
+860
+],
+"after": 0.3
+},
+{
+"press": "탐험 거점",
+"region": [
+0,
+560,
+540,
+880
+],
+"after": 1.2
+},
+{
+"cell": [
+9,
+9,
+0
+],
+"top": false,
+"after": 1.2
+},
+{
+"press": "확정",
+"region": [
+0,
+700,
+540,
+880
+]
+},
+{
+"press": "탐험",
+"region": [
+0,
+860,
+540,
+960
+],
+"after": 1.0
+},
+{
+"shot": "wb03_exp_building",
+"after": 1.0
+},
+{
+"speed": 8
+},
+{
+"until": {
+"q": "expeditions",
+"key": "slots.have",
+"ge": 1
+},
+"max": 30
+},
+{
+"speed": 1
+},
+{
+"target": "exp:dest:scrap_yard",
+"after": 1.0
+},
+{
+"shot": "wb04_dest_card",
+"after": 1.0
+},
+{
+"press": "파견",
+"region": [
+0,
+300,
+540,
+860
+]
+},
+{
+"wait": 3
+},
+{
+"shot": "wb05_countdown"
+},
+{
+"press": "성채",
+"region": [
+0,
+860,
+540,
+960
+],
+"after": 0.5
+},
+{
+"press": "기록",
+"region": [
+0,
+300,
+540,
+700
+],
+"after": 1.0
+},
+{
+"press": "탐험 +10분",
+"after": 0.5
+},
+{
+"wait": 1.5
+},
+{
+"shot": "wb06_returned"
+},
+{
+"press": "탐험",
+"region": [
+0,
+860,
+540,
+960
+],
+"after": 0.5
+},
+{
+"shot": "wb07_exp_done",
+"after": 1.5
+},
+{
+"press": "수령",
+"region": [
+0,
+600,
+540,
+870
+]
+},
+{
+"shot": "wb08_claim",
+"after": 0.6
+},
+{
+"q": "hud",
+"keys": [
+"next_goal.id",
+"money",
+"pop"
+]
+},
+{
+"press": "탐험",
+"region": [
+0,
+860,
+540,
+960
+],
+"after": 2.0
+},
+{
+"say": "--- C: 교역·초 공방·물"
+},
+{
+"press": "성채",
+"region": [
+0,
+860,
+540,
+960
+],
+"after": 1.0
+},
+{
+"press": "목표",
+"region": [
+0,
+250,
+540,
+350
+],
+"after": 0.5
+},
+{
+"press": "교역소",
+"region": [
+0,
+300,
+540,
+860
+],
+"after": 1.0
+},
+{
+"press": "교역소",
+"region": [
+0,
+560,
+540,
+880
+],
+"after": 1.2
+},
+{
+"cell": [
+9,
+7,
+0
+],
+"top": false,
+"after": 1.2
+},
+{
+"press": "확정",
+"region": [
+0,
+700,
+540,
+880
+]
+},
+{
+"press": "목록",
+"after": 1.0
+},
+{
+"press": "생활품",
+"after": 1.0
+},
+{
+"press": "초 공방",
+"region": [
+0,
+560,
+540,
+880
+],
+"after": 1.0
+},
+{
+"cell": [
+9,
+5,
+0
+],
+"top": false,
+"after": 1.2
+},
+{
+"press": "확정",
+"region": [
+0,
+700,
+540,
+880
+]
+},
+{
+"press": "목록",
+"after": 1.0
+},
+{
+"press": "물",
+"region": [
+0,
+540,
+540,
+620
+],
+"after": 1.0
+},
+{
+"press": "빗물받이",
+"region": [
+0,
+560,
+540,
+880
+],
+"after": 1.0
+},
+{
+"cell": [
+8,
+2,
+0
+],
+"top": false,
+"after": 1.2
+},
+{
+"press": "확정",
+"region": [
+0,
+700,
+540,
+880
+]
+},
+{
+"speed": 8
+},
+{
+"wait": 3
+},
+{
+"speed": 1
+},
+{
+"press": "교역",
+"region": [
+0,
+860,
+540,
+960
+],
+"after": 0.5
+},
+{
+"shot": "wc01_trade_offers",
+"after": 1.2
+},
+{
+"press_in": "헌 옷",
+"button": "개/"
+},
+{
+"press": "제안",
+"after": 0.8
+},
+{
+"press_in": "유지",
+"button": "개/",
+"after": 1.0
+},
+{
+"press": "진행 중",
+"after": 0.5
+},
+{
+"shot": "wc02_trade_active",
+"after": 1.0
+},
+{
+"q": "contracts",
+"keys": [
+"slots"
+]
+},
+{
+"press": "교역",
+"region": [
+0,
+860,
+540,
+960
+],
+"after": 0.5
+},
+{
+"say": "--- D: 승급"
+},
+{
+"tod": 0.5
+},
+{
+"speed": 16
+},
+{
+"until": {
+"q": "upgradable",
+"key": "0.count",
+"ge": 1
+},
+"max": 120
+},
+{
+"speed": 1
+},
+{
+"shot": "wd01_upgradable",
+"after": 1.0
+},
+{
+"jump": {
+"screen": "upgrade",
+"arg": ""
+},
+"after": 0.3
+},
+{
+"target": "upgrade:wood",
+"after": 1.0
+},
+{
+"shot": "wd02_upgrade_dialog",
+"after": 0.8
+},
+{
+"target": "upgrade:go",
+"after": 0.3
+},
+{
+"speed": 16
+},
+{
+"wait": 3
+},
+{
+"speed": 1
+},
+{
+"shot": "wd03_upgraded",
+"after": 0.5
+},
+{
+"q": "hud",
+"keys": [
+"pop",
+"next_goal.id",
+"grade_name",
+"title",
+"money"
+]
+},
+{
+"say": "--- E: 2층"
+},
+{
+"dbg": "fill_floor:0:105"
+},
+{
+"speed": 16
+},
+{
+"until": {
+"q": "hud",
+"key": "floors_unlocked",
+"ge": 2
+},
+"max": 20
+},
+{
+"speed": 1
+},
+{
+"wait": 1.5
+},
+{
+"q": "hud",
+"keys": [
+"floors_unlocked",
+"floor_progress"
+]
+},
+{
+"shot": "we01_floor2_open",
+"after": 0.5
+},
+{
+"press": "2F",
+"region": [
+460,
+120,
+540,
+320
+],
+"after": 1.0
+},
+{
+"press": "짓기",
+"region": [
+0,
+860,
+540,
+960
+],
+"after": 1.0
+},
+{
+"press": "주거",
+"region": [
+0,
+540,
+540,
+620
+],
+"after": 1.0
+},
+{
+"press": "주거 구역",
+"after": 1.0
+},
+{
+"paint": [
+[
+2,
+2,
+1
+],
+[
+3,
+2,
+1
+],
+[
+4,
+2,
+1
+],
+[
+5,
+2,
+1
+],
+[
+6,
+2,
+1
+]
+],
+"after": 1.2
+},
+{
+"shot": "we02_paint_2F",
+"after": 0.5
+},
+{
+"press": "짓기",
+"region": [
+0,
+760,
+540,
+880
+]
+},
+{
+"q": "hud",
+"keys": [
+"floors_unlocked",
+"money"
+]
+},
+{
+"press": "취소",
+"region": [
+0,
+760,
+540,
+880
+],
+"after": 0.8
+},
+{
+"press": "전체",
+"region": [
+460,
+120,
+540,
+190
+],
+"after": 0.5
+},
+{
+"speed": 16
+},
+{
+"wait": 3
+},
+{
+"speed": 1
+},
+{
+"shot": "we03_city",
+"after": 0.5
+}
+]

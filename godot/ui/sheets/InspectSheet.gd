@@ -235,7 +235,29 @@ func _need_row(n: Dictionary) -> Control:
 	b.custom_minimum_size = Vector2(0, 32.0 if sub == "" else 56.0)
 	if not jmp.is_empty():
 		b.pressed.connect(func() -> void: ui.jump(jmp))
-	return b
+	# jump_alt(재고 없음일 때 그 상품을 얻는 곳들): 줄 아래 작은 버튼들
+	var alts := UI.to_array(n.get("jump_alt", []))
+	if alts.is_empty():
+		return b
+	var box := UI.vbox(2)
+	box.add_child(b)
+	var row := HFlowContainer.new()
+	row.add_theme_constant_override("h_separation", 4)
+	row.add_theme_constant_override("v_separation", 4)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var mm := UI.margin(14, 0, 0, 2)
+	mm.add_child(row)
+	box.add_child(mm)
+	for a: Variant in alts:
+		if not (a is Dictionary):
+			continue
+		var ab := PixelButton.make(str(a.get("label", "")), "chev_r", "ButtonChip")
+		ab.small = true
+		ab.min_size = Vector2(56, 40)
+		var aj: Dictionary = a
+		ab.pressed.connect(func() -> void: ui.jump(aj))
+		row.add_child(ab)
+	return box
 
 
 # ------------------------------------------------------------------ 시설
@@ -356,6 +378,17 @@ static func confirm_demolish(root: Node, p: Variant, inf: Dictionary) -> void:
 		root.toast(str(c.get("reason", "철거할 수 없다.")), "warn")
 		return
 	var lines: Array = []
+	# 시뮬 미리보기(G4 demolish_preview {ok,title,lines})가 있으면 그 문장을 그대로 쓴다
+	var dp := Q.dict("demolish_preview", {"pos": p})
+	if not UI.to_array(dp.get("lines", [])).is_empty():
+		Modal.confirm(root.modals, {"kicker": "철거", "title": str(dp.get("title", "%s 허문다" % UI.josa(str(inf.get("title", "이것")), "를", "을"))),
+			"lines": UI.to_array(dp["lines"]), "ok_text": "허문다", "cancel_text": "그만둔다", "danger": true}, func() -> void:
+				var r0: Dictionary = root.cmd("demolish", {"pos": p})
+				if not bool(r0.get("ok", false)):
+					root.toast(str(r0.get("reason", "")), "warn")
+				elif root.screen == "inspect":
+					root.close_screen())
+		return
 	match str(inf.get("kind", "")):
 		"house":
 			var res := int(inf.get("residents", 0))

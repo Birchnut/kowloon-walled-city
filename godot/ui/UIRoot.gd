@@ -178,6 +178,10 @@ func _process(delta: float) -> void:
 		_bind_view(v)
 	if Game.state != null:
 		strip.set_time(Game.time_of_day())
+	# 토스트는 위쪽 대화·힌트 아래로 비킨다(겹쳐 읽히지 않게)
+	var t_off := maxf(top_h() + 8.0, tutorial.dialog.occupied_bottom() + 6.0)
+	if absf(toasts.top_offset - t_off) > 0.5:
+		toasts.top_offset = t_off
 	_poll_t -= delta
 	if _poll_t <= 0.0:
 		_poll_t = HUD_POLL
@@ -297,7 +301,12 @@ func jump(target: Variant) -> void:
 		"upgrade":
 			upgrade_all()
 		"inspect":
-			pass
+			# G12: inspect:<bid> — 그 건물을 들여다본다(알림 "단속으로 닫혀 있다" 등)
+			var inf := Q.dict("info", {"bid": int(a)}) if a.is_valid_int() else {}
+			var pp: Variant = inf.get("pos")
+			if pp is Vector3i:
+				open_screen("inspect")
+				inspect.show_cell(pp)
 		_:
 			if screens.has(s):
 				open_screen(s, a)
@@ -361,10 +370,17 @@ func _on_event(n: String, p: Dictionary) -> void:
 	match n:
 		"log":
 			var tone := str(p.get("tone", ""))
+			var tx := str(p.get("text", ""))
+			# 목표 달성·등급·해금은 현수막이 말한다(같은 말을 두 번 하지 않게). 일지에는 남는다.
+			if tx.begins_with("목표 달성") or tx.begins_with("성채 등급") or tx.begins_with("새로 지을 수 있다"):
+				return
 			if tone != "debug" or bool(Data.cfg("debug.enabled", false)):
-				toasts.push(str(p.get("text", "")), tone)
+				toasts.push(tx, tone)
 		"unlock":
-			_banner_unlock(p)
+			# 한꺼번에 열리면(목표·등급 하나에 넷씩) 현수막 하나로 묶는다 — 따로면 15초 넘게 화면 가운데를 가렸다
+			_unlock_pending.append(p)
+			if _unlock_pending.size() == 1:
+				get_tree().create_timer(0.3).timeout.connect(_flush_unlocks)
 		"milestone":
 			_banner_milestone(p)
 		"floor_unlocked":
@@ -378,7 +394,23 @@ func _on_event(n: String, p: Dictionary) -> void:
 			refresh_soon()
 			_refresh_hud.call_deferred()
 			nav.pulse.call_deferred("expedition")
-			toast("탐험대가 돌아왔다. 탐험에서 수령하자.", "good", "mat")
+			# 문장은 시뮬 기록 줄("탐험대 n이 …에서 돌아왔다")이 토스트로 이미 띄운다 — 배지·알림 줄로 충분
+		"goal_done":
+			_on_goal_done(p)
+		"research_done":
+			banner.show_banner("연구 끝", str(p.get("name", "")), "성채 › 연구에서 다음 것을 고른다.", "jade", 2.4, "學")
+			_badge_keep += 1
+			nav.set_badge("keep", _badge_keep)
+		"raid":
+			# 단속: 시설 이름은 build_menu 에서(이벤트는 type 만 준다)
+			var nm := str(p.get("type", ""))
+			for cat: Variant in Q.list("build_menu"):
+				for it: Variant in UI.to_array(UI.to_dict(cat).get("items", [])):
+					if it is Dictionary and str(it.get("id", "")) == nm:
+						nm = str(it.get("name", nm))
+			banner.show_banner("단속", "%s 닫혔다" % UI.josa(nm, "가", "이"), "벌금 ₩%s. 이틀 뒤 다시 연다. 뒷돈 정책이 위험을 늦춘다." % UI.num(float(p.get("fine", 0))), "red", 3.0, "警")
+		"raid_end":
+			toast("단속이 풀렸다. 닫혔던 곳이 다시 연다.", "good")
 		"contract_done":
 			if not bool(p.get("ok", true)):
 				toast("계약 회차를 건너뛰었다 — %s" % str(p.get("reason", "")), "warn")
@@ -440,15 +472,49 @@ func _start_session() -> void:
 
 func _show_offline(s: Dictionary) -> void:
 	var hours := float(s.get("real_hours", 0.0))
-	var span := ("%d시간 %d분" % [int(hours), int(fmod(hours, 1.0) * 60.0)]) if hours >= 1.0 else ("%d분" % maxi(1, int(round(hours * 60.0))))
+	var mins := int(fmod(hours, 1.0) * 60.0)
+	var span := (("%d시간" % int(hours)) + ((" %d분" % mins) if mins > 0 else "")) if hours >= 1.0 else ("%d분" % maxi(1, int(round(hours * 60.0))))
 	var lines := UI.to_array(s.get("lines", []))
+	# 10분이 안 되는 짧은 공백은 창을 띄우지 않고 한 줄만(통합 결정: 앱을 잠깐 내렸다 올릴 때마다 모달이 뜨면 귀찮다)
+	if hours < 1.0 / 6.0 and not bool(s.get("clamped", false)):
+		var last := str(lines[lines.size() - 1]) if not lines.is_empty() else ""
+		toast("자리를 비운 %s 사이%s" % [span, (" — " + last) if last != "" else ""], "dim")
+		return
 	if lines.is_empty():
 		lines = ["별일 없었다. 그게 제일 수상하다."]
+	var ed := float(s.get("econ_days", 0.0))
+	var etxt := ("%s일" % str(snappedf(ed, 0.1))) if ed >= 1.0 else ("%d시간" % maxi(1, int(round(ed * 24.0))))
 	Modal.notice(modals, {
 		"kicker": "자리를 비운 사이",
-		"title": "%s 동안 경제 시간으로 %s일" % [span, str(snappedf(float(s.get("econ_days", 0.0)), 0.1))],
+		"title": "%s 동안 경제 시간으로 %s" % [span, etxt],
 		"lines": lines, "bullets": true, "ok_text": "돌아왔다",
 	})
+
+
+## 목표 id → {tip, go:[{label, jump}]}(data/ui/goal_tips.json). 없으면 {}.
+static func goal_tip(id: String) -> Dictionary:
+	var root: Variant = Data.file("goal_tips")
+	if root is Dictionary:
+		return UI.to_dict(UI.to_dict(root.get("items", {})).get(id, {}))
+	return {}
+
+
+## 목표 달성: 현수막(보상) → 토스트(다음 목표). 오프닝이 도는 중이면 현수막만 짧게(대사를 덮지 않게).
+func _on_goal_done(p: Dictionary) -> void:
+	var rw: Array = []
+	for r: Variant in UI.to_array(p.get("rewards", [])):
+		rw.append(str(r))
+	var title := ("보상 " + " · ".join(rw)) if not rw.is_empty() else "해냈다"
+	banner.show_banner("목표 달성", title, str(p.get("text", "")), "jade", 1.8 if tutorial.running else 2.6, "成")
+	_after_goal.call_deferred()
+
+
+func _after_goal() -> void:
+	var h := Q.dict("hud")
+	var ng := UI.to_dict(h.get("next_goal", {}))
+	if str(ng.get("text", "")) != "":
+		toasts.push("다음 목표: " + str(ng["text"]) + " — [성채]에 방법", "good", "", 5.0)
+	nav.pulse("keep")
 
 
 func replay_tutorial() -> void:
@@ -457,6 +523,28 @@ func replay_tutorial() -> void:
 
 
 # ------------------------------------------------------------------ 현수막
+var _unlock_pending: Array = []
+
+
+func _flush_unlocks() -> void:
+	var ps := _unlock_pending.duplicate()
+	_unlock_pending.clear()
+	if ps.size() == 1:
+		_banner_unlock(ps[0])
+		return
+	var names: Array = []
+	for q: Variant in ps:
+		var id := str(UI.to_dict(q).get("id", ""))
+		var nm := str(UI.to_dict(q).get("name", id))
+		if nm == id:
+			for cat: Variant in Q.list("build_menu"):
+				for it: Variant in UI.to_array(UI.to_dict(cat).get("items", [])):
+					if it is Dictionary and str(it.get("id", "")) == id:
+						nm = str(it.get("name", id))
+		names.append(nm)
+	banner.show_banner("새로 지을 수 있다 · %d가지" % names.size(), " · ".join(names), "[짓기]에서 찾는다.", "gold", 3.0, "新")
+
+
 func _banner_unlock(p: Dictionary) -> void:
 	var id := str(p.get("id", ""))
 	var nm := str(p.get("name", id))

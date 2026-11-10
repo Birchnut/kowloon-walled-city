@@ -1087,7 +1087,8 @@ func _clamp_target() -> void:
 	var m := 5.0
 	target.x = clampf(target.x, -m, cfg.grid.x + m)
 	target.z = clampf(target.z, -m, cfg.grid.y + m)
-	target.y = clampf(target.y, -1.0, cfg.grid.z * cfg.floor_h + 1.0)
+	# 통합: 위로는 지금 가장 높은 층 조금 위까지만(빈 성채에서 끌다 보면 하늘만 보이게 됐다)
+	target.y = clampf(target.y, -1.0, (float(maxi(mesher.top_z, 0)) + 2.0) * cfg.floor_h)
 
 
 ## 화면 픽셀(이 Control 좌표)만큼 끌었을 때 카메라를 옮긴다.
@@ -1096,6 +1097,7 @@ func pan_by(delta_screen: Vector2) -> void:
 	var k := (float(_up) / _canvas_scale) * ppu()
 	target += -b.x * (delta_screen.x / k) + b.y * (delta_screen.y / k)
 	# 화면 위아래 이동은 지면을 따라 미끄러지는 대신 그대로 카메라 평면 이동으로 둔다
+	_clamp_target()     # 통합: 끌기에도 한계(전에는 확대 때만 걸어 두 손가락·끌기로 도시 밖 하늘까지 나갔다)
 	_apply_camera()
 
 
@@ -1146,8 +1148,10 @@ func _gui_input(ev: InputEvent) -> void:
 				_pinch_d0 = (k[0] as Vector2).distance_to(k[1])
 				_pinch_a0 = ((k[1] as Vector2) - (k[0] as Vector2)).angle()
 		else:
+			# 누름을 이 뷰가 받지 않은 손가락의 뗌(UI가 누름을 먹고 사라진 경우)은 탭이 아니다(통합: 대화 넘기기가 집을 여는 일)
+			var seen := _touches.has(ev.index)
 			_touches.erase(ev.index)
-			if _touches.is_empty() and not _dragging and _t - _press_t < 0.5:
+			if seen and _touches.is_empty() and not _dragging and _t - _press_t < 0.5:
 				cell_tapped.emit(pick(ev.position))
 		accept_event()
 	elif ev is InputEventScreenDrag:
@@ -1179,8 +1183,9 @@ func _gui_input(ev: InputEvent) -> void:
 				rotate_view(1 if da < 0.0 else -1)
 				_pinch_a0 = ang
 		accept_event()
-	elif _t - _touch_mode_t > 0.6:
-		# 마우스(터치가 흉내 낸 마우스 이벤트는 위에서 이미 처리했으므로 무시)
+	elif _t - _touch_mode_t > 0.6 and ev.device != InputEvent.DEVICE_ID_EMULATION:
+		# 마우스(터치가 흉내 낸 마우스 이벤트는 위에서 이미 처리했으므로 무시).
+		# 통합: 흉내 낸 마우스는 터치보다 먼저 도착한다 → 시각만 보면 첫 누름이 두 번 들어가 칠하기 획이 지우개가 됐다. device 로 거른다.
 		if ev is InputEventMouseButton:
 			if ev.button_index == MOUSE_BUTTON_LEFT:
 				if ev.pressed:

@@ -224,6 +224,19 @@ static func num(v: Variant) -> String:
 	return ("-" + out) if neg else out
 
 
+## 큰 돈은 만/억으로 줄인다(상단 띠처럼 좁은 곳). 100만 미만은 num 그대로.
+static func big(v: Variant) -> String:
+	var f := float(v) if (v is float or v is int) else 0.0
+	var a := absf(f)
+	var sg := "-" if f < 0.0 else ""
+	if a < 1000000.0:
+		return num(f)
+	if a < 100000000.0:
+		var m := a / 10000.0
+		return sg + ((str(snappedf(m, 0.1)) if m < 1000.0 else num(m)) + "만")
+	return sg + str(snappedf(a / 100000000.0, 0.01)) + "억"
+
+
 static func clock(hour: float) -> String:
 	var h := int(floor(fposmod(hour, 24.0)))
 	var m := int(floor(fposmod(hour, 1.0) * 60.0))

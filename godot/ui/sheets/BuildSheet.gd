@@ -173,8 +173,8 @@ func _scan_spots() -> void:
 		for y in gh:
 			var p := Vector3i(x, y, _grid_z)
 			var c := Q.can_full("build", {"type": id, "pos": p})
-			# 자리 자체는 되는데 돈·자재만 모자란 곳도 "놓을 수 있는 자리"로 보인다(이유 코드가 없어 문장으로 가른다 — UI_NOTES 빈틈)
-			if bool(c.get("ok", false)) or str(c.get("reason", "")).contains("모자란다"):
+			# 자리 자체는 되는데 돈·자재만 모자란 곳도 "놓을 수 있는 자리"로 보인다(can 의 code — G3)
+			if bool(c.get("ok", false)) or str(c.get("code", "")) in ["money", "goods"]:
 				_spots.append(p)
 	Q.vcall("show_cells", [_spots, "valid"])
 
@@ -273,6 +273,17 @@ func _on_card(it: Dictionary) -> void:
 func _start(it: Dictionary) -> void:
 	item = it
 	_enter("paint" if str(it.get("id", "")) == "house" else "place")
+
+
+## 튜토리얼이 보일 항목을 바꿨다: 지금 배치 중인 것이 빠졌으면 메뉴로 돌아가 새 항목을 보여 준다.
+func on_filter_changed() -> void:
+	if not _open:
+		return
+	if mode in ["paint", "place"] and ui != null and ui.tutorial.running and ui.tutorial.build_allowed(str(item.get("id", ""))):
+		return
+	_menu_sig = ""
+	_focus_id = ""
+	_enter("menu")
 
 
 # ------------------------------------------------------------------ 도시 입력

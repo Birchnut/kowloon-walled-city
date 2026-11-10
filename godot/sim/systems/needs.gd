@@ -640,6 +640,10 @@ func tick(state: CityState, dt: float) -> void:
 	if _pacc != _acc_ver:
 		_pents.clear()
 		_pacc = _acc_ver
+		# 통합(INTEG_NOTES): 접근표(시설 가동)가 바뀌면 주거별 빠른 길 캐시도 버린다 — 안 버리면 집을 먼저 칠하고
+		# 시설을 나중에 지은 첫 도시에서 "인력 부족"이 영영 남아 떠돌이가 집마다 1명에서 멈췄다.
+		_hent.fill(null)
+		_hset.fill(0)
 	if not is_same(cov, _cov_ref) or _hent.size() != houses.size():
 		_cov_ref = cov
 		_hent.resize(houses.size())

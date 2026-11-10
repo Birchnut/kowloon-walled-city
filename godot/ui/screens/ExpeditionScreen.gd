@@ -49,22 +49,25 @@ func _init() -> void:
 	var hp := UI.panel("PanelDeep")
 	hp.name = "Head"
 	add_child(hp)
+	var hv := UI.vbox(4)
+	hp.add_child(hv)
 	_head = UI.hbox(6)
-	hp.add_child(_head)
+	hv.add_child(_head)
 	var plaque := UI.panel("PanelPlaque")
 	plaque.add_child(UI.label("탐험", "LabelHead"))
 	_head.add_child(plaque)
-	_mats = UI.hbox(4)
-	_mats.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_head.add_child(_mats)
+	_slots = UI.label("", "LabelDim")
+	_slots.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_slots.clip_text = true
+	_head.add_child(_slots)
 	var x := PixelButton.make("", "close", "ButtonRed")
 	x.pressed.connect(func() -> void:
 		close()
 		finished.emit())
 	_head.add_child(x)
-	_slots = UI.label("", "LabelDim")
-	_slots.position = Vector2(12, 0)
-	add_child(_slots)
+	# 자재 칩은 둘째 줄 전체 폭(통합: 한 줄에 넣으면 칩 넷이 화면 밖으로 밀려났다)
+	_mats = UI.hbox(4)
+	hv.add_child(_mats)
 	# 목적지 카드
 	_card = UI.panel("PanelGold")
 	_card.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -113,7 +116,6 @@ func _layout() -> void:
 	_bg.size = Vector2(w, size.y - _top - _bar)
 	_map.position = Vector2(0, _top + head_h)
 	_map.size = Vector2(w, _teams_panel.position.y - _map.position.y)
-	_slots.position = Vector2(10, _map.position.y + 6)
 	_place_card()
 	_place_empty()
 
@@ -153,7 +155,12 @@ func refresh() -> void:
 	_build_mats(mats)
 	var slots := UI.to_dict(data.get("slots", {}))
 	var teams := UI.to_array(data.get("teams", []))
-	_slots.text = "탐험대 %d / 최대 %d" % [int(slots.get("have", teams.size())), int(slots.get("max", 0))]
+	var out_n := 0
+	for tm0: Variant in teams:
+		if tm0 is Dictionary and str(tm0.get("state", "")) == "out":
+			out_n += 1
+	var have_n := int(slots.get("have", teams.size()))
+	_slots.text = ("탐험대 %d팀 · 나가 있음 %d · 거점 하나에 한 팀(최대 %d)" % [have_n, out_n, int(slots.get("max", 0))]) if have_n > 0 else "탐험대 없음 — 탐험 거점을 지으면 생긴다"
 	_map.focus_good = _focus
 	_map.selected = _sel
 	_map.set_data(UI.to_array(data.get("dests", [])), teams)
@@ -161,7 +168,10 @@ func refresh() -> void:
 	var no_post := teams.is_empty() and int(slots.get("have", 0)) <= 0
 	_empty.visible = no_post
 	if no_post:
-		_build_empty()
+		if _base_under_construction():
+			_build_empty("탐험 거점을 짓는 중", "공사가 끝나면 탐험대가 생긴다. 잠깐이면 된다.", false)
+		else:
+			_build_empty()
 	elif UI.to_array(data.get("dests", [])).is_empty():
 		_empty.visible = true
 		_build_empty("아직 아는 곳이 없다", "목적지 정보가 아직 오지 않았다(시뮬 B 파트). 성채 둘레는 조용하다.", false)
@@ -191,14 +201,27 @@ func _build_mats(mats: Array) -> void:
 		if not (m is Dictionary):
 			continue
 		var id := str(m.get("id", ""))
-		var c := Chip.chip("%s %s" % [str(m.get("name", id)), UI.num(float(m.get("have", 0)))], "", id == _focus)
+		var nm := str(m.get("name", id))
+		nm = {"concrete": "콘크리트", "parts": "부품"}.get(id, nm)
+		var c := Chip.chip("%s %s" % [nm, UI.num(float(m.get("have", 0)))], "", id == _focus)
 		c.small = true
-		c.min_size = Vector2(56, 48)
+		c.min_size = Vector2(48, 44)
 		c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		c.pressed.connect(func() -> void:
 			_focus = "" if _focus == id else id
 			refresh())
 		_mats.add_child(c)
+
+
+## 탐험 거점이 공사 중인가(읽기만 — 질의에 "짓는 중"이 없어서 상태의 건물 목록을 본다).
+func _base_under_construction() -> bool:
+	var st: Variant = Game.state
+	if st == null:
+		return false
+	for b: Variant in st.buildings.values():
+		if b is Dictionary and str(b.get("kind", "")) == "site" and str(b.get("type", "")) == "expedition_base":
+			return true
+	return false
 
 
 # ------------------------------------------------------------------ 팀 줄
@@ -232,7 +255,7 @@ func _build_teams(teams: Array) -> void:
 				sub.text = "대기"
 				v.add_child(UI.label("지도에서 고른다", "LabelDim"))
 			"out":
-				sub.text = str(tm.get("dest_name", ""))
+				sub.text = str(tm.get("dest_name", "")) + (" · 은퇴 예정" if bool(tm.get("retired", false)) else "")
 				var l := UI.label("%s 남음" % fmt_time(float(tm.get("seconds_left", 0))), "LabelBold")
 				v.add_child(l)
 				var bar := RatioBar.make(1.0 - float(tm.get("seconds_left", 0)) / maxf(1.0, float(tm.get("total_seconds", 1))), "gold", 6)
@@ -279,16 +302,24 @@ func _claim(team: Variant) -> void:
 	if not bool(r.get("ok", false)):
 		ui.toast(str(r.get("reason", "받을 것이 없다.")), "warn")
 		return
-	var rewards: Variant = r.get("rewards", r.get("reward", {}))
-	if rewards is Dictionary and not (rewards as Dictionary).is_empty():
-		_reward_pop(rewards, before)
+	# G6 확정 모양: rewards = [{good, name, n}], finds = [문장] (발견: 거래처·목적지·도면)
+	var rw := Screen.rewards_dict(r.get("rewards", []))
+	if not rw.is_empty():
+		_reward_pop(rw, before)
+	# 발견(거래처·목적지·도면)은 현수막 하나에 모아서
+	var fl: Array = []
+	for f: Variant in UI.to_array(r.get("finds", [])):
+		if str(f) != "":
+			fl.append(str(f))
+	if not fl.is_empty():
+		ui.banner.show_banner("탐험대가 찾아 왔다", "\n".join(fl), "", "gold", 3.0, "探")
 	refresh()
 
 
 func on_event(n: String, p: Dictionary) -> void:
 	if n == "expedition_claimed" and _pop.get_child_count() == 0:
-		var rw: Variant = p.get("rewards", {})
-		if rw is Dictionary and not (rw as Dictionary).is_empty():
+		var rw := Screen.rewards_dict(p.get("rewards", {}))
+		if not rw.is_empty():
 			_reward_pop(rw, -1)
 	if n in ["expedition_done", "expedition_claimed"]:
 		_poll_t = 0.0
@@ -412,7 +443,7 @@ func _build_card() -> void:
 	big.add_child(UI.label(fmt_real(float(d.get("seconds", 0))), "LabelBold"))
 	var bonus := str(d.get("bonus_text", ""))
 	if bonus != "":
-		_card_body.add_child(UI.label("덤: " + bonus, "LabelSmall", true))
+		_card_body.add_child(UI.label(bonus if bonus.begins_with("덤") else "덤: " + bonus, "LabelSmall", true))
 	var cost := UI.to_dict(d.get("cost", {}))
 	if float(cost.get("money", 0)) > 0.0:
 		_card_body.add_child(Screen.kv("준비 비용", "₩" + UI.num(float(cost["money"]))))

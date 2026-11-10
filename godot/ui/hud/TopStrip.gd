@@ -61,6 +61,8 @@ func _init() -> void:
 	mc.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_child(mc)
 	money = IconLabel.make("coin", "LabelGold")
+	money.delta_side = true
+	money.short_big = true          # 통합: 변화량이 아래 '+n/일' 줄 위에 겹쳐 그려지던 것
 	mc.add_child(money)
 	_net = UI.label("+0/일", "LabelSmall")
 	_net.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -156,11 +158,13 @@ func refresh(hud: Dictionary) -> void:
 	var gn := str(hud.get("grade_name", ""))
 	var title := str(hud.get("title", "대장"))
 	_grade.text = ("%s · %s" % [gn, title]) if gn != "" else title
-	money.set_value(float(hud.get("money", 0.0)))
 	var net := float(hud.get("net_per_day", 0.0))
-	_net.text = "%s%s/일" % ["+" if net >= 0.0 else "-", UI.num(absf(net))]
+	# 세수처럼 계속 붙는 돈은 떠오르지 않게: 하루 순수지의 1/20(배속이 아주 높을 때만 넘는다)보다 큰 변화만
+	money.delta_min = maxf(10.0, absf(net) / 20.0)
+	money.set_value(float(hud.get("money", 0.0)))
+	_net.text = "%s%s/일" % ["+" if net >= 0.0 else "-", UI.big(absf(net))]
 	_net.add_theme_color_override("font_color", UI.col("jade_hi") if net >= 0.0 else UI.col("red_hi"))
-	_pop.text = UI.num(float(hud.get("pop_total", 0)))
+	_pop.text = UI.big(float(hud.get("pop_total", 0)))
 	_face.set_value(float(hud.get("happiness", 50.0)))
 	for l: Variant in UI.to_array(hud.get("labor", [])):
 		if l is Dictionary and str(l.get("name", "")) != "":
@@ -195,9 +199,12 @@ func _refresh_tiers(pop: Dictionary) -> void:
 	if rows.is_empty():
 		_tiers.add_child(UI.label("아직 아무도 안 산다", "LabelMute"))
 		return
+	# 넷 이상이면 첫 글자, 다섯이면 점·여백까지 줄인다(통합: 다섯 계층이면 마지막 칩이 물·전기 눈금 밑으로 잘렸다)
+	var tiny := rows.size() >= 5
+	_tiers.add_theme_constant_override("separation", 2 if tiny else 4)
 	for r: Array in rows:
 		var nm: String = names.get(r[0], "t%d" % r[0])
-		_tiers.add_child(TierChip.make(int(r[0]), nm.substr(0, 1) if short else nm, int(r[1])))
+		_tiers.add_child(TierChip.make(int(r[0]), nm.substr(0, 1) if short else nm, int(r[1]), tiny))
 
 
 ## 계층 이름표(경제 질의의 tiers 에서 한 번 읽어 둔다).
@@ -268,12 +275,19 @@ func _pulse(n: Control) -> void:
 # ------------------------------------------------------------------ 작은 부품
 ## 계층 칩: 계층색 점 + 이름 + 인원.
 class TierChip extends PanelContainer:
-	static func make(t: int, nm: String, n: int) -> TierChip:
+	static func make(t: int, nm: String, n: int, tiny: bool = false) -> TierChip:
 		var c := TierChip.new()
 		c.theme_type_variation = "PanelTag"
 		c.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var h := UI.hbox(4)
+		var h := UI.hbox(2 if tiny else 4)
 		c.add_child(h)
+		if tiny:
+			# 점 대신 이름 글자에 계층색
+			var l := UI.label(nm, "LabelSmall")
+			l.add_theme_color_override("font_color", TierChip.tier_col(t))
+			h.add_child(l)
+			h.add_child(UI.label(UI.big(n) if n < 10000 else str(snappedf(n / 10000.0, 0.1)) + "만", "LabelGoldSmall"))
+			return c
 		var dot := ColorRect.new()
 		dot.color = TierChip.tier_col(t)
 		dot.custom_minimum_size = Vector2(6, 6)
@@ -281,7 +295,7 @@ class TierChip extends PanelContainer:
 		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		h.add_child(dot)
 		h.add_child(UI.label(nm, "LabelSmall"))
-		h.add_child(UI.label(UI.num(n), "LabelGoldSmall"))
+		h.add_child(UI.label(UI.big(n), "LabelGoldSmall"))
 		return c
 
 	static func tier_col(t: int) -> Color:
@@ -307,7 +321,7 @@ class UtilPip extends HBoxContainer:
 		u.glyph = UI.label(g, "LabelSmall")
 		u.add_child(u.glyph)
 		u.bar = RatioBar.make(0.0, "off", 12)
-		u.bar.custom_minimum_size = Vector2(40, 16)
+		u.bar.custom_minimum_size = Vector2(32, 16)
 		u.bar.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		u.add_child(u.bar)
 		return u
