@@ -65,7 +65,13 @@ static func _ground(img: Image, tx: int, ty: int, ox: int, oy: int, style: Strin
 	var base := Color("c2a77f")     # 햇빛 받은 흙
 	var lo := Color("a88d68")
 	var hi := Color("d6bf98")
-	if style == "concrete" or style == "hall":
+	var sg: Array = RunCfg.skin().get("ground", [])
+	if sg.size() >= 3 and style != "hall":
+		base = Color(str(sg[0]))
+		lo = Color(str(sg[1]))
+		hi = Color(str(sg[2]))
+		style = "trash"
+	elif style == "concrete" or style == "hall":
 		base = Color("bdb8ac")
 		lo = Color("a39d90")
 		hi = Color("d2cdc2")
@@ -94,6 +100,14 @@ static func _ground(img: Image, tx: int, ty: int, ox: int, oy: int, style: Strin
 			var y0 := 3 + int(h01(tx, ty, 4) * 9)
 			for x in range(2, 14):
 				_px(img, ox + x, oy + y0 + int(sin(x * 0.9 + tx) * 1.5), Color("8f897d"))
+	elif style == "trash":
+		# 매립지: 비닐 조각·병뚜껑·종이가 흩어진 흙
+		var k2 := h01(tx, ty, 7)
+		if k2 < 0.35:
+			var cc := [Color("e74c3c"), Color("3498db"), Color("ecf0f1"), Color("27ae60"), Color("f39c12")][int(h01(tx, ty, 17) * 5) % 5] as Color
+			_rect(img, ox + 2 + int(h01(tx, ty, 8) * 11), oy + 2 + int(h01(tx, ty, 9) * 11), 3, 2, cc)
+		if k2 > 0.96:
+			_rect(img, ox + 4, oy + 7, 5, 2, Color("e8e2d0"))
 	else:
 		# 자갈·잡초·바퀴 자국
 		var k := h01(tx, ty, 7)
@@ -140,6 +154,9 @@ static func _cast(img: Image, tx: int, ty: int, ox: int, oy: int) -> void:
 static func _tile(img: Image, tx: int, ty: int, ox: int, oy: int) -> void:
 	var code := t(tx, ty)
 	match code:
+		DungeonGen.SOFT:
+			_soft(img, tx, ty, ox, oy)
+			_cast(img, tx, ty, ox, oy)
 		DungeonGen.FLOOR, DungeonGen.JUNK, DungeonGen.RUBBLE, DungeonGen.GRAVEL:
 			_ground(img, tx, ty, ox, oy, _floor_style(tx, ty))
 			_cast(img, tx, ty, ox, oy)
@@ -218,9 +235,9 @@ static func _fence(img: Image, tx: int, ty: int, ox: int, oy: int) -> void:
 	var front := not DungeonGen.is_solid_code(below)
 	if front:
 		# 청록 골함석 담(녹 줄기)
-		var teal := Color("3f9590")
+		var teal := Color(str(RunCfg.skin().get("fence", "3f9590")))
 		if h01(tx, ty, 2) < 0.25:
-			teal = Color("c56a30")   # 군데군데 녹슨 주황 판
+			teal = Color(str(RunCfg.skin().get("fence2", "c56a30")))   # 군데군데 다른 판
 		for y in TS:
 			for x in TS:
 				var c := teal
@@ -257,6 +274,9 @@ static func _fence(img: Image, tx: int, ty: int, ox: int, oy: int) -> void:
 
 
 static func _container(img: Image, tx: int, ty: int, ox: int, oy: int) -> void:
+	if RunCfg.skin().has("heap"):
+		_bag_heap(img, tx, ty, ox, oy)
+		return
 	var cl := _cluster(tx, ty, DungeonGen.WALL)
 	var cols := [Color("d0662a"), Color("2f8c88"), Color("3a68b0"), Color("9a3a34"), Color("c8a030")]
 	var body: Color = cols[int(h01(cl.position.x, cl.position.y, 31) * cols.size()) % cols.size()]
@@ -285,6 +305,36 @@ static func _container(img: Image, tx: int, ty: int, ox: int, oy: int) -> void:
 			if horiz and X > cw - 9 and X < cw - 2 and Y > 5 and Y < ch - 4:
 				c = body.darkened(0.15) if X != cw - 5 else OUT
 			img.set_pixel(ox + x, oy + y, c)
+
+
+## 매립지의 안쪽 벽: 쓰레기 봉투 더미(둥근 봉투들, 묶은 매듭)
+static func _bag_heap(img: Image, tx: int, ty: int, ox: int, oy: int) -> void:
+	var cols: Array = RunCfg.skin().get("heap", ["4f6a2e"])
+	_rect(img, ox, oy, 16, 16, Color(str(cols[0])).darkened(0.35))
+	for k in 3:
+		var c := Color(str(cols[int(h01(tx * 3 + k, ty, 71) * cols.size()) % cols.size()]))
+		var cx := 4.0 + h01(tx, ty * 3 + k, 72) * 8.0
+		var cy := 4.0 + k * 4.5
+		_ellipse(img, ox + cx, oy + cy, 5.0, 3.6, OUT)
+		_ellipse(img, ox + cx, oy + cy, 4.2, 2.9, c)
+		_rect(img, ox + int(cx) - 1, oy + int(cy) - 2, 2, 1, c.lightened(0.35))
+		_px(img, ox + int(cx), oy + int(cy) - 4, OUT)
+
+
+static func _soft(img: Image, tx: int, ty: int, ox: int, oy: int) -> void:
+	for y in TS:
+		for x in TS:
+			var r := h01(tx * 16 + x, ty * 16 + y, 81)
+			var c := Color("7a6a48")
+			if r < 0.15:
+				c = Color("5e5034")
+			elif r > 0.9:
+				c = Color("9a8a5e")
+			img.set_pixel(ox + x, oy + y, c)
+	if h01(tx, ty, 82) < 0.5:
+		_rect(img, ox + 3 + int(h01(tx, ty, 83) * 9), oy + 4 + int(h01(tx, ty, 84) * 8), 4, 2, Color("cfd8dc"))   # 젖은 비닐
+	if h01(tx, ty, 85) < 0.3:
+		_ellipse(img, ox + 9, oy + 9, 3, 1.5, Color("4a3e28"))   # 고인 물
 
 
 static func _shack(img: Image, tx: int, ty: int, ox: int, oy: int) -> void:
@@ -430,6 +480,11 @@ static func _booth(img: Image, tx: int, ty: int, ox: int, oy: int) -> void:
 
 
 static func _press(img: Image, tx: int, ty: int, ox: int, oy: int) -> void:
+	if RunCfg.skin().has("heap"):
+		_bag_heap(img, tx, ty, ox, oy)   # 들개 왕의 쓰레기 왕좌
+		if (tx + ty) % 3 == 0:
+			_rect(img, ox + 5, oy + 2, 6, 3, Color("f1c40f"))
+		return
 	var cl := _cluster(tx, ty, DungeonGen.PRESS)
 	var cw := cl.size.x * TS
 	var ch := cl.size.y * TS

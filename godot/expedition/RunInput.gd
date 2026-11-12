@@ -10,6 +10,7 @@ var roll: bool = false               # 이번 프레임에 눌림(Space)
 var interact: bool = false           # 누르고 있음(E)
 var pack_toggle: bool = false        # 이번 프레임에 눌림(Tab)
 var slot_action: int = -1            # 배낭 칸 버리기/바꾸기(배낭이 열렸을 때 클릭·숫자키)
+var slot_one: int = -1               # 배낭 칸에서 한 묶음만 덜기(오른쪽 클릭·Shift+숫자)
 
 
 func clear_edges() -> void:
@@ -18,3 +19,4 @@ func clear_edges() -> void:
 	roll = false
 	pack_toggle = false
 	slot_action = -1
+	slot_one = -1

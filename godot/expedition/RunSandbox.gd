@@ -103,7 +103,10 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_on_resize)
 	_on_resize()
 	hud.ticker_lines = CityLink.ticker().slice(0, 2)
+	if args.has("dest"):
+		dest = str(args["dest"])
 	begin = CityLink.begin(dest, seed_arg)
+	begin["dest"] = dest
 	if args.get("start", "") == "run" or auto_profile != "" or args.has("script"):
 		_start_run()
 	else:
@@ -137,6 +140,7 @@ func _start_run() -> void:
 		push_warning("run_begin 실패: %s" % begin.get("reason", ""))
 	world = RunWorld.new()
 	world.setup(dest, begin)
+	world.wanted = CityLink.wanted()
 	view.bind(world)
 	hud.bind(world)
 	view.aim_world = world.input.aim
@@ -161,6 +165,13 @@ func _on_action(id: String) -> void:
 			_start_run()
 		"reroll":
 			begin["seed"] = int(begin.get("seed", 1)) + 1 + randi() % 997
+			menus.show_mode("start", begin)
+		"skin":
+			var ids: Array = RunCfg.file("run_skins").get("items", {}).keys()
+			var cur := ids.find(RunCfg.skin_for(dest))
+			dest = str(ids[(cur + 1) % ids.size()])
+			begin = CityLink.begin(dest, int(begin.get("seed", 1)))
+			begin["dest"] = dest
 			menus.show_mode("start", begin)
 		"resume":
 			mode = "run"
@@ -201,6 +212,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 					_on_action("enter")
 				elif k == KEY_R:
 					_on_action("reroll")
+				elif k == KEY_D:
+					_on_action("skin")
 			"pause":
 				if k == KEY_ESCAPE:
 					_on_action("resume")
@@ -225,7 +238,10 @@ func _unhandled_input(ev: InputEvent) -> void:
 				elif k == KEY_SPACE:
 					world.input.roll = true
 				elif k >= KEY_1 and k <= KEY_6 and world.pack_open:
-					world.input.slot_action = k - KEY_1
+					if ev.shift_pressed:
+						world.input.slot_one = k - KEY_1
+					else:
+						world.input.slot_action = k - KEY_1
 				elif k == KEY_F2:
 					if bot == null:
 						bot = AutoPlayer.new()
@@ -241,6 +257,10 @@ func _unhandled_input(ev: InputEvent) -> void:
 				world.input.slot_action = sl
 			elif not world.pack_open:
 				world.input.attack = true
+		elif ev.button_index == MOUSE_BUTTON_RIGHT and world.pack_open:
+			var sl2 := hud.slot_at(ev.position)
+			if sl2 >= 0:
+				world.input.slot_one = sl2
 		elif ev.button_index == MOUSE_BUTTON_RIGHT and not world.pack_open:
 			world.input.throw_hold = true
 	elif ev is InputEventMouseButton and not ev.pressed and mode == "run" and ev.button_index == MOUSE_BUTTON_RIGHT:
@@ -353,7 +373,7 @@ func _shot_cond(c: String) -> bool:
 		"search":
 			return not world.search_target.is_empty() and world.search_target["progress"] > 0.35
 		"wave":
-			return hud.banner_t > 1.4 and hud.banner.contains("소란")
+			return world.time - world.last_event_t > 0.4 and world.time - world.last_event_t < 1.5
 		"pack":
 			return world.pack_open
 		"junk":

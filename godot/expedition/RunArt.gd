@@ -34,6 +34,10 @@ static func tex(key: String) -> Texture2D:
 		"exit_entrance": img = _exit_hole()
 		"exit_mid": img = _manhole()
 		"exit_boss": img = _gate()
+		"boss_dog": img = _boss_dog(false)
+		"boss_dog_stuck": img = _boss_dog(true)
+		"gull0": img = _gull(0)
+		"gull1": img = _gull(1)
 		"boss_head": img = _boss_head(false)
 		"boss_head_stuck": img = _boss_head(true)
 		"cube": img = _cube()
@@ -648,6 +652,42 @@ static func _boss_head(stuck: bool) -> Image:
 	else:
 		_rect(img, 16, 19, 12, 6, Color("30343a"))
 	return _outline(img)
+
+
+## 들개 왕: 큰 개 머리(왕관 대신 병뚜껑 목걸이). 덮친 뒤엔 혀를 빼고 어지러워한다(약점 = 코).
+static func _boss_dog(stuck: bool) -> Image:
+	var img := _new(44, 38)
+	var fur := Color("c47a36")
+	var dark := Color("8a4e22")
+	_ellipse(img, 22, 22, 19, 14, fur)
+	_ellipse(img, 22, 18, 15, 9, fur.lightened(0.12))
+	_rect(img, 4, 2, 9, 12, dark)       # 귀
+	_rect(img, 31, 2, 9, 12, dark)
+	_ellipse(img, 22, 27, 9, 6, Color("e8c8a0"))   # 주둥이
+	_ellipse(img, 22, 23, 4, 3, Color("ff9030") if stuck else Color("1a1210"))   # 코(끼면 빛나는 약점)
+	if stuck:
+		_rect(img, 13, 14, 5, 1, Color("1a1210"))   # 어지러운 눈 ×
+		_rect(img, 26, 14, 5, 1, Color("1a1210"))
+		_rect(img, 20, 31, 4, 6, Color("e0607a"))   # 혀
+	else:
+		_rect(img, 13, 12, 4, 4, Color("ff3020"))
+		_rect(img, 27, 12, 4, 4, Color("ff3020"))
+		_rect(img, 16, 31, 12, 2, Color("f8f8f0"))   # 이빨
+	for k in 5:
+		_ellipse(img, 10 + k * 6, 35, 2.2, 2.2, [Color("e74c3c"), Color("f1c40f"), Color("3498db")][k % 3])   # 병뚜껑 목걸이
+	return _outline(img)
+
+
+static func _gull(frame: int) -> Image:
+	var img := _new(11, 5)
+	if frame == 0:
+		_rect(img, 0, 0, 4, 1, Color("f4f6f6")); _rect(img, 7, 0, 4, 1, Color("f4f6f6"))
+		_rect(img, 3, 1, 5, 2, Color("ffffff"))
+	else:
+		_rect(img, 0, 2, 4, 1, Color("f4f6f6")); _rect(img, 7, 2, 4, 1, Color("f4f6f6"))
+		_rect(img, 3, 1, 5, 2, Color("ffffff"))
+	_px(img, 8, 1, Color("f39c12"))
+	return _outline(img, Color("5d6d7e"))
 
 
 static func _shadow(rx: int, ry: int) -> Image:

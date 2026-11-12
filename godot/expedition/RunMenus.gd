@@ -126,8 +126,9 @@ func _draw_start(vs: Vector2) -> void:
 		draw_rect(Rect2(x, y, (4 + RunArt.hash01(k, 3, 92) * 18) * s, (2 + RunArt.hash01(k, 4, 93) * 5) * s), Color(0.18 + RunArt.hash01(k, 5) * 0.1, 0.13, 0.11, 0.8))
 	var cx := vs.x / 2
 	_tc(Vector2(cx, vs.y * 0.13), "직접 줍기", Color(0.95, 0.75, 0.45), fs(1.4))
-	_tc(Vector2(cx, vs.y * 0.13 + fs(3.2)), "고물 야적장", Color(1, 0.95, 0.85), fs(3.0), true)
-	_tc(Vector2(cx, vs.y * 0.13 + fs(4.8)), "쌓인 차체, 녹슨 담, 그리고 압축기 \"큰형\". 주로 나오는 것: 철제 · 고물 · 전자 폐품", Color(0.8, 0.78, 0.72), fs())
+	var sk: Dictionary = RunCfg.file("run_skins").get("items", {}).get(RunCfg.skin_for(str(data.get("dest", "scrap_yard"))), {})
+	_tc(Vector2(cx, vs.y * 0.13 + fs(3.2)), str(sk.get("name", "고물 야적장")), Color(1, 0.95, 0.85), fs(3.0), true)
+	_tc(Vector2(cx, vs.y * 0.13 + fs(4.8)), str(sk.get("desc", "")), Color(0.8, 0.78, 0.72), fs())
 	var r := Rect2(cx - 200 * s, vs.y * 0.33, 400 * s, 118 * s)
 	_panel(r)
 	var stock: Dictionary = data.get("stock", {})
@@ -160,8 +161,9 @@ func _draw_start(vs: Vector2) -> void:
 	var ctl := ["WASD 이동 · 마우스 조준", "왼쪽 클릭 쇠파이프 · 오른쪽 클릭 던지기", "Space 구르기(무적) · E 꾹 뒤지기/나가기", "Tab 배낭 · Esc 멈춤 · M 소리 · F2 자동"]
 	for k in ctl.size():
 		_tl(Vector2(x0 + 200 * s, y + 58 * s + k * 11 * s), ctl[k], Color(0.8, 0.78, 0.72), fs(0.9))
-	_button(Vector2(cx - 70 * s, r.end.y + 26 * s), "들어가기 (Enter)", "enter", 120 * s)
-	_button(Vector2(cx + 70 * s, r.end.y + 26 * s), "다른 지도 (R)", "reroll", 120 * s)
+	_button(Vector2(cx - 130 * s, r.end.y + 26 * s), "들어가기 (Enter)", "enter", 110 * s)
+	_button(Vector2(cx, r.end.y + 26 * s), "다른 지도 (R)", "reroll", 110 * s)
+	_button(Vector2(cx + 130 * s, r.end.y + 26 * s), "다른 던전 (D)", "skin", 110 * s)
 	if str(data.get("source", "")) == "sample":
 		_tc(Vector2(cx, vs.y - 10 * s), "도시와 아직 연결 안 됨 — 견본 재고로 연습 중", Color(0.5, 0.48, 0.45), fs(0.8))
 

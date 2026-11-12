@@ -154,6 +154,15 @@ func _threat(w: RunWorld, dt: float) -> Vector2:
 		for m in w.marks:
 			if p.pos.distance_to(m["pos"]) < m["r"] + 10:
 				cands.append(["m%s" % str(m["pos"]), m["dur"] - m["t"], (p.pos - m["pos"]).normalized() if p.pos.distance_to(m["pos"]) > 1 else Vector2.LEFT, true])
+		if b.state in ["howl_tele", "howl"]:
+			var R := RunCfg.f("boss_howl_r", 92)
+			var dd := p.pos.distance_to(b.pos)
+			if dd < R + 8:
+				var speed_r := R / RunCfg.f("boss_howl_time", 0.55)
+				var r_now: float = float(b.data.get("howl_r", 0.0)) if b.state == "howl" else 0.0
+				var rem3 := (dd - r_now) / speed_r + ((b.timer - b.st) if b.state == "howl_tele" else 0.0)
+				if dd > r_now:
+					cands.append(["hw%d" % int((w.time - b.st) * 20.0), rem3, (p.pos - b.pos).normalized(), true])
 		if b.state in ["sweep_tele", "sweep"]:
 			var sx: float = b.data["sweep_x"]
 			var dir: float = b.data["sweep_dir"]

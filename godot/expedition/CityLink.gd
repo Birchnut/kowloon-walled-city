@@ -98,3 +98,19 @@ static func ticker() -> Array:
 		"봉제방 재봉틀 4대 가동 중",
 		"관리사무소: 복도에 짐 두지 마세요(무시됨)",
 	]
+
+
+## 지금 도시에 모자란 물건(줍기 id). 도시가 query("run_wanted")를 주면 그것(도시 id → 줍기 id), 아니면 견본.
+static func wanted() -> Array:
+	var g := _game()
+	if use_city and g != null and g.has_method("query"):
+		var q: Variant = g.query("run_wanted", {})
+		if q is Array and not (q as Array).is_empty():
+			var back := {}
+			for gid in RunCfg.goods():
+				back[str(RunCfg.good(gid).get("city_id", gid))] = gid
+			var out: Array = []
+			for cid in q:
+				out.append(back.get(str(cid), str(cid)))
+			return out
+	return RunCfg.file("run_goods").get("sample_wanted", ["metal", "elec"])

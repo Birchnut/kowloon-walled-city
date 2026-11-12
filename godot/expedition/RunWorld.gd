@@ -73,6 +73,11 @@ var hits_taken: int = 0
 var hurt_log: Dictionary = {}
 var hp_at_boss: int = -1
 var floodlights: bool = false
+var still_t: float = 0.0
+var hushing: bool = false
+var events_seen: Array = []
+var last_event_t: float = -99.0
+var wanted: Array = []        # 지금 도시에 모자란 것(CityLink.wanted)
 var time_at_boss: float = -1.0
 
 
@@ -83,6 +88,7 @@ func setup(p_dest: String, begin: Dictionary) -> void:
 	danger = int(begin.get("danger", 2))
 	seed_value = int(begin.get("seed", 1))
 	rng.seed = seed_value * 7919 + 13
+	RunCfg.skin_id = RunCfg.skin_for(dest)
 	var gen := DungeonGen.new()
 	dun = gen.generate(seed_value, stock.duplicate(), danger)
 	w = dun["w"]
@@ -229,6 +235,8 @@ func step(dt: float) -> void:
 		_ev("sfx", {"id": "tick"})
 	if input.slot_action >= 0:
 		slot_action(input.slot_action)
+	if input.slot_one >= 0:
+		slot_drop_one(input.slot_one)
 	var sdt := dt * (0.3 if pack_open else 1.0)
 	time += sdt
 	_player_step(sdt)
@@ -277,7 +285,7 @@ func _player_step(dt: float) -> void:
 	var mv := input.move.limit_length(1.0)
 	if input.attack:
 		attack_buffer = 0.15
-	var speed := RunCfg.f("player_speed", 92)
+	var speed := RunCfg.f("player_speed", 92) * soft_mult(p.pos)
 	# 구르기
 	if input.roll and roll_cd <= 0.0 and p.state != "roll":
 		var d := mv.normalized() if mv.length() > 0.1 else p.face
@@ -580,13 +588,14 @@ func _hurt_player(dmg: int, from: Vector2, by: String) -> bool:
 func _hurt_boss(dmg: int) -> void:
 	boss.hp -= dmg
 	boss.flash = 0.12
+	_ev("weak_hit", {"pos": boss.pos})
 	hitstop = maxf(hitstop, RunCfg.f("hitstop_hit", 0.05))
 	_ev("hit", {"pos": boss.pos, "dir": (boss.pos - player.pos).normalized()})
 	_ev("sfx", {"id": "clang"})
 	_ev("shake", {"a": 3.0})
 	if boss.hp <= boss.max_hp / 2 and int(boss.data["phase"]) == 1:
 		boss.data["phase"] = 2
-		_ev("banner", {"text": "큰형이 열 받았다"})
+		_ev("banner", {"text": str(RunCfg.skin().get("lines", {}).get("phase2", "두목이 열 받았다"))})
 		_ev("sfx", {"id": "alarm"})
 		for k in 3:
 			var r := _spawn_enemy("rat", boss.home + Vector2(rng.randf_range(-60, 60), -20), boss.room)
@@ -599,7 +608,7 @@ func _hurt_boss(dmg: int) -> void:
 		kills["boss"] = 1
 		hitstop = 0.25
 		_ev("boss_dead", {"pos": boss.pos})
-		_ev("banner", {"text": "큰형, 퇴근."})
+		_ev("banner", {"text": str(RunCfg.skin().get("lines", {}).get("dead", "두목, 퇴근."))})
 		_ev("shake", {"a": 9.0})
 		_ev("sfx", {"id": "stomp"})
 		var bigd: Dictionary = dun.get("big", {})
@@ -803,11 +812,29 @@ func _guard_sees(e: Actor) -> bool:
 		return e.pos.distance_to(player.pos) < 14.0
 	var to_p := player.pos - e.pos
 	var d := to_p.length()
-	if d > RunCfg.f("guard_cone_range", 104):
+	if d > cone_range():
 		return d < 14.0
-	if absf(angle_difference(e.face.angle(), to_p.angle())) > deg_to_rad(RunCfg.f("guard_cone_deg", 60)) / 2.0:
+	if absf(angle_difference(e.face.angle(), to_p.angle())) > deg_to_rad(cone_deg()) / 2.0:
 		return d < 14.0
 	return _los(e.pos, player.pos)
+
+
+## 물렁한 땅(매립지) 위면 느려진다. 들개는 익숙해서 안 느려진다.
+func soft_mult(pos: Vector2) -> float:
+	var c := to_cell(pos)
+	if c.x < 0 or c.y < 0 or c.x >= w or c.y >= h:
+		return 1.0
+	if tiles[c.y * w + c.x] == DungeonGen.SOFT:
+		return float(RunCfg.skin().get("soft", {}).get("speed", 0.7))
+	return 1.0
+
+
+func cone_range() -> float:
+	return RunCfg.f("guard_cone_range", 104) * (RunCfg.f("flood_range_mult", 1.4) if floodlights else 1.0)
+
+
+func cone_deg() -> float:
+	return RunCfg.f("guard_cone_deg", 60) * (RunCfg.f("flood_angle_mult", 1.3) if floodlights else 1.0)
 
 
 func _ai_guard(e: Actor, dt: float) -> void:
@@ -984,11 +1011,10 @@ func _boss_step(dt: float) -> void:
 	match b.state:
 		"dormant":
 			if cur_room == b.room and rrect.grow(-12).has_point(player.pos):
-				b.set_state("intro", 1.4)
+				b.set_state("intro", RunCfg.f("boss_intro", 2.2))
 				reached_boss = true
 				hp_at_boss = player.hp
 				time_at_boss = time
-				_ev("banner", {"text": "압축기 \"큰형\""})
 				_ev("sfx", {"id": "alarm"})
 				_ev("boss_intro", {})
 		"intro":
@@ -1002,19 +1028,7 @@ func _boss_step(dt: float) -> void:
 			if player.state == "down":
 				return
 			if b.st >= b.timer:
-				var r := rng.randf()
-				if ph == 2 and r < 0.28 and not b.data.get("swept", false):
-					b.data["swept"] = true
-					_boss_sweep_start()
-				elif r < 0.68 or to_p.length() < 28:
-					b.data["swept"] = false
-					b.set_state("stomp_tele", RunCfg.f("boss_stomp_tele2" if ph == 2 else "boss_stomp_tele", 0.8))
-					b.vel = Vector2.ZERO
-					_ev("sfx", {"id": "hydraulic"})
-					_ev("tele", {"pos": b.pos, "kind": "stomp"})
-				else:
-					b.data["swept"] = false
-					_boss_spit_start(ph)
+				_boss_pick(ph, to_p.length())
 		"stomp_tele":
 			# 예고 앞쪽 35% 동안은 머리가 줍는 이 쪽으로 조금 더 따라온다(그다음엔 고정)
 			if b.st < b.timer * 0.35:
@@ -1033,7 +1047,15 @@ func _boss_step(dt: float) -> void:
 				if rng.randf() < 0.45:
 					var it := _mk_item("throw", b.pos + Vector2(0, 18), {"tk": "can"})
 					_pop_item(it)
-				b.set_state("stuck", RunCfg.f("boss_stuck", 1.7))
+				var chain: int = int(b.data.get("chain", 0))
+				if chain > 0:
+					# 연속 찍기: 끼지 않고 바로 다음 찍기(마지막에 오래 낀다)
+					b.data["chain"] = chain - 1
+					b.set_state("stomp_tele", RunCfg.f("boss_chain_tele", 0.5))
+					_ev("sfx", {"id": "hydraulic"})
+				else:
+					b.set_state("stuck", RunCfg.f("boss_stuck", 1.7) * (RunCfg.f("boss_chain_stuck_mult", 1.6) if b.data.get("chained", false) else 1.0))
+					b.data["chained"] = false
 		"stuck":
 			if b.st >= b.timer:
 				b.set_state("rise", 0.45)
@@ -1048,6 +1070,29 @@ func _boss_step(dt: float) -> void:
 					done = false
 			if done and b.st > 0.3:
 				b.set_state("track", rng.randf_range(0.8, 1.3))
+		"howl_tele":
+			if b.st >= b.timer:
+				b.set_state("howl", RunCfg.f("boss_howl_time", 0.55))
+				b.data["howl_hit"] = false
+				_ev("sfx", {"id": "roar"})
+				_ev("shake", {"a": 4.0})
+				var alive := 0
+				for e: Actor in enemies:
+					if not e.dead and e.kind == "dog":
+						alive += 1
+				for k in mini(2, 4 - alive):
+					var dg := _spawn_enemy("dog", b.home + Vector2(rng.randf_range(-80, 80), 10), b.room)
+					dg.aware = true
+					dg.set_state("circle", 1.2)
+		"howl":
+			# 울부짖음 고리: 0 → 최대 반지름으로 퍼진다. 고리가 지나는 순간 그 자리에 있으면 맞는다(굴러 넘기 가능)
+			var rad := RunCfg.f("boss_howl_r", 92) * clampf(b.st / b.timer, 0.0, 1.0)
+			b.data["howl_r"] = rad
+			if not b.data.get("howl_hit", false) and absf(player.pos.distance_to(b.pos) - rad) < 7.0:
+				if _hurt_player(RunCfg.i("boss_howl_damage", 2), b.pos, "boss"):
+					b.data["howl_hit"] = true
+			if b.st >= b.timer:
+				b.set_state("stuck", RunCfg.f("boss_stuck", 1.2) * 0.8)
 		"sweep_tele":
 			if b.st >= b.timer:
 				b.set_state("sweep")
@@ -1083,6 +1128,61 @@ func _boss_step(dt: float) -> void:
 		if cubes[k]["t"] > cubes[k]["life"]:
 			_ev("dust", {"pos": cubes[k]["pos"], "n": 5, "dir": Vector2.ZERO})
 			cubes.remove_at(k)
+
+
+## 다음 공격을 고른다. 1페이즈: 내려찍기·침. 2페이즈: 내려찍기·침·쓸기·연속 찍기 중 무작위(같은 것 두 번 연속 금지 — 순서를 외울 수 없게).
+func _boss_pick(ph: int, dist: float) -> void:
+	var b := boss
+	var opts := {"stomp": 3.0, "spit": 2.0}
+	var special := str(RunCfg.skin().get("boss", {}).get("special", "chain"))
+	if ph == 2:
+		opts = {"stomp": 2.0, "spit": 1.5, "sweep": 1.3, "chain": 1.6}
+		if special == "howl":
+			opts = {"stomp": 2.0, "spit": 1.5, "howl": 1.8}
+	elif special == "howl":
+		opts["howl"] = 1.0
+	var last: String = b.data.get("last", "")
+	if opts.has(last) and last != "stomp":
+		opts.erase(last)
+	if dist < 28:
+		opts["stomp"] = float(opts.get("stomp", 1.0)) + 3.0
+	var keys: Array = opts.keys()
+	var ws: Array = []
+	for k in keys:
+		ws.append(opts[k])
+	var pick: String = keys[_pick_w(ws)]
+	b.data["last"] = pick
+	match pick:
+		"stomp", "chain":
+			if pick == "chain":
+				b.data["chain"] = RunCfg.i("boss_chain_n", 3) - 1
+				b.data["chained"] = true
+				_ev("banner", {"text": "큰형: 쾅쾅쾅"})
+			b.set_state("stomp_tele", RunCfg.f("boss_stomp_tele2" if ph == 2 else "boss_stomp_tele", 0.8))
+			b.vel = Vector2.ZERO
+			_ev("sfx", {"id": "hydraulic"})
+			_ev("tele", {"pos": b.pos, "kind": "stomp"})
+		"spit":
+			_boss_spit_start(ph)
+		"sweep":
+			_boss_sweep_start()
+		"howl":
+			b.set_state("howl_tele", RunCfg.f("boss_howl_tele", 0.9))
+			b.vel = Vector2.ZERO
+			_ev("sfx", {"id": "growl"})
+			_ev("tele", {"pos": b.pos, "kind": "howl"})
+
+
+func _pick_w(ws: Array) -> int:
+	var tot := 0.0
+	for x in ws:
+		tot += float(x)
+	var r := rng.randf() * tot
+	for k in ws.size():
+		r -= float(ws[k])
+		if r <= 0.0:
+			return k
+	return ws.size() - 1
 
 
 func _boss_spit_start(ph: int) -> void:
@@ -1266,6 +1366,41 @@ func slot_action(k: int) -> void:
 	_ev("sfx", {"id": "drop"})
 
 
+## 한 묶음만 덜어 발밑에 내려놓는다(칸에 하나뿐이면 칸째).
+func slot_drop_one(k: int) -> void:
+	if k < 0 or k >= PACK_SLOTS or pack[k] == null or player.state == "down":
+		return
+	var s: Dictionary = pack[k]
+	if int(s["bundles"]) <= 1:
+		slot_action(k)
+		return
+	var per := int(s["units"]) / int(s["bundles"])
+	s["bundles"] = int(s["bundles"]) - 1
+	s["units"] = int(s["units"]) - per
+	var it := _mk_item("good", player.pos + Vector2(rng.randf_range(-6, 6), 8), {"good": s["good"], "units": per, "bundles": 1})
+	it["delay"] = 1.2
+	items.append(it)
+	_ev("text", {"pos": player.pos + Vector2(0, -20), "text": "한 묶음 덜어냄: %s" % RunCfg.good_name(s["good"]), "col": "grey"})
+	_ev("sfx", {"id": "drop"})
+
+
+## 묶음 하나의 가치(별 1~5): 값 × 묶음 크기, 도시에 모자란 물건이면 1.5배.
+func bundle_stars(good: String) -> int:
+	var gd := RunCfg.good(good)
+	var v := float(gd.get("value", 1)) * float(gd.get("bundle", 1))
+	if good in wanted:
+		v *= 1.5
+	if v <= 3.0:
+		return 1
+	if v <= 4.5:
+		return 2
+	if v <= 6.5:
+		return 3
+	if v <= 9.0:
+		return 4
+	return 5
+
+
 func pack_bundles() -> int:
 	var n := 0
 	for s in pack:
@@ -1361,23 +1496,41 @@ func _junk_trigger(j: Dictionary, at: Vector2) -> void:
 func _add_noise(n: float) -> void:
 	if finished:
 		return
-	noise += n * (1.0 + RunCfg.f("noise_level_mult", 0.25) * noise_level)
+	if noise_level >= events_total():
+		return   # 사건을 다 겪었으면 더 오르지 않는다(늦은 판이 끝없는 파도가 되지 않게)
+	noise += n * (1.0 + RunCfg.f("noise_level_mult", 0.25) * mini(noise_level, RunCfg.i("noise_level_cap", 3)))
+
+
+func events_total() -> int:
+	return (RunCfg.v("noise_events", []) as Array).size()
 
 
 func _noise_step(dt: float) -> void:
-	_add_noise(RunCfg.f("noise_passive", 0.3) * dt)
-	if noise >= RunCfg.f("noise_max", 100):
+	# 가만히 숨죽이고 있으면(움직임·뒤지기·휘두르기 없음) 소란이 가라앉는다
+	var p := player
+	var busy := input.move.length() > 0.1 or not search_target.is_empty() or p.state in ["swing", "roll"] or not throws.is_empty()
+	still_t = 0.0 if busy else still_t + dt
+	hushing = still_t > RunCfg.f("noise_still_delay", 1.0) and noise > 0.0
+	if hushing:
+		noise = maxf(0.0, noise - RunCfg.f("noise_decay_still", 3.0) * dt)
+	else:
+		_add_noise(RunCfg.f("noise_passive", 0.3) * dt)
+	if noise >= RunCfg.f("noise_max", 100) and noise_level < events_total():
 		noise = 0.0
 		noise_level += 1
-		_spawn_wave()
+		_noise_event(noise_level - 1)
 
 
-func _spawn_wave() -> void:
-	var waves: Array = RunCfg.v("wave", [])
-	var wv: Dictionary = waves[mini(noise_level - 1, waves.size() - 1)] if not waves.is_empty() else {"rat": 3}
+## 소란이 찰 때마다 정해진 사건 하나(run_tuning.json noise_events 순서): 들개 떼 → 경비 순찰 → 투광등 → 쥐 떼.
+func _noise_event(k: int) -> void:
+	var evs: Array = RunCfg.v("noise_events", [])
+	if k < 0 or k >= evs.size():
+		return
+	var ev: Dictionary = evs[k]
 	var rm: Dictionary = rooms[cur_room]
 	var doors: Array = rm.get("doors", [])
-	var at := cell_center(rm["origin"] + Vector2i(13, 8))
+	var center := cell_center(rm["origin"] + Vector2i(13, 8))
+	var at := center
 	var far := -1.0
 	for dd in doors:
 		var dp := cell_center(dd["cell"])
@@ -1385,17 +1538,10 @@ func _spawn_wave() -> void:
 		if dist > far:
 			far = dist
 			at = dp
-	# 문 칸에서 방 안쪽으로 한 칸
-	at = at.move_toward(cell_center(rm["origin"] + Vector2i(13, 8)), 20.0)
-	var alive := 0
-	for e: Actor in enemies:
-		if not e.dead:
-			alive += 1
-	for kind in wv:
-		for k in int(wv[kind]):
-			if alive >= 22:
-				break
-			alive += 1
+	at = at.move_toward(center, 20.0)
+	var spawn: Dictionary = ev.get("spawn", {})
+	for kind in spawn:
+		for n in int(spawn[kind]):
 			var e := _spawn_enemy(kind, at + Vector2(rng.randf_range(-10, 10), rng.randf_range(-10, 10)), cur_room)
 			e.aware = true
 			match kind:
@@ -1404,10 +1550,14 @@ func _spawn_wave() -> void:
 				"guard":
 					e.set_state("chase")
 					e.last_seen = player.pos
-					e.data["patrol"] = [at, cell_center(rm["origin"] + Vector2i(13, 8))]
-	_ev("wave", {"pos": at, "level": noise_level})
-	_ev("banner", {"text": "소란 %d단계 — 누가 온다" % noise_level})
-	_ev("sfx", {"id": "alarm"})
+					e.data["patrol"] = [at, center]
+	if ev.get("flood", false):
+		floodlights = true
+	events_seen.append(str(ev.get("id", "")))
+	last_event_t = time
+	_ev("wave", {"pos": at, "level": noise_level, "id": ev.get("id", "")})
+	_ev("banner", {"text": str(ev.get("banner", "소란"))})
+	_ev("sfx", {"id": str(ev.get("sfx", "alarm"))})
 
 
 ## 소리가 난 곳: 쥐는 흩어지고, 들개·경비원은 보러 온다. 무너지는 더미도 흔들린다.
@@ -1542,7 +1692,7 @@ func _finish(oc: String) -> void:
 		"carried": carried, "left": left, "lost": lost_l, "found": found.duplicate(),
 		"time": time, "kills": kills.duplicate(), "rooms_visited": visited.size(), "rooms_total": rooms.size(),
 		"reached_boss": reached_boss, "boss_killed": boss_dead, "max_depth": max_depth_seen,
-		"noise_level": noise_level, "hp": player.hp, "seed": seed_value, "big": not big.is_empty() and oc != "down",
+		"noise_level": noise_level, "events": events_seen.duplicate(), "hp": player.hp, "seed": seed_value, "big": not big.is_empty() and oc != "down",
 		"last_hurt_by": last_hurt_by, "hurt_log": hurt_log.duplicate(), "hp_at_boss": hp_at_boss, "time_at_boss": time_at_boss, "dodges": dodges, "hits_taken": hits_taken,
 	}
 	_ev("finished", {"outcome": oc})

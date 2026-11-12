@@ -109,5 +109,9 @@
    "canned": 10
   },
   "danger": 2
- }
+ },
+ "sample_wanted": [
+  "metal",
+  "elec"
+ ]
 }

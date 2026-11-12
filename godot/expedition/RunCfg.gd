@@ -63,3 +63,21 @@ static func rooms() -> Dictionary:
 
 static func bot(profile: String) -> Dictionary:
 	return file("run_bots").get("items", {}).get(profile, file("run_bots").get("items", {}).get("average", {}))
+
+
+static var skin_id: String = "scrap_yard"
+
+
+## 목적지 id → 스킨 id (run_skins.json 의 dests). 모르면 기본.
+static func skin_for(dest: String) -> String:
+	var items: Dictionary = file("run_skins").get("items", {})
+	if items.has(dest):
+		return dest
+	for k in items:
+		if dest in (items[k].get("dests", []) as Array):
+			return k
+	return str(file("run_skins").get("default", "scrap_yard"))
+
+
+static func skin() -> Dictionary:
+	return file("run_skins").get("items", {}).get(skin_id, {})

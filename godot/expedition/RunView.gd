@@ -32,6 +32,8 @@ var hud: Node = null         # 방 이름·배너를 넘긴다
 var view_size := Vector2(480, 270)
 var aim_world := Vector2.ZERO
 var fog := true
+var cam_focus := Vector2.ZERO
+var cam_focus_t := 0.0
 
 
 func _ready() -> void:
@@ -86,7 +88,13 @@ func tick(dt: float) -> void:
 	var look: Vector2 = (aim_world - p.pos)
 	look = look.limit_length(140.0) * 0.22
 	var target: Vector2 = p.pos + look + Vector2(0, -6)
-	cam_pos = cam_pos.lerp(target, 1.0 - exp(-dt * 9.0))
+	var cam_rate := 9.0
+	if cam_focus_t > 0.0:
+		# 두목 등장: 카메라가 큰형 쪽으로 미끄러져 갔다가 돌아온다
+		cam_focus_t -= dt
+		target = cam_focus
+		cam_rate = 3.5
+	cam_pos = cam_pos.lerp(target, 1.0 - exp(-dt * cam_rate))
 	shake = maxf(0.0, shake - dt * 18.0)
 	var so := Vector2.ZERO
 	if shake > 0.05:
@@ -184,9 +192,22 @@ func _consume_events() -> void:
 					parts.append({"p": e["pos"] + Vector2(randf_range(-18, 18), randf_range(-12, 12)), "v": Vector2.from_angle(randf() * TAU) * randf_range(40, 110), "life": randf_range(0.3, 0.6), "max": 0.6, "col": Color("8a7860"), "size": 2.0})
 			"wave":
 				rings.append({"p": e["pos"], "r": 60.0, "life": 0.8, "col": RED})
+			"weak_hit":
+				for k in 14:
+					parts.append({"p": (e["pos"] as Vector2) + Vector2(0, -14), "v": Vector2.from_angle(randf() * TAU) * randf_range(50, 130), "life": randf_range(0.2, 0.45), "max": 0.45, "col": [Color(1, 0.75, 0.2), Color(1, 0.95, 0.6), Color(1, 0.45, 0.15)][k % 3], "size": 2.0, "drag": 5.0})
+				parts.append({"p": (e["pos"] as Vector2) + Vector2(0, -14), "v": Vector2.ZERO, "life": 0.12, "max": 0.12, "col": Color.WHITE, "size": 16.0, "star": true})
+				texts.append({"p": (e["pos"] as Vector2) + Vector2(randf_range(-8, 8), -40), "text": "쾅!", "col": Color(1, 0.8, 0.3), "life": 0.6, "big": true})
+				shake = maxf(shake, 4.0)
+				if hud != null:
+					hud.boss_flash = 0.25
 			"room", "banner", "boss_intro", "boss_dead", "finished":
 				if hud != null:
 					hud.on_event(e)
+				if e["t"] == "boss_intro" and world.boss != null:
+					cam_focus = world.boss.pos + Vector2(0, -20)
+					cam_focus_t = 1.7
+					if sfx != null:
+						sfx.play("roar")
 				if e["t"] == "boss_dead":
 					for k in 40:
 						parts.append({"p": e["pos"], "v": Vector2.from_angle(randf() * TAU) * randf_range(40, 160), "life": randf_range(0.4, 1.0), "max": 1.0, "col": [YEL, Color("5e6873"), Color("ff6030")][k % 3], "size": 2.0})
@@ -327,6 +348,8 @@ func _draw_ents() -> void:
 		var bob := 0.0 if it["z"] > 0 else (sin(t * 5.0 + ip.x) * 1.0 if it["kind"] != "throw" else 0.0)
 		_shadow(ci, ip, 0.7, 0.6)
 		ci.draw_texture(tex, (ip - tex.get_size() / 2 + Vector2(0, -3 - it["z"] + bob)).round())
+		if it["kind"] == "good" and (world.wanted as Array).has(it["good"]) and it["z"] <= 0:
+			_star(ci, ip + Vector2(5, -10), Color(1, 0.85, 0.3, 0.6 + 0.4 * sin(t * 6.0)))
 		if it["kind"] == "good" and is_same(world.item_under, it):
 			ci.draw_rect(Rect2(ip - Vector2(7, 10), Vector2(14, 14)), Color(YEL, 0.6 + 0.4 * sin(t * 8)), false, 1.0)
 		if it["kind"] == "big":
@@ -592,6 +615,14 @@ func _draw_boss_ground(ci: CanvasItem) -> void:
 		ci.draw_circle(m["pos"], m["r"], Color(RED, 0.15 + 0.25 * u))
 		ci.draw_arc(m["pos"], m["r"] * (1.6 - 0.6 * u), 0, TAU, 24, RED, 1.0)
 		ci.draw_arc(m["pos"], m["r"], 0, TAU, 24, Color(RED, 0.8), 1.0)
+	if b.state == "howl_tele":
+		var uh := clampf(b.st / b.timer, 0.0, 1.0)
+		var R := RunCfg.f("boss_howl_r", 92)
+		for k in 3:
+			ci.draw_arc(b.pos, R * (0.35 + 0.3 * k) , 0, TAU, 48, Color(RED, 0.25 + 0.35 * uh), 1.0)
+		ci.draw_arc(b.pos, R, 0, TAU, 48, Color(RED, 0.5 + 0.5 * sin(t * 30.0)), 2.0)
+	elif b.state == "howl":
+		ci.draw_arc(b.pos, float(b.data.get("howl_r", 0.0)), 0, TAU, 48, Color(1, 0.4, 0.3, 0.9), 4.0)
 	if b.state == "stomp_tele":
 		var u := clampf(b.st / b.timer, 0.0, 1.0)
 		var sw := RunCfg.f("boss_stomp_w", 38)
@@ -655,17 +686,25 @@ func _draw_air() -> void:
 	var b: Actor = world.boss
 	if b != null and b.state != "dormant":
 		var rr: Rect2 = world._room_rect(b.room)
-		# 문형 기중기 들보
-		if not b.dead:
+		var dogking := str(RunCfg.skin().get("boss", {}).get("look", "press")) == "dogking"
+		# 문형 기중기 들보(압축기만)
+		if not b.dead and not dogking:
 			ci.draw_rect(Rect2(b.pos.x - 5, rr.position.y + 30, 10, rr.size.y - 30), Color(0.25, 0.27, 0.3, 0.55))
 			ci.draw_rect(Rect2(b.pos.x - 5, rr.position.y + 30, 2, rr.size.y - 30), Color(0.4, 0.42, 0.45, 0.55))
 		var lift := _boss_lift(b)
 		var tex := RunArt.tex("boss_head_stuck" if b.state in ["stuck", "dead"] else "boss_head")
+		if dogking:
+			tex = RunArt.tex("boss_dog_stuck" if b.state in ["stuck", "dead"] else "boss_dog")
 		var col := Color.WHITE if b.flash <= 0 else Color(4, 4, 4)
 		if b.dead:
 			col = Color(0.5, 0.5, 0.5)
 		ci.draw_texture(tex, (b.pos - Vector2(tex.get_width() / 2.0, tex.get_height() - 4 + lift)).round(), col)
 		if b.state == "stuck":
+			var left := 1.0 - clampf(b.st / maxf(0.01, b.timer), 0.0, 1.0)
+			ci.draw_circle(b.pos + Vector2(0, -12), 10.0 + 2.0 * sin(t * 18.0), Color(1, 0.7, 0.2, 0.25))
+			ci.draw_arc(b.pos + Vector2(0, -12), 16.0, -PI / 2, -PI / 2 + TAU * left, 32, YEL, 2.0)
+			if randf() < 0.5:
+				parts.append({"p": b.pos + Vector2(randf_range(-6, 6), -12), "v": Vector2(randf_range(-30, 30), randf_range(-60, -20)), "life": 0.25, "max": 0.25, "col": Color(1, 0.8, 0.3), "size": 1.0})
 			_label(ci, b.pos + Vector2(0, -40), "약점!", YEL)
 			_arrow_down(ci, b.pos + Vector2(0, -32 + sin(t * 10) * 2), YEL)
 		if b.state == "stomp_tele":
@@ -679,6 +718,13 @@ func _draw_air() -> void:
 				var cp: Vector2 = from.lerp(m["pos"], v) + Vector2(0, -60.0 * 4 * v * (1 - v))
 				ci.draw_texture(RunArt.tex("cube"), cp - Vector2(8, 10))
 	_draw_dress_air(ci)
+	if RunCfg.skin().get("seagulls", false):
+		for k in 5:
+			var ph := t * (14.0 + k * 3.0) + k * 97.0
+			var gx := cam.position.x - view_size.x * 0.7 + fmod(ph * 2.0, view_size.x * 1.4)
+			var gy := cam.position.y - view_size.y * 0.45 + k * 22.0 + sin(t * 0.7 + k) * 8.0
+			ci.draw_texture(RunArt.tex("shadow"), Vector2(gx + 18, gy + 60), Color(1, 1, 1, 0.35))
+			ci.draw_texture(RunArt.tex("gull%d" % (int(t * 5.0 + k) % 2)), Vector2(gx, gy))
 	# 던진 것
 	for th in world.throws:
 		var tp: Vector2 = th["pos"]
@@ -931,8 +977,8 @@ func _sector(ci: CanvasItem, from: Vector2, dir: Vector2, r: float, half: float,
 
 
 func _cone(ci: CanvasItem, e: Actor) -> void:
-	var rng := RunCfg.f("guard_cone_range", 104)
-	var half := deg_to_rad(RunCfg.f("guard_cone_deg", 60)) / 2.0
+	var rng: float = world.cone_range()
+	var half := deg_to_rad(world.cone_deg()) / 2.0
 	var a0 := e.face.angle()
 	var pts := PackedVector2Array([e.pos])
 	for k in 15:
