@@ -87,6 +87,7 @@ static func build(sfx_name: String, v: int, bud: Variant = null) -> PackedFloat3
 	var r := float(rate(sfx_name))
 	S.set_rate(r)
 	var b: PackedFloat32Array = await render(sfx_name, v, bud, r)
+	await _y(bud, r)
 	S.set_rate(r)
 	var o := finalize(b)
 	S.set_rate(22050.0)
@@ -152,17 +153,20 @@ static func render(n: String, v: int, bud: Variant = null, r: float = 22050.0) -
 			var f: float = [1250.0, 1130.0, 1370.0][v % 3]
 			wood(o, 0.0, f, 0.6, 0.05, 11 + v)
 			S.partial(o, 0.0, 240.0, 0.25, 0.04)
+			await _y(bud, r)
 			S.lp1(o, 7000.0)
 		"hover":
 			o = S.buf(0.05)
 			S.tick(o, 0.0, 0.3, 2900.0 + 250.0 * v, 21 + v, 0.006)
 			S.partial(o, 0.0, 1700.0 + 120.0 * v, 0.18, 0.02)
+			await _y(bud, r)
 			S.lp1(o, 6000.0)
 		"tab":
 			o = S.buf(0.16)
 			wood(o, 0.0, 880.0 + 60.0 * v, 0.5, 0.05, 31 + v)
 			wood(o, 0.045, 1040.0 + 60.0 * v, 0.32, 0.05, 32 + v)
 			S.noise(o, 0.0, 0.04, 0.12, 2, 3000.0, 3000.0, 0.7, 33 + v, 0.002, 0.03)
+			await _y(bud, r)
 			S.lp1(o, 7000.0)
 		"window_open":
 			o = S.buf(0.45)
@@ -187,6 +191,7 @@ static func render(n: String, v: int, bud: Variant = null, r: float = 22050.0) -
 			S.tick(o, 0.07, 0.18, 2500.0, 62 + v)
 			await _y(bud, r)
 			S.room(o, 0.2, 0.2)
+			await _y(bud, r)
 			S.lp1(o, 6000.0)
 		"build":
 			o = S.buf(0.9)
@@ -200,6 +205,7 @@ static func render(n: String, v: int, bud: Variant = null, r: float = 22050.0) -
 				S.tick(o, t, 0.2, 1800.0, 72 + v)
 			await _y(bud, r)
 			S.room(o, 0.35, 0.25)
+			await _y(bud, r)
 			S.lp1(o, 6500.0)
 		"place_fail":
 			o = S.buf(0.4)
@@ -208,12 +214,14 @@ static func render(n: String, v: int, bud: Variant = null, r: float = 22050.0) -
 				var t := 0.11 * j
 				S.modal(o, t, f * (1.0 if j == 0 else 0.82), 0.6, [1.0, 1.59, 2.14], [1.0, 0.5, 0.3], [0.18, 0.1, 0.06])
 				S.thud(o, t, 160.0, 110.0, 0.3, 0.06)
+			await _y(bud, r)
 			S.lp1(o, 1500.0)
 		"rotate":
 			o = S.buf(0.16)
 			for j in 3:
 				S.tick(o, 0.035 * j, [0.5, 0.4, 0.45][j], 2200.0 + 200.0 * v + 120.0 * j, 81 + j + 5 * v)
 				S.modal(o, 0.035 * j, 800.0 + 50.0 * v, 0.2, WOOD_R, WOOD_A, [0.03, 0.02, 0.01])
+			await _y(bud, r)
 			S.lp1(o, 6500.0)
 		"demolish":
 			o = S.buf(1.0)
@@ -226,6 +234,7 @@ static func render(n: String, v: int, bud: Variant = null, r: float = 22050.0) -
 				S.tick(o, t, rng.r(0.08, 0.3) * (1.0 - 0.5 * float(j) / 11.0), rng.r(1200.0, 3400.0), rng.i(1, 9999))
 			await _y(bud, r)
 			S.room(o, 0.4, 0.3)
+			await _y(bud, r)
 			S.lp1(o, 5500.0)
 		"upgrade":
 			o = S.buf(1.4)
@@ -237,6 +246,7 @@ static func render(n: String, v: int, bud: Variant = null, r: float = 22050.0) -
 			S.noise(o, 0.3, 0.6, 0.04, 2, 5000.0, 5000.0, 0.7, 102, 0.1, 0.5)
 			await _y(bud, r)
 			S.room(o, 0.4, 0.25)
+			await _y(bud, r)
 			S.lp1(o, 7000.0)
 		"money":
 			o = S.buf(0.75)
@@ -250,6 +260,7 @@ static func render(n: String, v: int, bud: Variant = null, r: float = 22050.0) -
 			coin(o, t + 0.06, 2650.0 + 100.0 * v, 0.3, 0.32)
 			await _y(bud, r)
 			S.room(o, 0.2, 0.15)
+			await _y(bud, r)
 			S.lp1(o, 6500.0)
 		"unlock":
 			o = S.buf(1.5)
@@ -260,6 +271,7 @@ static func render(n: String, v: int, bud: Variant = null, r: float = 22050.0) -
 			tine(o, 0.32, 1174.7, 0.3, 1.1)
 			await _y(bud, r)
 			S.room(o, 0.4, 0.25)
+			await _y(bud, r)
 			S.lp1(o, 7000.0)
 		"goal":
 			o = S.buf(2.2)
@@ -267,18 +279,24 @@ static func render(n: String, v: int, bud: Variant = null, r: float = 22050.0) -
 			S.noise(o, 0.0, 0.6, 0.12, 0, 380.0, 300.0, 0.7, 131, 0.05, 0.4, 0.4)
 			await _y(bud, r)
 			var t := 0.0
+			var cnt := 0
 			while t < 0.52:
 				tile(o, t, rng.r(0.12, 0.3), rng)
 				t += rng.r(0.008, 0.03) * (1.0 + 2.0 * t)
+				cnt += 1
+				if cnt % 8 == 0:
+					await _y(bud, r)
 			# 탁! (패 엎기) + 오르골 화음
 			tile(o, 0.6, 0.5, rng)
 			tile(o, 0.612, 0.4, rng)
 			S.thud(o, 0.6, 220.0, 140.0, 0.4, 0.06)
 			for j in 3:
 				tine(o, 0.66 + 0.025 * j, [523.3, 659.3, 784.0][j], 0.28, 1.3)
+				await _y(bud, r)
 			S.partial(o, 0.66, 261.6, 0.18, 1.0)
 			await _y(bud, r)
 			S.room(o, 0.45, 0.28)
+			await _y(bud, r)
 			S.lp1(o, 7000.0)
 		"floor":
 			o = S.buf(2.0)
@@ -290,6 +308,7 @@ static func render(n: String, v: int, bud: Variant = null, r: float = 22050.0) -
 			tine(o, 0.33, 523.3, 0.2, 1.3)
 			await _y(bud, r)
 			S.room(o, 0.5, 0.3)
+			await _y(bud, r)
 			S.lp1(o, 7000.0)
 		"tier_up":
 			o = S.buf(3.2)
@@ -304,14 +323,17 @@ static func render(n: String, v: int, bud: Variant = null, r: float = 22050.0) -
 				await _y(bud, r)
 			for j in 4:
 				tine(o, 0.8 + 0.02 * j, [523.3, 659.3, 784.0, 1046.5][j], 0.2, 1.8)
+				await _y(bud, r)
 			await _y(bud, r)
 			S.room(o, 0.6, 0.35)
+			await _y(bud, r)
 			S.lp1(o, 7000.0)
 		"alert":
 			o = S.buf(1.4)
 			S.fm(o, 0.0, 659.3, 2.0, 1.4, 0.2, 0.45, 0.9)
 			await _y(bud, r)
 			S.fm(o, 0.22, 493.9, 2.0, 1.4, 0.2, 0.45, 1.0)
+			await _y(bud, r)
 			S.lp1(o, 3000.0)
 			await _y(bud, r)
 			S.room(o, 0.35, 0.2)
@@ -323,6 +345,7 @@ static func render(n: String, v: int, bud: Variant = null, r: float = 22050.0) -
 			S.modal(o, 0.0, 146.8, 0.3, [1.0, 2.0, 2.76, 3.52], [1.0, 0.45, 0.3, 0.15], [3.0, 1.8, 1.0, 0.6])
 			await _y(bud, r)
 			S.room(o, 0.6, 0.3)
+			await _y(bud, r)
 			S.lp1(o, 4000.0)
 		"fire":
 			o = S.buf(1.5)
@@ -334,12 +357,14 @@ static func render(n: String, v: int, bud: Variant = null, r: float = 22050.0) -
 				S.modal(o, t, 620.0, 0.28, [1.0, 2.76, 4.1], [1.0, 0.35, 0.15], [0.5, 0.25, 0.12])
 			await _y(bud, r)
 			S.room(o, 0.35, 0.2)
+			await _y(bud, r)
 			S.lp1(o, 5500.0)
 		"fire_out":
 			o = S.buf(1.0)
 			S.noise(o, 0.0, 0.5, 0.45, 1, 1800.0, 600.0, 0.7, 181, 0.008, 0.35)
 			S.noise(o, 0.05, 0.9, 0.08, 1, 2600.0, 2200.0, 0.8, 182, 0.06, 0.5, 0.25)
 			S.thud(o, 0.0, 180.0, 90.0, 0.2, 0.08)
+			await _y(bud, r)
 			S.lp1(o, 3500.0)
 		"disease":
 			o = S.buf(1.3)
@@ -347,6 +372,7 @@ static func render(n: String, v: int, bud: Variant = null, r: float = 22050.0) -
 			S.tone(o, 0.0, 1.0, 223.0, 163.0, S.TRI, 0.3, 0.08, 0.3, 4.3, 0.02)
 			for j in 5:
 				S.partial(o, rng.r(0.1, 0.8), rng.r(280.0, 360.0), 0.15, 0.06, 0.003, rng.r(450.0, 560.0), 0.04)
+			await _y(bud, r)
 			S.lp1(o, 1500.0)
 			await _y(bud, r)
 			S.room(o, 0.3, 0.2)
@@ -355,6 +381,7 @@ static func render(n: String, v: int, bud: Variant = null, r: float = 22050.0) -
 			for j in 2:
 				S.modal(o, 0.028 * j, 1500.0 + 150.0 * v + 200.0 * j, 0.45, WOOD_R, WOOD_A, [0.03, 0.02, 0.01])
 				S.tick(o, 0.028 * j, 0.25, 3000.0, 191 + v + j)
+			await _y(bud, r)
 			S.lp1(o, 6500.0)
 		"expedition":
 			o = S.buf(1.3)
@@ -362,6 +389,7 @@ static func render(n: String, v: int, bud: Variant = null, r: float = 22050.0) -
 				S.modal(o, t, 1400.0, 0.28, [1.0, 1.48, 2.2], [1.0, 0.5, 0.25], [0.55, 0.35, 0.2])
 			for j in 6:
 				wood(o, 0.35 + 0.07 * j + rng.r(-0.01, 0.01), 480.0 + rng.r(-30.0, 30.0), 0.18, 0.04, 201 + j)
+			await _y(bud, r)
 			S.lp1(o, 4500.0)
 			await _y(bud, r)
 			S.room(o, 0.35, 0.2)
@@ -374,18 +402,21 @@ static func render(n: String, v: int, bud: Variant = null, r: float = 22050.0) -
 			wood(o, 0.38, 784.0 * (1.0 + 0.05 * v), 0.45, 0.14, 214)
 			await _y(bud, r)
 			S.room(o, 0.3, 0.2)
+			await _y(bud, r)
 			S.lp1(o, 6500.0)
 		"repair_done":
 			o = S.buf(0.7)
 			for j in 5:
 				S.tick(o, 0.025 * j, 0.25, 2800.0 - 80.0 * j, 221 + j, 0.005)
 			tin(o, 0.18, 1200.0, 0.35, 0.25)
+			await _y(bud, r)
 			S.lp1(o, 6000.0)
 		"contract_done":
 			o = S.buf(1.4)
 			S.thud(o, 0.0, 140.0, 70.0, 0.8, 0.12)
 			S.noise(o, 0.0, 0.06, 0.35, 0, 1500.0, 1200.0, 0.7, 231, 0.001, 0.05)
 			S.modal(o, 0.22, 990.0, 0.3, [1.0, 2.37, 3.9], [1.0, 0.4, 0.2], [1.0, 0.4, 0.2])
+			await _y(bud, r)
 			S.lp1(o, 5000.0)
 			await _y(bud, r)
 			S.room(o, 0.35, 0.2)
@@ -399,6 +430,7 @@ static func render(n: String, v: int, bud: Variant = null, r: float = 22050.0) -
 			tine(o, 0.3, 987.8, 0.22, 1.1)
 			await _y(bud, r)
 			S.room(o, 0.4, 0.25)
+			await _y(bud, r)
 			S.lp1(o, 7000.0)
 		_:
 			o = PackedFloat32Array()

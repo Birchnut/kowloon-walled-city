@@ -19,6 +19,9 @@ class Budget:
 	var frames: int = 0
 	var busy_us: int = 0      # 실제로 일한 시간(기다린 프레임 제외)
 	var seg: int = 0
+	var max_seg_us: int = 0   # 한 프레임에 가장 오래 붙잡은 시간(끊김 크기)
+	var max_seg_at: String = ""
+	var label: String = ""    # 지금 만드는 것(끊김 범인 찾기용)
 
 	func start() -> void:
 		seg = Time.get_ticks_usec()
@@ -32,7 +35,11 @@ class Budget:
 
 	func wait() -> void:
 		frames += 1
-		busy_us += Time.get_ticks_usec() - seg
+		var d := Time.get_ticks_usec() - seg
+		busy_us += d
+		if d > max_seg_us:
+			max_seg_us = d
+			max_seg_at = label
 		await tree.process_frame
 		start()
 
@@ -42,10 +49,10 @@ const LOOPS := {
 	"hum": ["_hum", 11025, 130],
 	"wind": ["_wind", 11025, 165],
 	"murmur": ["_murmur", 11025, 140],
-	"market": ["_market", 22050, 240],
-	"crickets": ["_crickets", 22050, 397],
-	"fire": ["_firebed", 22050, 180],
-	"rain": ["_rain", 22050, 287],
+	"market": ["_market", 11025, 120],
+	"crickets": ["_crickets", 11025, 198],
+	"fire": ["_firebed", 11025, 90],
+	"rain": ["_rain", 11025, 143],
 }
 
 ## 한 번짜리 이름 → 변주 수, 기본 이득 dB
@@ -82,8 +89,17 @@ static func build_loop(loop_name: String, bud: Budget) -> PackedFloat32Array:
 			b = await _firebed(bud)
 		"rain":
 			b = await _rain(bud)
+	if bud.over():
+		await bud.wait()
 	_norm_rms(b, LOOP_TARGET_DB)
 	return b
+
+
+## 쉼표: 예산을 넘었으면 다음 프레임으로. 돌아오면 Synth 표본율을 다시 맞춘다(그사이 다른 곳이 바꿨을 수 있다).
+static func _wait(bud: Budget, r: float) -> void:
+	if bud.over():
+		await bud.wait()
+	S.set_rate(r)
 
 
 static func loop_rate(loop_name: String) -> int:
@@ -133,9 +149,13 @@ static func _hum(bud: Budget) -> PackedFloat32Array:
 		var t := float(i) / R
 		var swell := 0.55 + 0.3 * sin(w1 * 2.0 * t + 1.0) + 0.15 * sin(w1 * 3.0 * t + 2.3)
 		b[i] = y1 * 2.2 + y3 * 1.6 * swell
+	await _wait(bud, 22050.0)
 	S.hp1(b, 25.0, R)
+	await _wait(bud, 22050.0)
 	S.dc_block(b)
+	await _wait(bud, 22050.0)
 	b = S.loop_xfade(b, L, X)
+	await _wait(bud, 22050.0)
 	for i in L:
 		var t := float(i) / R
 		b[i] += (0.004 * sin(TAU * 50.0 * t) + 0.0025 * sin(TAU * 100.0 * t + 0.5) + 0.0012 * sin(TAU * 150.0 * t + 1.7)) * (0.8 + 0.2 * sin(w1 * t))
@@ -270,9 +290,13 @@ static func _murmur(bud: Budget) -> PackedFloat32Array:
 				jc1 = 2.0 * u1 - jc1
 				jc2 = 2.0 * u2 - jc2
 				b[i] += (v1 + 0.6 * u1) * e * amp
+	await _wait(bud, 22050.0)
 	S.lp1(b, 1800.0, R)
+	await _wait(bud, 22050.0)
 	S.lp1(b, 2600.0, R)
+	await _wait(bud, 22050.0)
 	S.echo(b, 0.083, 0.25, 0.3, R)
+	await _wait(bud, 22050.0)
 	if bud.over():
 		await bud.wait()
 	return S.loop_xfade(b, L, X)
@@ -280,30 +304,33 @@ static func _murmur(bud: Budget) -> PackedFloat32Array:
 
 ## 불 바닥: 낮은 불길 웅(깜박이는 세기) + 탁탁 튀는 소리(접어서 이음매 없음).
 static func _firebed(bud: Budget) -> PackedFloat32Array:
+	var R := 11025.0
+	S.set_rate(R)
 	var Ls := 5.0
-	var L := int(Ls * SR)
-	var X := int(0.8 * SR)
+	var L := int(Ls * R)
+	var X := int(0.8 * R)
 	var n := L + X
 	var b := PackedFloat32Array()
 	b.resize(n)
 	var s := 3131
 	var br := 0.0
 	var y := 0.0
-	var a := 1.0 - exp(-TAU * 380.0 / SR)
+	var a := 1.0 - exp(-TAU * 380.0 / R)
 	var w0 := TAU / Ls
 	for i in n:
 		if (i & 4095) == 0 and bud.over():
-			await bud.wait()
+			await _wait(bud, R)
 		s = (s * 48271) % 2147483647
 		var w := float(s) * S.INV_M2 - 1.0
 		br = br * 0.99 + w * 0.1
 		y += a * (br - y)
-		var t := float(i) / SR
+		var t := float(i) / R
 		var fl := 0.6 + 0.2 * sin(w0 * 3.0 * t) + 0.12 * sin(w0 * 7.0 * t + 1.0) + 0.08 * sin(w0 * 11.0 * t + 2.0)
 		b[i] = y * fl
 	S.hp1(b, 70.0)
 	S.dc_block(b)
 	b = S.loop_xfade(b, L, X)
+	await _wait(bud, R)
 	S.gain(b, 0.1)
 	var e := S.buf(Ls + 0.3)
 	var rng := S.Rng.new(5151)
@@ -313,37 +340,42 @@ static func _firebed(bud: Budget) -> PackedFloat32Array:
 	for j in 6:
 		S.thud(e, rng.r(0.0, Ls), 320.0, 140.0, 0.12, 0.05)
 	S.lp1(e, 5500.0)
+	await _wait(bud, R)
 	e = S.fold(e, L)
 	for i in L:
 		b[i] += e[i] * 1.2
+	S.set_rate(22050.0)
 	return b
 
 
 ## 비: 넓은 띠 잡음 바닥 + 작은 물방울 + 함석지붕 톡.
 static func _rain(bud: Budget) -> PackedFloat32Array:
+	var R := 11025.0
+	S.set_rate(R)
 	var Ls := 8.0
-	var L := int(Ls * SR)
-	var X := SR
+	var L := int(Ls * R)
+	var X := int(R)
 	var n := L + X
 	var b := PackedFloat32Array()
 	b.resize(n)
 	var s := 8080
 	var y1 := 0.0
 	var y2 := 0.0
-	var ah := 1.0 - exp(-TAU * 500.0 / SR)
-	var al := 1.0 - exp(-TAU * 4500.0 / SR)
+	var ah := 1.0 - exp(-TAU * 500.0 / R)
+	var al := 1.0 - exp(-TAU * 4500.0 / R)
 	var w0 := TAU / Ls
 	for i in n:
 		if (i & 4095) == 0 and bud.over():
-			await bud.wait()
+			await _wait(bud, R)
 		s = (s * 48271) % 2147483647
 		var w := float(s) * S.INV_M2 - 1.0
 		y1 += ah * (w - y1)
 		var hp := w - y1
 		y2 += al * (hp - y2)
-		var t := float(i) / SR
+		var t := float(i) / R
 		b[i] = y2 * (0.85 + 0.15 * sin(w0 * 2.0 * t))
 	b = S.loop_xfade(b, L, X)
+	await _wait(bud, R)
 	var e := S.buf(Ls + 0.3)
 	var rng := S.Rng.new(6262)
 	for j in 160:
@@ -351,11 +383,14 @@ static func _rain(bud: Budget) -> PackedFloat32Array:
 	for j in 14:
 		S.modal(e, rng.r(0.0, Ls), rng.r(900.0, 1400.0), rng.r(0.05, 0.12), [1.0, 1.59, 2.14], [1.0, 0.5, 0.3], [0.08, 0.05, 0.03])
 	if bud.over():
-		await bud.wait()
+		await _wait(bud, R)
 	e = S.fold(e, L)
+	await _wait(bud, R)
 	for i in L:
 		b[i] += e[i] * 0.6
-	S.lp1_loop(b, 6000.0)
+	await _wait(bud, R)
+	S.lp1_loop(b, 4800.0)
+	S.set_rate(22050.0)
 	return b
 
 
@@ -363,8 +398,10 @@ static func _rain(bud: Budget) -> PackedFloat32Array:
 
 ## 장터: 그릇 부딪는 소리, 칼질 묶음, 웍 지글, 주판알. 웅성거림 위에 얹힌다.
 static func _market(bud: Budget) -> PackedFloat32Array:
+	var R := 11025.0
+	S.set_rate(R)
 	var Ls := 9.0
-	var L := int(Ls * SR)
+	var L := int(Ls * R)
 	var e := S.buf(Ls + 1.0)
 	var rng := S.Rng.new(7373)
 	for j in 14:
@@ -376,7 +413,7 @@ static func _market(bud: Budget) -> PackedFloat32Array:
 			S.thud(e, t, 190.0, 120.0, 0.22, 0.05)
 			S.tick(e, t, 0.15, 1400.0, rng.i(1, 9999))
 	if bud.over():
-		await bud.wait()
+		await _wait(bud, R)
 	for j in 2:
 		S.noise(e, rng.r(0.0, Ls), 1.4, 0.05, 2, 2600.0, 3200.0, 0.7, rng.i(1, 9999), 0.12, 0.6, 0.5)
 	for j in 2:
@@ -384,16 +421,22 @@ static func _market(bud: Budget) -> PackedFloat32Array:
 		for k in 5:
 			S.tick(e, t0 + 0.05 * k + rng.r(0.0, 0.02), 0.12, 2600.0, rng.i(1, 9999), 0.006)
 	if bud.over():
-		await bud.wait()
+		await _wait(bud, R)
 	S.lp1(e, 5000.0)
+	await _wait(bud, R)
 	S.echo(e, 0.061, 0.3, 0.3)
-	return S.fold(e, L)
+	await _wait(bud, R)
+	var out := S.fold(e, L)
+	S.set_rate(22050.0)
+	return out
 
 
 ## 귀뚜라미 셋: 주기가 L/k 라 루프 이음매에서도 박자가 맞다. 낮게, 6 kHz 위는 깎는다.
 static func _crickets(bud: Budget) -> PackedFloat32Array:
+	var R := 11025.0
+	S.set_rate(R)
 	var Ls := 6.0
-	var L := int(Ls * SR)
+	var L := int(Ls * R)
 	var e := S.buf(Ls + 0.4)
 	var rng := S.Rng.new(4545)
 	var cr := [[3950.0, 8, 3, 0.22], [4350.0, 10, 2, 0.15], [4700.0, 7, 4, 0.1]]
@@ -406,10 +449,14 @@ static func _crickets(bud: Budget) -> PackedFloat32Array:
 			for p in int(c[2]):
 				S.partial(e, t + 0.03 * p, float(c[0]) * rng.r(0.995, 1.005), amp, 0.022, 0.004)
 		if bud.over():
-			await bud.wait()
+			await _wait(bud, R)
 	S.lp1(e, 6000.0)
+	await _wait(bud, R)
 	S.echo(e, 0.11, 0.2, 0.25)
-	return S.fold(e, L)
+	await _wait(bud, R)
+	var out := S.fold(e, L)
+	S.set_rate(22050.0)
+	return out
 
 
 # ------------------------------------------------------------------ 한 번짜리
@@ -418,9 +465,10 @@ static func _crickets(bud: Budget) -> PackedFloat32Array:
 const SHOT_RATE := 11025
 
 
-static func build_shot(shot_name: String, v: int) -> PackedFloat32Array:
+static func build_shot(shot_name: String, v: int, bud: Budget = null) -> PackedFloat32Array:
 	S.set_rate(SHOT_RATE)
-	var o := _shot(shot_name, v)
+	var o: PackedFloat32Array = await _shot(shot_name, v, bud)
+	await _wait_opt(bud, SHOT_RATE)
 	S.dc_block(o)
 	o = S.trim(o)
 	S.normalize(o, -20.0, -1.0, true)
@@ -434,7 +482,13 @@ static func _far(o: PackedFloat32Array, lp: float = 3000.0, echo_t: float = 0.09
 	S.echo(o, echo_t, 0.3, 0.35)
 
 
-static func _shot(n: String, v: int) -> PackedFloat32Array:
+static func _wait_opt(bud: Budget, r: float) -> void:
+	if bud != null and bud.over():
+		await bud.wait()
+	S.set_rate(r)
+
+
+static func _shot(n: String, v: int, bud: Budget = null) -> PackedFloat32Array:
 	var rng := S.Rng.new(hash(n) * 3 + v * 977)
 	var o: PackedFloat32Array
 	match n:
@@ -446,6 +500,7 @@ static func _shot(n: String, v: int) -> PackedFloat32Array:
 				S.partial(o, t, f, rng.r(0.2, 0.35), 0.07, 0.004, f * rng.r(1.1, 1.25), 0.04)
 				S.partial(o, t, f * 0.5, 0.05, 0.05, 0.004)
 				t += rng.r(0.08, 0.2)
+			await _wait_opt(bud, SHOT_RATE)
 			_far(o, 5500.0, 0.07)
 		"pigeon":   # 구-구루-구
 			o = S.buf(1.8)
@@ -456,6 +511,7 @@ static func _shot(n: String, v: int) -> PackedFloat32Array:
 				S.tone(o, t, d, f0 * [1.0, 1.15, 0.95][j], f0 * [1.2, 1.05, 0.85][j], S.SINE, 0.3, 0.06, 0.1, 22.0, 0.03)
 				S.tone(o, t, d, f0 * 2.0 * [1.0, 1.15, 0.95][j], f0 * 2.0 * [1.2, 1.05, 0.85][j], S.SINE, 0.06, 0.06, 0.1, 22.0, 0.03)
 				t += d + 0.06
+			await _wait_opt(bud, SHOT_RATE)
 			_far(o, 1400.0, 0.08)
 		"dog":   # 멀리 개 두어 번
 			o = S.buf(1.4)
@@ -471,17 +527,20 @@ static func _shot(n: String, v: int) -> PackedFloat32Array:
 				S.mix_into(o, tmp, t, 1.0)
 				S.mix_into(o, f1, t, 0.6)
 				t += rng.r(0.22, 0.32)
+			await _wait_opt(bud, SHOT_RATE)
 			_far(o, 2200.0, 0.11)
 		"bell":   # 자전거 따르릉
 			o = S.buf(1.4)
 			var f := 1350.0 + 120.0 * v
 			for k in 2 + v:
 				S.modal(o, 0.11 * k, f, 0.3, [1.0, 1.48, 2.2], [1.0, 0.5, 0.25], [0.5, 0.35, 0.2])
+			await _wait_opt(bud, SHOT_RATE)
 			_far(o, 3200.0, 0.07)
 		"kettle":   # 주전자 — 낮게, 먼 데서
 			o = S.buf(3.0)
 			S.tone(o, 0.0, 2.6, 1450.0, 1750.0, S.SINE, 0.25, 0.9, 0.5, 6.0, 0.006)
 			S.noise(o, 0.0, 2.6, 0.12, 1, 1500.0, 1700.0, 2.0, 313, 0.8, 4.0, 1.2)
+			await _wait_opt(bud, SHOT_RATE)
 			_far(o, 2500.0, 0.09)
 		"mahjong":   # 이웃집 마작판 패 섞기
 			o = S.buf(2.2)
@@ -492,6 +551,7 @@ static func _shot(n: String, v: int) -> PackedFloat32Array:
 				S.modal(o, t, f, rng.r(0.08, 0.25), [1.0, 2.31], [1.0, 0.4], [0.025, 0.012], 0.0003)
 				t += rng.r(0.01, 0.05) * (1.0 + t)
 			S.noise(o, 0.0, end, 0.04, 0, 380.0, 300.0, 0.7, 321 + v, 0.1, 2.0, end - 0.3)
+			await _wait_opt(bud, SHOT_RATE)
 			_far(o, 4000.0, 0.06)
 		"radio":   # 먼 라디오 한 소절(소리음계에서 씨앗으로 지은 선율)
 			o = S.buf(3.2)
@@ -506,11 +566,13 @@ static func _shot(n: String, v: int) -> PackedFloat32Array:
 				S.tone(o, t, d * 0.95, f * 0.5, f * 0.5, S.TRI, 0.12, 0.02, 0.06)
 				t += d
 				deg = clampi(deg + rng.pick([-2, -1, -1, 1, 1, 2]), 0, scale.size() - 1)
+				await _wait_opt(bud, SHOT_RATE)
 			S.svf(o, 1300.0, 0.9, 1)
 			S.noise(o, 0.0, t + 0.2, 0.025, 1, 2000.0, 2000.0, 0.6, 331 + v, 0.05, 9.0, t)
 			for j in 8:
 				S.tick(o, rng.r(0.0, t), 0.05, 2500.0, rng.i(1, 9999), 0.004)
 			S.fade_in(o, 0.25)
+			await _wait_opt(bud, SHOT_RATE)
 			_far(o, 2800.0, 0.1)
 		"hammer":   # 공사장 망치
 			o = S.buf(2.2)
@@ -520,6 +582,7 @@ static func _shot(n: String, v: int) -> PackedFloat32Array:
 				S.modal(o, t, rng.r(760.0, 880.0), 0.35, [1.0, 1.59, 2.14, 2.65], [1.0, 0.6, 0.4, 0.25], [0.12, 0.08, 0.05, 0.04])
 				S.thud(o, t, 200.0, 120.0, 0.3, 0.05)
 				S.tick(o, t, 0.2, 1900.0, rng.i(1, 9999))
+			await _wait_opt(bud, SHOT_RATE)
 			_far(o, 3500.0, 0.1)
 		"horn":   # 항구 쪽 뱃고동
 			o = S.buf(3.4)
@@ -534,12 +597,14 @@ static func _shot(n: String, v: int) -> PackedFloat32Array:
 			var f: float = [1150.0, 1350.0, 980.0][v % 3]
 			S.partial(o, 0.0, f, 0.4, 0.06, 0.001, f * 1.6, 0.03)
 			S.tick(o, 0.0, 0.08, 2500.0, 341 + v, 0.004)
+			await _wait_opt(bud, SHOT_RATE)
 			_far(o, 4500.0, 0.05)
 		"wok":   # 웍 탕 + 국자 긁기
 			o = S.buf(1.2)
 			S.modal(o, 0.0, 420.0 + 40.0 * v, 0.35, [1.0, 1.59, 2.14, 2.65, 3.5], [1.0, 0.6, 0.45, 0.3, 0.2], [0.35, 0.22, 0.15, 0.1, 0.07])
 			S.noise(o, 0.12, 0.35, 0.12, 1, 1800.0, 2400.0, 1.5, 351 + v, 0.03, 0.3)
 			S.noise(o, 0.0, 1.0, 0.04, 2, 3000.0, 3000.0, 0.7, 352 + v, 0.15, 0.8, 0.3)
+			await _wait_opt(bud, SHOT_RATE)
 			_far(o, 3500.0, 0.06)
 		"shutter":   # 철문 셔터 드르륵
 			o = S.buf(1.6)
@@ -549,6 +614,7 @@ static func _shot(n: String, v: int) -> PackedFloat32Array:
 				t += rng.r(0.025, 0.04)
 			S.noise(o, 0.0, 1.0, 0.1, 1, 900.0, 700.0, 1.0, 361, 0.05, 3.0, 0.8)
 			S.thud(o, 1.0, 140.0, 80.0, 0.4, 0.12)
+			await _wait_opt(bud, SHOT_RATE)
 			_far(o, 2500.0, 0.1)
 		_:
 			o = PackedFloat32Array()

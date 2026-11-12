@@ -100,7 +100,7 @@ func _run() -> void:
 	# 2) 배경 한 번짜리
 	cpu_acc = 0.0
 	var shot_us: int = await _one_shot_rows("배경 한 번짜리 (Ambience 버스, 무작위 -4..0 dB 더)", AB.SHOTS.keys(), func(n: String) -> int: return int(AB.SHOTS[n][0]),
-		func(n: String, v: int) -> PackedFloat32Array: return AB.build_shot(n, v), func(n: String) -> float: return float(AB.SHOTS[n][1]), func(_n: String) -> int: return AB.SHOT_RATE)
+		func(n: String, v: int) -> PackedFloat32Array: return await AB.build_shot(n, v), func(n: String) -> float: return float(AB.SHOTS[n][1]), func(_n: String) -> int: return AB.SHOT_RATE)
 	var c_shot := cpu_acc
 	# 3) 악기
 	cpu_acc = 0.0

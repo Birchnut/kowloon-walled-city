@@ -55,6 +55,8 @@ var pads: Dictionary = {}     # 바탕 화음 → AudioStreamWAV
 var build_us: Dictionary = {} # 작업 이름 → 걸린 µs
 var build_total_us := 0
 var build_frames := 0
+var build_max_frame_us := 0     # 만드는 동안 한 프레임에서 가장 오래 쓴 시간
+var build_max_frame_at := ""
 var build_done := false
 
 var _rng := RandomNumberGenerator.new()
@@ -285,7 +287,13 @@ func _build_all() -> void:
 	bud.tree = get_tree()
 	bud.start()
 	await build_everything(bud)
+	var tail := Time.get_ticks_usec() - bud.seg
+	if tail > bud.max_seg_us:
+		bud.max_seg_us = tail
+		bud.max_seg_at = bud.label
 	build_frames = bud.frames
+	build_max_frame_us = bud.max_seg_us
+	build_max_frame_at = bud.max_seg_at
 	build_done = true
 
 
@@ -294,23 +302,28 @@ func build_everything(bud: AB.Budget) -> void:
 	# 자주 쓰는 효과음 → 배경 바닥 루프(배경이 빨리 시작하게) → 나머지 효과음 → …
 	for n: String in FREQUENT:
 		if not sfx.has(n):
+			bud.label = "sfx:" + n
 			await _build_sfx(n, bud)
 	for l: String in ["hum", "wind", "murmur", "crickets", "market"]:
 		await _build_loop(l, bud)
 	for n: String in SB.names():
 		if not sfx.has(n):
+			bud.label = "sfx:" + n
 			await _build_sfx(n, bud)
 	for n: String in AB.SHOTS:
 		var b0 := bud.busy_now()
+		bud.label = "shot:" + n
 		var arr: Array = []
 		for v in int(AB.SHOTS[n][0]):
-			arr.append(S.to_wav(AB.build_shot(n, v), false, 0, AB.SHOT_RATE))
+			var sb: PackedFloat32Array = await AB.build_shot(n, v, bud)
+			arr.append(S.to_wav(sb, false, 0, AB.SHOT_RATE))
 			if bud.over():
 				await bud.wait()
 		shots[n] = arr
 		_note("shot:" + n, bud.busy_now() - b0)
 	for i: String in MB.INSTS:
 		var b0 := bud.busy_now()
+		bud.label = "inst:" + i
 		insts[i] = S.to_wav(MB.build_inst(i))
 		_note("inst:" + i, bud.busy_now() - b0)
 		if bud.over():
@@ -319,11 +332,41 @@ func build_everything(bud: AB.Budget) -> void:
 		await _build_loop(l, bud)
 	for p: String in MB.PADS:
 		var b0 := bud.busy_now()
+		bud.label = "pad:" + p
 		var b: PackedFloat32Array = await MB.build_pad(p, bud)
-		pads[p] = S.to_wav(b, true, 0, 11025)
+		pads[p] = await _wav_async(b, 0, 11025, bud)
 		_note("pad:" + p, bud.busy_now() - b0)
 		if bud.over():
 			await bud.wait()
+
+
+## 루프용 S.to_wav 를 나눠서(긴 루프 한 번에 16비트로 바꾸면 한 프레임이 길어진다).
+func _wav_async(b: PackedFloat32Array, stereo_delay: int, rate: int, bud: AB.Budget) -> AudioStreamWAV:
+	var w := AudioStreamWAV.new()
+	w.format = AudioStreamWAV.FORMAT_16_BITS
+	w.mix_rate = rate
+	var n := b.size()
+	var ch := 2 if stereo_delay > 0 else 1
+	w.stereo = ch == 2
+	var bytes := PackedByteArray()
+	bytes.resize(n * 2 * ch)
+	for i in n:
+		if (i & 8191) == 0 and bud.over():
+			await bud.wait()
+		var x := int(clampf(b[i], -1.0, 1.0) * 32767.0)
+		if ch == 1:
+			bytes.encode_s16(i * 2, x)
+		else:
+			var j := i - stereo_delay
+			if j < 0:
+				j += n
+			bytes.encode_s16(i * 4, x)
+			bytes.encode_s16(i * 4 + 2, int(clampf(b[j], -1.0, 1.0) * 32767.0))
+	w.data = bytes
+	w.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	w.loop_begin = 0
+	w.loop_end = n
+	return w
 
 
 func _note(n: String, us: int) -> void:
@@ -333,8 +376,9 @@ func _note(n: String, us: int) -> void:
 
 func _build_loop(l: String, bud: AB.Budget) -> void:
 	var b0 := bud.busy_now()
+	bud.label = "loop:" + l
 	var b: PackedFloat32Array = await AB.build_loop(l, bud)
-	loops[l] = S.to_wav(b, true, AB.loop_stereo(l), AB.loop_rate(l))
+	loops[l] = await _wav_async(b, AB.loop_stereo(l), AB.loop_rate(l), bud)
 	_note("loop:" + l, bud.busy_now() - b0)
 	if bud.over():
 		await bud.wait()
@@ -347,6 +391,8 @@ func _build_sfx(n: String, bud: AB.Budget = null) -> void:
 	var arr: Array = []
 	for v in SB.variants(n):
 		var b: PackedFloat32Array = await SB.build(n, v, bud)
+		if bud != null and bud.over():
+			await bud.wait()
 		arr.append(S.to_wav(b, false, 0, SB.rate(n)))
 		if bud != null and bud.over():
 			await bud.wait()
@@ -664,7 +710,7 @@ func _music_tick() -> void:
 		var pl := _free_player(_mus_pool)
 		pl.stream = insts[nt[1]]
 		pl.pitch_scale = MB.pitch_for(nt[4], nt[1], int(nt[2]))
-		pl.volume_db = linear_to_db(maxf(float(nt[3]), 0.01)) - 6.0
+		pl.volume_db = linear_to_db(maxf(float(nt[3]), 0.01)) - 9.0
 		pl.play()
 
 
@@ -691,7 +737,7 @@ func _pad_tick() -> void:
 			nw.volume_db = -60.0
 			nw.play(_rng.randf_range(0.0, 7.0))
 			var tw2 := create_tween()
-			tw2.tween_property(nw, "volume_db", -12.0, 5.0)
+			tw2.tween_property(nw, "volume_db", -15.0, 5.0)
 			_pad_tw.append(tw2)
 
 
@@ -701,5 +747,5 @@ func debug_state() -> Dictionary:
 	var lg := {}
 	for l: String in _layer_g:
 		lg[l] = snappedf(float(_layer_g[l]), 0.01)
-	return {"started": _started, "built": build_done, "build_ms": build_total_us / 1000.0, "state": st.duplicate(),
+	return {"started": _started, "built": build_done, "build_ms": build_total_us / 1000.0, "max_frame_ms": build_max_frame_us / 1000.0, "max_frame_at": build_max_frame_at, "state": st.duplicate(),
 		"weights": w.duplicate(), "layers": lg, "targets": _layer_tgt.duplicate(), "mood": _mood, "duck_db": _duck_db}
