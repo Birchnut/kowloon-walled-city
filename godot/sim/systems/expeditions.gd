@@ -249,7 +249,7 @@ func can(state: CityState, name: String, args: Dictionary) -> Variant:
 			if not (state.flags.get("run", {}) as Dictionary).is_empty():
 				return {"ok": false, "reason": "이미 직접 줍는 중이다.", "code": "busy"}
 			if _idle_team(state).is_empty():
-				return {"ok": false, "reason": "쉬는 탐험대가 없다(줍줍 본부의 팀이 모두 나가 있다).", "code": "team"}
+				return {"ok": false, "reason": "쉬는 탐험대가 없다(줍줍 본부의 팀이 모두 나가 있거나 본부가 없다).", "code": "busy"}
 			var c := _can_dest(state, str(args.get("dest", "")))
 			if not c["ok"]:
 				return c
@@ -456,7 +456,7 @@ func _run_begin(state: CityState, args: Dictionary) -> Dictionary:
 	sim.say(state, "탐험대 %d이(가) %s에 직접 들어갔다." % [int(t["id"]), _dname(id)])
 	var rc := _run_conf(d)
 	return {"ok": true, "reason": "", "stock": st, "danger": int(rc.get("danger", d.get("danger", 1))), "seed": seed,
-		"carry": int(rc.get("carry", 40)), "team": int(t["id"])}
+		"carry": int(rc.get("carry", 40)), "carry_cap": int(rc.get("carry", 40)), "team": int(t["id"])}
 
 
 func _check_result(state: CityState, args: Dictionary) -> Dictionary:

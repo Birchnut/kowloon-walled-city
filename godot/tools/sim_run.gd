@@ -65,7 +65,7 @@ static func run(bot_id: String, days: float, seed_value: int, verbose: bool = tr
 					state.happiness, state.floors_unlocked, int(row["houses"]), int(row["burnt"]), int(row["sick"])])
 			day = state.day
 	if verbose:
-		print("ran %.0f days in %.1fs (step avg %.2fms, bot total %.1fs)" % [days, float(Time.get_ticks_msec() - t0) / 1000.0, step_ms / maxf(1.0, float(steps)), bot_ms / 1000.0])
+		print("ran %.0f days in %.1fs (step avg %.2fms, bot total %.1fs) bot parts %s" % [days, float(Time.get_ticks_msec() - t0) / 1000.0, step_ms / maxf(1.0, float(steps)), bot_ms / 1000.0, str(bot.prof)])
 	return {"ok": true, "sim": sim, "state": state, "bot": bot, "rows": rows, "min_money": min_money, "days": days, "seed": seed_value,
 		"step_ms": step_ms / maxf(1.0, float(steps)), "errors": errors}
 
@@ -126,6 +126,17 @@ static func summary(r: Dictionary) -> Dictionary:
 			longest = g
 			longest_at = last
 		last = float(a[0])
+	# 목표 사이 가장 긴 간격(정보용 — 자연스러운 성장 기다림도 포함)
+	var gd: Array = []
+	for k: String in (state.flags.get("goals", {}) as Dictionary):
+		gd.append(float(state.flags["goals"][k]))
+	gd.sort()
+	var ggap := 0.0
+	var ggap_at := 0.0
+	for i: int in range(1, gd.size()):
+		if float(gd[i]) - float(gd[i - 1]) > ggap:
+			ggap = float(gd[i]) - float(gd[i - 1])
+			ggap_at = float(gd[i - 1])
 	var hd := maxf(1e-6, float(state.stats.get("house_days", 0.0)))
 	var rows: Array = r["rows"]
 	var money_curve: Array = []
@@ -141,6 +152,7 @@ static func summary(r: Dictionary) -> Dictionary:
 		"fires": int(state.stats.get("fires", 0)), "burnt": int(state.stats.get("burnt", 0)), "outbreaks": int(state.stats.get("outbreaks", 0)),
 		"left_sick": int(state.stats.get("left_sick", 0)), "scattered": int(state.stats.get("scattered", 0)),
 		"longest_gap": snappedf(longest, 0.01), "longest_gap_at": snappedf(longest_at, 0.01), "money_curve": money_curve,
+		"goal_gap": snappedf(ggap, 0.01), "goal_gap_at": snappedf(ggap_at, 0.01),
 		"tax_total": int(state.stats.get("tax_total", 0.0)), "spent_build": int(state.stats.get("spent_build", 0.0)),
 		"spent_upgrade": int(state.stats.get("spent_upgrade", 0.0)), "spent_repair": int(state.stats.get("spent_repair", 0.0)),
 		"spent_research": int(state.stats.get("spent_research", 0.0)), "spent_total": int(spent), "step_ms": snappedf(float(r["step_ms"]), 0.01),
@@ -175,7 +187,7 @@ static func report(r: Dictionary) -> String:
 	L.append("- 목표 %d/%d · 층 %d · 마지막 금고 %s · 최저 금고 %s" % [int(s["goals_done"]), sim.items("goals").size(), int(s["floors"]), Sim.won(float(s["money_end"])), Sim.won(float(s["min_money"]))])
 	L.append("- 불·병 손실: 주거-일 %.1f 중 불 %.1f · 병 %.1f = **%.2f%%** (불 %d번, 탐 %d, 병 %d번, 병으로 떠남 %d, 불로 흩어짐 %d)" % [float(s["house_days"]),
 		float(s["fire_house_days"]), float(s["sick_house_days"]), float(s["hazard_loss_pct"]), int(s["fires"]), int(s["burnt"]), int(s["outbreaks"]), int(s["left_sick"]), int(s["scattered"])])
-	L.append("- 가장 긴 빈 구간(진전 명령 사이): %.2f경제일(%.2f일째부터)" % [float(s["longest_gap"]), float(s["longest_gap_at"])])
+	L.append("- 가장 긴 빈 구간(진전 명령 사이): %.2f경제일(%.2f일째부터) · 목표 사이 가장 긴 간격 %.2f일(%.2f일째부터)" % [float(s["longest_gap"]), float(s["longest_gap_at"]), float(s["goal_gap"]), float(s["goal_gap_at"])])
 	L.append("- 돈: 세수 합 %s · 건설 %s · 승급 %s · 수리 %s · 연구 %s · 스텝 평균 %.2fms" % [Sim.won(float(s["tax_total"])), Sim.won(float(s["spent_build"])),
 		Sim.won(float(s["spent_upgrade"])), Sim.won(float(s["spent_repair"])), Sim.won(float(s["spent_research"])), float(s["step_ms"])])
 	L.append("")

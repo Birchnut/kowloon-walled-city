@@ -110,6 +110,10 @@ static func _hud(sim: Sim, state: CityState) -> Dictionary:
 		sim.cover_cache["_sig"] = Board.signals(sim, state)
 		sim.cover_cache["_sig_key"] = sk
 	h["signals"] = sim.cover_cache["_sig"]
+	var tl: Array = []
+	for t: int in range(1, sim.max_tier() + 1):
+		tl.append({"tier": t, "name": sim.tname(t), "pop": int(pop["t%d" % t])})
+	h["tiers"] = tl
 	var wait := 0
 	for t: Variant in state.waiting:
 		wait += int(state.waiting[t].get("count", 0))
@@ -285,7 +289,7 @@ static func _info(sim: Sim, state: CityState, args: Dictionary) -> Dictionary:
 		var left := float(b.get("build_left", 0.0))
 		return {"bid": bid, "kind": "site", "pos": b["pos"], "title": "공사 중 — %s" % d.get("name", b["type"]), "type": b["type"],
 			"w": int(b.get("w", 1)), "h": int(b.get("h", 1)), "d": int(b.get("d", 1)), "rot": int(b.get("rot", 0)), "footprint": Cover.bcells(b),
-			"progress": snappedf(float(b["progress"]), 0.01), "build_left_text": "완공까지 %s" % day_text(left),
+			"progress": snappedf(float(b["progress"]), 0.01), "build_progress": snappedf(float(b["progress"]), 0.01), "build_left_text": "완공까지 %s" % day_text(left),
 			"lines": ["대나무 비계가 올라가는 중 (%d%%) — 완공까지 %s" % [int(float(b["progress"]) * 100.0), day_text(left)]],
 			"actions": [{"id": "demolish", "label": "공사 취소(환불 없음)", "enabled": true, "reason": ""}]}
 	var staff_lines: Array = []
@@ -311,7 +315,7 @@ static func _info(sim: Sim, state: CityState, args: Dictionary) -> Dictionary:
 	var rg := Cover.rng_of(d)
 	return {"bid": bid, "kind": "facility", "pos": b["pos"], "size": maxi(k.x, k.y), "footprint": Cover.bcells(b),
 		"w": k.x, "h": k.y, "d": k.z, "rot": int(b.get("rot", 0)), "look": str(d.get("look", "")),
-		"build_left_text": "", "range_text": Cover.range_text(rg) if not rg.is_empty() else "",
+		"build_left_text": "", "build_progress": 1.0, "front": int(b.get("front", int(b.get("rot", 0)))), "range_text": Cover.range_text(rg) if not rg.is_empty() else "",
 		"interior": {"staff_ratio": snappedf(sim.staff_of(b), 0.01), "active": bool(b.get("active", false))},
 		"burn": str(b.get("burn", "")),
 		"title": d.get("name", b["type"]), "type": b["type"], "desc": d.get("desc", ""), "sign": d.get("sign", ""),

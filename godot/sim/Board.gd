@@ -140,7 +140,7 @@ static func _service_rows(sim: Sim, state: CityState) -> Array:
 				if key.substr(4) in sim.bdef(id).get("services", []):
 					arg = id
 					break
-		rows.append({"id": key, "group": "service", "name": a[2], "supply": ok, "demand": int(a[0]), "unit": "채", "ratio": snappedf(ratio, 0.01),
+		rows.append({"id": key, "group": "service", "name": a[2], "supply": ok, "demand": int(a[0]), "unit": "채", "stock": null, "ratio": snappedf(ratio, 0.01),
 			"state": s, "days_left": null, "hint": "모든 집에 닿는다" if s == "ok" else "%d채가 범위 밖이거나 일손이 없다 — %s 근처에 하나 더" % [int(a[1]), sim.bdef(arg).get("name", "시설")],
 			"jump": {"screen": "lens", "arg": "fun" if key == "fun" else ("market" if key.begins_with("mkt:") else "service:" + arg)}})
 	return rows
@@ -156,7 +156,7 @@ static func metrics(sim: Sim, state: CityState) -> Dictionary:
 		var st := "ok" if r >= 1.0 - 1e-6 else ("warn" if r >= 0.9 else "bad")
 		if d <= 1e-6 and s <= 1e-6:
 			st = "off"
-		rows.append({"id": u, "group": "utility", "name": TAB[u], "supply": snappedf(s, 0.1), "demand": snappedf(d, 0.1), "unit": "/일" if u == "water" else "부하",
+		rows.append({"id": u, "group": "utility", "name": TAB[u], "supply": snappedf(s, 0.1), "demand": snappedf(d, 0.1), "unit": "/일" if u == "water" else "부하", "stock": null,
 			"ratio": snappedf(minf(9.99, r), 0.01), "state": st, "days_left": null,
 			"hint": "넉넉하다" if st == "ok" or st == "off" else ("%s이(가) %d 모자란다 — %s" % [TAB[u], int(ceilf(d - s)), "물탱크를 하나 더" if u == "water" else "발전기를 하나 더"]),
 			"jump": {"screen": "build", "arg": u}})
@@ -183,10 +183,10 @@ static func metrics(sim: Sim, state: CityState) -> Dictionary:
 		var d2: Dictionary = hz["disease"]
 		var fs := "off" if not f["on"] else ("bad" if not (f["burning"] as Array).is_empty() else ("warn" if float(f["covered_pct"]) < 0.95 or not (f["burnt"] as Array).is_empty() else "ok"))
 		var ds := "off" if not d2["on"] else ("bad" if not (d2["sick"] as Array).is_empty() else ("warn" if float(d2["trash_covered_pct"]) < 0.95 or float(d2["covered_pct"]) < 0.9 else "ok"))
-		var fr := {"id": "fire", "group": "hazard", "name": "불", "supply": snappedf(float(f["covered_pct"]) * 100.0, 1), "demand": 100, "unit": "% 덮임",
+		var fr := {"id": "fire", "group": "hazard", "name": "불", "supply": snappedf(float(f["covered_pct"]) * 100.0, 1), "demand": 100, "unit": "% 덮임", "stock": null,
 			"ratio": f["covered_pct"], "state": fs, "days_left": f["grace_left"] if float(f["grace_left"]) > 0.0 else null, "hint": f["text"],
 			"jump": {"screen": "lens", "arg": "fire"}}
-		var dr := {"id": "disease", "group": "hazard", "name": "병", "supply": snappedf(float(d2["trash_covered_pct"]) * 100.0, 1), "demand": 100, "unit": "% 수거",
+		var dr := {"id": "disease", "group": "hazard", "name": "병", "supply": snappedf(float(d2["trash_covered_pct"]) * 100.0, 1), "demand": 100, "unit": "% 수거", "stock": null,
 			"ratio": d2["trash_covered_pct"], "state": ds, "days_left": d2["grace_left"] if float(d2["grace_left"]) > 0.0 else null, "hint": d2["text"],
 			"jump": {"screen": "lens", "arg": "trash"}}
 		rows.append(fr)

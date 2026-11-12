@@ -46,10 +46,10 @@ def main():
                  "/".join(str(x) for x in r["pop_end"])))
     L += ["", "## 빈 구간과 돈", "",
           "가장 긴 빈 구간 = 진전 명령(짓기·승급·칠하기·탐험 수령·수리·연구·계약) 사이 가장 긴 간격.", "",
-          "| 봇 | 가장 긴 빈 구간(일, 시작) | 세수 합 | 건설 | 승급 | 수리 | 연구 | 지출 ÷ 세수 | 마지막 금고 | 최저 금고 | 스텝 ms |", "|---|---|---|---|---|---|---|---|---|---|---|"]
+          "| 봇 | 가장 긴 빈 구간(일, 시작) | 목표 사이 최장(일, 시작) | 세수 합 | 건설 | 승급 | 수리 | 연구 | 지출 ÷ 세수 | 마지막 금고 | 최저 금고 | 스텝 ms |", "|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for r in rows:
         tax = max(1, r["tax_total"])
-        L.append("| %s | %.2f (%.1f) | ₩%s | ₩%s | ₩%s | ₩%s | ₩%s | %.0f%% | ₩%s | ₩%s | %.1f |" % (r["name"], r["longest_gap"], r["longest_gap_at"], f"{r['tax_total']:,}",
+        L.append("| %s | %.2f (%.1f) | %.2f (%.1f) | ₩%s | ₩%s | ₩%s | ₩%s | ₩%s | %.0f%% | ₩%s | ₩%s | %.1f |" % (r["name"], r["longest_gap"], r["longest_gap_at"], r.get("goal_gap", 0), r.get("goal_gap_at", 0), f"{r['tax_total']:,}",
                  f"{r['spent_build']:,}", f"{r['spent_upgrade']:,}", f"{r['spent_repair']:,}", f"{r['spent_research']:,}",
                  100.0 * (r["spent_build"] + r["spent_upgrade"] + r["spent_repair"] + r["spent_research"]) / tax, f"{r['money_end']:,}", f"{r['min_money']:,}", r["step_ms"]))
     L += ["", "## 금고 곡선(5일마다, ₩)", "", "| 봇 | " + " | ".join("%d일" % x for x in range(5, 45, 5)) + " |", "|---|" + "---|" * 8]

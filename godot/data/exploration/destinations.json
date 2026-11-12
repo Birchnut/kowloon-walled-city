@@ -165,7 +165,7 @@
      "good": "parts",
      "min": 1,
      "max": 1,
-     "chance": 0.1
+     "chance": 0.2
     }
    ],
    "finds": [
@@ -219,7 +219,7 @@
      "good": "parts",
      "min": 1,
      "max": 1,
-     "chance": 0.15
+     "chance": 0.3
     }
    ],
    "finds": [
@@ -261,8 +261,8 @@
    "bonus": [
     {
      "good": "parts",
-     "min": 1,
-     "max": 1,
+     "min": 2,
+     "max": 3,
      "chance": 1.0
     },
     {
@@ -280,7 +280,7 @@
    ],
    "stock": {
     "metal": 750,
-    "parts": 6,
+    "parts": 20,
     "scrap": 100,
     "elec_scrap": 30
    },
@@ -314,8 +314,8 @@
    "bonus": [
     {
      "good": "parts",
-     "min": 1,
-     "max": 1,
+     "min": 2,
+     "max": 3,
      "chance": 1.0
     },
     {
@@ -329,7 +329,7 @@
     "wood": 750,
     "concrete": 750,
     "metal": 750,
-    "parts": 6,
+    "parts": 20,
     "scrap": 100
    },
    "regen": 0.5,
@@ -351,8 +351,8 @@
    "desc": "녹슨 터빈이 서 있는 발전소. 처음 가면 쓰레기 화력 발전 도면을 찾는다.",
    "primary": {
     "good": "parts",
-    "min": 3,
-    "max": 4
+    "min": 6,
+    "max": 8
    },
    "bonus": [
     {
@@ -382,7 +382,7 @@
     }
    ],
    "stock": {
-    "parts": 12,
+    "parts": 20,
     "scrap": 150,
     "metal": 90,
     "elec_scrap": 30

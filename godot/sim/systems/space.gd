@@ -37,7 +37,7 @@ func _complete(state: CityState, bid: int) -> void:
 	var b: Dictionary = state.buildings[bid]
 	var type := str(b["type"])
 	state.buildings[bid] = {"id": bid, "kind": "facility", "type": type, "pos": b["pos"], "size": b["size"],
-		"w": int(b["w"]), "h": int(b["h"]), "d": int(b["d"]), "rot": int(b.get("rot", 0)),
+		"w": int(b["w"]), "h": int(b["h"]), "d": int(b["d"]), "rot": int(b.get("rot", 0)), "front": int(b.get("front", b.get("rot", 0))),
 		"active": false, "paused": false, "staff": 0.0, "eff": 0.0, "cause": "staff", "built": state.day,
 		"w_ratio": 1.0, "p_ratio": 1.0, "money_stop": false, "vice_rate": 0.0, "burn": "", "build_left": 0.0, "repair": null}
 	for p: Vector3i in Cover.bcells(b):
@@ -394,10 +394,10 @@ func _build(state: CityState, args: Dictionary) -> Dictionary:
 	var days := sim.build_days(type)
 	var look := str(d.get("look", ""))
 	state.buildings[bid] = {"id": bid, "kind": "site", "type": type, "pos": pos, "size": maxi(w, h), "w": w, "h": h, "d": dd, "rot": rot,
-		"progress": 0.0, "days": days, "build_left": days}
+		"progress": 0.0, "days": days, "build_left": days, "front": rot}
 	for p: Vector3i in Cover.cells_of(pos, w, h, dd):
 		state.cells[p] = {"kind": "site", "bid": bid, "type": type, "tier": 0, "material": "", "seed": seed, "look": look,
-			"origin": pos, "size": maxi(w, h), "w": w, "h": h, "d": dd, "rot": rot, "scaffold": false, "progress": 0.0,
+			"origin": pos, "size": maxi(w, h), "w": w, "h": h, "d": dd, "rot": rot, "front": rot, "scaffold": false, "progress": 0.0,
 			"becomes": {"kind": "facility", "type": type, "w": w, "h": h, "d": dd, "rot": rot}, "burn": "", "sick": false, "trash": 0.0}
 		state.emit("cell_changed", {"pos": p})
 	state.emit("building_changed", {"bid": bid})

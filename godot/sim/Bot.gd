@@ -56,18 +56,27 @@ func act(state: CityState, context: Dictionary = {}) -> void:
 		else:
 			_save = maxf(_save, float(want[t][0]))
 	mem["want"] = want
-	_explore(state)
-	_repair(state)
-	_utilities(state)
+	_t("explore", func() -> void: _explore(state))
+	_t("repair", func() -> void: _repair(state))
+	_t("utilities", func() -> void: _utilities(state))
 	if bool(c("hazards", true)):
-		_hazards(state)
-	_markets_services(state)
-	_upgrades(state)
-	_production(state)
-	_contracts(state)
-	_zone(state)
-	_late(state)
-	_explore(state)        # 한 바퀴 돈 뒤 남은 팀(새 거점·돈)도 보낸다
+		_t("hazards", func() -> void: _hazards(state))
+	_t("services", func() -> void: _markets_services(state))
+	_t("upgrades", func() -> void: _upgrades(state))
+	_t("production", func() -> void: _production(state))
+	_t("contracts", func() -> void: _contracts(state))
+	_t("zone", func() -> void: _zone(state))
+	_t("late", func() -> void: _late(state))
+	_t("explore", func() -> void: _explore(state))        # 한 바퀴 돈 뒤 남은 팀(새 거점·돈)도 보낸다
+
+
+var prof: Dictionary = {}          # 손길 부분별 누적 ms(리포트용)
+
+
+func _t(name: String, f: Callable) -> void:
+	var t0 := Time.get_ticks_usec()
+	f.call()
+	prof[name] = float(prof.get(name, 0.0)) + float(Time.get_ticks_usec() - t0) / 1000.0
 
 
 func cmd(state: CityState, name: String, args: Dictionary) -> Dictionary:
@@ -83,7 +92,13 @@ func cmd(state: CityState, name: String, args: Dictionary) -> Dictionary:
 
 
 # ------------------------------------------------------------------ 세기
+var _nospot: Dictionary = {}       # 이번 손길에 빈 자리를 못 찾은 시설(다시 훑지 않는다)
+var _carves: int = 0               # 이번 손길에 자리 내기(허물기)를 한 횟수
+
+
 func _recount(state: CityState) -> void:
+	_nospot.clear()
+	_carves = 0
 	_cnt.clear()
 	_sup.clear()
 	for b: Dictionary in state.buildings.values():
@@ -163,6 +178,20 @@ func _spot(state: CityState, type: String, near: Vector3i) -> Variant:
 	var d := sim.bdef(type)
 	var mf := int(d.get("min_floor", 0))
 	var sky := bool(d.get("needs_sky", false))
+	# 빠른 길: 먼저 2×2 구멍 자리만(대부분의 시설이 여기 들어간다)
+	if not sky:
+		for z: int in range(mf, state.floors_unlocked):
+			for rot: int in _rots(type):
+				var k := sim.fp(type, rot)
+				if k.x > 2 or k.y > 2:
+					continue
+				for hx: int in range(3, sim.W - 1, 5):
+					for hy: int in range(3, sim.H - 1, 5):
+						for ox: int in 3 - k.x:
+							for oy: int in 3 - k.y:
+								var p := Vector3i(hx + ox, hy + oy, z)
+								if _free(state, p, k):
+									return [p, rot]
 	for rot: int in _rots(type):
 		var k := sim.fp(type, rot)
 		for z: int in range(mf, state.floors_unlocked):
@@ -240,11 +269,26 @@ func _carve(state: CityState, type: String, target: Variant) -> Variant:
 	var best: Variant = null
 	var bs := 1 << 30
 	var mf := int(d.get("min_floor", 0))
+	var x0 := 0
+	var y0 := 0
+	var x1 := sim.W
+	var y1 := sim.H
+	var z0 := mf
+	var z1 := state.floors_unlocked
+	if target is Dictionary and not rg.is_empty():
+		var tp: Vector3i = target["pos"]
+		var r := int(rg["r"])
+		x0 = maxi(0, tp.x - r - 3)
+		x1 = mini(sim.W, tp.x + r + 2)
+		y0 = maxi(0, tp.y - r - 3)
+		y1 = mini(sim.H, tp.y + r + 2)
+		z0 = maxi(mf, tp.z - int(rg["up"]) - 1)
+		z1 = mini(state.floors_unlocked, tp.z + int(rg["down"]) + 1)
 	for rot: int in _rots(type):
 		var k := sim.fp(type, rot)
-		for z: int in range(mf, state.floors_unlocked - k.z + 1):
-			for x: int in sim.W - k.x + 1:
-				for y: int in sim.H - k.y + 1:
+		for z: int in range(z0, mini(z1, state.floors_unlocked - k.z + 1)):
+			for x: int in range(x0, mini(x1, sim.W - k.x + 1)):
+				for y: int in range(y0, mini(y1, sim.H - k.y + 1)):
 					var o := Vector3i(x, y, z)
 					if target is Dictionary and not rg.is_empty() and not Cover.reach_b(o, k.x, k.y, k.z, rg, target):
 						continue
@@ -322,8 +366,15 @@ func _try_build(state: CityState, type: String, critical: bool = true, targets: 
 		return false
 	if not _afford(state, type, critical):
 		return false
-	var p: Variant = _cover_spot(state, type, targets) if not targets.is_empty() else _spot(state, type, _center(state))
-	if p == null and critical and bool(c("carve", true)):
+	var p: Variant = null
+	if targets.is_empty() and _nospot.has(type):
+		p = null
+	else:
+		p = _cover_spot(state, type, targets) if not targets.is_empty() else _spot(state, type, _center(state))
+	if p == null and targets.is_empty():
+		_nospot[type] = true
+	if p == null and critical and bool(c("carve", true)) and _carves < 2:
+		_carves += 1
 		p = _carve(state, type, targets[0] if not targets.is_empty() else null)
 	if p == null:
 		_block("자리 부족으로 %s 보류" % d.get("name", type))
@@ -341,6 +392,12 @@ func _try_build(state: CityState, type: String, critical: bool = true, targets: 
 # ------------------------------------------------------------------ 탐험
 func _explore(state: CityState) -> void:
 	if not sim.enabled.has("expeditions"):
+		return
+	var need_q := _count(state, "expedition_base") < int(c("teams", 3))
+	for t: Dictionary in state.teams:
+		if t["state"] == "idle" or t["state"] == "done" or (t["state"] == "out" and state.econ_days + 1e-9 >= float(t.get("completes_at", 0.0))):
+			need_q = true
+	if not need_q:
 		return
 	var bases := _count(state, "expedition_base")
 	if bases < int(c("teams", 3)):
@@ -572,6 +629,7 @@ func _minus(targets: Array, s: Dictionary) -> Array:
 func _markets_services(state: CityState) -> void:
 	var want := {}     # 시설 type → [주거…]
 	var crit := {}
+	var sup_of := {}   # 수요 id → 채울 시설(이번 손길 캐시)
 	for b: Dictionary in sim.cover(state)["houses"]:
 		for nid: String in b.get("needs", {}):
 			var rec: Dictionary = b["needs"][nid]
@@ -581,7 +639,9 @@ func _markets_services(state: CityState) -> void:
 			var n := sim.item("needs", nid)
 			if n.get("role", "") == "luxury" and not bool(c("luxury", true)):
 				continue
-			var type := _supplier_for(state, n)
+			if not sup_of.has(nid):
+				sup_of[nid] = _supplier_for(state, n)
+			var type: String = sup_of[nid]
 			if type == "":
 				continue
 			if not want.has(type):
@@ -721,7 +781,11 @@ func _producer(state: CityState, g: String) -> String:
 	return best
 
 
+var _starving: Dictionary = {}
+
+
 func _production(state: CityState) -> void:
+	_starving.clear()
 	var order: Array = MEAL_GOODS.duplicate()
 	for g: String in _dem:
 		if not (g in order):
@@ -741,12 +805,12 @@ func _production(state: CityState) -> void:
 		if t == "":
 			continue
 		# 이미 있는 같은 시설이 물·전기·일손 때문에 덜 돌면 더 짓지 않는다(원인을 먼저 — 물·전기·칠하기가 따로 맡는다)
-		var starving := false
-		for b: Dictionary in sim.cover(state)["facs"]:
-			if str(b["type"]) == t and str(b.get("cause", "")) in ["water", "power", "staff"] and float(b.get("eff", 1.0)) < 0.8:
-				starving = true
-				break
-		if starving:
+		if _starving.is_empty():
+			_starving["-"] = true
+			for b: Dictionary in sim.cover(state)["facs"]:
+				if str(b.get("cause", "")) in ["water", "power", "staff"] and float(b.get("eff", 1.0)) < 0.8:
+					_starving[str(b["type"])] = true
+		if _starving.has(t):
 			_block("%s이(가) 물·전기·일손이 모자라 덜 돌아 더 짓지 않음" % sim.bdef(t).get("name", t))
 			continue
 		# 2단 사슬: 원료가 이미 모자라면 이 시설 대신 원료 시설을 먼저 짓는다
@@ -756,8 +820,13 @@ func _production(state: CityState) -> void:
 				short_in = gi
 				break
 		if short_in != "":
+			if short_in in ["fish", "liquor"]:
+				# 수입 원료: 시설을 먼저 지으면 교역(_contracts)이 그 수요를 보고 계약한다
+				if _count(state, t) == 0:
+					_try_build(state, t, g in MEAL_GOODS)
+				continue
 			var ti := _producer(state, short_in)
-			if ti != "" and not (short_in in ["fish", "liquor"]):
+			if ti != "":
 				_try_build(state, ti, g in MEAL_GOODS)
 			continue
 		_try_build(state, t, g in MEAL_GOODS)

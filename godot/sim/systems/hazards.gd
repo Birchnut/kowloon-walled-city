@@ -50,6 +50,9 @@ func _switch(state: CityState) -> void:
 			h["on"] = true
 			var grace := float(sim.cfg("hazards.%s.grace_days" % kind, 2.0)) if not forced.has(kind) else 0.0
 			h["since"] = state.econ_days + grace
+			if bool(h.get("announced", false)):
+				continue
+			h["announced"] = true       # 도시마다 한 번만(저장에 남는다 — 불러와도, 디버그로 껐다 켜도 다시 알리지 않는다)
 			state.emit("hazard_on", {"kind": kind, "grace_days": grace})
 			state.stats["hazard_%s_on_day" % kind] = state.econ_days
 			if kind == "fire":
@@ -471,6 +474,14 @@ func debug(state: CityState, args: Dictionary) -> Dictionary:
 	match str(args.get("op", "")):
 		"start_fire", "start_outbreak":
 			var pos: Variant = args.get("pos", null)
+			if pos == null:     # 자리를 안 주면 주민 있는 주거 하나를 결정론 RNG로
+				var cand: Array = []
+				for h: Dictionary in cov["houses"]:
+					if int(h["residents"]) > 0 and str(h.get("burn", "")) == "" and not h.get("sick", false):
+						cand.append(h)
+				if cand.is_empty():
+					return {"ok": false, "reason": "불·병을 낼 주거가 없다."}
+				pos = cand[int(sim.roll(state) * cand.size()) % cand.size()]["pos"]
 			if not (pos is Vector3i) or not state.cells.has(pos):
 				return {"ok": false, "reason": "그 칸에 건물이 없다."}
 			var b: Dictionary = state.buildings.get(int(state.cells[pos]["bid"]), {})
