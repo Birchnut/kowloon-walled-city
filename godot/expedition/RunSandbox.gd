@@ -366,6 +366,12 @@ func _shot_cond(c: String) -> bool:
 					return true
 		"time":
 			return world.time >= float(kv[1])
+		"bonk":
+			return not view.stars.is_empty() and view.stars[0]["life"] < 0.75
+		"hitspin":
+			for e in world.enemies:
+				if absf(e.spin_v) > 4.0:
+					return true
 		"distract":
 			for e in world.enemies:
 				if not e.dead and e.kind == "guard" and e.state == "investigate" and e.st > 0.4:

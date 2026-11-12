@@ -32,6 +32,10 @@ var stuck_t: float = 0.0
 var last_seen: Vector2 = Vector2.ZERO
 var seen_t: float = 0.0
 var data: Dictionary = {}
+var spin: float = 0.0          # 맞고 도는 각도(그림용)
+var spin_v: float = 0.0
+var squash: float = 0.0        # 찌그러짐 남은 시간(그림용)
+var bonk_cd: float = 0.0
 
 
 func set_state(s: String, t: float = 0.0) -> void:

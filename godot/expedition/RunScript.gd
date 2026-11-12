@@ -1,7 +1,7 @@
 extends RefCounted
 ## 화면 확인용 입력 대본(script=이름). 장면을 차려 놓고(적 배치·순간 이동) 정해진 입력을 넣는다.
 ## 사람이 하는 것과 같은 RunInput만 쓴다. 차림은 확인용이라 규칙 밖의 일(순간 이동)을 한다.
-## 이름: rat dog guard throw search pack noise junk wire boss bosswin exit down
+## 이름: rat dog guard slap throw search pack noise junk wire boss bosswin exit down
 
 const RunWorld = preload("res://expedition/RunWorld.gd")
 const RunInput = preload("res://expedition/RunInput.gd")
@@ -36,6 +36,22 @@ func setup(n: String, world: RunWorld) -> void:
 			g.data["patrol"] = [p.pos + Vector2(90, 0), p.pos + Vector2(90, 40)]
 			g.set_state("look", 99.0)
 			g.data["look_base"] = PI
+		"slap":
+			_teleport_room_center(1)
+			# 오른쪽 벽 쪽으로 몰아 둔다
+			var rr: Rect2 = w._room_rect(w.cur_room)
+			p.pos = Vector2(rr.end.x - 60, rr.get_center().y)
+			p.pos = w.cell_center(w._free_cell_near(w.to_cell(p.pos)))
+			var d3 := w._spawn_enemy("dog", p.pos + Vector2(20, 0), w.cur_room)
+			d3.aware = true
+			d3.set_state("recover", 2.0)
+			var g3 := w._spawn_enemy("guard", p.pos + Vector2(0, 26), w.cur_room)
+			g3.aware = true
+			g3.set_state("recover", 2.0)
+			for k in 3:
+				var r3 := w._spawn_enemy("rat", p.pos + Vector2(-20 - k * 6, -14 + k * 8), w.cur_room)
+				r3.aware = true
+				r3.set_state("recover", 3.0)
 		"throw":
 			_teleport_room_center(1)
 			var g2 := w._spawn_enemy("guard", p.pos + Vector2(80, 0), w.cur_room)
@@ -166,6 +182,18 @@ func fill(inp: RunInput, world: RunWorld, dt: float) -> void:
 						elif e.state == "recover":
 							inp.move = (e.pos - p.pos).normalized()
 							inp.attack = p.pos.distance_to(e.pos) < 28
+		"slap":
+			var tgt2: Actor = null
+			var bd2 := 999.0
+			for e: Actor in world.enemies:
+				if not e.dead and e.state != "gone" and e.pos.distance_to(p.pos) < bd2:
+					bd2 = e.pos.distance_to(p.pos)
+					tgt2 = e
+			if tgt2 != null:
+				inp.aim = tgt2.pos
+				if bd2 > 22:
+					inp.move = (tgt2.pos - p.pos).normalized()
+				inp.attack = bd2 < 30
 		"throw":
 			var g: Actor = null
 			for e: Actor in world.enemies:

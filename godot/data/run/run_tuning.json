@@ -137,5 +137,8 @@
  "locker_chance": 0.25,
  "locker_open": 1.8,
  "locker_noise_mult": 1.6,
- "tele_track": 0.5
+ "tele_track": 0.5,
+ "bonk_speed": 70,
+ "bonk_stun": 0.6,
+ "guard_light_drop": 1.0
 }

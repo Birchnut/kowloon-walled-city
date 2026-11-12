@@ -25,6 +25,7 @@ var shake_rng := RandomNumberGenerator.new()
 var parts: Array = []        # {p, v, life, max, col, size, g, z, vz}
 var texts: Array = []        # {p, text, col, life, big}
 var rings: Array = []        # {p, r, life}
+var stars: Array = []        # 벽에 쾅 — 머리 위 별 {p, life}
 var t := 0.0
 var sfx: Node = null         # RunSfx (없어도 된다)
 var hud: Node = null         # 방 이름·배너를 넘긴다
@@ -108,6 +109,10 @@ func tick(dt: float) -> void:
 		texts[k]["p"] += Vector2(0, -14 * dt)
 		if texts[k]["life"] <= 0:
 			texts.remove_at(k)
+	for k in range(stars.size() - 1, -1, -1):
+		stars[k]["life"] -= dt
+		if stars[k]["life"] <= 0:
+			stars.remove_at(k)
 	for k in range(rings.size() - 1, -1, -1):
 		rings[k]["life"] -= dt
 		if rings[k]["life"] <= 0:
@@ -140,6 +145,9 @@ func _consume_events() -> void:
 					parts.append({"p": e["pos"], "v": (dir.rotated(randf_range(-0.9, 0.9)) * randf_range(60, 140)), "life": randf_range(0.12, 0.25), "max": 0.25, "col": Color(1, 0.95, 0.7), "size": 1.0, "drag": 9.0})
 				parts.append({"p": e["pos"], "v": Vector2.ZERO, "life": 0.08, "max": 0.08, "col": Color.WHITE, "size": 9.0, "star": true})
 			"kill":
+				if e["kind"] == "rat":
+					for k in 8:
+						parts.append({"p": (e["pos"] as Vector2) + Vector2(randf_range(-3, 3), -3), "v": Vector2.from_angle(randf() * TAU) * randf_range(15, 40), "life": randf_range(0.35, 0.6), "max": 0.6, "col": Color(0.96, 0.95, 0.9), "size": 4.0, "puff": true, "drag": 6.0})
 				for k in 10:
 					parts.append({"p": e["pos"], "v": Vector2.from_angle(randf() * TAU) * randf_range(30, 90), "life": randf_range(0.3, 0.6), "max": 0.6, "col": Color("8a7860"), "size": 2.0})
 				texts.append({"p": e["pos"] + Vector2(0, -12), "text": _kill_word(e["kind"]), "col": Color.WHITE, "life": 0.9})
@@ -159,6 +167,14 @@ func _consume_events() -> void:
 				texts.append({"p": e["pos"], "text": e["text"], "col": cs.get(e.get("col", "white"), Color.WHITE), "life": 1.0 if not e.get("big", false) else 0.8, "big": e.get("big", false)})
 			"ring":
 				rings.append({"p": e["pos"], "r": e["r"], "life": 0.6})
+			"bonk":
+				stars.append({"p": e["pos"], "life": 0.9})
+				shake = maxf(shake, 2.0)
+				for k in 5:
+					parts.append({"p": e["pos"], "v": Vector2.from_angle(randf() * TAU) * randf_range(40, 80), "life": 0.2, "max": 0.2, "col": Color(1, 0.95, 0.6), "size": 1.0, "drag": 8.0})
+			"drop_light":
+				var dv: Vector2 = e["dir"]
+				parts.append({"p": e["pos"] + Vector2(0, -8), "v": dv.rotated(randf_range(-0.6, 0.6)) * 50.0, "life": RunCfg.f("guard_light_drop", 1.0), "max": RunCfg.f("guard_light_drop", 1.0), "col": Color("f4d03f"), "size": 3.0, "torch": true, "z": 10.0, "vz": 70.0, "drag": 5.0})
 			"crash":
 				for k in 16:
 					parts.append({"p": e["pos"] + Vector2(randf_range(-10, 10), 0), "v": Vector2.from_angle(randf() * TAU) * randf_range(20, 80), "life": randf_range(0.3, 0.7), "max": 0.7, "col": [Color("7a4a34"), Color("5f6a74"), Color("8a7a52")][k % 3], "size": 2.0, "z": 10.0, "vz": randf_range(30, 90)})
@@ -265,7 +281,7 @@ func _draw_ents() -> void:
 			_key_hint(ci, (near_pile["pos"] as Vector2) + Vector2(0, -18), "E")
 	# 경비원 손전등(벽에 잘린 원뿔)
 	for e: Actor in world.enemies:
-		if e.dead or e.kind != "guard" or not vis.has_point(e.pos):
+		if e.dead or e.kind != "guard" or not vis.has_point(e.pos) or e.data.has("light_off"):
 			continue
 		_cone(ci, e)
 	# 바닥 예고
@@ -346,6 +362,12 @@ func _draw_ents() -> void:
 			ci.draw_rect(Rect2(Vector2(rc.position) * 16.0, Vector2(rc.size) * 16.0), Color(0.06, 0.05, 0.1, 0.7))
 
 
+## 찌그러짐: 맞은 직후 납작하게 퍼졌다가 돌아온다.
+func _sq(a: Actor, k: float = 0.16) -> Vector2:
+	var u := clampf(a.squash / k, 0.0, 1.0)
+	return Vector2(1.0 + 0.35 * u, 1.0 - 0.3 * u)
+
+
 func _ypos(b: Variant) -> float:
 	if b is Dictionary:
 		return (b["pos"] as Vector2).y + (4.0 if b.has("cell") else 0.0)
@@ -388,8 +410,9 @@ func _draw_player(ci: CanvasItem) -> void:
 	var behind := dir.y < -0.3
 	if behind:
 		_draw_pipe(ci, p)
-	ci.draw_set_transform(p.pos + Vector2(0, -12 + bob), 0, Vector2(-1 if flip else 1, 1))
-	ci.draw_texture_rect_region(tex, Rect2(-8, -18, 16, 32), Rect2(colx * 16, row * 32, 16, 32), col)
+	var sqp := _sq(p, 0.18)
+	ci.draw_set_transform(p.pos + Vector2(0, -6 + bob), p.spin, Vector2((-1 if flip else 1) * sqp.x, sqp.y))
+	ci.draw_texture_rect_region(tex, Rect2(-8, -24, 16, 32), Rect2(colx * 16, row * 32, 16, 32), col)
 	ci.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 	if not behind:
 		_draw_pipe(ci, p)
@@ -414,26 +437,34 @@ func _draw_pipe(ci: CanvasItem, p: Actor) -> void:
 		elif p.st < wind + act:
 			var u := (p.st - wind) / act
 			a = la - half + 2.0 * half * u
-			# 휘두른 자국
-			var pts := PackedVector2Array()
-			for k in 9:
-				var aa := la - half + 2.0 * half * (float(k) / 8.0) * u
-				pts.append(base + Vector2.from_angle(aa) * (RunCfg.f("swing_range", 27) - 2))
-			ci.draw_polyline(pts, Color(1, 1, 1, 0.9), 3.0)
+			# 휘두른 자국(번짐): 바깥 호와 안쪽 호 사이를 채운 초승달
+			_smear(ci, base, la - half, la - half + 2.0 * half * u, 1.0)
 		else:
 			a = la + half
-			var fade := 1.0 - (p.st - wind - act) / RunCfg.f("swing_recover", 0.17)
-			if fade > 0:
-				var pts2 := PackedVector2Array()
-				for k in 9:
-					pts2.append(base + Vector2.from_angle(la - half + 2.0 * half * float(k) / 8.0) * (RunCfg.f("swing_range", 27) - 2))
-				ci.draw_polyline(pts2, Color(1, 1, 1, 0.5 * fade), 2.0)
+			var after := p.st - wind - act
+			if after < 0.06:
+				_smear(ci, base, la - half, la + half, 1.0 - after / 0.06)
 		len = 16.0
 	var tip := base + Vector2.from_angle(a) * len
 	ci.draw_line(base + Vector2.from_angle(a) * 3, tip, OUT_COL, 3.0)
 	ci.draw_line(base + Vector2.from_angle(a) * 3, tip, Color("9aa2aa"), 1.0)
 
 const OUT_COL := Color("1a1418")
+
+
+func _smear(ci: CanvasItem, base: Vector2, a0: float, a1: float, alpha: float) -> void:
+	var R := RunCfg.f("swing_range", 27)
+	var outer := PackedVector2Array()
+	var inner := PackedVector2Array()
+	for k in 11:
+		var aa := lerpf(a0, a1, k / 10.0)
+		var thick := 0.25 + 0.75 * (k / 10.0)          # 앞쪽이 두껍다
+		outer.append(base + Vector2.from_angle(aa) * R)
+		inner.append(base + Vector2.from_angle(aa) * (R - 2.0 - 7.0 * thick))
+	inner.reverse()
+	var poly := outer + inner
+	ci.draw_colored_polygon(poly, Color(1, 1, 1, 0.75 * alpha))
+	ci.draw_polyline(outer, Color(1, 1, 0.85, alpha), 1.0)
 
 
 func _draw_enemy(ci: CanvasItem, e: Actor) -> void:
@@ -455,7 +486,10 @@ func _draw_enemy(ci: CanvasItem, e: Actor) -> void:
 		"rat":
 			_shadow(ci, pos + Vector2(0, 1), 0.5, 0.6)
 			var tex := RunArt.tex("rat%d" % (int(e.anim * 3.0) % 2))
-			ci.draw_set_transform(pos + Vector2(0, -3), 0 if not e.dead else PI, Vector2(-1 if flip else 1, 1))
+			if e.dead:
+				return
+			var sq := _sq(e)
+			ci.draw_set_transform(pos + Vector2(0, -3), e.spin, Vector2((-1 if flip else 1) * sq.x, sq.y))
 			ci.draw_texture(tex, Vector2(-7, -5), col)
 			ci.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 		"dog":
@@ -466,7 +500,10 @@ func _draw_enemy(ci: CanvasItem, e: Actor) -> void:
 			elif e.state == "lunge":
 				key = "dog_lunge"
 			var tex := RunArt.tex(key)
-			ci.draw_set_transform(pos + Vector2(0, -5), 0 if not e.dead else PI, Vector2(-1 if flip else 1, 1))
+			var sqd := _sq(e)
+			ci.draw_set_transform(pos + Vector2(0, -5), e.spin if not e.dead else PI, Vector2((-1 if flip else 1) * sqd.x, sqd.y))
+			if e.knock.length() > 40 and randf() < 0.6:
+				parts.append({"p": pos + Vector2(randf_range(-5, 5), 3), "v": -e.knock * 0.15, "life": 0.3, "max": 0.3, "col": Color("b49a76"), "size": 2.0})
 			ci.draw_texture(tex, Vector2(-11, -8), col)
 			ci.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 			if e.state == "recover":
@@ -487,10 +524,13 @@ func _draw_enemy(ci: CanvasItem, e: Actor) -> void:
 				ci.draw_texture_rect_region(tex, Rect2(-8, -16, 16, 32), Rect2(colx * 16, 0, 16, 32), col)
 				ci.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 			else:
-				ci.draw_set_transform(pos + Vector2(0, -12), 0, Vector2(-1 if fl else 1, 1))
-				ci.draw_texture_rect_region(tex, Rect2(-8, -18, 16, 32), Rect2(colx * 16, row * 32, 16, 32), col)
+				var sqg := _sq(e)
+				ci.draw_set_transform(pos + Vector2(0, -6), e.spin, Vector2((-1 if fl else 1) * sqg.x, sqg.y))
+				ci.draw_texture_rect_region(tex, Rect2(-8, -24, 16, 32), Rect2(colx * 16, row * 32, 16, 32), col)
 				ci.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 				# 곤봉 / 보따리
+				if e.kind == "guard" and e.data.has("light_off"):
+					_label(ci, pos + Vector2(0, -28), "어어?", Color(1, 1, 1))
 				if e.kind == "guard":
 					var ba := e.face.angle() + (-2.2 if e.state == "tele" else (1.2 if e.state == "strike" else 0.9))
 					var b0 := pos + Vector2(0, -9)
@@ -659,8 +699,27 @@ func _draw_air() -> void:
 		if q.get("star", false):
 			ci.draw_circle(q["p"], q["size"] * (0.5 + a), Color(1, 1, 1, a))
 			continue
+		if q.get("puff", false):
+			ci.draw_circle(q["p"], q["size"] * (1.4 - 0.6 * a), Color(c, 0.85 * a))
+			continue
+		if q.get("torch", false):
+			var tp: Vector2 = (q["p"] as Vector2) + Vector2(0, -q.get("z", 0.0))
+			var ang: float = q["life"] * 14.0
+			ci.draw_set_transform(tp, ang, Vector2.ONE)
+			ci.draw_rect(Rect2(-4, -1.5, 8, 3), OUT_COL)
+			ci.draw_rect(Rect2(-3, -1, 6, 2), Color("5d6d7e"))
+			ci.draw_rect(Rect2(2, -1, 2, 2), Color("f9e79f"))
+			ci.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+			continue
 		var s: float = q["size"]
 		ci.draw_rect(Rect2((q["p"] as Vector2) + Vector2(0, -q.get("z", 0.0)), Vector2(s, s)), Color(c, c.a * a))
+	# 어지러운 별
+	for st in stars:
+		var a3: float = clampf(st["life"] / 0.9, 0.0, 1.0)
+		for k in 3:
+			var ang2 := t * 7.0 + k * TAU / 3.0
+			var sp: Vector2 = (st["p"] as Vector2) + Vector2(cos(ang2) * 8.0, -16 + sin(ang2) * 3.0)
+			_star(ci, sp, Color(1, 0.9, 0.2, a3))
 	# 글자
 	for tx in texts:
 		var a2: float = clampf(tx["life"] * 2.0, 0.0, 1.0)
@@ -796,6 +855,12 @@ func _label(ci: CanvasItem, p: Vector2, s: String, col: Color, size: int = 10) -
 	for d in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
 		ci.draw_string(font, o + d, s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, Color(0.08, 0.06, 0.08, col.a))
 	ci.draw_string(font, o, s, HORIZONTAL_ALIGNMENT_LEFT, -1, size, col)
+
+
+func _star(ci: CanvasItem, p: Vector2, col: Color) -> void:
+	ci.draw_line(p + Vector2(-2.5, 0), p + Vector2(2.5, 0), col, 1.0)
+	ci.draw_line(p + Vector2(0, -2.5), p + Vector2(0, 2.5), col, 1.0)
+	ci.draw_rect(Rect2(p - Vector2(1, 1), Vector2(2, 2)), col)
 
 
 func _bang(ci: CanvasItem, p: Vector2, col: Color) -> void:

@@ -254,6 +254,11 @@ func step(dt: float) -> void:
 func _player_step(dt: float) -> void:
 	var p := player
 	p.st += dt
+	p.squash = maxf(0.0, p.squash - dt)
+	p.spin += p.spin_v * dt
+	p.spin_v = move_toward(p.spin_v, 0.0, 40.0 * dt)
+	if absf(p.spin_v) < 0.5:
+		p.spin = lerp_angle(p.spin, 0.0, minf(1.0, dt * 12.0))
 	p.inv = maxf(0.0, p.inv - dt)
 	p.flash = maxf(0.0, p.flash - dt)
 	roll_cd = maxf(0.0, roll_cd - dt)
@@ -304,6 +309,7 @@ func _player_step(dt: float) -> void:
 		p.lock_dir = p.face
 		swing_cd = sw_total * 0.9
 		search_target = {}
+		p.squash = 0.18
 		_ev("sfx", {"id": "swing"})
 		p.knock += p.face * 40.0
 		_hear(p.pos, 50.0)
@@ -477,6 +483,13 @@ func _hurt_enemy(e: Actor, dmg: int, dir: Vector2, src: String) -> void:
 	e.knock += dir * RunCfg.f("swing_knockback", 170) / mass
 	if e.kind == "rival":
 		e.data["hostile"] = true
+	e.spin_v = (12.0 if rng.randf() < 0.5 else -12.0) * (1.4 if e.kind == "rat" else 1.0) / mass
+	e.squash = 0.16
+	if e.kind == "dog":
+		_ev("sfx", {"id": "yelp"})
+	if e.kind == "guard":
+		e.data["light_off"] = RunCfg.f("guard_light_drop", 1.0)
+		_ev("drop_light", {"pos": e.pos, "dir": dir})
 	if e.kind in ["rat", "dog", "rival"]:
 		e.set_state("stun", 0.32)
 	elif e.kind == "guard":
@@ -495,6 +508,8 @@ func _hurt_enemy(e: Actor, dmg: int, dir: Vector2, src: String) -> void:
 		kills[e.kind] = int(kills.get(e.kind, 0)) + 1
 		hitstop = maxf(hitstop, RunCfg.f("hitstop_kill", 0.09))
 		_ev("kill", {"pos": e.pos, "kind": e.kind})
+		if e.kind == "rat":
+			_ev("sfx", {"id": "puff"})
 		_ev("shake", {"a": 4.0})
 		if e.kind == "rival":
 			for b in e.data.get("bag", []):
@@ -522,6 +537,8 @@ func _hurt_player(dmg: int, from: Vector2, by: String) -> bool:
 	last_hurt_by = by
 	p.inv = RunCfg.f("hurt_iframes", 0.9)
 	p.flash = 0.15
+	p.squash = 0.2
+	p.spin_v = 6.0 if rng.randf() < 0.5 else -6.0
 	var dir := (p.pos - from).normalized() if p.pos.distance_to(from) > 0.5 else Vector2.DOWN
 	p.knock = dir * 180.0
 	if p.state == "swing":
@@ -596,6 +613,16 @@ func _enemy_step(e: Actor, dt: float) -> void:
 	e.st += dt
 	e.flash = maxf(0.0, e.flash - dt)
 	e.knock = e.knock.move_toward(Vector2.ZERO, 650 * dt)
+	e.squash = maxf(0.0, e.squash - dt)
+	e.bonk_cd = maxf(0.0, e.bonk_cd - dt)
+	e.spin += e.spin_v * dt
+	e.spin_v = move_toward(e.spin_v, 0.0, 30.0 * dt)
+	if absf(e.spin_v) < 0.5:
+		e.spin = lerp_angle(e.spin, 0.0, minf(1.0, dt * 10.0))
+	if e.data.has("light_off"):
+		e.data["light_off"] = float(e.data["light_off"]) - dt
+		if float(e.data["light_off"]) <= 0.0:
+			e.data.erase("light_off")
 	var rm: Dictionary = rooms[e.room] if e.room >= 0 else {}
 	# 방이 다르고 멀면 쉬게 한다(쫓던 중이 아니면) — 같은 방이거나 깨어 있는 놈만 생각한다
 	var near := e.pos.distance_squared_to(player.pos) < 300.0 * 300.0
@@ -752,6 +779,8 @@ func _alert_guard(e: Actor) -> void:
 func _guard_sees(e: Actor) -> bool:
 	if player.state == "down":
 		return false
+	if e.data.has("light_off"):
+		return e.pos.distance_to(player.pos) < 14.0
 	var to_p := player.pos - e.pos
 	var d := to_p.length()
 	if d > RunCfg.f("guard_cone_range", 104):
@@ -1550,6 +1579,7 @@ func _move(a: Actor, d: Vector2) -> void:
 						slid = true
 						break
 				if not slid:
+					_bonk(a, absf(a.knock.x))
 					a.vel.x = 0.0
 					a.knock.x = 0.0
 		if sd.y != 0.0:
@@ -1564,6 +1594,7 @@ func _move(a: Actor, d: Vector2) -> void:
 						slid2 = true
 						break
 				if not slid2:
+					_bonk(a, absf(a.knock.y))
 					a.vel.y = 0.0
 					a.knock.y = 0.0
 	# 더미·큐브는 둥근 장애물로 밀어낸다
@@ -1586,6 +1617,19 @@ func _move(a: Actor, d: Vector2) -> void:
 		a.stuck_t += maxf(0.016, d.length() / maxf(1.0, a.vel.length()))
 	else:
 		a.stuck_t = maxf(0.0, a.stuck_t - 0.05)
+
+
+## 밀려 날아가다 벽에 쾅: 별이 돌고 잠깐 더 어지럽다.
+func _bonk(a: Actor, speed: float) -> void:
+	if a == player or speed < RunCfg.f("bonk_speed", 70.0) or a.bonk_cd > 0.0 or a.dead:
+		return
+	a.bonk_cd = 0.5
+	_ev("bonk", {"pos": a.pos})
+	_ev("sfx", {"id": "bonk"})
+	if a.kind in ["rat", "dog", "rival"]:
+		a.set_state("stun", RunCfg.f("bonk_stun", 0.6))
+	elif a.kind == "guard" and a.state != "tele":
+		a.set_state("stun", RunCfg.f("bonk_stun", 0.6) * 0.6)
 
 
 func _separate() -> void:
