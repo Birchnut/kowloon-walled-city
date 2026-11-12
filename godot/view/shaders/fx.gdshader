@@ -100,6 +100,42 @@ void vertex() {
 		p.y += 0.2 + 0.5 * life * h1(seed * 3.0);
 		sz = floor(2.0 + life * 3.0) * zoom;
 		if (life < 0.0 || life > 1.0) { life = 2.0; }
+	} else if (kind > 7.5 && kind < 8.5) {   // 불길: 짧게 솟는 혀
+		float dur = 0.55 + seed * 0.35;
+		life = fract(time_s / dur + seed * 7.0);
+		p.x += (h1(seed * 17.0) - 0.5) * 0.7 + sin(time_s * 9.0 + seed * 30.0) * 0.04;
+		p.z += (h1(seed * 29.0) - 0.5) * 0.7;
+		p.y += life * (0.55 + 0.35 * h1(seed * 3.0));
+		sz = floor(3.0 - life * 2.0 + 0.5) * zoom;
+	} else if (kind > 8.5 && kind < 9.5) {   // 검은 연기(불)
+		float dur = 3.0 + seed * 1.5;
+		life = fract(time_s / dur + seed * 7.0);
+		p.y += 0.4 + life * 2.6;
+		p.x += life * life * 0.9 + sin(life * 5.0 + seed * 20.0) * 0.15;
+		p.z += (h1(seed * 9.0) - 0.5) * 0.5 + life * 0.3;
+		sz = floor(3.0 + life * 6.0) * zoom;
+	} else if (kind > 9.5 && kind < 10.5) {  // 파리: 쓰레기 위를 맴돈다
+		float a = time_s * (3.0 + seed * 2.0) + seed * 40.0;
+		float r = 0.12 + 0.12 * h1(seed * 13.0);
+		p.x += cos(a) * r + sin(a * 2.7) * 0.04;
+		p.z += sin(a * 1.3) * r;
+		p.y += 0.25 + 0.12 * sin(a * 1.9 + seed * 5.0);
+		sz = max(1.0, floor(zoom * 0.5 + 0.5));
+		life = 0.5;
+	} else if (kind > 10.5 && kind < 11.5) { // 거품: 통 위로 톡톡
+		float dur = 0.9 + seed * 0.8;
+		life = fract(time_s / dur + seed * 7.0);
+		p.x += (h1(seed * 5.0) - 0.5) * 0.18;
+		p.z += (h1(seed * 7.0) - 0.5) * 0.18;
+		p.y += life * 0.12;
+		sz = max(1.0, floor(zoom * 0.6));
+	} else if (kind > 11.5 && kind < 12.5) { // 공사 먼지(간간이)
+		float dur = 2.2 + seed;
+		life = fract(time_s / dur + seed * 7.0);
+		p.x += (h1(seed * 5.0 + floor(time_s / dur)) - 0.5) * 0.8;
+		p.z += (h1(seed * 7.0 + floor(time_s / dur)) - 0.5) * 0.8;
+		p.y += life * 0.5;
+		sz = floor(1.0 + life * 3.0) * zoom;
 	} else {                     // 네온 주변 떠다니는 빛 알갱이
 		float dur = 6.0 + seed * 3.0;
 		life = fract(time_s / dur + seed * 7.0);
@@ -156,6 +192,28 @@ void fragment() {
 		float r = size_px.x * 0.5;
 		if (dot(c, c) > r * r + 0.3) { discard; }
 		if ((1.0 - life) * 0.8 < dth) { discard; }
+		col = vec3(0.86, 0.8, 0.72) * amb;
+	} else if (kind > 7.5 && kind < 8.5) {
+		float r = size_px.x * 0.5;
+		if (dot(c, c) > r * r + 0.3) { discard; }
+		if ((1.0 - life) * 1.1 < dth * 0.8) { discard; }
+		col = mix(vec3(1.0, 0.92, 0.45), vec3(1.0, 0.36, 0.12), life);
+		if (dot(c, c) < r * r * 0.25) { col = mix(col, vec3(1.0, 1.0, 0.8), 0.6 * (1.0 - life)); }
+	} else if (kind > 8.5 && kind < 9.5) {
+		float r = size_px.x * 0.5;
+		if (dot(c, c) > r * r + 0.3) { discard; }
+		float fade = (1.0 - life) * 0.95 * smoothstep(0.0, 0.1, life);
+		if (fade < dth) { discard; }
+		col = mix(vec3(0.18, 0.15, 0.18), vec3(0.42, 0.38, 0.42), life) * mix(amb, vec3(1.0), 0.3);
+	} else if (kind > 9.5 && kind < 10.5) {
+		col = vec3(0.1, 0.1, 0.12);
+	} else if (kind > 10.5 && kind < 11.5) {
+		if (life > 0.85) { discard; }
+		col = vec3(0.95, 0.95, 0.88) * mix(amb, vec3(1.0), 0.5);
+	} else if (kind > 11.5 && kind < 12.5) {
+		float r = size_px.x * 0.5;
+		if (dot(c, c) > r * r + 0.3) { discard; }
+		if ((1.0 - life) * 0.6 < dth) { discard; }
 		col = vec3(0.86, 0.8, 0.72) * amb;
 	} else {
 		if (sin(life * 3.14159) * 0.8 < dth) { discard; }

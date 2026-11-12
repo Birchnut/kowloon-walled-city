@@ -226,6 +226,9 @@ func _build_tree() -> void:
 	_make_cell_tex()
 	_hover_node = MeshInstance3D.new()
 	_world.add_child(_hover_node)
+	_haz_node = MeshInstance3D.new()
+	_haz_node.material_override = _mat
+	_world.add_child(_haz_node)
 
 	_screen = TextureRect.new()
 	_screen.texture = _vp.get_texture()
@@ -374,6 +377,7 @@ func zoom_at(screen_pos: Vector2, dir: int) -> void:
 
 func _on_zoom_level_changed() -> void:
 	_overlay_dirty = true
+	_cells_dirty = true
 	_hover_key = "~"
 	if people != null and people.has_method("set_zoom_level"):
 		people.call("set_zoom_level", zoom_i, interior_zoom())
@@ -735,6 +739,7 @@ func _refresh_lights() -> void:
 	for z in _floor_data.size():
 		all.append_array(_floor_data[z]["lights"])
 		em.append_array(_floor_data[z]["emitters"])
+	all.append_array(_haz_lights)
 	grid_tex.update_lights(all, float(cfg.r("light.radius_scale", 0.62)))
 	_all_emitters = em
 	_push_emitters()
@@ -769,6 +774,7 @@ func _push_emitters() -> void:
 		if floor_cut < 0 or z < floor_cut:
 			em.append_array(_floor_data[z]["emitters"])
 	em.append_array(_cut_emitters)
+	em.append_array(_haz_emitters)
 	fx.call("set_emitters", em)
 
 
@@ -1278,6 +1284,7 @@ func _process(delta: float) -> void:
 	if _cells_dirty:
 		_cells_dirty = false
 		_update_cell_tex()
+		_update_hazards()
 		if markers != null:
 			markers.refresh(Game.state)
 	if _cue_z >= 0:
@@ -1288,7 +1295,7 @@ func _process(delta: float) -> void:
 	if _overlay_dirty:
 		_rebuild_overlay()
 	if markers != null:
-		markers.set_frame(ppu(), maxf(1.0, floor(_zf * 0.75)), _t)
+		markers.set_frame(ppu(), maxf(1.0, floor(_zf * 0.5)), _t)
 	if cam_dirty:
 		_apply_camera()
 	_update_hover(cam_dirty)
@@ -1987,6 +1994,160 @@ func _update_cell_tex() -> void:
 
 
 var _range_tint := false
+var _haz_node: MeshInstance3D
+var _haz_sig := ""
+var _haz_emitters: Array = []
+var _haz_lights: Array = []
+
+
+## 재난 층(불·쓰레기·파리·수리 비계·양동이 줄). 상태가 바뀐 때만 다시 만든다(서명 비교).
+func _update_hazards() -> void:
+	var st: CityState = Game.state
+	if st == null:
+		return
+	var burning: Array = []
+	var repairs: Array = []
+	var trash: Array = []
+	var sig := PackedStringArray()
+	for p in st.cells:
+		var c: Dictionary = st.cells[p]
+		var b: Dictionary = _buildings().get(int(c.get("bid", -1)), {})
+		var burn := str(c.get("burn", b.get("burn", "")))
+		if burn == "burning":
+			burning.append(p)
+			sig.append("f%s" % str(p))
+		elif burn == "burnt" and b.get("repair", null) is Dictionary:
+			repairs.append(p)
+			sig.append("r%s" % str(p))
+		var t := float(c.get("trash", 0.0))
+		if t > 0.12:
+			trash.append([p, t])
+			sig.append("t%s%d" % [str(p), int(t * 4.0)])
+	sig.sort()
+	var s2 := ",".join(sig) + "|%d" % floor_cut
+	if s2 == _haz_sig:
+		return
+	_haz_sig = s2
+	var keep := mesher.mb
+	mesher.mb = MeshBuf.new()
+	_haz_emitters = []
+	_haz_lights = []
+	var fh := cfg.floor_h
+	# 쓰레기 더미: 그 칸 옆의 디딜 곳(같은 층 빈 바닥) 또는 지붕 위
+	for it in trash:
+		var p: Vector3i = it[0]
+		if floor_cut >= 0 and p.z > floor_cut:
+			continue
+		var t: float = it[1]
+		var spot := Vector3(-1, -1, -1)
+		for d in 4:
+			var nb: Vector3i = p + CityMesher.DIR[d]
+			if st.cells.has(nb) or mesher.voids.has(nb):
+				continue
+			if p.z == 0 or mesher.solid.has(nb - CityMesher.UPI):
+				var hs := ViewCfg.h2(p.x * 7 + p.y, p.z + d)
+				spot = Vector3(p.x + 0.5, p.z * fh, p.y + 0.5) + Vector3(CityMesher.NRM[d]) * 0.72 + Vector3(CityMesher.RGT[d]) * (float(hs % 5) * 0.1 - 0.2)
+				break
+		if spot.x < 0.0 and not st.cells.has(p + CityMesher.UPI) and not mesher.voids.has(p + CityMesher.UPI):
+			spot = Vector3(p.x + 0.3, (p.z + 1) * fh, p.y + 0.6)
+		if spot.x < 0.0:
+			continue
+		mesher.mb.owner = 0
+		var sz := 0.12 + 0.2 * t
+		var hs2 := ViewCfg.h2(p.x * 3 + p.y * 5, p.z)
+		mesher.wbox(spot + Vector3(-sz, 0, -sz * 0.8), spot + Vector3(sz, sz * 0.7, sz * 0.8), "junk", "junk", Color(0.8, 0.78, 0.7), 31)
+		mesher.cbox(spot + Vector3(-sz * 0.6, sz * 0.7, -sz * 0.4), spot + Vector3(sz * 0.3, sz * 1.1, sz * 0.5), Color("#3a3a46") if hs2 % 2 == 0 else Color("#5f7a4a"))
+		if t > 0.5:
+			mesher.cbox(spot + Vector3(sz * 0.4, 0, sz * 0.2), spot + Vector3(sz * 0.4 + 0.12, 0.1, sz * 0.2 + 0.1), Color("#c9b48a"))
+			mesher.cbox(spot + Vector3(-sz - 0.1, 0, -0.05), spot + Vector3(-sz + 0.02, 0.07, 0.07), Color("#8fb5d0"))
+		if t > 0.35:
+			_haz_emitters.append({"pos": spot + Vector3(0, sz * 0.5, 0), "type": "flies"})
+	# 수리 비계
+	for p in repairs:
+		if floor_cut >= 0 and p.z >= floor_cut:
+			continue
+		mesher.mb.owner = mesher.owner_of(p)
+		mesher._scaffold_wrap(p, p.x * 31 + p.y * 7 + p.z)
+		_haz_emitters.append({"pos": Vector3(p.x + 0.5, p.z * fh + 0.5, p.y + 0.5), "type": "site"})
+	# 불: 드러난 면마다 불꽃 + 위로 검은 연기 + 주황 빛
+	for p in burning:
+		if floor_cut >= 0 and p.z > floor_cut:
+			continue
+		var base := Vector3(p.x + 0.5, p.z * fh, p.y + 0.5)
+		for d in 4:
+			if not mesher.solid.has(p + CityMesher.DIR[d]):
+				_haz_emitters.append({"pos": base + Vector3(CityMesher.NRM[d]) * 0.42 + Vector3(0, 0.15, 0), "type": "fire"})
+		if not mesher.solid.has(p + CityMesher.UPI):
+			_haz_emitters.append({"pos": base + Vector3(0, fh * 0.95, 0), "type": "fire"})
+			_haz_emitters.append({"pos": base + Vector3(0, fh, 0), "type": "soot"})
+		else:
+			_haz_emitters.append({"pos": base + Vector3(0.5, fh * 0.6, 0.5), "type": "soot"})
+		_haz_lights.append({"pos": base + Vector3(0, fh * 0.6, 0), "color": Color("#ff6a20"), "r": 2.4, "warm": 0.0})
+	mesher.mb.owner = 0
+	_haz_node.mesh = mesher.mb.commit()
+	mesher.mb = keep
+	atlas.flush()
+	if actors != null:
+		actors.set_extra(_bucket_lines(burning))
+	_lights_dirty = true
+	_lights_timer = 0.0
+	_push_emitters()
+
+
+## 양동이 줄: 불난 건물마다 가장 가까운 소방 시설 앞에서 불 아래까지 사람이 늘어서 물통을 건넨다.
+## 소방 시설이 없으면 이웃 몇이 양동이를 들고 뛴다.
+func _bucket_lines(burning: Array) -> Array:
+	var out: Array = []
+	if burning.is_empty():
+		return out
+	var st: CityState = Game.state
+	var stations: Array = []
+	for bid in _buildings():
+		var b: Dictionary = _buildings()[bid]
+		if str(b.get("kind", "")) != "facility" or not bool(b.get("active", true)):
+			continue
+		var c: Dictionary = st.cells.get(b.get("pos", Vector3i(-9, -9, -9)), {})
+		var lk := mesher.look_name(c) if not c.is_empty() else str(b.get("look", ""))
+		if lk == "fire_bucket" or lk == "fire_station":
+			var o: Vector3i = b["pos"]
+			stations.append(Vector3(o.x + 0.5 * float(int(b.get("w", 1))), 0.0, o.y + 0.5 * float(int(b.get("h", 1)))))
+	var done: Dictionary = {}
+	var k := 0
+	for p in burning:
+		var bid := int(st.cells[p].get("bid", -1))
+		if done.has(bid):
+			continue
+		done[bid] = true
+		var target := Vector3(p.x + 0.5, 0.0, p.y + 0.5)
+		# 불 아래 지면에서 가장 가까운 빈 바닥
+		var best := target
+		var bd := 99.0
+		for dx in range(-2, 3):
+			for dy in range(-2, 3):
+				var q := Vector3i(p.x + dx, p.y + dy, 0)
+				if q.x < -1 or q.y < -1 or q.x > cfg.grid.x or q.y > cfg.grid.y or st.cells.has(q):
+					continue
+				var dd := Vector2(dx, dy).length()
+				if dd < bd:
+					bd = dd
+					best = Vector3(q.x + 0.5, 0.0, q.y + 0.5)
+		if stations.is_empty():
+			for i in 3:
+				out.append({"bid": -100 - k, "i": i, "pos": best + Vector3(0.25 * float(i) - 0.25, 0, 0.2 * float(i % 2)), "dir": Vector3(0, 0, -1), "pose": "bucket", "role": "idle", "out": true, "z": 0, "t0": 1, "look": "fire"})
+			k += 1
+			continue
+		var src: Vector3 = stations[0]
+		for sp in stations:
+			if (sp as Vector3).distance_to(best) < src.distance_to(best):
+				src = sp
+		var dist := src.distance_to(best)
+		var n := clampi(int(dist / 0.42), 2, 22)
+		var dv := (best - src).normalized()
+		for i in n + 1:
+			var pos := src.lerp(best, float(i) / float(n)) + Vector3(-dv.z, 0, dv.x) * (0.06 if i % 2 == 0 else -0.06)
+			out.append({"bid": -100 - k, "i": i, "pos": pos, "dir": dv if i % 2 == 0 else -dv, "pose": "pass" if i < n else "bucket", "role": "idle", "out": true, "z": 0, "t0": 1, "look": "fire_bucket", "tier": 2})
+		k += 1
+	return out
 
 
 func _lens_color(c: Dictionary, b: Dictionary) -> Color:

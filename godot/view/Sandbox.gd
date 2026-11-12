@@ -58,6 +58,18 @@ func _ready() -> void:
 		if pv.size() >= 2:
 			view.target = Vector3(float(pv[0]), float(pv[2]) if pv.size() > 2 else view.target.y, float(pv[1]))
 	_apply_overlay_args()
+	if _args.has("focusfire") or _args.has("focus"):
+		var fp := Vector3i(-1, -1, -1)
+		if _args.has("focus"):
+			var fv := str(_args["focus"]).split(",")
+			fp = Vector3i(int(fv[0]), int(fv[1]), int(fv[2]))
+		else:
+			for p in Game.state.cells:
+				if str(Game.state.cells[p].get("burn", "")) == _args.get("focusfire", "burning") and (fp.z < 0 or p.z > fp.z):
+					fp = p
+		if fp.z >= 0:
+			view.target = Vector3(fp.x + 0.5, (fp.z + 0.5) * view.cfg.floor_h, fp.y + 0.5)
+			print("FOCUS ", fp)
 	if _args.has("upgrade"):
 		# 승급 연출 시험: 위가 빈(보이는) 비계 집 하나를 고르고 카메라를 그쪽으로
 		var best := Vector3i(-1, -1, -1)
@@ -96,19 +108,47 @@ static func _v3list(s: String) -> Array:
 
 
 func _apply_overlay_args() -> void:
+	var g: Vector3i = view.cfg.grid
 	if _args.has("ghost"):
-		view.show_ghost(_v3list(str(_args["ghost"])), not _args.has("ghostbad"), _v3list(str(_args.get("sup", ""))))
+		view.show_ghost(_v3list(str(_args["ghost"])), not _args.has("ghostbad"), _v3list(str(_args.get("sup", ""))), int(_args.get("floors", 1)))
+	if _args.has("zone"):
+		# zone=x0,y0,x1,y1,z : 사각 칠하기 미리보기(이미 찬 칸은 빨강)
+		var a0 := str(_args["zone"]).split(",")
+		var cells0: Array = []
+		var ok0: Array = []
+		for x in range(int(a0[0]), int(a0[2]) + 1):
+			for y in range(int(a0[1]), int(a0[3]) + 1):
+				var q := Vector3i(x, y, int(a0[4]))
+				cells0.append(q)
+				ok0.append(not Game.state.cells.has(q))
+		view.set_zone_preview(cells0, ok0)
 	if _args.has("range"):
+		# range=x,y,z,r[,up,down] : 사각 범위(체비쇼프) + 위아래 층
 		var a := str(_args["range"]).split(",")
 		if a.size() >= 4:
 			var c := Vector3i(int(a[0]), int(a[1]), int(a[2]))
 			var r := int(a[3])
+			var up := int(a[4]) if a.size() > 4 else 0
+			var dn := int(a[5]) if a.size() > 5 else 0
 			var cells: Array = []
-			for x in range(c.x - r, c.x + r + 1):
-				for y in range(c.y - r, c.y + r + 1):
-					if absi(x - c.x) + absi(y - c.y) <= r and x >= 0 and y >= 0 and x < 12 and y < 12:
-						cells.append(Vector3i(x, y, c.z))
+			for z in range(c.z - dn, c.z + up + 1):
+				for x in range(c.x - r, c.x + r + 1):
+					for y in range(c.y - r, c.y + r + 1):
+						if x >= 0 and y >= 0 and x < g.x and y < g.y and z >= 0:
+							cells.append(Vector3i(x, y, z))
 			view.show_cells(cells, "range")
+	if _args.has("coverage"):
+		# coverage=x,y,r : 그 사각 안의 칸은 닿음, 밖의 쓰이는 칸은 안 닿음
+		var a2 := str(_args["coverage"]).split(",")
+		var cv: Array = []
+		var un: Array = []
+		for p in Game.state.cells:
+			if maxi(absi(p.x - int(a2[0])), absi(p.y - int(a2[1]))) <= int(a2[2]):
+				cv.append(p)
+			else:
+				un.append(p)
+		view.set_coverage(cv, un)
+		view.set_lens("coverage")
 	if _args.has("select"):
 		view.show_cells(_v3list(str(_args["select"])), "select")
 
@@ -231,7 +271,7 @@ func _apitest() -> void:
 	# pick_floor ↔ project_world 왕복: 칸 중심을 화면으로 보내고 다시 집으면 같은 칸
 	var all_ok := true
 	for z in [0, 2, 5]:
-		for q in [Vector3i(3, 4, z), Vector3i(8, 9, z), Vector3i(0, 0, z), Vector3i(11, 11, z)]:
+		for q in [Vector3i(3, 4, z), Vector3i(8, 9, z), Vector3i(0, 0, z), Vector3i(15, 15, z), Vector3i(12, 14, z)]:
 			var sp: Vector2 = view.project_world(Vector3(q.x + 0.5, q.z * view.cfg.floor_h, q.y + 0.5))
 			var pf: Dictionary = view.pick_floor(sp, z)
 			if pf["pos"] != q or not pf["ok"]:
@@ -294,6 +334,57 @@ func _apitest() -> void:
 	view.set_zoom(0)
 	view.set_bottom_inset(120)
 	view.set_bottom_inset(0)
+	view.set_insets(300, 40, 360, 120)
+	view.set_insets(0, 0, 0, 0)
+	check.call("set_insets", view._insets == Vector4.ZERO)
+	view.show_ghost([Vector3i(2, 2, 0), Vector3i(3, 2, 0), Vector3i(2, 3, 0), Vector3i(3, 3, 0)], true, [], 2)
+	check.call("show_ghost floors=2", view._ghost_floors == 2)
+	view.set_zone_preview([Vector3i(1, 1, 0), Vector3i(2, 1, 0)], [true, false])
+	view._rebuild_overlay()
+	check.call("set_zone_preview", view._zone_cells.size() == 2 and view._overlay.mesh != null)
+	view.set_coverage([Vector3i(1, 1, 0)], [Vector3i(5, 5, 0)])
+	view.set_lens("coverage")
+	view._update_cell_tex()
+	check.call("set_coverage + lens coverage", view.lens == "coverage")
+	view.set_lens("")
+	view.clear_overlay()
+	var hv: Dictionary = view.hover(view.size * 0.5)
+	check.call("hover -> pick shape", hv.has("hit") and hv.has("pos"), hv)
+	var w: Dictionary = view.who(view.size * 0.5)
+	check.call("who -> {ok,text}", w.has("ok") and w.has("text"), w)
+	var taps: Array = []
+	view.cell_tapped.connect(func(info: Dictionary) -> void: taps.append(info))
+	for btn in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT]:
+		var mb := InputEventMouseButton.new()
+		mb.button_index = btn
+		mb.pressed = true
+		mb.position = view.size * 0.5
+		view._t += 1.0
+		view._gui_input(mb)
+		var mb2 := mb.duplicate()
+		mb2.pressed = false
+		view._gui_input(mb2)
+	check.call("cell_tapped button 1 and 2", taps.size() == 2 and int(taps[0].get("button", 0)) == 1 and int(taps[1].get("button", 0)) == 2, taps.size())
+	var z0: int = view.zoom_i
+	var wh := InputEventMouseButton.new()
+	wh.button_index = MOUSE_BUTTON_WHEEL_UP
+	wh.pressed = true
+	wh.position = view.size * 0.3
+	view._gui_input(wh)
+	check.call("wheel zoom", view.zoom_i == mini(z0 + 1, 4), view.zoom_i)
+	view.set_input_enabled(false)
+	view._gui_input(wh)
+	check.call("set_input_enabled(false) blocks wheel", view.zoom_i == mini(z0 + 1, 4))
+	view.set_input_enabled(true)
+	view.set_zoom(z0)
+	view.focus(Vector3i(3, 3, 0), 3)
+	check.call("focus", view._focus_on and view.zoom_i == 3)
+	view.set_zoom(z0)
+	view.set_floor_cut(-1)
+	view.cut_step(-1)
+	check.call("cut_step down -> top floor", view.floor_cut == view.get_max_floor() - 1, view.floor_cut)
+	view.cut_step(1)
+	check.call("cut_step up -> off", view.floor_cut == -1, view.floor_cut)
 	view.set_time_override(0.5)
 	check.call("get_max_floor", view.get_max_floor() >= 1, view.get_max_floor())
 	for ev_name in ["cell_changed", "support_changed", "building_changed", "floor_unlocked", "house_upgraded", "power_changed", "expedition_done", "expedition_claimed", "bogus_event"]:

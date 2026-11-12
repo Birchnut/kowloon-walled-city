@@ -73,7 +73,7 @@ const P := {
 		"day": 22, "max_h": 6, "towers": 6, "fill": 0.86, "void": 0.16, "tiers": [1, 1, 2, 2, 3], "fam": "two", "fams": ["wood", "metal"],
 		"facs": ["market_alley", "market_mat", "water_catcher", "water_tank", "gen_small", "mahjong", "teahouse", "noodle_stall", "food_cans", "tailor", "fire_bucket", "shrine",
 			"warehouse", "expedition_base", "clinic", "trash_guild", "rag_collect", "brewery"],
-		"pockets": 2, "sites": 2, "fac_sites": 1, "scaffold": 0.03, "bad": 0.2, "upg": 0.04, "off": 0.12, "sick": 0.22, "fire": 3, "burnt": 4
+		"pockets": 2, "sites": 2, "fac_sites": 1, "scaffold": 0.03, "bad": 0.05, "upg": 0.04, "off": 0.12, "sick": 0.22, "fire": 3, "burnt": 4
 	},
 }
 
