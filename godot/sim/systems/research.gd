@@ -154,7 +154,7 @@ func query(state: CityState, name: String, _args: Dictionary) -> Variant:
 	if studies == 0:
 		hint = "공부방을 지으면 연구할 수 있다."
 	elif not a.is_empty() and _study_count(state, true) == 0:
-		hint = "공부방이 멈춰 연구도 멈췄다(토박이 일손 필요)."
+		hint = "족보 공부방이 멈춰 연구도 멈췄다(박힌 돌 일손 필요)."
 	elif a.is_empty():
 		hint = "연구를 하나 고르자. 한 번에 하나만 한다."
 	return {"can": studies > 0 and a.is_empty(), "hint": hint, "active": act, "nodes": nodes, "done": _done(state).size(), "total": nodes.size()}

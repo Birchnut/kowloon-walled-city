@@ -246,6 +246,8 @@ func _gen(sim: Sim, st: CityState, step_n: int, unlocked_all: bool) -> Dictionar
 		return {"name": "debug", "args": {"op": "add_money", "n": float(200 + ri(800))}}
 	if not unlocked_all and step_n > 30 and ri(40) == 0:
 		return {"name": "debug", "args": {"op": "unlock_all"}}
+	if ri(10) == 0:
+		return _hazard_cmd(st)
 	if w < 22:
 		return _zone(sim, st)
 	if w < 42:
@@ -285,6 +287,31 @@ func _gen(sim: Sim, st: CityState, step_n: int, unlocked_all: bool) -> Dictionar
 	if w < 98:
 		return {"name": "debug", "args": {"op": "reveal_partners"}}
 	return _demolish(st, true)
+
+
+## 불·병(hazards): 켜기, 불·발병 일으키기, 탄 건물 수리.
+func _hazard_cmd(st: CityState) -> Dictionary:
+	var k := ri(6)
+	if k == 0:
+		return {"name": "debug", "args": {"op": "set_hazard", "kind": pick(["fire", "disease"]), "on": ri(5) != 0}}
+	var all: Array = []
+	var burnt: Array = []
+	var houses: Array = []
+	for b: Dictionary in st.buildings.values():
+		if b["kind"] == "site":
+			continue
+		all.append(b)
+		if str(b.get("burn", "")) == "burnt" and b.get("repair") == null:
+			burnt.append(b)
+		if b["kind"] == "house":
+			houses.append(b)
+	if k <= 2 and not burnt.is_empty():
+		return {"name": "repair", "args": {"bid": int((pick(burnt) as Dictionary)["id"])}}
+	if k == 3 and not houses.is_empty():
+		return {"name": "debug", "args": {"op": "start_outbreak", "pos": (pick(houses) as Dictionary)["pos"]}}
+	if all.is_empty():
+		return {}
+	return {"name": "debug", "args": {"op": "start_fire", "pos": (pick(all) as Dictionary)["pos"]}}
 
 
 func _facs(st: CityState) -> Array:

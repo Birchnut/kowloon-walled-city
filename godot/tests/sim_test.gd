@@ -32,6 +32,9 @@ func _init() -> void:
 	_labor_separate()
 	_structure_v4()
 	_run_commands()
+	_hazards_fire()
+	_hazards_disease()
+	_board_queries()
 	_policy_research()
 	_raid()
 	_alerts_goals()
@@ -762,6 +765,158 @@ func _run_commands() -> void:
 	var before := float(st.dests[dest]["stock"][g])
 	_steps(sim, st, 24)
 	_ok(float(st.dests[dest]["stock"][g]) > before, "던전 재고는 게임 시간으로 다시 찬다")
+	sim.systems.clear()
+
+
+func _hz_lab(db: Dictionary = {}) -> Array:
+	var L := _lab(db)
+	var sim: Sim = L[0]
+	var st: CityState = L[1]
+	for i: int in 10:
+		_house(sim, st, Vector3i(i, 10, 0), 1, 4)
+	return L
+
+
+func _hazards_fire() -> void:
+	print("불: 2층에서 켜짐(유예), 범위 밖은 타서 수리, 범위 안은 금방 꺼짐, 번짐 상한, 인구 보존")
+	var L := _hz_lab()
+	var sim: Sim = L[0]
+	var st: CityState = L[1]
+	_steps(sim, st, 2)
+	_ok(not bool(sim.query(st, "hazards")["fire"]["on"]), "1층뿐이면 불은 꺼져 있다")
+	st.floors_unlocked = 2
+	var got_on := false
+	sim.step(st)
+	for e: Dictionary in st.events:
+		got_on = got_on or (e["name"] == "hazard_on" and e["payload"]["kind"] == "fire" and float(e["payload"]["grace_days"]) > 0.0)
+	st.events.clear()
+	var hz: Dictionary = sim.query(st, "hazards")
+	_ok(got_on and bool(hz["fire"]["on"]) and float(hz["fire"]["grace_left"]) > 0.0, "2층이 열리면 hazard_on{fire, 유예} (유예 %.2f일)" % float(hz["fire"]["grace_left"]))
+	_steps(sim, st, int(float(sim.cfg("hazards.fire.grace_days", 2.0)) / sim.step_days) - 2)
+	_ok(int(st.stats.get("fires", 0)) == 0, "유예 동안은 불이 안 난다")
+	# 범위 밖 집에 불
+	var p0 := Vector3i(0, 10, 0)
+	var bid: int = st.cells[p0]["bid"]
+	var pop0 := st.population()
+	var dbg := sim.apply(st, "debug", {"op": "start_fire", "pos": p0})
+	_ok(dbg.get("ok", false) and str(st.buildings[bid]["burn"]) == "burning" and str(st.cells[p0]["burn"]) == "burning", "디버그 start_fire → 셀·건물 burn = burning")
+	_steps(sim, st, int(float(sim.cfg("hazards.fire.burn_days", 0.3)) / sim.step_days) + 3)
+	var b: Dictionary = st.buildings[bid]
+	_ok(str(b["burn"]) == "burnt" and int(b["residents"]) == 0, "범위 밖이면 다 탄다(주민 0)")
+	_ok(st.population() == pop0 or float(st.stats.get("left", 0.0)) > 0.0, "흩어진 주민은 대기 주민이 된다(인구 %d → %d, 대기 %s)" % [pop0, st.population(), str(st.waiting)])
+	_steps(sim, st, 4)
+	_ok(int(b["residents"]) == 0 and int(b.get("target", 0)) == 0, "탄 집에는 아무도 들어오지 않는다")
+	var rc := sim.can(st, "repair", {"bid": bid})
+	_ok(rc.get("ok", false) and float(rc["cost"]["money"]) > 0.0, "수리 판정: 돈·고물·날짜 (%s)" % str(rc.get("cost", {})))
+	var m0 := st.money
+	sim.apply(st, "repair", {"bid": bid})
+	_ok(st.money < m0 and b.get("repair") != null and not sim.can(st, "repair", {"bid": bid}).get("ok", true), "수리 시작 — 돈이 빠지고 두 번은 안 된다")
+	_steps(sim, st, int(float(sim.cfg("hazards.repair.days", 0.25)) / sim.step_days) + 2)
+	_ok(str(b["burn"]) == "" and b.get("repair") == null, "수리가 끝나면 다시 쓴다")
+	# 범위 안: 금방 꺼지고 주민 1명만
+	_fac(sim, st, "fire_bucket", Vector3i(3, 12, 0))
+	_steps(sim, st, 2)
+	var p1 := Vector3i(4, 10, 0)
+	var b1: Dictionary = st.buildings[int(st.cells[p1]["bid"])]
+	var sc0 := int(st.stats.get("scattered", 0))
+	var bt0 := int(st.stats.get("burnt", 0))
+	sim.apply(st, "debug", {"op": "start_fire", "pos": p1})
+	_steps(sim, st, 6)
+	_ok(str(b1["burn"]) == "" and int(st.stats.get("scattered", 0)) - sc0 == 1 and int(st.stats.get("burnt", 0)) == bt0, "소방 범위 안의 불은 한 시간 남짓에 꺼지고 주민 1명만 흩어진다(타지 않음)")
+	# 번짐과 상한(시험용으로 번짐을 크게)
+	var db := _db_copy()
+	db["config"]["hazards"]["fire"]["spread_per_day"] = 500.0
+	db["config"]["hazards"]["fire"]["max_burning"] = 3
+	var L2 := _lab(db)
+	var s2: Sim = L2[0]
+	var t2: CityState = L2[1]
+	for x: int in 8:
+		for y: int in 8:
+			_house(s2, t2, Vector3i(x, y, 0), 1, 4)
+	sim.apply(t2, "debug", {"op": "set_hazard", "kind": "fire", "on": true})
+	s2.apply(t2, "debug", {"op": "set_hazard", "kind": "fire", "on": true})
+	s2.apply(t2, "debug", {"op": "start_fire", "pos": Vector3i(4, 4, 0)})
+	var most := 0
+	for i: int in 30:
+		s2.step(t2)
+		t2.events.clear()
+		var n := 0
+		for bb: Dictionary in t2.buildings.values():
+			if str(bb.get("burn", "")) == "burning":
+				n += 1
+		most = maxi(most, n)
+	_ok(int(t2.stats.get("fires", 0)) > 1 and most <= 3 + 64 / 150, "범위 밖 불은 이웃으로 번지되 동시에 타는 곳은 상한까지 (불 %d번, 최대 동시 %d)" % [int(t2.stats.get("fires", 0)), most])
+	var arrived := float(t2.stats.get("arrived", 0.0))
+	sim.systems.clear()
+	s2.systems.clear()
+
+
+func _hazards_disease() -> void:
+	print("병: 3층에서 켜짐, 쓰레기는 수거 범위로 치우고, 앓는 집은 일손 절반·행복↓, 의원이면 빨리 낫고, 오래 가면 떠난다")
+	var L := _hz_lab()
+	var sim: Sim = L[0]
+	var st: CityState = L[1]
+	sim.apply(st, "debug", {"op": "set_hazard", "kind": "disease", "on": true})
+	_steps(sim, st, 48)
+	var tr := float(st.buildings[int(st.cells[Vector3i(0, 10, 0)]["bid"])].get("trash", 0.0))
+	_ok(tr > 0.2 and float(st.cells[Vector3i(0, 10, 0)].get("trash", 0.0)) > 0.1, "수거 범위 밖 주거에 쓰레기가 쌓인다 (%.2f)" % tr)
+	_fac(sim, st, "trash_guild", Vector3i(2, 12, 0))
+	_steps(sim, st, 24)
+	var tr2 := float(st.buildings[int(st.cells[Vector3i(2, 10, 0)]["bid"])].get("trash", 0.0))
+	_ok(tr2 < 0.05, "넝마주이 조합 범위 안이면 치워진다 (%.2f)" % tr2)
+	# 발병(디버그): 이웃까지
+	var hb: Dictionary = st.buildings[int(st.cells[Vector3i(8, 10, 0)]["bid"])]
+	var nb: Dictionary = st.buildings[int(st.cells[Vector3i(9, 10, 0)]["bid"])]
+	nb["trash"] = 0.9
+	_steps(sim, st, 2)
+	var lab0 := int(st.labor[1]["have"])
+	var hap0 := float(hb["happiness"])
+	sim.apply(st, "debug", {"op": "start_outbreak", "pos": Vector3i(8, 10, 0)})
+	_steps(sim, st, 2)
+	_ok(bool(hb["sick"]) and bool(nb["sick"]) and bool(st.cells[Vector3i(8, 10, 0)]["sick"]), "발병하면 그 집과 쓰레기 많은 이웃이 앓는다")
+	_ok(int(st.labor[1]["have"]) < lab0 and float(hb["happiness"]) < hap0, "앓는 집: 일손 절반(%d → %d), 행복 하락(%.0f → %.0f)" % [lab0, int(st.labor[1]["have"]), hap0, float(hb["happiness"])])
+	var left0 := float(st.stats.get("left_sick", 0.0))
+	_steps(sim, st, int((float(sim.cfg("hazards.disease.leave_after", 1.0)) + 0.8) / sim.step_days))
+	_ok(float(st.stats.get("left_sick", 0.0)) > left0, "의원이 없으면 오래 앓고 주민이 떠난다 (%d명)" % int(st.stats.get("left_sick", 0.0)))
+	st.waiting[2] = {"count": 4, "days_left": 999.0}   # 의원 일손(월세 전사 2명)
+	_fac(sim, st, "clinic", Vector3i(7, 12, 0))
+	_steps(sim, st, int(float(sim.cfg("hazards.disease.clinic_days", 0.6)) / sim.step_days) + 4)
+	_ok(not bool(hb["sick"]) and not bool(st.cells[Vector3i(8, 10, 0)]["sick"]), "무면허 의원 범위에 들면 곧 낫는다")
+	sim.systems.clear()
+
+
+func _board_queries() -> void:
+	print("현황판·신호등·범위 렌즈·위험 질의 모양")
+	var B := _bot_city(24 * 6, 8)
+	var sim: Sim = B[0]
+	var st: CityState = B[1]
+	var m: Dictionary = sim.query(st, "metrics")
+	var ok := true
+	for r: Dictionary in m["rows"]:
+		for k: String in ["id", "group", "name", "supply", "demand", "unit", "ratio", "state", "days_left", "hint", "jump"]:
+			ok = ok and r.has(k)
+		ok = ok and r["group"] in ["utility", "food", "goods", "service", "hazard"] and r["state"] in ["ok", "warn", "bad", "off"]
+	_ok(ok and (m["rows"] as Array).size() >= 6, "metrics rows 모양 (%d행)" % (m["rows"] as Array).size())
+	_ok(m.has("labor") and m.has("tiers") and m.has("finance") and m.has("hazards") and (m["tiers"] as Array).size() == 5 and (m["tiers"][0] as Dictionary).has("arriving"), "metrics: labor·tiers(arriving)·finance·hazards")
+	var h: Dictionary = sim.query(st, "hud")
+	var ids: Array = []
+	for sg: Dictionary in h["signals"]:
+		ids.append(sg["id"])
+		ok = ok and sg.has("name") and sg.has("state") and sg.has("text") and sg.has("jump")
+	_ok(ok and ids == ["water", "power", "food", "fun", "fire", "disease", "labor"], "hud.signals 7개 %s" % str(ids))
+	_ok(h.has("hazards") and h["hazards"].has("fire") and h["hazards"]["fire"].has("covered_pct") and h.has("grid") and int(h["grid"]["w"]) == 16, "hud.hazards, hud.grid")
+	for k: String in ["market", "fun", "fire", "trash", "clinic", "service:shrine"]:
+		var c: Dictionary = sim.query(st, "coverage", {"kind": k})
+		_ok(c.has("covered") and c.has("uncovered") and c.has("pct") and str(c["text"]) != "", "coverage %s (%d%%)" % [k, int(float(c["pct"]) * 100.0)])
+	var hz: Dictionary = sim.query(st, "hazards")
+	_ok(hz["fire"].has("burning") and hz["fire"].has("burnt") and hz["disease"].has("sick") and hz["disease"].has("trash_pct"), "hazards 질의 모양")
+	var bm: Array = sim.query(st, "build_menu")
+	var fp_ok := true
+	for cat: Dictionary in bm:
+		for it: Dictionary in cat["items"]:
+			fp_ok = fp_ok and it.has("footprint") and it.has("floors") and it.has("rotatable") and it.has("build_days") and it.has("needs_sky") and it.has("min_floor") and it.has("look")
+			fp_ok = fp_ok and str(it["sign"]).length() <= 4
+	_ok(fp_ok, "build_menu 항목: footprint·floors·rotatable·build_days·needs_sky·min_floor·look, 간판 4자 이내")
 	sim.systems.clear()
 
 

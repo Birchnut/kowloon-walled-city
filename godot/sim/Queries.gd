@@ -11,7 +11,12 @@ static func run(sim: Sim, state: CityState, name: String, args: Dictionary) -> V
 		"info": return _info(sim, state, args)
 		"economy": return _economy(sim, state)
 		"log": return state.logbook.slice(maxi(0, state.logbook.size() - int(args.get("n", 20))))
-		"metrics": return Metrics.compute(sim, state)
+		"metrics": return Board.metrics(sim, state)
+		"metrics_raw": return Metrics.compute(sim, state)
+		"hazards":
+			return {"fire": {"on": false, "since_day": -1.0, "grace_left": 0.0, "covered_pct": 0.0, "burning": [], "burnt": [], "text": "불은 꺼져 있다."},
+				"disease": {"on": false, "since_day": -1.0, "grace_left": 0.0, "covered_pct": 0.0, "trash_covered_pct": 0.0, "sick": [], "trash_pct": 0.0, "text": "병은 꺼져 있다."}}
+		"coverage": return {"covered": [], "uncovered": [], "pct": 0.0, "text": ""}
 		"range_preview": return {"cells": [], "houses": 0, "text": ""}
 		"contracts": return {"slots": {"used": 0, "max": 0}, "active": [], "offers": [], "no_post": true}
 		"expeditions":   # [B 파트]
@@ -93,13 +98,18 @@ static func _hud(sim: Sim, state: CityState) -> Dictionary:
 		goal = {"text": "%s → %s" % [cond_text(sim, nx.get("cond", [])), ", ".join(names) if not names.is_empty() else str(nx.get("grade_name", ""))],
 			"progress": snappedf(_progress(sim, state, nx), 0.01)}
 	var h := {"day": state.day, "hour": state.hour, "money": state.money, "net_per_day": 0.0, "pop_total": state.population(), "pop": pop,
-		"happiness": snappedf(state.happiness, 0.1), "title": state.identity.get("title", "대장"), "grade_name": state.identity.get("grade_name", "공터"),
+		"happiness": snappedf(state.happiness, 0.1), "title": state.identity.get("title", "무단 점유 대표"), "grade_name": state.identity.get("grade_name", "공터"),
 		"floors_unlocked": state.floors_unlocked,
 		"floor_progress": _floor_progress(sim, state, z, need),
 		"water": {"supply": 0.0, "demand": 0.0}, "power": {"supply": 0.0, "demand": 0.0}, "labor": [], "alerts": [],
 		"teams_done": 0, "teams_idle": 0, "contracts_failed": 0, "next_goal": goal, "tutorial": int(state.flags.get("tutorial", 0)),
 		"heat": snappedf(state.heat, 0.1), "grid": {"w": sim.W, "h": sim.H, "floors": sim.F}, "speed": 1, "paused": false,
 		"signals": [], "hazards": {"fire": {"on": false, "burning": 0, "burnt": 0, "covered_pct": 0.0}, "disease": {"on": false, "sick_houses": 0, "covered_pct": 0.0}}}
+	var sk := "%d:%d:%d:%d" % [state.get_instance_id(), roundi(state.econ_days / sim.step_days), state.layout_rev(), state.next_id]
+	if sk != str(sim.cover_cache.get("_sig_key", "")):
+		sim.cover_cache["_sig"] = Board.signals(sim, state)
+		sim.cover_cache["_sig_key"] = sk
+	h["signals"] = sim.cover_cache["_sig"]
 	var wait := 0
 	for t: Variant in state.waiting:
 		wait += int(state.waiting[t].get("count", 0))

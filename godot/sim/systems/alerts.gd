@@ -6,7 +6,7 @@ extends SimSystem
 ##  jump 화면: build[:id|cat] · economy[:tab|good] · expedition · trade · keep[:tab] · upgrade · inspect:<bid> (ARCHITECTURE 파트 B 추가).
 ## 끄면: 다른 시스템이 붙인 알림만 그대로 나온다(정렬·상한 없음).
 
-const ORDER := ["broke", "power", "water", "labor", "needs_bad", "leaving", "stockout", "raid", "heat", "contracts", "needs_warn",
+const ORDER := ["fire", "sick", "broke", "power", "water", "burnt", "labor", "fire_cover", "trash_cover", "needs_bad", "leaving", "stockout", "raid", "heat", "contracts", "needs_warn",
 	"waiting", "exp_done", "upgradable", "floor", "research_done", "goal"]
 const TONE_RANK := {"bad": 0, "warn": 1, "good": 2, "": 3}
 
@@ -137,6 +137,28 @@ func _compute(state: CityState) -> Dictionary:
 		var left := need - used
 		if left > 0 and left <= int(sim.cfg("alerts.floor_cells", 12)):
 			r["floor"] = _al("floor", "%d층이 열리기까지 %d층에 %d칸" % [z + 2, z + 1, left], "good", "build", "house")
+	# 불·병(hazards)
+	if sim.enabled.has("hazards"):
+		var hz: Dictionary = sim.query(state, "hazards")
+		var f: Dictionary = hz["fire"]
+		var d: Dictionary = hz["disease"]
+		if not (f["burning"] as Array).is_empty():
+			var p: Vector3i = f["burning"][0]["pos"]
+			r["fire"] = _al("fire", "불이 났다 — %d곳이 탄다(%d층)" % [(f["burning"] as Array).size(), p.z + 1], "bad", "focus", "%d,%d,%d" % [p.x, p.y, p.z])
+		var unrep := (f["burnt"] as Array).filter(func(x: Dictionary) -> bool: return not x.get("repairing", false))
+		if not unrep.is_empty():
+			r["burnt"] = _al("burnt", "탄 건물 %d — 수리해야 다시 쓴다(%s)" % [unrep.size(), unrep[0]["repair_text"]], "warn", "inspect", int(unrep[0]["bid"]))
+		if bool(f["on"]) and float(f["covered_pct"]) < 0.9:
+			var g := float(f["grace_left"])
+			r["fire_cover"] = _al("fire_cover", ("%s 뒤부터 불이 난다 — " % Queries.day_text(g) if g > 0.0 else "") + "소방 범위가 쓰이는 칸의 %d%%만 덮는다" % int(roundf(float(f["covered_pct"]) * 100.0)),
+				"warn" if g > 0.0 or float(f["covered_pct"]) >= 0.6 else "bad", "lens", "fire")
+		if not (d["sick"] as Array).is_empty():
+			var p2: Vector3i = d["sick"][0]["pos"]
+			r["sick"] = _al("sick", "주거 %d채가 앓는다 — 일손 절반, 오래 가면 떠난다" % (d["sick"] as Array).size(), "bad", "focus", "%d,%d,%d" % [p2.x, p2.y, p2.z])
+		if bool(d["on"]) and (float(d["trash_covered_pct"]) < 0.9 or float(d["covered_pct"]) < 0.8):
+			var low_t := float(d["trash_covered_pct"]) < 0.9
+			r["trash_cover"] = _al("trash_cover", ("쓰레기 수거가 주거의 %d%%만 덮는다 — 넝마주이 조합을 더" % int(roundf(float(d["trash_covered_pct"]) * 100.0))) if low_t \
+				else ("의원이 주거의 %d%%만 덮는다 — 무면허 의원을 더" % int(roundf(float(d["covered_pct"]) * 100.0))), "warn", "lens", "trash" if low_t else "clinic")
 	# 단속 위험
 	if state.heat >= float(sim.cfg("heat.warn", 50)):
 		r["heat"] = _al("heat", "단속 위험 %d — 80이면 음성 시설 하나가 닫힌다" % int(state.heat), "warn", "keep", "policies")

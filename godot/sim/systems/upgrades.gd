@@ -157,7 +157,7 @@ func _move_into(state: CityState, t: int, n: int, skip: int) -> int:
 		for b: Dictionary in state.buildings.values():
 			if moved >= n:
 				return moved
-			if b["kind"] != "house" or int(b["tier"]) != t or int(b["id"]) == skip:
+			if b["kind"] != "house" or int(b["tier"]) != t or int(b["id"]) == skip or str(b.get("burn", "")) != "" or b.get("sick", false):
 				continue
 			var lim := int(b.get("target", 0)) if pass_i == 0 else int(b["cap"])
 			var room := mini(lim, int(b["cap"])) - int(b["residents"])

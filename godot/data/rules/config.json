@@ -14,6 +14,7 @@
   "production",
   "needs",
   "upgrades",
+  "hazards",
   "vice",
   "finance",
   "alerts"
@@ -160,6 +161,54 @@
    "trash",
    "clinic"
   ],
-  "_tags": "방재 서비스 태그 — 주거 수요가 아니라 hazards 시스템이 읽는다(Cover가 주거·시설 모두에 대해 범위를 계산)"
+  "_tags": "방재 서비스 태그 — 주거 수요가 아니라 hazards 시스템이 읽는다(Cover가 주거·시설 모두에 대해 범위를 계산)",
+  "_status": "실험값(v0.4): 불 = 2층이 열리면, 병 = 3층이 열리면. 세 자재 계열의 차이는 없다(확정). 수치는 봇 시뮬레이션으로 맞춘다(BALANCE_CHANGELOG).",
+  "fire": {
+   "floor": 2,
+   "grace_days": 2.0,
+   "risk_per_day": 0.35,
+   "covered_mult": 0.1,
+   "ignite_per_day": 0.05,
+   "out_days": 0.04,
+   "burn_days": 0.3,
+   "spread_per_day": 2.0,
+   "max_burning": 2,
+   "burning_per": 150,
+   "min_gap_days": 0.15,
+   "_doc": "위험 0..1이 범위 밖이면 하루 risk_per_day씩(안이면 × covered_mult) 쌓이고, 매시간 위험 합 × ignite_per_day × dt 확률로 한 곳에 불. 범위 안은 out_days에 꺼짐(주민 1명 흩어짐), 밖은 burn_days 동안 타며 옆·위로 번지다 탐. 동시에 max_burning + 쓰이는 건물/burning_per곳까지, 불 사이 min_gap_days."
+  },
+  "disease": {
+   "floor": 3,
+   "grace_days": 2.0,
+   "trash_per_day": 0.35,
+   "clear_per_day": 2.0,
+   "outbreak_at": 0.7,
+   "outbreak_per_day": 0.08,
+   "cluster_trash": 0.4,
+   "cluster_max": 6,
+   "sick_days": 2.5,
+   "clinic_days": 0.6,
+   "leave_after": 1.0,
+   "leave_per_day": 2.0,
+   "sick_happy": 15,
+   "sick_tax": 0.8,
+   "max_sick_frac": 0.08,
+   "max_sick_min": 6,
+   "min_gap_days": 0.2,
+   "_doc": "쓰레기 0..1이 수거 범위 밖에서 하루 trash_per_day × 주민/정원씩 쌓이고(안이면 clear_per_day씩 줄고), outbreak_at 넘은 집들에서 매시간 확률로 발병(이웃 cluster_max채까지). 앓는 집: 일손 절반, 행복 −sick_happy, 세수 × sick_tax, 입주 없음, leave_after일 뒤 leave_per_day씩 떠남. sick_days 뒤 낫고 의원 범위면 clinic_days."
+  },
+  "repair": {
+   "house_money": [
+    20,
+    60,
+    150,
+    400,
+    900
+   ],
+   "facility_frac": 0.4,
+   "scrap_per_cell": 3,
+   "days": 0.25,
+   "_doc": "수리비: 주거는 계층별 ₩, 시설은 건설비 × facility_frac. + 고물(칸당). 날짜."
+  }
  }
 }

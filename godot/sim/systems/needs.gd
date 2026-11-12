@@ -22,6 +22,8 @@ var _spare: Dictionary = {}    # 이번 스텝에 prefer 유틸리티로 갈아�
 func setup(s: Sim) -> void:
 	super.setup(s)
 	_ok = float(sim.cfg("population.ok_ratio", 0.9))
+	_sick_pen = float(sim.cfg("hazards.disease.sick_happy", 15))
+	_sick_tax = float(sim.cfg("hazards.disease.sick_tax", 0.8))
 	var P := "population."
 	for k: String in ["grace_days", "short_recover_mult", "move_in_per_day", "move_out_per_day", "happiness_base", "happiness_per_luxury",
 			"happiness_basic_short", "noise_penalty", "tax_mult_min", "tax_mult_max", "advance_tax_bonus", "luxury_tax_bonus"]:
@@ -209,6 +211,9 @@ var _hset: PackedByteArray = PackedByteArray()
 var _aff_last: Array = []
 var _off_last := false
 var _settle_seen := -1
+var _hz_seen := -1
+var _sick_pen := 15.0
+var _sick_tax := 0.8
 var _acls_of: PackedInt32Array = PackedInt32Array()   # cls → acls
 var _acls_tab: Array = []                              # acls → {"mkt:g"/"svc:tag": cause}
 var _acls_noise: PackedInt32Array = PackedInt32Array()
@@ -665,6 +670,12 @@ func tick(state: CityState, dt: float) -> void:
 	if resettled:
 		_settle_seen = state.settle_n
 		fast2 = false
+	# 불·병 상태가 바뀐 스텝(hazards가 hz_rev를 올림)도 건너뛰지 않고 다시 쓴다
+	var hzr := int(state.flags.get("hz_rev", 0))
+	if hzr != _hz_seen:
+		_hz_seen = hzr
+		fast2 = false
+		resettled = true
 	_aff_last = aff
 	_off_last = offline
 	var todo2 := PackedInt32Array()   # 2단계를 돌릴 주거 순번(주거 순서 유지)
@@ -795,6 +806,7 @@ func tick(state: CityState, dt: float) -> void:
 	var mo: float = _c["move_out_per_day"]
 	var hap_sum := 0.0
 	var hap_w := 0.0
+	var sick_adj := 0.0
 	# 지난 스텝과 같은 묶음·같은 2단계 결과·같은 주민 수이고 "가라앉은"(아무것도 안 변하는) 주거는 건너뛴다.
 	var extra2 := false
 	for e: Ent in used:
@@ -855,13 +867,15 @@ func tick(state: CityState, dt: float) -> void:
 			sdc = nc
 		var bad := (p.unmet_mask & p.basic_mask & sdc) != 0
 		var cap: int = b["cap"]
-		var target := mini(cap, p.target)
+		var hz_burn := str(b.get("burn", "")) != ""
+		var hz_sick: bool = b.get("sick", false)
+		var target := mini(cap, p.target) if not hz_burn else 0
 		b["target"] = target
-		var hp := p.hp
+		var hp := p.hp if not hz_sick else maxf(0.0, p.hp - _sick_pen)
 		b["happiness"] = hp
 		# 입주·퇴거
 		var res := old_res
-		if res < target:
+		if res < target and not hz_sick:
 			b["leave"] = 0.0
 			b["grow"] = float(b.get("grow", 0.0)) + mi * _movein_k * (0.5 + hp / 100.0) * dt
 			while float(b["grow"]) >= 1.0 and res < target:
@@ -869,7 +883,7 @@ func tick(state: CityState, dt: float) -> void:
 				b["grow"] = float(b["grow"]) - 1.0
 			if res >= target:
 				b["grow"] = 0.0
-		elif res > target and bad and not offline:
+		elif res > target and (bad or hz_burn) and not offline:
 			b["grow"] = 0.0
 			b["leave"] = float(b.get("leave", 0.0)) + mo * dt
 			while float(b["leave"]) >= 1.0 and res > target:
@@ -891,19 +905,21 @@ func tick(state: CityState, dt: float) -> void:
 				lt[str(t)] = int(lt.get(str(t), 0)) + (old_res - res)
 				state.flags["left_today"] = lt
 		# 세수(₩/경제일)
-		b["tax"] = float(res) * p.taxk
+		b["tax"] = float(res) * p.taxk * (_sick_tax if hz_sick else 1.0)
+		if hz_sick:
+			sick_adj += (p.hp - hp) * float(res)
 		if rpos:
 			e.hr1 += float(res)
 		else:
 			e.hr0 += float(res)
 		var ns := "bad" if bad else ("warn" if p.any_unmet else "ok")
 		var upg: Variant = b.get("upgrading")
-		var ready: bool = res >= cap and p.basic_all and p.adv_all and upg == null and bool(_has_up.get(t, false))
+		var ready: bool = res >= cap and p.basic_all and p.adv_all and upg == null and bool(_has_up.get(t, false)) and not hz_burn and not hz_sick
 		var up: bool = ready and bool(aff[t])
 		_hp2[hix] = p
 		_hres[hix] = res
 		_hset[hix] = 1 if ((p.unmet_mask & ~int(b.get("sdc", 0))) == 0 and (int(b.get("sdm", 0)) & p.met_mask) == 0 and res >= target and float(b["grow"]) == 0.0 \
-			and float(b["leave"]) == 0.0 and upg == null) else 0
+			and float(b["leave"]) == 0.0 and upg == null and not hz_burn and not hz_sick) else 0
 		if res != old_res or ns != str(b["need_state"]) or up != bool(b["upgradable"]) or ready != bool(b.get("ready", false)):
 			b["need_state"] = ns
 			b["upgradable"] = up
@@ -916,7 +932,7 @@ func tick(state: CityState, dt: float) -> void:
 			if w > 0.0:
 				hap_sum += (e.p2[k] as P2).hp * w
 				hap_w += w
-	state.happiness = hap_sum / hap_w if hap_w > 0.0 else 50.0
+	state.happiness = (hap_sum - sick_adj) / hap_w if hap_w > 0.0 else 50.0
 
 
 ## sim.no_cache(시험): 스텝을 넘는 기억을 모두 버린다 — 묶음·2단계 결과·주거별 빠른 길·접근표·수정치·소비 묶음 목록,

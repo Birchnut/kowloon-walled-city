@@ -18,7 +18,7 @@ func tick(state: CityState, _dt: float) -> void:
 	for b: Dictionary in sim.cover(state)["houses"]:
 		var ti: int = b["tier"]
 		var ri: int = b["residents"]
-		rawp[ti] += float(ri)
+		rawp[ti] += float(ri) * (0.5 if b.get("sick", false) else 1.0)   # 앓는 집은 일손 절반(hazards)
 	for t: int in range(1, tiers + 1):
 		raw[t] = rawp[t]
 	for t: Variant in state.waiting:

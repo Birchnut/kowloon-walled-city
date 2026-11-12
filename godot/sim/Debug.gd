@@ -3,6 +3,7 @@ extends RefCounted
 ## Debug — 개발용 명령(config debug.enabled). Game.cmd("debug", {op, …}).
 ##  add_money{n} · add_stock{good, n} · skip_days{n} · skip_real{seconds}(= skip_days, ×1 기준 초) · unlock_all
 ##  reveal_partners · fill_floor{z, tier=1, full=true}(빈 칸을 주민 찬 주거로, 비용 없음) · set{field, value}
+##  start_fire{pos} · start_outbreak{pos} · set_hazard{kind:"fire"|"disease", on}(hazards 시스템)
 
 
 static func run(sim: Sim, state: CityState, args: Dictionary) -> Dictionary:
@@ -54,6 +55,11 @@ static func run(sim: Sim, state: CityState, args: Dictionary) -> Dictionary:
 			state.layout_changed()
 		"set":
 			state.set(str(args.get("field", "")), args.get("value"))
+		"start_fire", "start_outbreak", "set_hazard":
+			for sy: SimSystem in sim.systems:
+				if sy.has_method("debug"):
+					return sy.call("debug", state, args)
+			return {"ok": false, "reason": "hazards 시스템이 꺼져 있다."}
 		_:
 			return {"ok": false, "reason": "모르는 디버그 명령."}
 	return {"ok": true, "reason": ""}

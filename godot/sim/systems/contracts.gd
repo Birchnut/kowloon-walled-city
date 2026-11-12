@@ -40,7 +40,7 @@ func can(state: CityState, name: String, args: Dictionary) -> Variant:
 			if si < 0 or si >= sizes.size():
 				return {"ok": false, "reason": "수량 단계가 틀렸다."}
 			if state.contracts.size() >= slots(state):
-				return {"ok": false, "reason": "계약 자리가 없다(지금 %d자리, 교역소를 지으면 늘어난다)." % slots(state)}
+				return {"ok": false, "reason": "계약 자리가 없다(지금 %d자리 — 뒷문 무역관을 지으면 2자리씩 생긴다)." % slots(state)}
 			return {"ok": true, "reason": ""}
 		"contract_set", "contract_cancel":
 			if _find(state, int(args.get("id", -1))).is_empty():
