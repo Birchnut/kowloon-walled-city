@@ -179,3 +179,98 @@ Game은 매 프레임 `sim.now_unix = 시스템 시각 + state.clock_offset`을 
 
 **알림 jump 화면**(G12): `build[:시설 id|cat]` · `economy[:tab|상품 id]` · `expedition` · `trade` · `keep[:tab]`(성채 화면: goals·policies·research·log) · `upgrade`(일괄 승급 열기) · `inspect:<bid>`(그 건물 정보, arg = bid).
 **미접속**: Game이 불러올 때와 앱이 60초 넘게 멈췄다 돌아올 때 `Sim.catch_up(state, now)`을 부른다. `state.last_saved_unix`는 "마지막으로 정산한 실제 시각"으로도 쓰인다.
+
+---
+
+# v4 (PC판) 계약 변경 — 2026-11-13, 디렉터
+
+설계는 `docs/GDD_PC.md`. 아래는 v3 계약에서 **바뀌는 것과 더하는 것**이다. 여기 없는 것은 v3 그대로. 세 층(SIM·VIEW·UI)은 이 절만 보고 서로 맞는다 — 모자라면 가장 단순한 쪽으로 정하고 자기 노트의 "계약 빈 곳"에 적는다.
+
+## 좌표·격자
+- `grid.width/height` = 16(데이터). **어느 층도 12를 가정하지 않는다** — `Game.query("hud").grid = {w, h, floors}`에서 읽는다.
+- 시설 발자국: 데이터 `footprint:[w,h]`(x방향 w칸, y방향 h칸), `floors:1|2`(쌓이는 층 수), `rot`(0 = 그대로, 1 = 90° — w,h가 바뀐다). `origin` = 발자국의 최소 (x,y,z) 칸.
+
+## 셀 (뷰가 읽는 것) — 더하는 키
+```
+"origin": Vector3i, "w": int, "h": int, "d": int(층 수), "rot": 0|1,   # 주거는 1,1,1,0
+"size": int            # 호환용 = max(w,h). 새 코드는 w,h를 쓴다
+"burn": "" | "burning" | "burnt"      # 불(주거·시설 모두). burnt = 수리 전까지 못 씀
+"sick": bool                          # 병이 도는 주거
+"trash": float 0..1                   # 그 칸 주변에 쌓인 쓰레기(뷰가 더미로 그린다)
+```
+`kind:"site"`(공사 중)는 발자국 전체 칸에 깔리고 `progress` 0..1, `becomes:{type,w,h,d,rot}`.
+
+## 건물 인스턴스 — 더하는 키
+```
+house:    + arriving: float(입주 중인 인원의 소수 진행, 표시용) · burn · sick · sick_until(econ_days) · repair:{money, goods, days}|null
+facility: + w,h,d,rot · burn · build_left(days) · repair
+```
+
+## 범위 (다이아몬드 폐지)
+- 데이터 `range: {r:int, up:int, down:int}` 또는 없음. 닿는 칸 = 발자국의 어느 칸에서든 `max(|dx|,|dy|) ≤ r` 이고 `-down ≤ dz ≤ up`(시설의 가장 아래층 기준, 2층짜리는 위층도 자기 층으로 친다).
+- `distance.vertical_weight`·`max_floor_delta`는 없앤다.
+
+## 시계
+- **실제 시계 의존을 없앤다.** `time.offline_speed = 0` → Game은 불러올 때·긴 공백 뒤에 정산하지 않는다(`offline_summary`는 항상 null). 탐험·연구·계약·건설 전부 `econ_days` 기준.
+- `teams[].started_at / completes_at`(econ_days). `started_unix/completes_unix/now_unix/clock_offset`은 남겨 두되 쓰지 않는다. 질의 `expeditions`의 `seconds_left/total_seconds`는 **×1 기준 실제 초**로 환산해 계속 준다(+ `days_left`, `total_days`).
+- `Game.speed` ∈ {1,2,4}(디버그 16), `Game.paused`. `hud.speed`, `hud.paused` 추가. 명령은 멈춘 상태에서도 된다.
+
+## 명령 — 바뀜/추가
+| name | args | 비고 |
+|---|---|---|
+| build | type, pos(origin), **rot:0\|1** | 발자국·층 수·골조 포함 원자적. 공사 시간이 있으면 `site`로 시작 |
+| repair | bid | 탄 건물 수리 시작(돈·고물, 시간) |
+| run_begin | dest | 직접 줍기 시작 표시(팀 하나를 "나감"으로). 결과: `{ok, reason, stock:{good:n}, danger:int, seed:int}` |
+| run_result | dest, loot:{good:n}, outcome:"boss"\|"exit"\|"down", finds:[String] | 직접 줍기 결과 반영. 던전 재고에서 빼고, 창고에 넣고, 발견물 처리. `{ok, rewards:[{good,name,n}], finds:[String], lost:[…]}` |
+| debug | + start_fire{pos}, start_outbreak{pos}, set_hazard{kind,on} | |
+제거: 미접속 관련(`skip_real`은 `skip_days`의 별칭으로 남긴다).
+
+## 질의 — 바뀜/추가 (전부 표시용 문장 포함)
+| name | args | 반환 |
+|---|---|---|
+| hud | — | + `grid:{w,h,floors}`, `speed`, `paused`, `signals:[{id:"water"\|"power"\|"food"\|"fun"\|"fire"\|"disease"\|"labor", name, state:"ok"\|"warn"\|"bad"\|"off", text, jump}]`, `hazards:{fire:{on, burning:int, burnt:int, covered_pct}, disease:{on, sick_houses:int, covered_pct}}` |
+| build_menu | — | item에 + `footprint:[w,h]`, `floors`, `rotatable:bool`, `build_days`, `range:{r,up,down}\|null`, `needs_sky:bool`, `min_floor:int`, `effect_text` |
+| can | cmd:"build", type, pos, rot | + `cells:[Vector3i]`(발자국 전부), `supports:[Vector3i]`(생길 골조), `code`에 `shape`(자리가 모자람)·`sky`(위가 막힘)·`floor`(층 조건) 추가 |
+| range_preview | type, pos, rot | `{cells:[Vector3i](모든 층), by_floor:{z:[Vector3i]}, houses:int, text}` |
+| coverage | kind:"market"\|"fun"\|"fire"\|"trash"\|"clinic"\|`service:<id>` | `{covered:[Vector3i], uncovered:[Vector3i](쓰이는 칸 중 밖), pct, text}` — 렌즈용 |
+| metrics | — | **현황판**: `{rows:[{id, group:"utility"\|"food"\|"goods"\|"service"\|"hazard", name, supply, demand, unit, ratio, state, days_left\|null, hint, jump:{screen,arg}}], labor:[{tier,name,have,need,spare}], tiers:[{tier,name,pop,houses,full,upgradable,arriving}], finance:{income, cost, net, lines:[{name,amount}]}, hazards:[{id,name,on,covered_pct,active:int,text,jump}]}` |
+| hazards | — | `{fire:{on, since_day, grace_left, covered_pct, burning:[{bid,pos}], burnt:[{bid,pos,repair_text}], text}, disease:{on, covered_pct, sick:[{bid,pos,days_left}], trash_pct, text}}` |
+| info | pos\|bid | 주거에 + `arriving_text`, `burn`, `sick`, `repair:{ok, cost_text, days}`; 시설에 + `w,h,d,rot`, `footprint`, `build_left_text`, `range:{r,up,down}`, `interior:{staff_ratio, active}` |
+| expeditions | — | 팀·목적지에 + `days_left/total_days`, 목적지에 `stock_pct`(던전 재고), `run:{available:bool, danger:int, text}` |
+| goals / research / policies / contracts / economy / upgradable / upgrade_preview | | v3 그대로(내용·이름만 바뀜) |
+
+## 이벤트 — 추가
+`construction_done{bid,type}` `fire_started{bid,pos}` `fire_spread{bid,pos}` `fire_out{bid,pos,burnt:bool}` `repaired{bid}` `outbreak{bids:[int],pos}` `outbreak_end{bids}` `hazard_on{kind,grace_days}` `speed_changed{speed,paused}`.
+알림 jump에 `focus:x,y,z`(카메라를 그 칸으로) · `metrics[:row]` · `lens:<kind>` 추가.
+
+## CityView (view/CityView.tscn) — PC
+```
+유지: set_floor_cut(n) · rotate_view(dir) · zoom_step(dir)/set_zoom(i) · pick(screen) · pick_floor(screen,z) · project(pos)
+      clear_overlay() · set_time_override(t) · get_max_floor() · show_floor_grid(z,on) · show_ghost(cells,ok,supports)
+      show_cells(cells,style) · set_lens(name) · set_drag_paint(on) · signals cell_tapped / cell_dragged / view_changed
+바뀜: set_bottom_inset(px) → set_insets(left,top,right,bottom)     # UI 패널이 가리는 만큼 중심을 옮긴다
+      show_ghost(cells, ok, supports, floors:int=1)                  # 여러 칸·2개 층 미리보기
+      set_lens: "" | "needs" | "tier" | "happiness" | "coverage"     # coverage는 set_coverage(covered, uncovered)와 함께
+추가: hover(screen) -> info      # pick과 같은 모양. 뷰가 매 프레임 마우스 아래 칸을 강조하고 signal cell_hovered(info)
+      set_zone_preview(cells:[Vector3i], ok:[bool])    # 주거 칠하기: 바닥 하이라이트만(입체 상자 금지)
+      set_coverage(covered:[Vector3i], uncovered:[Vector3i])
+      focus(pos:Vector3i, zoom:int=-1)                 # 카메라를 그 칸으로(부드럽게), 층 자르기도 맞춘다
+      set_input_enabled(on)                            # 창이 떠 있을 때 UI가 끈다
+      who(screen) -> {ok, text}                        # 마우스 아래 주민 한 줄("굴러온 돌 · 통조림 사러 가는 중")
+      signal cell_tapped(info)  # info.button = 1(왼쪽)|2(오른쪽)
+```
+- **카메라 입력은 뷰가 가진다**: 휠 확대, 가운데·오른쪽 끌기 이동, WASD/방향키 이동, Q/E 회전, PageUp/PageDown·[ ] 층. 그 밖의 키(Space, 숫자, R, Esc, Tab, B, Del…)는 UI.
+- 뷰는 `buildings[bid]`의 `staff/eff/active`(시설 안 사람 수·불), `residents/cap`, `burn`, `sick`, 셀의 `trash`, `site.progress`를 읽어 그린다. 주민 동선은 뷰가 상태에서 파생한다(규칙 아님).
+- 간판 글자는 `Game.query("build_menu")`의 `sign`(짧은 한글, 4자 이내)을 쓴다. 한자 금지.
+
+## 화면 크기
+`project.godot` 표시 설정(1920×1080, canvas_items/expand, 가로)과 `scenes/Main.tscn`은 UI 소유. 뷰는 창 크기에 맞춰 저해상 뷰포트를 정수배로 올린다(1280×720~2560×1440).
+
+## 파일 소유 (v4)
+| 영역 | 소유 |
+|---|---|
+| `sim/**`, `core/Game.gd`, `tools/sim_*`, `tests/**`, `data/`(art·ui 제외), `docs/SIM_NOTES.md`, `docs/BALANCE_CHANGELOG.md`, `docs/data_tables/` | SIM |
+| `view/**`, `data/art/**`, `assets/view/**`, `tools/fake_city.gd`, `docs/VIEW_NOTES.md` | VIEW |
+| `ui/**`, `data/ui/**`, `assets/ui/**`, `scenes/Main.tscn`, `project.godot`, `tools/DevHarness.gd`, `tools/fixtures/**`, `docs/UI_NOTES.md` | UI |
+| `expedition/**`(직접 줍기), `docs/EXPEDITION_RUN.md` | 2단계에서 정함 |
+| 이 문서, `docs/GDD_PC.md`, `core/Data.gd`, CityState의 필드 이름 | 디렉터 |
