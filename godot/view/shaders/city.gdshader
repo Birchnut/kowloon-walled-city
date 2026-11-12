@@ -48,6 +48,9 @@ uniform float ground_fade = 1.0;
 uniform sampler2D cellstate : filter_nearest, repeat_disable;
 // 렌즈 색: RGB = 색, A = 세기(0이면 렌즈 대상 아님)
 uniform sampler2D lenstex : filter_nearest, repeat_disable;
+uniform sampler2D hazstate : filter_nearest, repeat_disable;   // R = 불(0.5 타는 중, 1 탄 뒤) G = 병 B = 쓰레기 A = 수리 중
+uniform float doll = 0.0;            // 1 = 가까운 확대: 시설의 카메라 쪽 벽을 걷어 안을 보인다(인형의 집)
+uniform float doll_stub = 0.2;       // 걷은 벽이 남는 높이(층 단위)
 uniform vec2 grid_wh = vec2(12.0, 12.0);
 uniform float lens_on = 0.0;
 uniform float lens_dim = 0.45;
@@ -59,7 +62,7 @@ varying float owner;
 
 void vertex() {
 	vec3 p = VERTEX;
-	float kind = UV2.y;
+	float kind = mod(UV2.y, 16.0);
 	if (kind > 2.5 && kind < 3.5) {
 		float ph = fract(UV2.x) * 6.283 + (p.x + p.z) * 0.9;
 		float s = sin(time_s * 1.7 + ph) + 0.5 * sin(time_s * 2.9 + ph * 1.7);
@@ -129,7 +132,17 @@ vec3 to_linear(vec3 c) {
 void fragment() {
 	vec4 t = texture(atlas, UV);
 	if (t.a < 0.25) { discard; }
-	int kind = int(info.y + 0.5);
+	float kraw = info.y + 0.5;
+	bool doll_roof = kraw > 32.0;
+	if (doll_roof) { kraw -= 32.0; }
+	bool doll_face = kraw > 16.0;
+	int kind = int(mod(kraw, 16.0));
+	if (doll_roof && doll > 0.5) { discard; }
+	if (doll_face && doll > 0.5 && dot(wnrm, view_fwd) < -0.2) {
+		// 시설 외벽 중 카메라를 향한 면: 바닥 근처 띠만 남기고 걷는다
+		float fy = wpos.y / floor_h - floor(wpos.y / floor_h + 0.002);
+		if (fy > doll_stub) { discard; }
+	}
 	float rnd = info.x;
 	bool is_glass = t.a < 0.625;
 	bool is_emit = (!is_glass) && t.a < 0.875;
@@ -138,12 +151,14 @@ void fragment() {
 	float dth = bayer4(ivec2(FRAGCOORD.xy));
 	vec4 cs = vec4(1.0, 1.0, 1.0, 0.0);
 	vec4 ln = vec4(0.0);
+	vec4 hzs = vec4(0.0);
 	if (owner > 0.5) {
 		int idx = int(owner + 0.5) - 1;
 		int gx = int(grid_wh.x + 0.5);
 		ivec2 tc = ivec2(idx % gx, idx / gx);
 		cs = texelFetch(cellstate, tc, 0);
 		ln = texelFetch(lenstex, tc, 0);
+		hzs = texelFetch(hazstate, tc, 0);
 	}
 
 	// 지면: 부지에서 멀어지면 디더로 사라진다
@@ -297,6 +312,25 @@ void fragment() {
 		float room = night * (powered > 0.5 ? 0.78 : 0.3);
 		vec3 lampc = powered > 0.5 ? warm_col : candle_col * 0.7;
 		col = mix(col, base * lampc * 0.95 + add * 0.5, room);
+	}
+
+	// 재난: 병 = 누렇게 뜬 초록, 탄 뒤 = 그을음(얼룩 디더), 타는 중 = 아래에서 붉게 일렁임
+	if (hzs.g > 0.5 && kind != 2) {
+		col = mix(col, col * vec3(0.78, 0.95, 0.55) + vec3(0.02, 0.05, 0.0), 0.55);
+	}
+	if (hzs.r > 0.75) {
+		float soot = hash11(floor(wpos.x * 16.0) * 1.7 + floor(wpos.y * 16.0) * 3.1 + floor(wpos.z * 16.0) * 5.3);
+		vec3 ch = vec3(0.13, 0.11, 0.12) + base * 0.12;
+		col = mix(col, ch, soot > 0.18 ? 0.86 : 0.55);
+	} else if (hzs.r > 0.25) {
+		float fl = 0.5 + 0.5 * sin(time_s * 9.0 + wpos.x * 3.0 + wpos.z * 2.0);
+		float fy2 = fract(wpos.y / floor_h);
+		col = mix(col, vec3(1.0, 0.45, 0.15), (1.0 - fy2) * (0.35 + 0.25 * fl));
+		col *= 0.8;
+	}
+	if (kind == 5 && cs.b < 0.5 && owner > 0.5) {
+		// 멈춘 시설의 안: 불 꺼지고 어둡다
+		col *= vec3(0.42, 0.42, 0.52);
 	}
 
 	// 렌즈: 주거를 색으로, 나머지는 회색으로 가라앉힌다

@@ -1,37 +1,44 @@
 class_name CityPeople
 extends Node3D
-## 사람들 — 뷰 전용 연출(규칙 없음). 가구 수와 시간대에 맞춰 옥상·골목·다리·대문 앞·(층 컷이면) 방 안을 걷는다.
-## LOD 3단: 줌 ×1 = 3×5px 점사람, ×2 = 5×10px, ×4 = CC0 16×32 스프라이트(4방향, 카메라 각에 맞춰 선택).
+## 주민들(v4) — 뷰 전용 연출(규칙 영향 0). 상태에서 집·시장·일터·놀 곳을 읽어, 시간대마다 집 → 목적지 → 집을 오가게 한다.
+## 걷는 곳: 비어 있는 지상 칸, 골조 아래(필로티), 기둥 꼭대기(옥상), 트인 시설 칸. 이웃 칸끼리 이어지고 한 층 차이는 사다리·계단으로 오른다.
+## 길이 없으면 건물 안 복도로 들어가 사라지고(구룡성채식) 목적지 문 앞에서 다시 나온다.
+## 옷 = 사는 집의 계층 팔레트. 저녁에 많고 깊은 밤엔 거의 없다. who(screen) = "굴러온 돌 · 통조림 사러 가는 중".
 
-const PeopleShader := preload("res://view/shaders/people.gdshader")
-const MAX_INST := 220
+const ActorShader := preload("res://view/shaders/actor.gdshader")
+const MAX_INST := 260
+const LOD_SIZE := [Vector2(6, 12), Vector2(10, 20), Vector2(16, 32)]
+const DIRS: Array[Vector3i] = [Vector3i(1, 0, 0), Vector3i(-1, 0, 0), Vector3i(0, 1, 0), Vector3i(0, -1, 0)]
+const TIER_NAMES := ["굴러온 돌", "월세 전사", "박힌 돌", "깡통 귀족", "옥상 황제"]
 
 var cfg: ViewCfg
 var view: Control
 var mesher: CityMesher
 var agents: Array = []
-var nodes: Dictionary = {}          # Vector3i(x,y,level) -> {pos, kind}
-var by_kind: Dictionary = {}        # kind -> Array[Vector3i]
-var _mmi: Array = []                # [tiny, small, near] MultiMeshInstance3D
+var nodes: Dictionary = {}          # Vector3i(x,y,z) -> true (걸을 수 있는 칸)
+var doors: Dictionary = {}          # bid -> Array[Vector3i]
+var homes: Array = []               # [{bid, tier, w}] 사는 사람 수만큼 가중
+var dests: Dictionary = {}          # 종류 -> Array[{bid, look, sign}]
+var _street: Array = []
+var _mmi: Array = []
 var _mats: Array = []
 var _cut := -1
+var _zoom_i := 1
 var _tick := 0.0
 var _rs := 12345
-var _bridges: Array = []
-var _nightlife := false
-var _waiting_n := 0
 var _gate := Vector3.ZERO
+var _waiting_n := 0
 var _pop := 0
-var _tier_pool: Array = []
+var _t := 0.0
+var _tier_names: Array = []
 
 
 func setup(c: ViewCfg, v: Control, m: CityMesher, lg: Texture3D) -> void:
 	cfg = c
 	view = v
 	mesher = m
-	var texs := [_make_tiny(), _make_small(), _make_near()]
-	var frames := [Vector2(4, 6), Vector2(6, 11), Vector2(16, 32)]
 	for i in 3:
+		var tex := PeopleSprites.build(["S", "M", "L"][i])
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.use_colors = true
@@ -42,19 +49,26 @@ func setup(c: ViewCfg, v: Control, m: CityMesher, lg: Texture3D) -> void:
 		mm.instance_count = MAX_INST
 		mm.visible_instance_count = 0
 		var mat := ShaderMaterial.new()
-		mat.shader = PeopleShader
-		mat.set_shader_parameter("tex", texs[i])
+		mat.shader = ActorShader
+		mat.set_shader_parameter("tex", tex)
 		mat.set_shader_parameter("lightgrid", lg)
-		mat.set_shader_parameter("frame_px", frames[i])
-		mat.set_shader_parameter("sheet_px", Vector2((texs[i] as Texture2D).get_width(), (texs[i] as Texture2D).get_height()))
+		mat.set_shader_parameter("frame_px", LOD_SIZE[i])
+		mat.set_shader_parameter("sheet_px", Vector2(tex.get_width(), tex.get_height()))
+		mat.set_shader_parameter("depth_bias", 0.15)
 		var mi := MultiMeshInstance3D.new()
 		mi.multimesh = mm
 		mi.material_override = mat
-		mi.custom_aabb = AABB(Vector3(-30, -5, -30), Vector3(80, 40, 80))
+		mi.custom_aabb = AABB(Vector3(-40, -5, -40), Vector3(120, 60, 120))
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(mi)
 		_mmi.append(mi)
 		_mats.append(mat)
+	_tier_names = TIER_NAMES.duplicate()
+
+
+func set_lightgrid(lg: Texture3D) -> void:
+	for m in _mats:
+		(m as ShaderMaterial).set_shader_parameter("lightgrid", lg)
 
 
 func _rnd() -> float:
@@ -66,152 +80,91 @@ func _ri(n: int) -> int:
 	return int(_rnd() * n) % maxi(n, 1)
 
 
-# ------------------------------------------------------------------ 스프라이트
-func _make_tiny() -> ImageTexture:
-	# 3×5 점사람 2프레임(칸 4×6). 알파 0.5 = 옷(가구 유형 색으로 물든다)
-	var img := Image.create(8, 6, false, Image.FORMAT_RGBA8)
-	img.fill(Color(0, 0, 0, 0))
-	var hair := Color("#3a3048")
-	var skin := Color("#f2c9a2")
-	var shirt := Color(1, 1, 1, 0.5)
-	var pants := Color("#4a5a8a")
-	for f in 2:
-		var ox := f * 4
-		img.set_pixel(ox + 1, 1, hair)
-		img.set_pixel(ox + 1, 2, skin)
-		for x in 3:
-			img.set_pixel(ox + x, 3, shirt)
-		img.set_pixel(ox + 1, 4, shirt)
-		if f == 0:
-			img.set_pixel(ox + 0, 5, pants)
-			img.set_pixel(ox + 2, 5, pants)
-			img.set_pixel(ox + 0, 4, shirt)
-			img.set_pixel(ox + 2, 4, shirt)
-		else:
-			img.set_pixel(ox + 1, 5, pants)
-	return ImageTexture.create_from_image(img)
+# ------------------------------------------------------------------ 지도
+func _walkable(st: CityState, p: Vector3i) -> bool:
+	var c: Dictionary = st.cells.get(p, {})
+	if not c.is_empty():
+		if str(c.get("kind", "")) != "facility":
+			return false
+		var form := str(mesher.recipe_of(c).get("form", "box"))
+		if form != "open":
+			return false
+	if p.z == 0:
+		return true
+	return mesher.solid.has(p - Vector3i(0, 0, 1))
 
 
-func _make_small() -> ImageTexture:
-	# 5×10 2프레임(칸 6×11)
-	var img := Image.create(12, 11, false, Image.FORMAT_RGBA8)
-	img.fill(Color(0, 0, 0, 0))
-	var hair := Color("#3a3048")
-	var skin := Color("#f2c9a2")
-	var skin2 := Color("#dba886")
-	var shirt := Color(1, 1, 1, 0.5)
-	var shirt2 := Color(0.82, 0.82, 0.88, 0.5)
-	var pants := Color("#4a5a8a")
-	var shoe := Color("#3a3048")
-	for f in 2:
-		var ox := f * 6
-		for x in [1, 2, 3]:
-			img.set_pixel(ox + x, 1, hair)
-			img.set_pixel(ox + x, 2, skin)
-			img.set_pixel(ox + x, 3, skin)
-		img.set_pixel(ox + 1, 2, hair)
-		img.set_pixel(ox + 3, 3, skin2)
-		for y in [4, 5, 6]:
-			for x in 5:
-				img.set_pixel(ox + x, y, shirt if x < 4 else shirt2)
-		img.set_pixel(ox + 0, 6, skin)
-		img.set_pixel(ox + 4, 6, skin2)
-		for x in [1, 2, 3]:
-			img.set_pixel(ox + x, 7, pants)
-			img.set_pixel(ox + x, 8, pants)
-		if f == 0:
-			img.set_pixel(ox + 1, 9, pants)
-			img.set_pixel(ox + 3, 9, pants)
-			img.set_pixel(ox + 0, 10, shoe)
-			img.set_pixel(ox + 1, 10, shoe)
-			img.set_pixel(ox + 3, 10, shoe)
-			img.set_pixel(ox + 4, 10, shoe)
-			img.set_pixel(ox + 2, 8, Color(0, 0, 0, 0))
-		else:
-			img.set_pixel(ox + 2, 9, pants)
-			img.set_pixel(ox + 2, 10, shoe)
-			img.set_pixel(ox + 3, 10, shoe)
-	return ImageTexture.create_from_image(img)
-
-
-func _make_near() -> ImageTexture:
-	# CC0 캐릭터 16장(각 64×96 = 4방향 × 3프레임, 프레임 16×32)을 4×4로 묶는다
-	var img := Image.create(256, 384, false, Image.FORMAT_RGBA8)
-	img.fill(Color(0, 0, 0, 0))
-	for i in 16:
-		var path := "res://assets/view/people/char_%02d.png" % (i + 1)
-		if not ResourceLoader.exists(path):
-			continue
-		var t: Variant = load(path)
-		if t is Texture2D:
-			var src: Image = (t as Texture2D).get_image()
-			if src == null:
-				continue
-			if src.is_compressed():
-				src.decompress()
-			src.convert(Image.FORMAT_RGBA8)
-			img.blit_rect(src, Rect2i(0, 0, 64, 96), Vector2i((i % 4) * 64, (i / 4) * 96))
-	return ImageTexture.create_from_image(img)
-
-
-# ------------------------------------------------------------------ 걸을 수 있는 곳
 func rebuild(st: CityState) -> void:
 	nodes.clear()
-	by_kind = {"ground": [], "roof": [], "street": [], "inside": []}
+	doors.clear()
+	homes.clear()
+	dests = {"market": [], "food": [], "water": [], "work": [], "fun": [], "service": []}
 	var gw := cfg.grid.x
 	var gh := cfg.grid.y
-	var fh := cfg.floor_h
-	_nightlife = false
-	_pop = 0
-	_tier_pool = []
-	var bs: Variant = st.get("buildings")
-	if bs is Dictionary:
-		for b in (bs as Dictionary).values():
-			if not (b is Dictionary):
-				continue
-			if str(b.get("kind", "")) == "facility" and bool(b.get("active", true)):
-				var busy: String = str(cfg.recipe("facility", str(b.get("type", ""))).get("busy", "day"))
-				if busy == "night" or busy == "always":
-					_nightlife = true
-			elif str(b.get("kind", "")) == "house":
-				var n := int(b.get("residents", 0))
-				_pop += n
-				for i in mini(n, 3):
-					_tier_pool.append(int(b.get("tier", 1)))
+	var top := cfg.grid.z + 1
 	for x in gw:
 		for y in gh:
-			var h := 0
-			while mesher.solid.has(Vector3i(x, y, h)):
-				h += 1
-			var top := Vector3i(x, y, h)
-			var kind := ""
-			if not st.cells.has(top):
-				kind = "ground" if h == 0 else "roof"
-			else:
-				var c: Dictionary = st.cells[top]
-				var form: String = str(cfg.recipe(str(c.get("kind", "")), str(c.get("type", ""))).get("form", "box"))
-				if form == "open" and str(c.get("kind", "")) != "site":
-					kind = "ground" if h == 0 else "roof"
-			if kind != "":
-				nodes[top] = {"pos": Vector3(x + 0.5, h * fh, y + 0.5), "kind": kind}
-				by_kind[kind].append(top)
-	# 담장 밖 보도(행인)
+			for z in top:
+				var p := Vector3i(x, y, z)
+				if _walkable(st, p):
+					nodes[p] = true
+	# 문: 건물 칸 옆(같은 층)의 걸을 수 있는 칸. 시설은 앞면을 좋아한다.
+	_pop = 0
+	for p in st.cells:
+		var c: Dictionary = st.cells[p]
+		var bid := int(c.get("bid", -1))
+		if bid < 0:
+			continue
+		for d in DIRS:
+			var q: Vector3i = p + d
+			if nodes.has(q):
+				if not doors.has(bid):
+					doors[bid] = []
+				if not (doors[bid] as Array).has(q):
+					(doors[bid] as Array).append(q)
+		var up: Vector3i = p + Vector3i(0, 0, 1)
+		if nodes.has(up) and str(c.get("kind", "")) == "house" and not doors.has(bid):
+			doors[bid] = [up]
+	var bs: Dictionary = st.buildings
+	for bid in bs:
+		var b: Dictionary = bs[bid]
+		if not doors.has(int(bid)):
+			continue
+		var kind := str(b.get("kind", ""))
+		if kind == "house":
+			var n := int(b.get("residents", 0))
+			if n <= 0 or str(b.get("burn", "")) != "":
+				continue
+			_pop += n
+			homes.append({"bid": int(bid), "tier": int(b.get("tier", 1)), "w": n})
+		elif kind == "facility" and bool(b.get("active", true)) and str(b.get("burn", "")) == "":
+			var c2: Dictionary = st.cells.get(b.get("pos", Vector3i(-9, -9, -9)), {})
+			var lk := mesher.look_name(c2) if not c2.is_empty() else str(b.get("look", ""))
+			var it := {"bid": int(bid), "look": lk, "sign": mesher.sign_of(c2) if not c2.is_empty() else ""}
+			var cat := str(ViewCfg.LOOK_CAT.get(lk, "goods"))
+			match cat:
+				"market":
+					dests["market"].append(it)
+				"food":
+					dests["food" if lk in ["noodle_stall", "burger", "sushi", "food_cans", "food_pilgrims"] else "work"].append(it)
+				"water":
+					dests["water"].append(it)
+				"fun", "vice":
+					dests["fun"].append(it)
+				"service", "safety", "landmark":
+					dests["service"].append(it)
+				_:
+					dests["work"].append(it)
+			if cat in ["food", "fun", "vice", "service", "market"] and float(b.get("staff", 1.0)) > 0.0:
+				dests["work"].append(it)
+	# 담장 밖 보도
+	_street = []
 	for x in range(-2, gw + 2):
 		for yy in [gh + 1, -2]:
-			var k := Vector3i(x, yy, 0)
-			nodes[k] = {"pos": Vector3(x + 0.5, 0, yy + 0.5), "kind": "street"}
-			by_kind["street"].append(k)
+			_street.append(Vector3(x + 0.5, 0, yy + 0.5))
 	for y in range(-1, gh + 1):
 		for xx in [gw + 1, -2]:
-			var k2 := Vector3i(xx, y, 0)
-			nodes[k2] = {"pos": Vector3(xx + 0.5, 0, y + 0.5), "kind": "street"}
-			by_kind["street"].append(k2)
-	if _cut >= 0:
-		for p in mesher.solid:
-			if p.z == _cut:
-				var kk := Vector3i(p.x, p.y, 1000 + p.z)
-				nodes[kk] = {"pos": Vector3(p.x + 0.5, p.z * fh, p.y + 0.5), "kind": "inside", "cell": p}
-				by_kind["inside"].append(kk)
+			_street.append(Vector3(xx + 0.5, 0, y + 0.5))
 	_gate = Vector3(gw * 0.5, 0, gh + 1.3)
 	_waiting_n = 0
 	var wt: Variant = st.get("waiting")
@@ -220,230 +173,371 @@ func rebuild(st: CityState) -> void:
 			var w: Variant = wt[k]
 			if w is Dictionary:
 				_waiting_n += int(w.get("count", 0))
-	_waiting_n = mini(_waiting_n, 20)
-	# 사라진 자리의 사람은 없앤다
+	_waiting_n = mini(_waiting_n, 16)
+	var tn: Variant = Data.items("tiers")
+	if tn is Dictionary and not (tn as Dictionary).is_empty():
+		for k in tn:
+			var ti: Dictionary = tn[k]
+			var idx := int(ti.get("index", 0)) - 1
+			if idx >= 0 and idx < 5 and str(ti.get("name", "")) != "":
+				_tier_names[idx] = str(ti["name"])
+	# 사라진 길 위의 사람은 없앤다
 	var keep: Array = []
 	for a in agents:
-		if a["kind"] == "gate" or a["kind"] == "bridge" or nodes.has(a["node"]):
+		if a["kind"] != "walk" or _path_ok(a):
 			keep.append(a)
 	agents = keep
 
 
-func set_bridges(list: Array) -> void:
-	_bridges = list
-	var keep: Array = []
-	for a in agents:
-		if a["kind"] != "bridge":
-			keep.append(a)
-	agents = keep
+func _path_ok(a: Dictionary) -> bool:
+	for n in a.get("path", []):
+		if not nodes.has(n):
+			return false
+	return true
+
+
+func set_bridges(_list: Array) -> void:
+	pass
 
 
 func set_cut(n: int) -> void:
-	if n == _cut:
-		return
 	_cut = n
-	var keep: Array = []
-	for a in agents:
-		if a["kind"] != "inside":
-			keep.append(a)
-	agents = keep
-	if Game.state != null:
-		rebuild(Game.state)
 
 
-# ------------------------------------------------------------------ 목표 인원
-func _targets(t: float) -> Dictionary:
-	var st: CityState = Game.state
-	var pop := float(_pop)
-	var cap := float(cfg.r("people.max", 140))
-	var base := clampf(pop * 0.11, 3.0, cap)
-	var hr := t * 24.0
-	var ag := 0.05
-	var ar := 0.02
-	if hr >= 5.5 and hr < 7.5:
-		ag = 0.5
-		ar = 0.35
-	elif hr >= 7.5 and hr < 17.0:
-		ag = 1.0
-		ar = 0.45
-	elif hr >= 17.0 and hr < 20.0:
-		ag = 0.9
-		ar = 1.0
-	elif hr >= 20.0 and hr < 23.5:
-		ag = 0.85 if _nightlife else 0.3
-		ar = 0.35
+func set_zoom_level(zi: int, _inner: bool) -> void:
+	_zoom_i = zi
+
+
+## 가까운 길(BFS). 한 층 차이 이웃은 사다리로 잇는다. 찾지 못하면 [].
+func _path(from: Vector3i, goals: Array, limit: int = 1500) -> Array:
+	if goals.is_empty() or not nodes.has(from):
+		return []
+	var goal_set: Dictionary = {}
+	for g in goals:
+		goal_set[g] = true
+	var prev: Dictionary = {from: from}
+	var queue: Array = [from]
+	var head := 0
+	while head < queue.size() and head < limit:
+		var cur: Vector3i = queue[head]
+		head += 1
+		if goal_set.has(cur):
+			var out: Array = [cur]
+			while cur != from:
+				cur = prev[cur]
+				out.push_front(cur)
+			return out
+		for d in DIRS:
+			for dz in [0, 1, -1]:
+				var nx: Vector3i = cur + d + Vector3i(0, 0, dz)
+				if nodes.has(nx) and not prev.has(nx):
+					prev[nx] = cur
+					queue.append(nx)
+					break
+	return []
+
+
+# ------------------------------------------------------------------ 하루
+func _targets(hr: float) -> Dictionary:
+	var budget: int = [55, 80, 110, 140, 160][clampi(_zoom_i, 0, 4)]
+	var base := clampf(float(_pop) * 0.09, 4.0, float(budget))
+	var k := 0.05
+	if hr >= 6.0 and hr < 9.0:
+		k = 0.7
+	elif hr >= 9.0 and hr < 17.0:
+		k = 0.6
+	elif hr >= 17.0 and hr < 21.5:
+		k = 1.0
+	elif hr >= 21.5 and hr < 23.5:
+		k = 0.45
 	elif hr >= 23.5 or hr < 2.0:
-		ag = 0.5 if _nightlife else 0.08
-		ar = 0.1
-	var out := {
-		"ground": int(minf(base * 0.45 * ag, float(by_kind["ground"].size()) * 0.9)),
-		"roof": int(minf(base * 0.5 * ar, float(by_kind["roof"].size()) * 0.5)),
-		"street": int(clampf(base * 0.12 * ag, 0.0, 10.0)),
-		"inside": int(minf(float(by_kind["inside"].size()) * 0.75 * maxf(ag, 0.35), 70.0)),
-		"gate": _waiting_n,
-		"bridge": int(float(_bridges.size()) * 0.6 * ag)
-	}
-	return out
+		k = 0.15
+	return {"walk": int(base * k), "street": int(clampf(base * 0.1 * k, 0.0, 10.0)), "gate": _waiting_n}
 
 
-## 옷 색 = 계층(사는 사람 수만큼 뽑힐 확률). 높은 계층은 짙은 정장·흰 옷, 낮은 계층은 바랜 색.
-func _color_for(_st: CityState) -> Array:
-	if _tier_pool.is_empty():
-		return [cfg.tier_color(1, _ri(4)), _ri(16)]
-	var t: int = _tier_pool[_ri(_tier_pool.size())]
-	return [cfg.tier_color(t, _ri(5)), _ri(16)]
+func _pick_home() -> Dictionary:
+	var tot := 0
+	for h in homes:
+		tot += int(h["w"])
+	var x := _ri(maxi(tot, 1))
+	for h in homes:
+		x -= int(h["w"])
+		if x < 0:
+			return h
+	return homes[0] if not homes.is_empty() else {}
 
 
-func _spawn(kind: String, st: CityState) -> void:
-	var cc := _color_for(st)
-	var a := {"kind": kind, "color": cc[0], "char": cc[1], "wait": _rnd() * 2.0, "speed": 0.45 + 0.35 * _rnd(), "walking": false, "dir": Vector3(1, 0, 0), "phase": _rnd()}
+func _pick_errand(hr: float, tier: int) -> Dictionary:
+	var w: Dictionary = {}
+	if hr >= 5.5 and hr < 10.0:
+		w = {"work": 5, "market": 2, "food": 2, "water": 2}
+	elif hr >= 10.0 and hr < 17.0:
+		w = {"market": 4, "food": 2, "work": 3, "service": 2, "fun": 1, "water": 1}
+	elif hr >= 17.0 and hr < 22.0:
+		w = {"food": 3, "fun": 4, "market": 2, "service": 1}
+	else:
+		w = {"fun": 3, "food": 1}
+	var tot := 0
+	for k in w:
+		if not (dests.get(k, []) as Array).is_empty():
+			tot += int(w[k])
+	if tot == 0:
+		return {}
+	var x := _ri(tot)
+	for k in w:
+		if (dests.get(k, []) as Array).is_empty():
+			continue
+		x -= int(w[k])
+		if x < 0:
+			var list: Array = dests[k]
+			var it: Dictionary = list[_ri(list.size())]
+			return {"kind": k, "bid": it["bid"], "look": it["look"], "sign": it["sign"]}
+	return {}
+
+
+func _going_text(e: Dictionary) -> String:
+	var lk := str(e.get("look", ""))
+	var sg := str(e.get("sign", ""))
+	match str(e.get("kind", "")):
+		"water":
+			return "물 길으러 가는 중"
+		"market":
+			return "장 보러 가는 중"
+		"work":
+			return ("%s에 일하러 가는 중" % sg) if sg != "" else "일하러 가는 중"
+	match lk:
+		"food_cans":
+			return "통조림 사러 가는 중"
+		"food_pilgrims":
+			return "마감 세일 줄 서러 가는 중"
+		"noodle_stall":
+			return "완탕면 먹으러 가는 중"
+		"burger":
+			return "출처 묻지 마 버거 먹으러 가는 중"
+		"sushi":
+			return "어제 잡은 스시 먹으러 가는 중"
+		"mahjong":
+			return "마작 한 판 하러 가는 중"
+		"teahouse":
+			return "차 한 잔 하러 가는 중"
+		"karaoke":
+			return "노래 부르러 가는 중"
+		"bathhouse":
+			return "때 밀러 가는 중"
+		"shrine":
+			return "향 피우러 가는 중"
+		"dentist":
+			return "이 뽑으러 가는 중"
+		"clinic":
+			return "진료 받으러 가는 중"
+		"pharmacy":
+			return "약 비슷한 것 사러 가는 중"
+		"salon":
+			return "머리 하러 가는 중"
+		"study":
+			return "족보 공부하러 가는 중"
+		"gambling", "casino":
+			return "딱 한 판만 하러 가는 중"
+		"roof_park":
+			return "바람 쐬러 가는 중"
+	return ("%s에 가는 중" % sg) if sg != "" else "볼일 보러 가는 중"
+
+
+func _coming_text(e: Dictionary) -> Array:
+	# [글, 자세]
+	match str(e.get("kind", "")):
+		"water":
+			return ["물통 들고 집에 가는 중", "bucket"]
+		"market":
+			return ["장 본 것 메고 집에 가는 중", "sack"]
+		"work":
+			return ["일 끝나고 집에 가는 중", "walk"]
+	if str(e.get("look", "")) == "food_cans":
+		return ["통조림 들고 집에 가는 중", "can"]
+	return ["집에 가는 중", "walk"]
+
+
+func _spawn_walker(hr: float) -> void:
+	if homes.is_empty():
+		return
+	var h := _pick_home()
+	var hd: Array = doors.get(int(h.get("bid", -1)), [])
+	if hd.is_empty():
+		return
+	var e := _pick_errand(hr, int(h["tier"]))
+	if e.is_empty():
+		return
+	var ed: Array = doors.get(int(e["bid"]), [])
+	if ed.is_empty():
+		return
+	var outbound := _rnd() < (0.7 if hr < 16.0 else 0.45)
+	var from: Vector3i = hd[_ri(hd.size())] if outbound else ed[_ri(ed.size())]
+	var goals: Array = ed if outbound else hd
+	var path := _path(from, goals)
+	var text := ""
+	var pose := "walk"
+	if outbound:
+		text = _going_text(e)
+	else:
+		var ct := _coming_text(e)
+		text = ct[0]
+		pose = ct[1]
+	if path.size() < 2:
+		# 길이 끊김: 문 앞에서 잠깐 서성이다 안으로(복도로) 들어간다
+		path = [from]
+		var nb: Vector3i = from
+		for i in 2 + _ri(3):
+			var opts: Array = []
+			for d in DIRS:
+				if nodes.has(nb + d):
+					opts.append(nb + d)
+			if opts.is_empty():
+				break
+			nb = opts[_ri(opts.size())]
+			path.append(nb)
+		if path.size() < 2:
+			return
+		text = text.replace("가는 중", "가는 길(지름길 복도로)")
+	var tier: int = int(h["tier"])
+	var hs := _ri(1 << 20)
+	agents.append({"kind": "walk", "path": path, "i": 0, "pos": _node_pos(path[0], hs), "to": _node_pos(path[1], hs + 1), "hs": hs,
+		"pose": pose, "tier": tier, "text": text, "speed": 0.42 + 0.25 * _rnd(), "wait": 0.0, "dir": Vector3(1, 0, 0),
+		"shirt": cfg.tier_color(tier, hs % 5), "pal": (hs % 6) + ((hs / 6) % 8) * 8 + ((hs / 48) % 8) * 64 + ([0, 1, 2][hs % 3] if pose != "walk" else 0) * 512})
+	if pose == "bucket":
+		agents[-1]["pal"] = (hs % 6) + ((hs / 6) % 8) * 8 + ((hs / 48) % 8) * 64
+	elif pose == "can":
+		agents[-1]["pal"] = (hs % 6) + ((hs / 6) % 8) * 8 + ((hs / 48) % 8) * 64 + 512
+
+
+func _node_pos(n: Vector3i, hs: int) -> Vector3:
+	var ox := float(ViewCfg.h2(hs, n.x * 7 + n.y) % 100) / 100.0 * 0.5 - 0.25
+	var oz := float(ViewCfg.h2(hs + 3, n.y * 5 + n.x) % 100) / 100.0 * 0.5 - 0.25
+	return Vector3(n.x + 0.5 + ox, n.z * cfg.floor_h, n.y + 0.5 + oz)
+
+
+func _spawn_ambient(kind: String) -> void:
+	var hs := _ri(1 << 20)
+	var tier := 1 + hs % 3
+	var a := {"kind": kind, "hs": hs, "pose": "walk", "tier": tier, "speed": 0.5 + 0.3 * _rnd(), "wait": _rnd() * 2.0, "dir": Vector3(1, 0, 0),
+		"shirt": cfg.tier_color(tier, hs % 5), "pal": (hs % 6) + ((hs / 6) % 8) * 8 + ((hs / 48) % 8) * 64}
 	if kind == "gate":
-		a["node"] = Vector3i(0, 0, -1)
 		a["pos"] = _gate + Vector3((_rnd() - 0.5) * 2.6, 0, _rnd() * 1.1)
 		a["home"] = a["pos"]
-	elif kind == "bridge":
-		if _bridges.is_empty():
-			return
-		var b: Dictionary = _bridges[_ri(_bridges.size())]
-		a["node"] = Vector3i(0, 0, -2)
-		a["a"] = b["a"]
-		a["b"] = b["b"]
-		a["pos"] = (b["a"] as Vector3).lerp(b["b"], _rnd())
+		a["pose"] = "stand"
+		a["text"] = "성채에 들어갈 자리를 기다리는 중"
 	else:
-		var list: Array = by_kind.get(kind, [])
-		if list.is_empty():
+		if _street.is_empty():
 			return
-		var k: Vector3i = list[_ri(list.size())]
-		a["node"] = k
-		a["pos"] = (nodes[k]["pos"] as Vector3) + Vector3((_rnd() - 0.5) * 0.5, 0, (_rnd() - 0.5) * 0.5)
-	a["from"] = a["pos"]
+		a["pos"] = _street[_ri(_street.size())]
+		a["text"] = "담장 밖을 지나가는 행인"
 	a["to"] = a["pos"]
 	agents.append(a)
-
-
-func _pick_next(a: Dictionary) -> void:
-	var kind: String = a["kind"]
-	if kind == "gate":
-		var home: Vector3 = a["home"]
-		a["to"] = home + Vector3((_rnd() - 0.5) * 0.4, 0, (_rnd() - 0.5) * 0.4)
-		return
-	if kind == "bridge":
-		a["to"] = a["b"] if (a["pos"] as Vector3).distance_to(a["a"]) < 0.3 else a["a"]
-		return
-	var k: Vector3i = a["node"]
-	var here: Dictionary = nodes.get(k, {})
-	if here.is_empty():
-		return
-	# 같은 자리 안에서 어슬렁 / 옆 칸으로
-	if _rnd() < (0.6 if kind == "inside" else 0.25):
-		a["to"] = (here["pos"] as Vector3) + Vector3((_rnd() - 0.5) * 0.55, 0, (_rnd() - 0.5) * 0.55)
-		return
-	var opts: Array = []
-	for d in [Vector3i(1, 0, 0), Vector3i(-1, 0, 0), Vector3i(0, 1, 0), Vector3i(0, -1, 0)]:
-		var nk: Vector3i = k + d
-		if nodes.has(nk) and nodes[nk]["kind"] == kind:
-			if kind == "inside":
-				# 문이 있을 법한 곳만: 같은 가구/가게거나 절반 확률
-				var ca: Dictionary = Game.state.cells.get(here.get("cell", Vector3i.ZERO), {})
-				var cb: Dictionary = Game.state.cells.get(nodes[nk].get("cell", Vector3i.ZERO), {})
-				if not mesher._same_unit(ca, cb) and _rnd() < 0.8:
-					continue
-			opts.append(nk)
-		elif kind == "roof":
-			# 한 층 차이는 가끔 오르내린다(사다리)
-			for dz in [1, -1]:
-				var nk2: Vector3i = nk + Vector3i(0, 0, dz)
-				if nodes.has(nk2) and nodes[nk2]["kind"] == "roof" and _rnd() < 0.25:
-					opts.append(nk2)
-	if opts.is_empty():
-		a["to"] = (here["pos"] as Vector3) + Vector3((_rnd() - 0.5) * 0.5, 0, (_rnd() - 0.5) * 0.5)
-		return
-	var nx: Vector3i = opts[_ri(opts.size())]
-	a["node"] = nx
-	a["to"] = (nodes[nx]["pos"] as Vector3) + Vector3((_rnd() - 0.5) * 0.5, 0, (_rnd() - 0.5) * 0.5)
 
 
 func step(delta: float, t: float) -> void:
 	var st: CityState = Game.state
 	if st == null:
 		return
+	_t += delta
+	var hr := t * 24.0
 	_tick -= delta
 	if _tick <= 0.0:
-		_tick = 0.12
-		var want := _targets(t)
+		_tick = 0.2
+		var want := _targets(hr)
 		var have := {}
 		for a in agents:
 			have[a["kind"]] = int(have.get(a["kind"], 0)) + 1
 		for kind in want:
 			var n: int = int(have.get(kind, 0))
 			if n < int(want[kind]) and agents.size() < MAX_INST:
-				for i in mini(int(want[kind]) - n, 6):
-					_spawn(kind, st)
-			elif n > int(want[kind]):
-				for i in agents.size():
-					if agents[i]["kind"] == kind and not agents[i]["walking"]:
-						agents.remove_at(i)
-						break
+				for i in mini(int(want[kind]) - n, 3):
+					if kind == "walk":
+						_spawn_walker(hr)
+					else:
+						_spawn_ambient(kind)
+	var keep: Array = []
 	for a in agents:
-		if a["walking"]:
-			var to: Vector3 = a["to"]
-			var pos: Vector3 = a["pos"]
-			var d := to - pos
-			var dist := d.length()
-			var stepd: float = float(a["speed"]) * delta
-			if dist <= stepd:
-				a["pos"] = to
-				a["walking"] = false
-				a["wait"] = _rnd() * (4.0 if a["kind"] != "street" and a["kind"] != "bridge" else 0.5) + (1.5 if a["kind"] == "gate" else 0.0)
-			else:
-				a["pos"] = pos + d / dist * stepd
-				a["dir"] = d / dist
-		else:
-			a["wait"] = float(a["wait"]) - delta
-			if float(a["wait"]) <= 0.0:
-				_pick_next(a)
-				a["walking"] = (a["to"] as Vector3).distance_to(a["pos"]) > 0.02
+		if _advance(a, delta):
+			keep.append(a)
+	agents = keep
 	_render()
 
 
+## 한 사람을 움직인다. false면 사라진다(목적지 문으로 들어감).
+func _advance(a: Dictionary, delta: float) -> bool:
+	if float(a["wait"]) > 0.0:
+		a["wait"] = float(a["wait"]) - delta
+		return true
+	var to: Vector3 = a["to"]
+	var pos: Vector3 = a["pos"]
+	var d := to - pos
+	var hd := Vector2(d.x, d.z)
+	var dist := hd.length()
+	var stepd: float = float(a["speed"]) * delta
+	if dist > 0.001:
+		a["dir"] = Vector3(d.x, 0, d.z) / dist
+	if dist <= stepd:
+		a["pos"] = to
+		match str(a["kind"]):
+			"walk":
+				var i := int(a["i"]) + 1
+				var path: Array = a["path"]
+				if i >= path.size() - 1:
+					return false
+				a["i"] = i
+				a["to"] = _node_pos(path[i + 1], int(a["hs"]) + i + 1)
+				if _rnd() < 0.04:
+					a["wait"] = 0.6 + _rnd() * 1.5   # 잠깐 멈춰 두리번
+			"gate":
+				var home: Vector3 = a["home"]
+				a["to"] = home + Vector3((_rnd() - 0.5) * 0.4, 0, (_rnd() - 0.5) * 0.4)
+				a["wait"] = 1.0 + _rnd() * 3.0
+			_:
+				a["to"] = _street[_ri(_street.size())] if _rnd() < 0.2 else pos + Vector3(_rnd() - 0.5, 0, _rnd() - 0.5) * 2.0
+				if _rnd() < 0.15:
+					return false
+	else:
+		# 층이 바뀌는 칸에서는 위아래로(사다리) 먼저
+		var np := pos + d / maxf(d.length(), 0.0001) * stepd
+		if absf(d.y) > 0.05 and dist < 0.6:
+			np = Vector3(pos.x + d.x * 0.1, move_toward(pos.y, to.y, stepd * 1.2), pos.z + d.z * 0.1)
+		a["pos"] = np
+	return true
+
+
 func _render() -> void:
-	var zf: float = float(view._zoom_levels[view.zoom_i])
-	var lod := 0 if zf < 1.6 else (1 if zf < 3.0 else 2)
+	var lod := 0 if _zoom_i <= 1 else (1 if _zoom_i == 2 else 2)
 	for i in 3:
 		(_mmi[i] as MultiMeshInstance3D).visible = i == lod
 	var mm: MultiMesh = (_mmi[lod] as MultiMeshInstance3D).multimesh
 	var mat: ShaderMaterial = _mats[lod]
 	mat.set_shader_parameter("ppu", view.ppu())
-	mat.set_shader_parameter("px_scale", 1.0)
 	var basis: Basis = view._cam.global_transform.basis
-	var fh := cfg.floor_h
+	var cut_y := 1000.0 if _cut < 0 else float(_cut) * cfg.floor_h + 0.05
 	var n := mini(agents.size(), MAX_INST)
-	var tt: float = view._t
-	var cut_y := 1000.0 if _cut < 0 else float(_cut) * fh + 0.05
 	for i in n:
 		var a: Dictionary = agents[i]
 		var pos: Vector3 = a["pos"]
 		mm.set_instance_transform(i, Transform3D(Basis.IDENTITY, pos))
-		mm.set_instance_color(i, a["color"])
+		var sh: Color = a["shirt"]
+		mm.set_instance_color(i, Color(sh.r, sh.g, sh.b, 0.0))
 		var dir: Vector3 = a["dir"]
 		var sx := dir.dot(basis.x)
 		var sy := dir.dot(basis.y)
-		var walking: bool = a["walking"]
-		var fr := int(tt * 5.0 + float(a["phase"]) * 7.0) % 2
-		var hide := 1.0 if pos.y > cut_y else 0.0
-		if lod < 2:
-			mm.set_instance_custom_data(i, Color(float(fr) if walking else 0.0, 0.0, 1.0 if sx < 0.0 else 0.0, hide))
-		else:
-			var colx := 1
-			if sx >= 0.0 and sy < 0.0:
-				colx = 3
-			elif sx < 0.0 and sy >= 0.0:
-				colx = 0
-			elif sx >= 0.0 and sy >= 0.0:
-				colx = 2
-			var ch: int = int(a["char"]) % 16
-			var row := (1 + fr) if walking else 0
-			mm.set_instance_custom_data(i, Color(float((ch % 4) * 4 + colx), float((ch / 4) * 3 + row), 0.0, hide))
+		var row := 0
+		var flip := 0.0
+		if absf(sx) > absf(sy) * 1.15:
+			row = 1
+			flip = 1.0 if sx < 0.0 else 0.0
+		elif sy > 0.0:
+			row = 2
+		var moving: bool = float(a["wait"]) <= 0.0 and (a["to"] as Vector3).distance_to(pos) > 0.01
+		var pose: String = str(a["pose"])
+		if not moving and pose == "walk":
+			pose = "stand"
+		var fr := int(floor(_t * 4.0 + float(int(a["hs"]) % 100) * 0.07)) % 2 if moving else 0
+		var hide := 2.0 if pos.y > cut_y else 0.0
+		mm.set_instance_custom_data(i, Color(float(PeopleSprites.pose_index(pose) * 2 + fr), float(row), flip + hide, float(a["pal"])))
 	mm.visible_instance_count = n
 
 
@@ -455,3 +549,31 @@ func set_light(amb: Vector3, night: float, neon_gain: float, lg_origin: Vector3,
 		mat.set_shader_parameter("neon_gain", neon_gain)
 		mat.set_shader_parameter("lg_origin", lg_origin)
 		mat.set_shader_parameter("lg_inv_size", lg_inv)
+
+
+## 화면 점(이 Control 좌표) 근처의 주민 한 줄.
+func who(screen_pos: Vector2) -> Dictionary:
+	var best := -1
+	var bd := 1e9
+	var hpx: float = (LOD_SIZE[0 if _zoom_i <= 1 else (1 if _zoom_i == 2 else 2)] as Vector2).y * float(view._up) / maxf(view._canvas_scale, 0.01)
+	var cut_y := 1000.0 if _cut < 0 else float(_cut) * cfg.floor_h + 0.05
+	for i in agents.size():
+		var a: Dictionary = agents[i]
+		var pos: Vector3 = a["pos"]
+		if pos.y > cut_y:
+			continue
+		var sp: Vector2 = view.project_world(pos)
+		var c := sp - Vector2(0, hpx * 0.45)
+		var dd := c.distance_to(screen_pos)
+		if dd < maxf(hpx * 0.6, 10.0) and dd < bd:
+			bd = dd
+			best = i
+	if best < 0:
+		return {"ok": false, "text": ""}
+	var ag: Dictionary = agents[best]
+	var tn: String = _tier_names[clampi(int(ag.get("tier", 1)), 1, 5) - 1]
+	return {"ok": true, "text": "%s · %s" % [tn, str(ag.get("text", "산책하는 중"))], "tier": int(ag.get("tier", 1)), "pos": ag["pos"]}
+
+
+func expedition(_claimed: bool) -> void:
+	pass

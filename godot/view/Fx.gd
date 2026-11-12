@@ -3,8 +3,8 @@ extends Node3D
 ## 연출 입자(김·연기·향·불꽃·물방울·비둘기·먼지) + 카이탁 비행기. 전부 셰이더가 시간으로 움직인다.
 
 const FxShader := preload("res://view/shaders/fx.gdshader")
-const KINDS := {"steam": 0, "smoke": 1, "incense": 2, "sparks": 3, "drip": 4, "pigeons": 5, "dust": 6, "mote": 7}
-const COUNT := {"steam": 3, "smoke": 4, "incense": 3, "sparks": 5, "drip": 1, "pigeons": 6, "mote": 2}
+const KINDS := {"steam": 0, "smoke": 1, "incense": 2, "sparks": 3, "drip": 4, "pigeons": 5, "dust": 6, "mote": 7, "fire": 8, "soot": 9, "flies": 10, "bubble": 11, "site": 12, "rain": 13}
+const COUNT := {"steam": 3, "smoke": 4, "incense": 3, "sparks": 5, "drip": 1, "pigeons": 6, "mote": 2, "fire": 14, "soot": 6, "flies": 5, "bubble": 3, "site": 2, "rain": 1}
 
 var cfg: ViewCfg
 var _mm: MultiMesh

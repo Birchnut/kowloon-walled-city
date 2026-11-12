@@ -1,0 +1,613 @@
+{
+ "_comment": "시설 외형 이름표(look) → 바깥 모양 매개변수(VIEW 소유). 안 모양(소품·사람 자리)은 view/FacilityBuilder.gd의 같은 이름 갈래. 덮는 순서: _default ← _cat_<분류> ← <look>. 키: form(box|open|shed|tank|pole|shrine) wall front(shop|shutter|glass|door|open|hall) win sign_style(neon|paint|board|lantern|none) sign_color awning floor paper roof[] fx busy(day|evening|night|always) glow power",
+ "looks": {
+  "_default": {
+   "form": "box",
+   "wall": "render",
+   "front": "shop",
+   "win": "small",
+   "sign_style": "paint",
+   "sign_color": "red",
+   "awning": "",
+   "floor": "concrete",
+   "paper": "#d8ccb8",
+   "roof": [
+    "ac"
+   ],
+   "fx": "",
+   "busy": "day",
+   "glow": ""
+  },
+  "_cat_market": {
+   "awning": "#d85f5f",
+   "busy": "day"
+  },
+  "_cat_water": {
+   "wall": "concrete",
+   "front": "door",
+   "sign_style": "paint",
+   "sign_color": "cyan",
+   "roof": [
+    "tanks"
+   ]
+  },
+  "_cat_power": {
+   "wall": "panel",
+   "front": "shutter",
+   "sign_style": "paint",
+   "sign_color": "yellow",
+   "roof": [
+    "vent"
+   ],
+   "power": true,
+   "busy": "always"
+  },
+  "_cat_food": {
+   "awning": "#e0a23c",
+   "fx": "steam"
+  },
+  "_cat_goods": {
+   "wall": "brick",
+   "front": "shutter",
+   "win": "std"
+  },
+  "_cat_fun": {
+   "sign_style": "neon",
+   "sign_color": "magenta",
+   "busy": "evening"
+  },
+  "_cat_service": {
+   "wall": "mosaic",
+   "front": "glass",
+   "sign_style": "paint",
+   "sign_color": "blue"
+  },
+  "_cat_safety": {
+   "wall": "brick",
+   "front": "shutter",
+   "sign_style": "paint",
+   "sign_color": "red",
+   "busy": "always"
+  },
+  "_cat_base": {
+   "wall": "sheet",
+   "front": "shutter",
+   "sign_style": "paint",
+   "sign_color": "orange"
+  },
+  "_cat_vice": {
+   "sign_style": "neon",
+   "sign_color": "violet",
+   "busy": "night",
+   "wall": "render"
+  },
+  "_cat_landmark": {
+   "wall": "smooth",
+   "sign_style": "board",
+   "sign_color": "yellow",
+   "busy": "day"
+  },
+  "market_mat": {
+   "form": "open",
+   "ground": "mat",
+   "sign_style": "board",
+   "sign_color": "red",
+   "fx": "",
+   "busy": "day",
+   "hint": "돗자리 위 물건·우산·쪼그려 앉은 장사꾼"
+  },
+  "market_alley": {
+   "form": "shed",
+   "roofmat": "sheet",
+   "awning": "#5fa8e6",
+   "sign_style": "board",
+   "sign_color": "red",
+   "hint": "천막 아래 좌판·매달린 전구"
+  },
+  "market_hall": {
+   "wall": "formed",
+   "front": "open",
+   "awning": "#d85f5f",
+   "sign_style": "paint",
+   "sign_color": "red",
+   "floor": "tile",
+   "roof": [
+    "tanks",
+    "ac"
+   ],
+   "hint": "좌판 줄·고기 갈고리·생선 상자"
+  },
+  "market_mall": {
+   "wall": "curtain",
+   "front": "glass",
+   "sign_style": "neon",
+   "sign_color": "cyan",
+   "floor": "checker",
+   "roof": [
+    "neon_roof",
+    "ac"
+   ],
+   "busy": "evening",
+   "glow": "cyan"
+  },
+  "water_catcher": {
+   "form": "open",
+   "ground": "roof",
+   "sign_style": "none",
+   "roof": [],
+   "hint": "방수포 깔때기·물통"
+  },
+  "water_tank": {
+   "form": "tank",
+   "sign_style": "paint",
+   "sign_color": "cyan"
+  },
+  "water_pipe": {
+   "wall": "concrete",
+   "front": "shutter",
+   "floor": "concrete",
+   "roof": [
+    "tanks"
+   ],
+   "fx": "drip"
+  },
+  "water_plant": {
+   "wall": "formed",
+   "front": "door",
+   "floor": "tile",
+   "roof": [
+    "tanks",
+    "tanks"
+   ]
+  },
+  "gen_small": {
+   "form": "shed",
+   "roofmat": "sheet",
+   "sign_style": "paint",
+   "sign_color": "yellow",
+   "fx": "smoke",
+   "power": true
+  },
+  "power_tap": {
+   "form": "pole",
+   "sign_style": "none",
+   "power": true
+  },
+  "power_plant": {
+   "wall": "brick",
+   "front": "shutter",
+   "roof": [
+    "chimney2",
+    "vent"
+   ],
+   "fx": "smoke",
+   "glow": "yellow"
+  },
+  "power_waste": {
+   "wall": "sheet",
+   "front": "shutter",
+   "roof": [
+    "chimney",
+    "vent"
+   ],
+   "fx": "smoke",
+   "glow": "orange"
+  },
+  "food_cans": {
+   "wall": "sheet",
+   "front": "shop",
+   "awning": "#7a9a5c",
+   "fx": "",
+   "floor": "concrete",
+   "roof": [
+    "junk"
+   ]
+  },
+  "food_pilgrims": {
+   "wall": "scrap",
+   "front": "shop",
+   "awning": "#c9a04a",
+   "fx": "",
+   "floor": "concrete"
+  },
+  "noodle_mill": {
+   "wall": "brick",
+   "front": "shutter",
+   "roof": [
+    "racks",
+    "chimney"
+   ],
+   "floor": "concrete"
+  },
+  "noodle_stall": {
+   "form": "shed",
+   "roofmat": "sheet",
+   "awning": "#e0a23c",
+   "sign_style": "board",
+   "sign_color": "red",
+   "fx": "steam",
+   "busy": "evening",
+   "glow": "orange"
+  },
+  "rat_farm": {
+   "wall": "scrap",
+   "front": "door",
+   "awning": "",
+   "floor": "dirt",
+   "roof": [
+    "junk"
+   ],
+   "fx": ""
+  },
+  "burger": {
+   "wall": "panel",
+   "front": "shop",
+   "awning": "#d85f5f",
+   "sign_style": "neon",
+   "sign_color": "orange",
+   "busy": "evening",
+   "glow": "orange",
+   "roof": [
+    "vent"
+   ]
+  },
+  "sushi": {
+   "wall": "smooth",
+   "front": "shop",
+   "awning": "#3e4a7a",
+   "sign_style": "neon",
+   "sign_color": "white",
+   "floor": "wood",
+   "busy": "evening",
+   "glow": "white"
+  },
+  "roof_garden": {
+   "form": "open",
+   "ground": "soil",
+   "sign_style": "none",
+   "fx": ""
+  },
+  "brewery": {
+   "wall": "brick",
+   "front": "door",
+   "roof": [
+    "chimney"
+   ],
+   "floor": "concrete",
+   "fx": "steam"
+  },
+  "oil_collect": {
+   "form": "shed",
+   "roofmat": "sheet",
+   "sign_style": "paint",
+   "sign_color": "yellow"
+  },
+  "candle": {
+   "wall": "timber",
+   "front": "shop",
+   "awning": "#c2463c",
+   "floor": "wood",
+   "roof": [
+    "racks"
+   ],
+   "glow": "orange"
+  },
+  "soap": {
+   "wall": "mosaic",
+   "front": "shop",
+   "awning": "#8fc0b8",
+   "floor": "tile",
+   "fx": ""
+  },
+  "rag_collect": {
+   "wall": "scrap",
+   "front": "open",
+   "floor": "dirt",
+   "roof": [
+    "junk"
+   ],
+   "fx": ""
+  },
+  "tailor": {
+   "wall": "render",
+   "front": "shop",
+   "awning": "#b86a5a",
+   "floor": "wood",
+   "roof": [
+    "ac",
+    "laundry"
+   ]
+  },
+  "suit": {
+   "wall": "smooth",
+   "front": "glass",
+   "awning": "#3e4a7a",
+   "floor": "carpet",
+   "sign_style": "paint",
+   "sign_color": "white"
+  },
+  "radio": {
+   "wall": "panel",
+   "front": "shop",
+   "awning": "#5f86c4",
+   "floor": "concrete",
+   "roof": [
+    "antenna",
+    "dish"
+   ],
+   "sign_style": "neon",
+   "sign_color": "cyan",
+   "fx": "sparks",
+   "glow": "cyan"
+  },
+  "assembly": {
+   "wall": "clad",
+   "front": "shutter",
+   "floor": "concrete",
+   "roof": [
+    "vent",
+    "ac"
+   ],
+   "fx": "sparks"
+  },
+  "fake": {
+   "wall": "render",
+   "front": "shutter",
+   "floor": "wood",
+   "sign_style": "neon",
+   "sign_color": "yellow",
+   "busy": "night"
+  },
+  "mahjong": {
+   "wall": "render",
+   "front": "shop",
+   "floor": "carpet",
+   "sign_style": "neon",
+   "sign_color": "green",
+   "busy": "evening",
+   "glow": "green",
+   "fx": "smoke_thin"
+  },
+  "teahouse": {
+   "wall": "timber",
+   "front": "open",
+   "awning": "#5fae7a",
+   "floor": "wood",
+   "sign_style": "lantern",
+   "sign_color": "red",
+   "busy": "day",
+   "fx": "steam",
+   "roof": [
+    "lanterns"
+   ]
+  },
+  "karaoke": {
+   "wall": "render",
+   "front": "glass",
+   "floor": "carpet",
+   "sign_style": "neon",
+   "sign_color": "magenta",
+   "busy": "night",
+   "glow": "magenta",
+   "roof": [
+    "neon_roof"
+   ]
+  },
+  "bathhouse": {
+   "wall": "mosaic",
+   "front": "door",
+   "floor": "tile",
+   "sign_style": "paint",
+   "sign_color": "blue",
+   "roof": [
+    "chimney",
+    "tanks"
+   ],
+   "fx": "steam",
+   "busy": "evening"
+  },
+  "shrine": {
+   "form": "shrine",
+   "sign_style": "lantern",
+   "sign_color": "red",
+   "busy": "always"
+  },
+  "study": {
+   "wall": "render",
+   "front": "shop",
+   "floor": "wood",
+   "sign_style": "paint",
+   "sign_color": "blue",
+   "busy": "day"
+  },
+  "roof_park": {
+   "form": "open",
+   "ground": "park",
+   "sign_style": "none",
+   "busy": "evening"
+  },
+  "dentist": {
+   "wall": "smooth",
+   "front": "glass",
+   "floor": "checker",
+   "sign_style": "paint",
+   "sign_color": "cyan",
+   "busy": "day"
+  },
+  "pharmacy": {
+   "wall": "mosaic",
+   "front": "shop",
+   "awning": "#5fae7a",
+   "floor": "tile",
+   "sign_style": "neon",
+   "sign_color": "green",
+   "busy": "day",
+   "glow": "green"
+  },
+  "salon": {
+   "wall": "smooth",
+   "front": "glass",
+   "awning": "#e8a0b8",
+   "floor": "checker",
+   "sign_style": "neon",
+   "sign_color": "magenta",
+   "busy": "day"
+  },
+  "fire_bucket": {
+   "wall": "brick",
+   "front": "open",
+   "floor": "concrete",
+   "sign_style": "paint",
+   "sign_color": "red",
+   "roof": [
+    "bell"
+   ],
+   "busy": "always"
+  },
+  "fire_station": {
+   "wall": "brick",
+   "front": "shutter",
+   "floor": "concrete",
+   "sign_style": "paint",
+   "sign_color": "red",
+   "roof": [
+    "siren",
+    "tanks"
+   ],
+   "busy": "always",
+   "glow": "red"
+  },
+  "trash_guild": {
+   "wall": "sheet",
+   "front": "open",
+   "floor": "dirt",
+   "sign_style": "paint",
+   "sign_color": "green",
+   "roof": [
+    "junk"
+   ]
+  },
+  "clinic": {
+   "wall": "render",
+   "front": "door",
+   "floor": "tile",
+   "sign_style": "neon",
+   "sign_color": "green",
+   "busy": "always",
+   "glow": "green"
+  },
+  "scrapyard": {
+   "form": "shed",
+   "roofmat": "sheet",
+   "sign_style": "board",
+   "sign_color": "orange",
+   "fx": "sparks"
+  },
+  "warehouse": {
+   "wall": "sheet",
+   "front": "shutter",
+   "floor": "concrete",
+   "roof": [
+    "tanks"
+   ]
+  },
+  "trade_post": {
+   "wall": "brick",
+   "front": "shop",
+   "awning": "#c9a04a",
+   "floor": "wood",
+   "sign_style": "board",
+   "sign_color": "yellow",
+   "roof": [
+    "antenna"
+   ]
+  },
+  "expedition_base": {
+   "wall": "sheet",
+   "front": "shutter",
+   "floor": "concrete",
+   "sign_style": "paint",
+   "sign_color": "orange",
+   "roof": [
+    "mast"
+   ]
+  },
+  "gambling": {
+   "wall": "render",
+   "front": "door",
+   "floor": "carpet",
+   "sign_style": "neon",
+   "sign_color": "red",
+   "busy": "night",
+   "glow": "red"
+  },
+  "casino": {
+   "wall": "render",
+   "front": "glass",
+   "floor": "carpet",
+   "sign_style": "neon",
+   "sign_color": "yellow",
+   "busy": "night",
+   "glow": "magenta",
+   "roof": [
+    "neon_roof"
+   ]
+  },
+  "callcenter": {
+   "wall": "clad",
+   "front": "glass",
+   "floor": "carpet",
+   "sign_style": "paint",
+   "sign_color": "blue",
+   "roof": [
+    "antenna",
+    "dish"
+   ],
+   "busy": "always"
+  },
+  "fireworks": {
+   "wall": "brick",
+   "front": "shutter",
+   "floor": "concrete",
+   "sign_style": "paint",
+   "sign_color": "red",
+   "fx": "sparks"
+  },
+  "landmark_hall": {
+   "wall": "render",
+   "front": "hall",
+   "floor": "wood",
+   "sign_style": "board",
+   "sign_color": "yellow",
+   "roof": [
+    "hall"
+   ],
+   "busy": "day"
+  },
+  "landmark_generic": {
+   "wall": "smooth",
+   "front": "glass",
+   "floor": "checker",
+   "sign_style": "neon",
+   "sign_color": "violet",
+   "roof": [
+    "neon_roof"
+   ],
+   "busy": "evening"
+  },
+  "generic_workshop": {
+   "wall": "brick",
+   "front": "shutter",
+   "floor": "concrete"
+  },
+  "generic_shop": {
+   "wall": "render",
+   "front": "shop",
+   "awning": "#d85f5f"
+  },
+  "generic_service": {
+   "wall": "mosaic",
+   "front": "glass"
+  }
+ }
+}

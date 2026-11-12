@@ -8,6 +8,7 @@ var _recipe_cache: Dictionary = {}
 var _mat_cache: Dictionary = {}
 var _look_cache: Dictionary = {}
 static var overrides: Dictionary = {}
+static var grid_override := Vector3i.ZERO
 
 # 파생 상수(카메라 수학)
 var cell_half_px: float = 8.0
@@ -15,7 +16,7 @@ var storey_px: float = 8.0
 var elev: float = deg_to_rad(30.0)
 var ppu1: float = 11.3137       # 줌 ×1에서 월드 1단위 = 몇 픽셀
 var floor_h: float = 0.8165      # 한 층 높이(월드 단위)
-var grid: Vector3i = Vector3i(12, 12, 10)
+var grid: Vector3i = Vector3i(16, 16, 10)
 
 const TEX: float = 1.0 / 16.0   # 수평 텍셀 1개 = 월드 1/16
 
@@ -42,7 +43,25 @@ func reload() -> void:
 	elev = deg_to_rad(float(r("pixel.elevation_deg", 30.0)))
 	ppu1 = cell_half_px * sqrt(2.0)
 	floor_h = storey_px / (ppu1 * cos(elev))
-	grid = Vector3i(int(Data.cfg("grid.width", 12)), int(Data.cfg("grid.height", 12)), int(Data.cfg("grid.max_floors", 10)))
+	grid = Vector3i(int(Data.cfg("grid.width", 16)), int(Data.cfg("grid.height", 16)), int(Data.cfg("grid.max_floors", 10)))
+	if grid_override != Vector3i.ZERO:
+		grid = grid_override
+
+
+## 격자 크기: state.flags.grid({w,h,floors}) → config → 셀이 실제로 있는 범위까지 넓힌다. 어느 값도 12를 가정하지 않는다.
+func fit_grid(st: Object) -> void:
+	var g := grid
+	if st != null:
+		var fl: Variant = st.get("flags")
+		if fl is Dictionary and (fl as Dictionary).get("grid") is Dictionary:
+			var gd: Dictionary = fl["grid"]
+			g = Vector3i(int(gd.get("w", g.x)), int(gd.get("h", g.y)), int(gd.get("floors", g.z)))
+		var cs: Variant = st.get("cells")
+		if cs is Dictionary:
+			for p in cs:
+				if p is Vector3i:
+					g = Vector3i(maxi(g.x, p.x + 1), maxi(g.y, p.y + 1), maxi(g.z, p.z + 1))
+	grid = g
 
 
 func r(path: String, default: Variant = null) -> Variant:
@@ -125,6 +144,60 @@ func recipe(kind: String, type: String) -> Dictionary:
 		out.merge(dt, true)
 	_recipe_cache[key] = out
 	return out
+
+
+## 시설 외형 이름표(look) → 바깥 모양 매개변수(data/art/looks.json). _default ← _cat_<분류> ← <look>.
+func look_recipe(look: String, cat: String = "") -> Dictionary:
+	var key := look + "|" + cat
+	if _recipe_cache.has(key):
+		return _recipe_cache[key]
+	var root: Variant = Data.file("looks")
+	var ls: Dictionary = (root as Dictionary).get("looks", {}) if root is Dictionary else {}
+	var out: Dictionary = {"form": "box", "wall": "render", "front": "shop", "win": "small", "sign_style": "paint", "sign_color": "red", "floor": "concrete", "roof": [], "busy": "day"}
+	var dk: Variant = ls.get("_default", {})
+	if dk is Dictionary:
+		out.merge(dk, true)
+	var c2 := cat if cat != "" else str(LOOK_CAT.get(look, ""))
+	var dc: Variant = ls.get("_cat_" + c2, {})
+	if dc is Dictionary:
+		out.merge(dc, true)
+	var dl: Variant = ls.get(look, {})
+	if dl is Dictionary:
+		out.merge(dl, true)
+	_recipe_cache[key] = out
+	return out
+
+
+func has_look(look: String) -> bool:
+	var root: Variant = Data.file("looks")
+	return root is Dictionary and ((root as Dictionary).get("looks", {}) as Dictionary).has(look) and not look.begins_with("_")
+
+
+## 계약의 look 목록과 분류(ARCHITECTURE v4). 모르는 look은 분류별 기본 외형으로.
+const LOOK_CAT := {
+	"market_mat": "market", "market_alley": "market", "market_hall": "market", "market_mall": "market",
+	"water_catcher": "water", "water_tank": "water", "water_pipe": "water", "water_plant": "water",
+	"gen_small": "power", "power_tap": "power", "power_plant": "power", "power_waste": "power",
+	"food_cans": "food", "food_pilgrims": "food", "noodle_mill": "food", "noodle_stall": "food", "rat_farm": "food", "burger": "food", "sushi": "food", "roof_garden": "food", "brewery": "food",
+	"oil_collect": "goods", "candle": "goods", "soap": "goods", "rag_collect": "goods", "tailor": "goods", "suit": "goods", "radio": "goods", "assembly": "goods", "fake": "goods",
+	"mahjong": "fun", "teahouse": "fun", "karaoke": "fun", "bathhouse": "service", "shrine": "service", "study": "service", "roof_park": "fun", "dentist": "service", "pharmacy": "service", "salon": "service",
+	"fire_bucket": "safety", "fire_station": "safety", "trash_guild": "safety", "clinic": "safety",
+	"scrapyard": "base", "warehouse": "base", "trade_post": "base", "expedition_base": "base",
+	"gambling": "vice", "casino": "vice", "callcenter": "vice", "fireworks": "vice",
+	"landmark_hall": "landmark", "landmark_generic": "landmark",
+	"generic_workshop": "goods", "generic_shop": "market", "generic_service": "service",
+}
+## 분류(시뮬 buildings.json의 cat 이름이 달라도 앞 글자로 대충 맞춘다) → 기본 look
+const CAT_LOOK := {"market": "generic_shop", "food": "generic_shop", "water": "water_pipe", "power": "gen_small", "goods": "generic_workshop", "industry": "generic_workshop",
+	"fun": "generic_service", "service": "generic_service", "safety": "generic_service", "base": "warehouse", "vice": "gambling", "landmark": "landmark_generic", "utility": "water_pipe"}
+## v3 시설 id → look(옛 저장·옛 데이터 호환)
+const V3_LOOK := {"stall": "market_mat", "market_basic": "market_alley", "market_general": "market_hall", "market_luxury": "market_mall", "rain_catcher": "water_catcher",
+	"water_tower": "water_tank", "water_main": "water_pipe", "water_works": "water_plant", "generator": "gen_small", "grid_power": "power_tap", "power_plant": "power_plant",
+	"cogen_plant": "power_waste", "rooftop_farm": "roof_garden", "garden": "roof_garden", "roof_garden": "roof_park", "noodle_works": "noodle_mill", "fishball_works": "noodle_stall",
+	"moonshine": "brewery", "candle_shop": "candle", "sewing_shop": "tailor", "soap_shop": "soap", "tailor": "suit", "radio_shop": "radio", "assembly": "assembly", "fake_shop": "fake",
+	"shrine": "shrine", "teahouse": "teahouse", "mahjong": "mahjong", "dentist": "dentist", "bathhouse": "bathhouse", "study_hall": "study", "karaoke": "karaoke",
+	"gambling_den": "gambling", "call_centre": "callcenter", "casino": "casino", "fireworks": "fireworks", "scrapyard": "scrapyard", "warehouse": "warehouse",
+	"trade_post": "trade_post", "expedition_post": "expedition_base", "landmark_hall": "landmark_hall"}
 
 
 ## 주거 외관(계층 × 자재). 없는 키는 같은 자재의 가까운 계층 → common_1 → 내장 기본값.

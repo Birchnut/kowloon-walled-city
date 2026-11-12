@@ -45,6 +45,8 @@ var power_on := false
 var mb: MeshBuf
 var lights: Array = []
 var emitters: Array = []
+var slots: Array = []             # 시설 안 사람 자리(FacilityBuilder.slot)
+var fac := FacilityBuilder.new()
 
 
 func setup(c: ViewCfg, a: PixelAtlas) -> void:
@@ -53,6 +55,7 @@ func setup(c: ViewCfg, a: PixelAtlas) -> void:
 	fh = c.floor_h
 	gw = c.grid.x
 	gh = c.grid.y
+	fac.setup(self)
 
 
 static func fkey(p: Vector3i, d: int) -> int:
@@ -67,6 +70,8 @@ func owner_of(p: Vector3i) -> int:
 
 
 func recipe_of(c: Dictionary) -> Dictionary:
+	if str(c.get("kind", "")) == "facility":
+		return cfg.look_recipe(look_name(c), cat_of(c))
 	return cfg.recipe(str(c.get("kind", "")), str(c.get("type", "")))
 
 
@@ -79,6 +84,59 @@ func is_box(c: Dictionary) -> bool:
 	if kind == "house":
 		return true
 	return str(recipe_of(c).get("form", "box")) == "box"
+
+
+## 건물 범위: origin, w, h, d(층 수). v4 셀 키(w,h,d)가 없으면 v3 size로.
+func extent_of(c: Dictionary, p: Vector3i) -> Dictionary:
+	var o: Variant = c.get("origin", p)
+	if not (o is Vector3i):
+		o = p
+	var sz := int(c.get("size", 1))
+	return {"origin": o, "w": maxi(int(c.get("w", sz)), 1), "h": maxi(int(c.get("h", sz)), 1), "d": maxi(int(c.get("d", 1)), 1)}
+
+
+## 시설 외형 이름표: 셀 → 건물 → buildings.json → v3 id 표 → 분류 기본.
+func look_name(c: Dictionary) -> String:
+	var lk := str(c.get("look", ""))
+	if lk == "":
+		lk = str(bld(c).get("look", ""))
+	var type := str(c.get("type", ""))
+	if lk == "" and type != "":
+		lk = str(Data.item("buildings", type).get("look", ""))
+	if lk != "" and cfg.has_look(lk):
+		return lk
+	if ViewCfg.V3_LOOK.has(type):
+		return ViewCfg.V3_LOOK[type]
+	var cat := cat_of(c)
+	for k in ViewCfg.CAT_LOOK:
+		if cat.begins_with(k):
+			return ViewCfg.CAT_LOOK[k]
+	return "generic_shop"
+
+
+func cat_of(c: Dictionary) -> String:
+	var cat := str(bld(c).get("cat", ""))
+	if cat == "":
+		cat = str(Data.item("buildings", str(c.get("type", ""))).get("cat", ""))
+	if cat == "":
+		cat = str(ViewCfg.LOOK_CAT.get(str(c.get("look", "")), ""))
+	return cat
+
+
+## 간판 글자(짧은 한글): 셀 → 건물 → buildings.json. 한자는 걸러 낸다.
+func sign_of(c: Dictionary) -> String:
+	var t := str(c.get("sign", ""))
+	if t == "":
+		t = str(bld(c).get("sign", ""))
+	if t == "":
+		t = str(Data.item("buildings", str(c.get("type", ""))).get("sign", ""))
+	var out := ""
+	for i in t.length():
+		var cp := t.unicode_at(i)
+		if (cp >= 0x4E00 and cp <= 0x9FFF) or (cp >= 0x3400 and cp <= 0x4DBF) or (cp >= 0xF900 and cp <= 0xFAFF):
+			continue
+		out += t[i]
+	return out.substr(0, 5)
 
 
 func bld(c: Dictionary) -> Dictionary:
@@ -153,6 +211,7 @@ func prepare(s: CityState) -> void:
 	sup_floor.clear()
 	top_z = 0
 	power_on = city_power(s, cfg)
+	fac.reset()
 	for z in cfg.grid.z + 2:
 		by_floor.append([])
 		sup_floor.append([])
@@ -177,11 +236,8 @@ func prepare(s: CityState) -> void:
 			hh = float(p.z) + clampf(float(c.get("progress", 0.0)), 0.0, 1.0) * 0.9
 		else:
 			var form: String = str(rec.get("form", "box"))
-			hh = float(p.z) + (0.0 if form == "open" else 0.6)
+			hh = float(p.z) + {"open": 0.0, "shed": 0.9, "tank": 1.15, "pole": 0.5, "shrine": 0.6}.get(form, 0.6)
 		col_h[col] = maxf(float(col_h.get(col, 0.0)), hh)
-		var props: Array = rec.get("props", []) if rec.get("props", []) is Array else []
-		if kind == "facility" and is_box(c) and int(c.get("size", 1)) <= 1 and props.has("stack"):
-			chimney_cols[col] = str(rec.get("fx", "smoke"))
 	var sup: Variant = s.get("supports")
 	if sup is Dictionary:
 		for p in sup:
@@ -315,6 +371,7 @@ func build_floor(z: int) -> Dictionary:
 	mb = MeshBuf.new()
 	lights = []
 	emitters = []
+	slots = []
 	if z < by_floor.size():
 		for p in by_floor[z]:
 			mb.owner = owner_of(p)
@@ -323,7 +380,7 @@ func build_floor(z: int) -> Dictionary:
 			mb.owner = 0
 			_build_support(p)
 	mb.owner = 0
-	return {"mesh": mb.commit(), "lights": lights, "emitters": emitters}
+	return {"mesh": mb.commit(), "lights": lights, "emitters": emitters, "slots": slots}
 
 
 func _build_cell(p: Vector3i, c: Dictionary) -> void:
@@ -335,6 +392,9 @@ func _build_cell(p: Vector3i, c: Dictionary) -> void:
 		return
 	if kind == "house":
 		_build_house(p, c, seed_v)
+		return
+	if kind == "facility":
+		fac.build_cell(p, c, false)
 		return
 	if int(c.get("size", 1)) >= 2:
 		var o: Variant = c.get("origin", p)
@@ -1272,27 +1332,34 @@ func _big_sign(lft: Vector3i, d: int, c: Dictionary, rec: Dictionary, seed_v: in
 		light(fp(lft, d, 1.0, v0 + bh * 0.5, 0.4), col, 2.4)
 
 
-func _hall_roof(o: Vector3i, top: Vector3, front: int, seed_v: int) -> void:
-	# 성채 회관: 두 겹 처마의 맞배지붕 + 금빛 용마루 + 작은 탑
+func _hall_roof(o: Vector3i, top: Vector3, front: int, seed_v: int, sx: float = 2.0, sz: float = 2.0) -> void:
+	# 성채 회관: 두 겹 처마 지붕 + 금빛 용마루(발자국 크기에 맞춘다)
 	var tc := Color("#3f6a5a")
 	var tc2 := Color("#5a8a72")
 	var gold := Color("#f2d27a")
-	cbox(top + Vector3(-0.15, 0, -0.15), top + Vector3(2.15, 0.1, 2.15), tc, tc2)
-	cbox(top + Vector3(0.1, 0.1, 0.1), top + Vector3(1.9, fh * 0.5, 1.9), Color("#b0303a"), Color("#d04a4a"))
-	cbox(top + Vector3(-0.05, fh * 0.5, -0.05), top + Vector3(2.05, fh * 0.5 + 0.1, 2.05), tc, tc2)
-	cbox(top + Vector3(0.25, fh * 0.5 + 0.1, 0.25), top + Vector3(1.75, fh * 0.5 + 0.22, 1.75), tc, tc2)
-	cbox(top + Vector3(0.5, fh * 0.5 + 0.22, 0.5), top + Vector3(1.5, fh * 0.5 + 0.34, 1.5), tc, tc2)
-	cbox(top + Vector3(0.45, fh * 0.5 + 0.34, 0.95), top + Vector3(1.55, fh * 0.5 + 0.42, 1.05), gold)
-	for q in [Vector3(-0.15, 0.1, -0.15), Vector3(2.05, 0.1, -0.15), Vector3(-0.15, 0.1, 2.05), Vector3(2.05, 0.1, 2.05)]:
+	var e := Vector3(sx, 0, sz)
+	cbox(top + Vector3(-0.15, 0, -0.15), top + e + Vector3(0.15, 0.1, 0.15), tc, tc2)
+	cbox(top + Vector3(0.1, 0.1, 0.1), top + e + Vector3(-0.1, fh * 0.5, -0.1), Color("#b0303a"), Color("#d04a4a"))
+	cbox(top + Vector3(-0.05, fh * 0.5, -0.05), top + e + Vector3(0.05, fh * 0.5 + 0.1, 0.05), tc, tc2)
+	cbox(top + Vector3(0.25, fh * 0.5 + 0.1, 0.25), top + e + Vector3(-0.25, fh * 0.5 + 0.22, -0.25), tc, tc2)
+	cbox(top + Vector3(0.5, fh * 0.5 + 0.22, 0.5), top + e + Vector3(-0.5, fh * 0.5 + 0.34, -0.5), tc, tc2)
+	if sx >= sz:
+		cbox(top + Vector3(0.45, fh * 0.5 + 0.34, sz * 0.5 - 0.05), top + Vector3(sx - 0.45, fh * 0.5 + 0.42, sz * 0.5 + 0.05), gold)
+	else:
+		cbox(top + Vector3(sx * 0.5 - 0.05, fh * 0.5 + 0.34, 0.45), top + Vector3(sx * 0.5 + 0.05, fh * 0.5 + 0.42, sz - 0.45), gold)
+	for q in [Vector3(-0.15, 0.1, -0.15), Vector3(sx + 0.05, 0.1, -0.15), Vector3(-0.15, 0.1, sz + 0.05), Vector3(sx + 0.05, 0.1, sz + 0.05)]:
 		cbox(top + q, top + q + Vector3(0.1, 0.1, 0.1), gold)
-	# 처마 밑 등롱 줄
 	var lr := tile("lantern")
-	for i in 3:
-		var x := 0.2 + 0.6 * float(i)
-		mb.quad2(top + Vector3(x, -0.02, 2.16), top + Vector3(x + 0.4, -0.02, 2.16), top + Vector3(x + 0.4, -0.3, 2.16), top + Vector3(x, -0.3, 2.16), Vector3(0, 0, 1), sub(lr, 0, 0, 16, 8))
-		mb.quad2(top + Vector3(2.16, -0.02, x + 0.4), top + Vector3(2.16, -0.02, x), top + Vector3(2.16, -0.3, x), top + Vector3(2.16, -0.3, x + 0.4), Vector3(1, 0, 0), sub(lr, 0, 0, 16, 8))
-	light(top + Vector3(1.0, 0.2, 2.1), Color("#ff6a4a"), 1.8)
-	light(top + Vector3(1.0, fh * 0.4, 1.0), Color("#ffb060"), 1.6)
+	var n := int(sx * 1.5)
+	for i in n:
+		var x := 0.2 + (sx - 0.6) * float(i) / float(maxi(n - 1, 1))
+		mb.quad2(top + Vector3(x, -0.02, sz + 0.16), top + Vector3(x + 0.3, -0.02, sz + 0.16), top + Vector3(x + 0.3, -0.25, sz + 0.16), top + Vector3(x, -0.25, sz + 0.16), Vector3(0, 0, 1), sub(lr, 0, 0, 16, 8))
+	var n2 := int(sz * 1.5)
+	for i in n2:
+		var x2 := 0.2 + (sz - 0.6) * float(i) / float(maxi(n2 - 1, 1))
+		mb.quad2(top + Vector3(sx + 0.16, -0.02, x2 + 0.3), top + Vector3(sx + 0.16, -0.02, x2), top + Vector3(sx + 0.16, -0.25, x2), top + Vector3(sx + 0.16, -0.25, x2 + 0.3), Vector3(1, 0, 0), sub(lr, 0, 0, 16, 8))
+	light(top + Vector3(sx * 0.5, 0.2, sz + 0.1), Color("#ff6a4a"), 1.8)
+	light(top + Vector3(sx * 0.5, fh * 0.4, sz * 0.5), Color("#ffb060"), 1.6)
 
 
 func _cage_balcony(p: Vector3i, d: int, hs: int) -> void:
@@ -1369,8 +1436,8 @@ func _alloc_signs() -> void:
 	var cands: Array = []
 	for p in state.cells:
 		var c: Dictionary = state.cells[p]
-		if str(c.get("kind", "")) != "facility" or not solid.has(p) or int(c.get("size", 1)) >= 2:
-			continue
+		if true:
+			continue   # v4: 시설 간판은 FacilityBuilder가 건물마다 하나 단다
 		var rec: Dictionary = recipe_of(c)
 		var style: String = str(rec.get("sign_style", "none"))
 		if style == "none":
@@ -1879,34 +1946,67 @@ func _build_site(p: Vector3i, c: Dictionary, seed_v: int) -> void:
 	var b := cellv(p)
 	var prog := clampf(float(c.get("progress", 0.0)), 0.0, 1.0)
 	var bec: Dictionary = c.get("becomes", {}) if c.get("becomes", {}) is Dictionary else {}
-	var mat: String = cfg.material_key(str(look_of(bec).get("wall", "scrap"))) if str(bec.get("kind", "house")) == "house" else cfg.material_key(str(cfg.recipe("facility", str(bec.get("type", ""))).get("wall", "render")))
-	# 올라가는 벽
-	var wh := prog * 0.9
+	var mat := "scrap"
+	if str(bec.get("kind", "house")) == "house" and str(bec.get("type", "house")) == "house":
+		mat = cfg.material_key(str(look_of(bec).get("wall", "scrap")))
+	else:
+		var lk := str(bec.get("look", c.get("look", "")))
+		mat = cfg.material_key(str(cfg.look_recipe(lk if cfg.has_look(lk) else "generic_shop").get("wall", "render")))
+	var bid := int(c.get("bid", -1))
+	var ext := extent_of(c, p)
+	var o: Vector3i = ext["origin"]
+	var dd := int(ext["d"])
+	# 여러 층짜리 공사: 아래층부터 차오른다(층마다 진행을 나눠 가진다)
+	var zi := p.z - o.z
+	var lp := clampf(prog * float(dd) - float(zi), 0.0, 1.0)
+	var same := func(q: Vector3i) -> bool:
+		var cq: Dictionary = state.cells.get(q, {})
+		return not cq.is_empty() and int(cq.get("bid", -2)) == bid
+	# 올라가는 벽(같은 공사장 칸 사이에는 벽이 없다)
+	var wh := lp * 0.9
 	if wh > 0.05:
 		var wr := tile("wall_%s_0" % mat)
 		for d in 4:
-			if solid.has(p + DIR[d]):
+			if solid.has(p + DIR[d]) or same.call(p + DIR[d]):
 				continue
 			fquad(p, d, 0, 1, 0, wh, 0.0, wr)
 		var y := b.y + wh * fh
-		mb.quad(Vector3(b.x, y, b.z), Vector3(b.x + 1, y, b.z), Vector3(b.x + 1, y, b.z + 1), Vector3(b.x, y, b.z + 1), UP, tile("cutcap"), Color(2.2, 2.0, 2.0))
-	# 대나무 비계 + 초록 그물
+		if not same.call(p + UPI) or lp < 1.0:
+			mb.quad(Vector3(b.x, y, b.z), Vector3(b.x + 1, y, b.z), Vector3(b.x + 1, y, b.z + 1), Vector3(b.x, y, b.z + 1), UP, tile("cutcap"), Color(2.2, 2.0, 2.0))
+	# 대나무 비계 + 초록 그물(발자국 바깥 둘레만)
 	var sc := tile("scaffold")
 	var nt := tile("net")
-	var o := 0.07
-	var sh := 1.0 + 0.2
+	var o2 := 0.07
+	var sh := 1.0 + (0.2 if not same.call(p + UPI) else 0.0)
 	for d in 4:
-		if solid.has(p + DIR[d]):
+		if solid.has(p + DIR[d]) or same.call(p + DIR[d]):
 			continue
-		mb.quad2(fp(p, d, -o, sh, o), fp(p, d, 1 + o, sh, o), fp(p, d, 1 + o, 0, o), fp(p, d, -o, 0, o), NRM[d], Rect2(sc.position, Vector2(16, 16)))
-		var nh := clampf(0.25 + prog * 0.75, 0.0, 1.0)
+		var u0s := -o2 if not same.call(p - RGTI[d]) else 0.0
+		var u1s := 1.0 + o2 if not same.call(p + RGTI[d]) else 1.0
+		mb.quad2(fp(p, d, u0s, sh, o2), fp(p, d, u1s, sh, o2), fp(p, d, u1s, 0, o2), fp(p, d, u0s, 0, o2), NRM[d], Rect2(sc.position, Vector2(16, 16)))
+		var nh := clampf(0.25 + lp * 0.75, 0.0, 1.0)
 		var hsd := ViewCfg.h2(seed_v, d)
 		if hsd % 4 != 0:
 			var u0 := 0.0 if hsd % 3 != 0 else 0.5
 			var u1 := 1.0 if hsd % 5 != 0 else 0.5
 			if u1 > u0:
-				mb.quad2(fp(p, d, u0, nh, o + 0.01), fp(p, d, u1, nh, o + 0.01), fp(p, d, u1, 0.06, o + 0.01), fp(p, d, u0, 0.06, o + 0.01), NRM[d], Rect2(nt.position, Vector2((u1 - u0) * 16.0, nh * 16.0)))
-	emitter(b + Vector3(0.5, 0.5 * fh, 0.5), "site")
+				mb.quad2(fp(p, d, u0, nh, o2 + 0.01), fp(p, d, u1, nh, o2 + 0.01), fp(p, d, u1, 0.06, o2 + 0.01), fp(p, d, u0, 0.06, o2 + 0.01), NRM[d], Rect2(nt.position, Vector2((u1 - u0) * 16.0, nh * 16.0)))
+	if lp > 0.0 and lp < 1.0:
+		emitter(b + Vector3(0.5, (lp * 0.9 + 0.1) * fh, 0.5), "site")
+	# 공사판(기준 칸 하나): 진행 막대 — 바깥에서 보이는 면에
+	if p == Vector3i(o.x, o.y, o.z):
+		var best := -1
+		for d in [1, 0, 2, 3]:
+			if not state.cells.has(p + DIR[d]) and not solid.has(p + DIR[d]):
+				best = d
+				break
+		if best >= 0:
+			var bw := 0.6
+			fbox(p, best, 0.2, 0.2 + bw, 0.25, 0.5, 0.1, 0.14, tile("white"), tile("white"), Color("#f2d27a"), 31)
+			fbox(p, best, 0.25, 0.25 + (bw - 0.1) * prog, 0.3, 0.38, 0.14, 0.16, tile("white"), tile("white"), Color("#c2463c"), 31)
+			fbox(p, best, 0.25 + (bw - 0.1) * prog, 0.25 + (bw - 0.1), 0.3, 0.38, 0.14, 0.155, tile("white"), tile("white"), Color("#5a5674"), 31)
+			fbox(p, best, 0.22, 0.25, 0.0, 0.25, 0.1, 0.13, tile("white"), tile("white"), Color("#8a7a6a"), 31)
+			fbox(p, best, 0.75, 0.78, 0.0, 0.25, 0.1, 0.13, tile("white"), tile("white"), Color("#8a7a6a"), 31)
 
 
 # ================================================================== 층 컷(심즈식 단면)
@@ -1920,15 +2020,14 @@ func build_cut(z: int) -> Dictionary:
 	mb = MeshBuf.new()
 	lights = []
 	emitters = []
+	slots = []
 	if z >= 0 and z < by_floor.size():
 		for p in by_floor[z]:
 			var c: Dictionary = state.cells[p]
 			mb.owner = owner_of(p)
-			if str(c.get("kind", "")) == "facility" and int(c.get("size", 1)) >= 2:
-				var o: Variant = c.get("origin", p)
-				if o is Vector3i:
-					mb.owner = owner_of(o)
-			if is_box(c):
+			if str(c.get("kind", "")) == "facility":
+				fac.build_cell(p, c, true)
+			elif is_box(c):
 				_cut_cell(p, c)
 			else:
 				_build_cell(p, c)
@@ -1936,7 +2035,7 @@ func build_cut(z: int) -> Dictionary:
 			mb.owner = 0
 			_build_support(p)
 	mb.owner = 0
-	return {"mesh": mb.commit(), "lights": lights, "emitters": emitters}
+	return {"mesh": mb.commit(), "lights": lights, "emitters": emitters, "slots": slots}
 
 
 func _same_unit(a: Dictionary, b: Dictionary) -> bool:
@@ -2020,6 +2119,8 @@ func _cut_cell(p: Vector3i, c: Dictionary) -> void:
 	if lived:
 		_furnish(p, c, rec, seed_v)
 		light(b + Vector3(0.5, 0.4, 0.5), Color(1, 1, 1), 1.1, 0.9)
+		if kind == "house":
+			_resident_slots(p, c, rec, seed_v)
 
 
 ## 칸 안 좌표(0..1)를 k×90° 돌린 상자. h0/h1은 월드 단위 높이.
@@ -2164,6 +2265,31 @@ func _furnish(p: Vector3i, c: Dictionary, rec: Dictionary, seed_v: int) -> void:
 		_:
 			_ib(p, k, 0.16, 0.16, 0.84, 0.3, 0.0, 0.2, "white", "white", WOODC, WOODT)
 			_ib(p, k, 0.16, 0.7, 0.34, 0.86, 0.0, 0.3, "shelf", "white", MeshBuf.WHITE, Color("#7a5848"))
+
+
+## 층 컷의 집: 낮엔 식탁·의자에, 밤엔 잠자리에 한두 사람(사는 사람 수만큼).
+func _resident_slots(p: Vector3i, c: Dictionary, rec: Dictionary, seed_v: int) -> void:
+	var b := bld(c)
+	var res := int(b.get("residents", 1))
+	if res <= 0:
+		return
+	var cap := maxi(int(b.get("cap", 4)), 1)
+	var n := 2 if res * 2 > cap else 1
+	var hs := ViewCfg.h2(seed_v, 600)
+	var k := hs % 4
+	var tier := int(c.get("tier", 1))
+	var what: String = str(rec.get("interior", ""))
+	var bed_at := Vector2(0.33, 0.5)
+	var day_at: Array = [Vector2(0.66, 0.36), Vector2(0.66, 0.78)] if what == "flat" else [Vector2(0.62, 0.45), Vector2(0.45, 0.8)]
+	var dirs: Array = [Vector3(0, 0, 1), Vector3(0, 0, -1), Vector3(1, 0, 0), Vector3(-1, 0, 0)]
+	for i in n:
+		var dp: Vector2 = day_at[i]
+		var pose := "sit" if (what == "flat" or i == 0) else "stand"
+		if tier <= 1 and i == 0:
+			pose = "squat"
+		slots.append({"bid": int(c.get("bid", -1)), "pos": _ipos(p, k, dp.x, dp.y, 0.0), "dir": dirs[(hs + i) % 4], "pose": pose, "role": "resident", "when": "day", "z": p.z, "tier": tier, "look": "", "out": false, "i": slots.size()})
+		var bp := bed_at + Vector2(0.0, (0.18 if i == 1 else 0.0))
+		slots.append({"bid": int(c.get("bid", -1)), "pos": _ipos(p, k, bp.x, bp.y, 0.1), "dir": dirs[(k + 1) % 4], "pose": "lie", "role": "resident", "when": "night", "z": p.z, "tier": tier, "look": "", "out": false, "i": slots.size()})
 
 
 ## 공사가 끝날 때 떨어져 나갈 비계만 따로(연출용).
