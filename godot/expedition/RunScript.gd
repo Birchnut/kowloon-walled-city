@@ -201,8 +201,11 @@ func fill(inp: RunInput, world: RunWorld, dt: float) -> void:
 					g = e
 			if g == null:
 				return
+			if t < 0.6:
+				inp.throw_hold = t > 0.1
 			if t > 0.6 and not mem.has("thrown"):
 				mem["thrown"] = true
+				inp.throw_hold = false
 				inp.aim = g.pos + Vector2(40, -60)
 				inp.throw = true
 			elif mem.has("thrown") and t > 2.0:

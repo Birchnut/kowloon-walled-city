@@ -242,7 +242,11 @@ func _unhandled_input(ev: InputEvent) -> void:
 			elif not world.pack_open:
 				world.input.attack = true
 		elif ev.button_index == MOUSE_BUTTON_RIGHT and not world.pack_open:
+			world.input.throw_hold = true
+	elif ev is InputEventMouseButton and not ev.pressed and mode == "run" and ev.button_index == MOUSE_BUTTON_RIGHT:
+		if world.input.throw_hold and not world.pack_open:
 			world.input.throw = true
+		world.input.throw_hold = false
 
 
 func _process(delta: float) -> void:

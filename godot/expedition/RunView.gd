@@ -167,6 +167,7 @@ func _consume_events() -> void:
 				texts.append({"p": e["pos"], "text": e["text"], "col": cs.get(e.get("col", "white"), Color.WHITE), "life": 1.0 if not e.get("big", false) else 0.8, "big": e.get("big", false)})
 			"ring":
 				rings.append({"p": e["pos"], "r": e["r"], "life": 0.6})
+				texts.append({"p": (e["pos"] as Vector2) + Vector2(0, -10), "text": "깡!", "col": Color(1, 0.9, 0.4), "life": 0.7})
 			"bonk":
 				stars.append({"p": e["pos"], "life": 0.9})
 				shake = maxf(shake, 2.0)
@@ -235,7 +236,9 @@ func _draw_ents() -> void:
 	# 소리 고리(던진 깡통)
 	for r in rings:
 		var u: float = 1.0 - r["life"] / 0.6
-		ci.draw_arc(r["p"], float(r["r"]) * (0.25 + 0.75 * u), 0, TAU, 40, Color(r.get("col", Color(1, 1, 1)), 0.5 * (1.0 - u)), 1.0)
+		var rc0: Color = r.get("col", Color(1, 0.9, 0.4))
+		ci.draw_arc(r["p"], float(r["r"]) * (0.25 + 0.75 * u), 0, TAU, 48, Color(rc0, 0.7 * (1.0 - u)), 2.0)
+		ci.draw_arc(r["p"], float(r["r"]) * (0.1 + 0.5 * u), 0, TAU, 32, Color(rc0, 0.4 * (1.0 - u)), 1.0)
 	# 출구
 	for ex in world.exits:
 		if not ex["active"]:
@@ -684,14 +687,24 @@ func _draw_air() -> void:
 		ci.draw_set_transform(tp + Vector2(0, -th["z"] - 3), th["spin"], Vector2.ONE)
 		ci.draw_texture(tex2, -tex2.get_size() / 2)
 		ci.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
-	# 조준 표시(던질 것이 있을 때만 착지점)
+	# 던지기 미리 보기: 오른쪽 버튼을 누르고 있으면 포물선·착지점·소리가 퍼질 범위
 	var p: Actor = world.player
-	if not world.held.is_empty() and p.state != "down":
-		var to := aim_world
-		var dv := to - p.pos
-		if dv.length() > RunCfg.f("throw_max", 150):
-			to = p.pos + dv.normalized() * RunCfg.f("throw_max", 150)
-		ci.draw_arc(to, 4, 0, TAU, 12, Color(1, 1, 1, 0.35), 1.0)
+	if not world.held.is_empty() and p.state != "down" and world.input.throw_hold:
+		var plan: Dictionary = world.plan_throw(aim_world)
+		var a0: Vector2 = plan["from"]
+		var b0: Vector2 = plan["to"]
+		var peak := RunCfg.f("throw_peak", 20)
+		for k in 15:
+			var u := (k + fmod(t * 3.0, 1.0)) / 15.0
+			var q := a0.lerp(b0, u) + Vector2(0, -4.0 * peak * u * (1.0 - u) - 8.0 * (1.0 - u))
+			ci.draw_rect(Rect2(q - Vector2(1, 1), Vector2(2, 2)), Color(1, 1, 1, 0.9))
+		ci.draw_arc(b0, 5, 0, TAU, 16, Color(1, 0.9, 0.3), 1.0)
+		ci.draw_line(b0, plan["bounce"], Color(1, 0.9, 0.3, 0.6), 1.0)
+		ci.draw_arc(b0, RunCfg.f("throw_noise_radius", 130), 0, TAU, 48, Color(1, 0.9, 0.3, 0.18), 1.0)
+		if plan["blocked"]:
+			_label(ci, b0 + Vector2(0, -10), "벽", Color(1, 0.7, 0.5))
+	elif not world.held.is_empty() and p.state != "down":
+		ci.draw_arc(aim_world, 3, 0, TAU, 10, Color(1, 1, 1, 0.3), 1.0)
 	# 조각
 	for q in parts:
 		var a: float = clampf(q["life"] / q["max"], 0.0, 1.0)
@@ -933,13 +946,14 @@ func _cone(ci: CanvasItem, e: Actor) -> void:
 				break
 			s += 6.0
 		pts.append(e.pos + d * L)
-	var col := Color(1.0, 0.95, 0.55, 0.16)
+	var boost := 1.35 if world.floodlights else 1.0
+	var col := Color(1.0, 0.92, 0.35, 0.26 * boost)
 	if e.aware:
-		col = Color(1.0, 0.35, 0.3, 0.2)
+		col = Color(1.0, 0.3, 0.25, 0.3)
 	elif e.alert > 0.05:
-		col = Color(1.0, 0.8, 0.3, 0.22 + 0.1 * e.alert)
+		col = Color(1.0, 0.7, 0.2, 0.3 + 0.12 * e.alert)
 	if e.state in ["stun"]:
 		col.a *= 0.4
 	ci.draw_colored_polygon(pts, col)
 	pts.append(e.pos)
-	ci.draw_polyline(pts, Color(col, 0.35), 1.0)
+	ci.draw_polyline(pts, Color(col.r * 0.8, col.g * 0.6, col.b * 0.3, 0.75), 1.0)

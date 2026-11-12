@@ -460,13 +460,33 @@ func _throw() -> void:
 		_ev("text", {"pos": p.pos + Vector2(0, -20), "text": "던질 게 없다", "col": "grey"})
 		return
 	var kind: String = held.pop_back()
-	var to := input.aim
-	var dv := to - p.pos
-	if dv.length() > RunCfg.f("throw_max", 150):
-		to = p.pos + dv.normalized() * RunCfg.f("throw_max", 150)
+	var to: Vector2 = plan_throw(input.aim)["to"]
 	var dur := maxf(0.25, p.pos.distance_to(to) / RunCfg.f("throw_speed", 190) + 0.12)
 	throws.append({"kind": kind, "from": p.pos, "to": to, "pos": p.pos, "t": 0.0, "dur": dur, "z": 0.0, "bounce": 0, "spin": 0.0})
 	_ev("sfx", {"id": "throw"})
+
+
+## 던지면 어디에 떨어지는가(미리 보기와 실제가 같은 계산): 사거리 안에서 벽에 막히면 그 앞.
+func plan_throw(aim: Vector2) -> Dictionary:
+	var from := player.pos
+	var to := aim
+	var dv := to - from
+	if dv.length() > RunCfg.f("throw_max", 150):
+		to = from + dv.normalized() * RunCfg.f("throw_max", 150)
+	var n := int(from.distance_to(to) / 4.0) + 1
+	var land := to
+	var blocked := false
+	for k in range(1, n + 1):
+		var q := from.lerp(to, float(k) / n)
+		if _solid_at(q):
+			land = from.lerp(to, float(k - 1) / n)
+			blocked = true
+			break
+	var dir := (to - from).normalized() if from.distance_to(to) > 1 else Vector2.RIGHT
+	var bounce := land + dir * 14.0
+	if _solid_at(bounce):
+		bounce = land
+	return {"from": from, "to": land, "bounce": bounce, "blocked": blocked}
 
 
 # ------------------------------------------------------------------ 피해

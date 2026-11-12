@@ -4,7 +4,8 @@ extends RefCounted
 var move: Vector2 = Vector2.ZERO     # 길이 ≤ 1
 var aim: Vector2 = Vector2.ZERO      # 월드 좌표(마우스가 가리키는 곳)
 var attack: bool = false             # 이번 프레임에 눌림(왼쪽 클릭)
-var throw: bool = false              # 이번 프레임에 눌림(오른쪽 클릭)
+var throw: bool = false              # 이번 프레임에 던짐(오른쪽 버튼을 뗀 순간)
+var throw_hold: bool = false         # 오른쪽 버튼을 누르고 있음(날아갈 길 미리 보기)
 var roll: bool = false               # 이번 프레임에 눌림(Space)
 var interact: bool = false           # 누르고 있음(E)
 var pack_toggle: bool = false        # 이번 프레임에 눌림(Tab)
