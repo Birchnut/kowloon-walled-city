@@ -7,7 +7,7 @@ extends Node3D
 
 const ActorShader := preload("res://view/shaders/actor.gdshader")
 const MAX_INST := 260
-const LOD_SIZE := [Vector2(6, 12), Vector2(10, 20), Vector2(16, 32)]
+const LOD_SIZE := [Vector2(6, 12), Vector2(10, 20), Vector2(20, 40), Vector2(26, 52)]
 const DIRS: Array[Vector3i] = [Vector3i(1, 0, 0), Vector3i(-1, 0, 0), Vector3i(0, 1, 0), Vector3i(0, -1, 0)]
 const TIER_NAMES := ["굴러온 돌", "월세 전사", "박힌 돌", "깡통 귀족", "옥상 황제"]
 
@@ -37,8 +37,8 @@ func setup(c: ViewCfg, v: Control, m: CityMesher, lg: Texture3D) -> void:
 	cfg = c
 	view = v
 	mesher = m
-	for i in 3:
-		var tex := PeopleSprites.build(["S", "M", "L"][i])
+	for i in 4:
+		var tex := PeopleSprites.build(["S", "M", "X", "XX"][i])
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.use_colors = true
@@ -506,8 +506,8 @@ func _advance(a: Dictionary, delta: float) -> bool:
 
 
 func _render() -> void:
-	var lod := 0 if _zoom_i <= 1 else (1 if _zoom_i == 2 else 2)
-	for i in 3:
+	var lod := CityActors.lod_for(_zoom_i)
+	for i in 4:
 		(_mmi[i] as MultiMeshInstance3D).visible = i == lod
 	var mm: MultiMesh = (_mmi[lod] as MultiMeshInstance3D).multimesh
 	var mat: ShaderMaterial = _mats[lod]
@@ -535,9 +535,12 @@ func _render() -> void:
 		var pose: String = str(a["pose"])
 		if not moving and pose == "walk":
 			pose = "stand"
-		var fr := int(floor(_t * 4.0 + float(int(a["hs"]) % 100) * 0.07)) % 2 if moving else 0
+		var fr := int(floor(_t * 7.0 * float(a["speed"]) / 0.5 + float(int(a["hs"]) % 100) * 0.07)) % 4 if moving else 0
+		if not moving and pose == "stand" and fposmod(_t * 0.3 + float(int(a["hs"]) % 97) * 0.1, 1.0) < 0.25:
+			pose = "look"
+			fr = int(floor(_t * 0.8)) % 4
 		var hide := 2.0 if pos.y > cut_y else 0.0
-		mm.set_instance_custom_data(i, Color(float(PeopleSprites.pose_index(pose) * 2 + fr), float(row), flip + hide, float(a["pal"])))
+		mm.set_instance_custom_data(i, Color(float(PeopleSprites.pose_index(pose) * PeopleSprites.FRAMES + fr), float(row), flip + hide, float(a["pal"])))
 	mm.visible_instance_count = n
 
 
@@ -555,7 +558,7 @@ func set_light(amb: Vector3, night: float, neon_gain: float, lg_origin: Vector3,
 func who(screen_pos: Vector2) -> Dictionary:
 	var best := -1
 	var bd := 1e9
-	var hpx: float = (LOD_SIZE[0 if _zoom_i <= 1 else (1 if _zoom_i == 2 else 2)] as Vector2).y * float(view._up) / maxf(view._canvas_scale, 0.01)
+	var hpx: float = (LOD_SIZE[CityActors.lod_for(_zoom_i)] as Vector2).y * float(view._up) / maxf(view._canvas_scale, 0.01)
 	var cut_y := 1000.0 if _cut < 0 else float(_cut) * cfg.floor_h + 0.05
 	for i in agents.size():
 		var a: Dictionary = agents[i]

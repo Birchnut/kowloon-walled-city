@@ -227,6 +227,10 @@ func emit_at(u: float, v: float, hf: float, type: String) -> void:
 func slot(u: float, v: float, pose: String, face: String, role: String = "staff", hf: float = 0.0, extra: Dictionary = {}) -> void:
 	var sl := {"bid": bid, "pos": P(u, v, hf), "dir": dirv(face), "pose": pose, "role": role, "z": z, "look": look,
 		"out": str(rec.get("form", "box")) in ["open", "shed"], "i": m.slots.size()}
+	var fc := cell_at(clampi(int(u), 0, Wf - 1), 0) + CityMesher.DIR[F]
+	if str(rec.get("form", "box")) == "box" and not m.state.cells.has(fc) and not m.voids.has(fc) and (z == 0 or m.solid.has(fc - CityMesher.UPI)):
+		# 문밖 자리(담배 쉬는 시간): 앞면 바깥 0.35칸
+		sl["door"] = P(clampf(u, 0.3, float(Wf) - 0.3), -0.35, 0.0)
 	sl.merge(extra)
 	m.slots.append(sl)
 
