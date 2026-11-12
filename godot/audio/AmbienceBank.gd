@@ -301,7 +301,10 @@ static func _firebed(bud: Budget) -> PackedFloat32Array:
 		var t := float(i) / SR
 		var fl := 0.6 + 0.2 * sin(w0 * 3.0 * t) + 0.12 * sin(w0 * 7.0 * t + 1.0) + 0.08 * sin(w0 * 11.0 * t + 2.0)
 		b[i] = y * fl
+	S.hp1(b, 70.0)
+	S.dc_block(b)
 	b = S.loop_xfade(b, L, X)
+	S.gain(b, 0.1)
 	var e := S.buf(Ls + 0.3)
 	var rng := S.Rng.new(5151)
 	for j in 70:
@@ -312,7 +315,7 @@ static func _firebed(bud: Budget) -> PackedFloat32Array:
 	S.lp1(e, 5500.0)
 	e = S.fold(e, L)
 	for i in L:
-		b[i] += e[i] * 0.5
+		b[i] += e[i] * 1.2
 	return b
 
 
@@ -420,7 +423,7 @@ static func build_shot(shot_name: String, v: int) -> PackedFloat32Array:
 	var o := _shot(shot_name, v)
 	S.dc_block(o)
 	o = S.trim(o)
-	S.normalize(o, -20.0, -1.0)
+	S.normalize(o, -20.0, -1.0, true)
 	S.set_rate(22050.0)
 	return o
 

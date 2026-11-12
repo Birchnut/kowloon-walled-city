@@ -154,7 +154,7 @@ static func row(b: PackedFloat32Array, sr: float) -> Dictionary:
 	var sp := spectrum(b, sr)
 	var en := envelope(b, sr)
 	return {"len_s": float(b.size()) / sr, "peak_db": linear_to_db(maxf(S.peak(b), 1e-9)), "rms_db": linear_to_db(maxf(S.rms(b), 1e-9)),
-		"srms_db": linear_to_db(maxf(S.short_rms(b, 0.05 * sr / S.R_), 1e-9)), "centroid": sp["centroid"], "rolloff": sp["rolloff85"],
+		"srms_db": linear_to_db(maxf(S.short_rms(b, 0.05 * sr / S.R_), 1e-9)), "k_db": _k_db(b, sr), "centroid": sp["centroid"], "rolloff": sp["rolloff85"],
 		"attack_ms": en["attack_ms"], "decay20_ms": en["decay20_ms"], "nan": has_nan(b), "dc": dc(b)}
 
 
@@ -171,3 +171,11 @@ static func cpu_ms() -> float:
 	if parts.size() < 13:
 		return -1.0
 	return (float(parts[11]) + float(parts[12])) * 10.0
+
+
+static func _k_db(b: PackedFloat32Array, sr: float) -> float:
+	var old := S.R_
+	S.set_rate(sr)
+	var r := S.k_short_rms(b)
+	S.set_rate(old)
+	return linear_to_db(maxf(r, 1e-9))

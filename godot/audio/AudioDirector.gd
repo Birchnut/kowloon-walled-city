@@ -285,16 +285,12 @@ func build_everything(bud: AB.Budget) -> void:
 	# 자주 쓰는 효과음 → 배경 바닥 루프(배경이 빨리 시작하게) → 나머지 효과음 → …
 	for n: String in FREQUENT:
 		if not sfx.has(n):
-			_build_sfx(n)
-		if bud.over():
-			await bud.wait()
+			await _build_sfx(n, bud)
 	for l: String in ["hum", "wind", "murmur", "crickets", "market"]:
 		await _build_loop(l, bud)
 	for n: String in SB.names():
 		if not sfx.has(n):
-			_build_sfx(n)
-		if bud.over():
-			await bud.wait()
+			await _build_sfx(n, bud)
 	for n: String in AB.SHOTS:
 		var b0 := bud.busy_now()
 		var arr: Array = []
@@ -335,13 +331,18 @@ func _build_loop(l: String, bud: AB.Budget) -> void:
 		await bud.wait()
 
 
-func _build_sfx(n: String) -> void:
+## bud 가 있으면 무거운 조리법 중간에 프레임을 넘긴다. 없으면(play 에서 아직 안 만든 이름) 그 자리에서 한 번에.
+func _build_sfx(n: String, bud: AB.Budget = null) -> void:
 	var t0 := Time.get_ticks_usec()
+	var b0 := bud.busy_now() if bud != null else 0
 	var arr: Array = []
 	for v in SB.variants(n):
-		arr.append(S.to_wav(SB.build(n, v)))
+		var b: PackedFloat32Array = await SB.build(n, v, bud)
+		arr.append(S.to_wav(b, false, 0, SB.rate(n)))
+		if bud != null and bud.over():
+			await bud.wait()
 	sfx[n] = arr
-	_note("sfx:" + n, Time.get_ticks_usec() - t0)
+	_note("sfx:" + n, (bud.busy_now() - b0) if bud != null else Time.get_ticks_usec() - t0)
 
 
 # ------------------------------------------------------------------ 효과음

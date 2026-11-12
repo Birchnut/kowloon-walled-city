@@ -40,10 +40,10 @@ func _fmt(x: float, d: int = 1) -> String:
 	return String.num(x, d)
 
 
-func _one_shot_rows(title: String, names: Array, nvar: Callable, maker: Callable, gains: Callable, rate: int = 22050) -> int:
+func _one_shot_rows(title: String, names: Array, nvar: Callable, maker: Callable, gains: Callable, rate_of: Callable) -> int:
 	md.append("\n### %s\n" % title)
-	md.append("| 이름 | 변주 | 길이 s | 봉우리 dBFS | 짧은RMS dBFS | 재생 이득 dB | 들리는 크기 dB | 무게중심 Hz | 85% Hz | 올라감 ms | -20dB까지 ms | 만들기 ms |")
-	md.append("|---|---|---|---|---|---|---|---|---|---|---|---|")
+	md.append("| 이름 | 변주 | Hz | 길이 s | 봉우리 dBFS | 짧은RMS dBFS | 귀가중 짧은RMS | 재생 이득 dB | 들리는 크기 dB | 무게중심 Hz | 85% Hz | 올라감 ms | -20dB까지 ms | 만들기 ms |")
+	md.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
 	var total := 0
 	# 먼저 모두 만들고(CPU 를 한 번에 잰다), 그다음 분석
 	var built := {}
@@ -54,12 +54,13 @@ func _one_shot_rows(title: String, names: Array, nvar: Callable, maker: Callable
 		var t0 := Time.get_ticks_usec()
 		var bufs: Array = []
 		for v in nv:
-			bufs.append(maker.call(n, v))
+			bufs.append(await maker.call(n, v))
 		times[n] = Time.get_ticks_usec() - t0
 		built[n] = bufs
 	cpu_acc += AN.cpu_ms() - c0
 	for n: String in names:
 		var nv: int = nvar.call(n)
+		var rate: int = rate_of.call(n)
 		var bufs: Array = built[n]
 		var us: int = times[n]
 		total += us
@@ -77,9 +78,9 @@ func _one_shot_rows(title: String, names: Array, nvar: Callable, maker: Callable
 			_check(float(r["len_s"]) < 4.0, "%s#%d 너무 길다 %.2f s" % [n, v, r["len_s"]])
 			S.save_wav(b, "%s/%s_%d.wav" % [out_dir, n, v], rate)
 		var g: float = gains.call(n)
-		md.append("| %s | %d | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |" % [n, nv, _fmt(r0["len_s"], 2), _fmt(r0["peak_db"]), _fmt(r0["srms_db"]),
-			_fmt(g), _fmt(float(r0["srms_db"]) + g), _fmt(r0["centroid"], 0), _fmt(r0["rolloff"], 0), _fmt(r0["attack_ms"], 0), _fmt(r0["decay20_ms"], 0), _fmt(us / 1000.0, 1)])
-		print("%-18s v%d len %.2fs peak %6.1f srms %6.1f  play %6.1f  cent %5.0f  att %3.0fms dec %4.0fms  %5.1fms" % [n, nv, r0["len_s"], r0["peak_db"], r0["srms_db"], float(r0["srms_db"]) + g, r0["centroid"], r0["attack_ms"], r0["decay20_ms"], us / 1000.0])
+		md.append("| %s | %d | %d | %s | %s | %s | %s | %s | %s |" % [n, nv, rate, _fmt(r0["len_s"], 2), _fmt(r0["peak_db"]), _fmt(r0["srms_db"]), _fmt(r0["k_db"]),
+			_fmt(g), _fmt(float(r0["k_db"]) + g)] + " %s | %s | %s | %s | %s |" % [ _fmt(r0["centroid"], 0), _fmt(r0["rolloff"], 0), _fmt(r0["attack_ms"], 0), _fmt(r0["decay20_ms"], 0), _fmt(us / 1000.0, 1)])
+		print("%-18s v%d len %.2fs peak %6.1f srms %6.1f k %6.1f play %6.1f  cent %5.0f  att %3.0fms dec %4.0fms  %5.1fms" % [n, nv, r0["len_s"], r0["peak_db"], r0["srms_db"], r0["k_db"], float(r0["k_db"]) + g, r0["centroid"], r0["attack_ms"], r0["decay20_ms"], us / 1000.0])
 	return total
 
 
@@ -87,19 +88,19 @@ func _run() -> void:
 	var t_all := Time.get_ticks_usec()
 	var cpu0 := AN.cpu_ms()
 	md.append("# 소리 분석표 (audio_test.gd 가 만든 것)\n")
-	md.append("'들리는 크기' = 가장 시끄러운 50 ms RMS + 재생 이득. 버스 크기(기본 SFX 0.8 = -1.9 dB, 주 0.8)는 빼고 본 값.")
+	md.append("'귀가중 짧은RMS' = 100 Hz 아래 깎고 1.7 kHz 위 +4 dB 한 뒤 가장 시끄러운 50 ms RMS(효과음은 이 값을 -20 dBFS 로 맞춰 만든다). '들리는 크기' = 귀가중 + 재생 이득. 버스 크기(기본 SFX 0.8 = -1.9 dB, 주 0.8)는 빼고 본 값.")
 	# 1) 효과음
 	cpu_acc = 0.0
-	var sfx_us := _one_shot_rows("효과음 (SFX 버스)", SB.names(), func(n: String) -> int: return SB.variants(n),
-		func(n: String, v: int) -> PackedFloat32Array: return SB.build(n, v), func(n: String) -> float: return SB.gain_db(n))
+	var sfx_us: int = await _one_shot_rows("효과음 (SFX 버스)", SB.names(), func(n: String) -> int: return SB.variants(n),
+		func(n: String, v: int) -> PackedFloat32Array: return await SB.build(n, v), func(n: String) -> float: return SB.gain_db(n), func(n: String) -> int: return SB.rate(n))
 	var c_sfx := cpu_acc
 	print("효과음 만들기 합: 벽시계 %.1f ms, CPU %.0f ms" % [sfx_us / 1000.0, c_sfx])
 	for n: String in SfxScript.NAMES:
 		_check(SB.SPEC.has(n), "NAMES 의 %s 에 조리법이 없다" % n)
 	# 2) 배경 한 번짜리
 	cpu_acc = 0.0
-	var shot_us := _one_shot_rows("배경 한 번짜리 (Ambience 버스, 무작위 -4..0 dB 더)", AB.SHOTS.keys(), func(n: String) -> int: return int(AB.SHOTS[n][0]),
-		func(n: String, v: int) -> PackedFloat32Array: return AB.build_shot(n, v), func(n: String) -> float: return float(AB.SHOTS[n][1]), AB.SHOT_RATE)
+	var shot_us: int = await _one_shot_rows("배경 한 번짜리 (Ambience 버스, 무작위 -4..0 dB 더)", AB.SHOTS.keys(), func(n: String) -> int: return int(AB.SHOTS[n][0]),
+		func(n: String, v: int) -> PackedFloat32Array: return AB.build_shot(n, v), func(n: String) -> float: return float(AB.SHOTS[n][1]), func(_n: String) -> int: return AB.SHOT_RATE)
 	var c_shot := cpu_acc
 	# 3) 악기
 	cpu_acc = 0.0

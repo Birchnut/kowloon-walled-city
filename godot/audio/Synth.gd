@@ -471,9 +471,23 @@ static func short_rms(b: PackedFloat32Array, win_s: float = 0.05) -> float:
 	return sqrt(maxf(best, 0.0) / float(w))
 
 
+## 귀에 가까운 크기(대충 K 가중): 100 Hz 아래 깎기(2단) + 1.7 kHz 위 +4 dB 선반 → 가장 시끄러운 50 ms RMS.
+## 낮은 쿵과 높은 딸깍을 같은 '들리는 크기'로 맞추려고 쓴다.
+static func k_short_rms(b: PackedFloat32Array) -> float:
+	var c := b.duplicate()
+	hp1(c, 100.0)
+	hp1(c, 100.0)
+	var a := 1.0 - exp(-TAU * 1700.0 * INV_R)
+	var y := 0.0
+	for i in c.size():
+		y += a * (c[i] - y)
+		c[i] += 0.58 * (c[i] - y)
+	return short_rms(c)
+
+
 ## 짧은 RMS 를 target_db 에 맞추고, 봉우리가 peak_db 를 넘으면 부드럽게 눌러 맞춘다.
-static func normalize(b: PackedFloat32Array, target_db: float, peak_db: float = -1.0) -> void:
-	var r := short_rms(b)
+static func normalize(b: PackedFloat32Array, target_db: float, peak_db: float = -1.0, k_weighted: bool = false) -> void:
+	var r := k_short_rms(b) if k_weighted else short_rms(b)
 	if r < 1e-7:
 		return
 	var g := db_to_linear(target_db) / r
