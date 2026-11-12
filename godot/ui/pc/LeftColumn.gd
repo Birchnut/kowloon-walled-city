@@ -64,6 +64,9 @@ func _ready() -> void:
 	gv.add_child(_goal_tip)
 	_goal_reward = UI.label("", "LabelGoldSmall", true)
 	_goal_reward.custom_minimum_size.x = W - 30
+	_goal_reward.max_lines_visible = 2          # 열리는 시설 목록이 길면 두 줄까지(전부는 마우스를 올려서)
+	_goal_reward.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_goal_reward.mouse_filter = Control.MOUSE_FILTER_STOP
 	gv.add_child(_goal_reward)
 	# 가는 버튼은 넷까지, 넘치면 다음 줄로(1층 필수 셋은 시장·먹을 것·물·놀 것 넷)
 	_goal_btns = HFlowContainer.new()
@@ -117,6 +120,7 @@ func _refresh_goal(g: Dictionary) -> void:
 		rw.append(str(r))
 	_goal_reward.text = UI.keep("보상 " + " · ".join(rw)) if not rw.is_empty() else ""
 	_goal_reward.visible = not rw.is_empty()
+	TipLayer.set_tip(_goal_reward, "보상\n" + " · ".join(rw))
 	var tip := goal_tip(id, text)
 	_goal_tip.text = UI.keep(UI.no_hanja(str(tip.get("tip", ""))))
 	_goal_tip.visible = _goal_tip.text != ""

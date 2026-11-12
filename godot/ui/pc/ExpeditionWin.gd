@@ -89,13 +89,13 @@ func _build_teams() -> void:
 	_bars.clear()
 	var teams := UI.to_array(_data.get("teams", []))
 	if teams.is_empty():
-		var l := UI.label("탐험대가 없다. 기반 분류의 탐험 거점을 지으면 생긴다.", "LabelDim", true)
+		var l := UI.label("탐험대가 없다. 기반 분류(K)의 줍줍 본부를 지으면 공사가 끝날 때 생긴다.", "LabelDim", true)
 		l.custom_minimum_size.x = 440
 		_teams.add_child(l)
-		var gb := PcButton.make("짓기 — 기반", "infra", "", "Button")
+		var gb := PcButton.make("줍줍 본부 짓기", "infra", "K", "Button")
 		gb.pressed.connect(func() -> void:
 			close()
-			ui.jump({"screen": "build", "arg": "infra"}))
+			ui.jump({"screen": "build", "arg": "expedition_base"}))
 		_teams.add_child(gb)
 		return
 	var any_done := false

@@ -1,0 +1,122 @@
+[
+ {
+  "say": "A2: stage_a 에서 이어서 — 물 하나 더 → 승급(진짜 길). tools/shot.sh \"\" out 2500 1920x1080 skiptut load=<stage_a.json> script=res://tools/fixtures/pc_first_upgrade.json out=out"
+ },
+ {
+  "wait": 1.0
+ },
+ {
+  "shot": "a20_loaded"
+ },
+ {
+  "key": "3"
+ },
+ {
+  "say": "물이 모자란다(위 띠 물 신호등 빨강 · 알림 '물이 모자란다') → 수도국 하나 더(C)"
+ },
+ {
+  "place": "rain_catcher",
+  "cell": [
+   9,
+   5,
+   0
+  ]
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "wait": 0.5
+ },
+ {
+  "shot": "a15_goods_built"
+ },
+ {
+  "until": {
+   "q": "upgradable",
+   "key": "0.count",
+   "ge": 1
+  },
+  "max": 150
+ },
+ {
+  "say": "승급: Esc(고른 집 풀기) → U(일괄) → 철제(야적장에서 받아 온 것) → Enter"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "key": "U"
+ },
+ {
+  "wait": 1.0
+ },
+ {
+  "shot": "a16_upgrade_window"
+ },
+ {
+  "press": "철제",
+  "region": [
+   0,
+   150,
+   1920,
+   700
+  ]
+ },
+ {
+  "wait": 0.6
+ },
+ {
+  "shot": "a17_upgrade_metal"
+ },
+ {
+  "key": "Enter"
+ },
+ {
+  "wait": 1.0
+ },
+ {
+  "q": "hud",
+  "keys": [
+   "pop",
+   "money"
+  ]
+ },
+ {
+  "q": "economy",
+  "keys": [
+   "tiers.0.houses",
+   "tiers.1.houses"
+  ]
+ },
+ {
+  "until": {
+   "q": "hud",
+   "key": "pop.t2",
+   "ge": 1
+  },
+  "max": 60
+ },
+ {
+  "shot": "a18_after_upgrade"
+ },
+ {
+  "q": "hud",
+  "keys": [
+   "next_goal.id",
+   "next_goal.text",
+   "pop",
+   "money",
+   "day"
+  ]
+ },
+ {
+  "key": "3"
+ },
+ {
+  "save": "stage_a.json"
+ },
+ {
+  "quit": 1
+ }
+]
