@@ -159,8 +159,12 @@ func _header(kind: String) -> void:
 
 
 func _kv(g: GridContainer, k: String, v: String, tone: String = "") -> void:
-	g.add_child(UI.label(k, "LabelDim"))
-	var l := UI.label(v, "LabelSmall")
+	var kl := UI.label(k, "LabelDim")
+	kl.custom_minimum_size.x = 120
+	g.add_child(kl)
+	# 값은 줄을 바꾼다(긴 문장 — "수요가 채워지면 더 들어온다(0/4)" — 이 판 밖으로 나가지 않게)
+	var l := UI.label(v, "LabelSmall", true)
+	l.custom_minimum_size.x = W - 40.0 - 120.0 - 8.0
 	if tone != "":
 		l.add_theme_color_override("font_color", UI.tone_col(tone))
 	g.add_child(l)
@@ -296,6 +300,12 @@ func _facility() -> void:
 		_v.add_child(pv)
 		pv.add_child(Picto.make("clock", UI.col("gold")))
 		pv.add_child(UI.label("공사 중 " + bl, "LabelGold"))
+		if info.has("build_progress"):
+			var bp := float(info.get("build_progress", 0.0))
+			var bh := UI.hbox(8)
+			_v.add_child(bh)
+			bh.add_child(PcWindow.bar(bp, "warn", int(W - 120.0), 12))
+			bh.add_child(UI.label(UI.pct(bp), "LabelSmall"))
 	var desc := str(info.get("desc", ""))
 	if desc != "":
 		_v.add_child(_wrap(desc, "LabelDim"))

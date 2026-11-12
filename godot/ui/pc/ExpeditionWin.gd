@@ -1,6 +1,6 @@
 class_name ExpeditionWin
 extends PcWindow
-## 탐험(F4) — 게임 시계로 도는 자동 파견 + "직접 줍기"(아직 준비 중: 목적지마다 보이되 꺼진 버튼, 던전 재고 %와 위험).
+## 탐험(F4) — 게임 시계로 도는 자동 파견 + "직접 줍기"(목적지마다 버튼 → RunPanel 이 미니게임을 띄운다, 던전 재고 %와 위험).
 ##  왼쪽: 탐험대(상태·가는 곳·남은 시간 막대·받기). 자재 보유 줄.
 ##  오른쪽: 목적지 목록(거리 띠 근·중·원) — 고르면 아래에 보내기 판(보급·고를 자재·비용·이유·[보내기]).
 ## 읽는 것: expeditions(1초 — days_left/total_days, stock_pct, run{available,danger,text}). 보내는 것: expedition_send / expedition_claim / run_begin(직접 줍기, 준비되면).
@@ -209,16 +209,17 @@ func _dest_row(dd: Dictionary) -> Control:
 	var ll := UI.label(line, "LabelSmall", true)
 	ll.custom_minimum_size.x = 560
 	v.add_child(ll)
-	# 직접 줍기: 보이되 꺼짐 — 던전 재고 % 와 위험
+	# 직접 줍기: 아는 곳이면 누를 수 있다. 못 들어가면 누를 때 이유(팀 없음·이미 줍는 중·재고 바닥)를 말한다.
 	var run := UI.to_dict(dd.get("run", {}))
 	var rv := UI.vbox(2)
 	rv.custom_minimum_size.x = 200
 	h.add_child(rv)
-	var rb := PcButton.make("직접 줍기", "pick", "", "Button")
+	var rb := PcButton.make("직접 줍기", "pick", "", "ButtonGold" if bool(run.get("available", false)) else "Button")
 	rb.min_h = 30
-	rb.disabled = not bool(run.get("available", false)) or not known
+	rb.disabled = not known
 	rb.pressed.connect(func() -> void: _run(id))
-	TipLayer.set_tip(rb, "직접 줍기%s\n던전에 직접 들어가 배낭만큼 들고 나온다. 깊을수록 위험·보상이 크다. 털면 재고가 줄고 게임 시간으로 다시 찬다.\n%s" % [" (준비 중)" if rb.disabled else "", str(run.get("text", ""))])
+	var why := "" if bool(run.get("available", false)) else "\n지금은: " + str(RunPanel.check(id).get("reason", ""))
+	TipLayer.set_tip(rb, "직접 줍기 — 내가 들어간다\n던전에 직접 들어가 배낭만큼 들고 나온다. 깊을수록 위험·보상이 크다. 두목을 잡으면 덤. 쓰러지면 절반을 잃는다.\n털면 재고가 줄고 게임 시간으로 다시 찬다. 줍는 동안 도시는 ×1로 계속 돈다.\n%s%s" % [str(run.get("text", "")), why])
 	rv.add_child(rb)
 	var sh := UI.hbox(4)
 	rv.add_child(sh)
@@ -318,9 +319,8 @@ func _build_send() -> void:
 
 
 func _run(id: String) -> void:
-	var r: Dictionary = ui.cmd("run_begin", {"dest": id})
-	if not bool(r.get("ok", false)):
-		ui.toast(str(r.get("reason", "직접 줍기는 아직 준비 중이다.")), "dim")
+	ui.runs.start(id)
+	_sig = ""
 
 
 ## 그 자재를 주는 가장 빠른 곳: "이름 · 0.3일"(승급 창 모자람 줄)

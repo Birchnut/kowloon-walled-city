@@ -4,7 +4,7 @@ extends Control
 ##
 ## 규칙(ARCHITECTURE 규칙 3): UI는 규칙을 모른다. Game.query()/can() 이 준 값·이유·문장을 그리고,
 ## 명령은 전부 cmd() 를 지나 Game.cmd() 로 부탁한다. 뷰는 계약의 CityView API 로만(Q.vcall).
-## v4 계약 중 아직 없는 것은 ui/dev/V4Shim.gd 한 곳이 채운다(Q 를 거친다).
+## v4 시뮬·뷰를 그대로 부른다(개발용 다리 V4Shim 은 통합 때 지웠다).
 ##
 ## 배치(docs/UI_NOTES.md v4 '화면 지도'):
 ##   위 띠 TopBar · 왼쪽 기둥 LeftColumn(목표·알림·층/렌즈) · 아래 가운데 BuildBar · 오른쪽 Inspector
@@ -34,6 +34,7 @@ var toasts: Toasts
 var tutorial: PcTutorial
 var modals: Control
 var tips: TipLayer
+var runs: RunPanel
 var lens: String = ""
 var screen: String = ""            # 맨 위에 열린 창 id(없으면 "") — 튜토리얼·하네스가 본다
 
@@ -81,7 +82,10 @@ func _ready() -> void:
 	place = Placement.new()
 	place.ui = self
 	add_child(place)
-	place.mode_changed.connect(func(_m: String) -> void: _layout())
+	place.mode_changed.connect(func(_m: String) -> void:
+		if place.active():
+			close_all_windows()      # 짓기를 시작하면 창을 닫는다(창이 있는 동안 뷰 입력은 꺼져 있다)
+		_layout())
 
 	windows = _layer()
 	add_child(windows)
@@ -100,6 +104,9 @@ func _ready() -> void:
 	add_child(modals)
 	tips = TipLayer.new()
 	add_child(tips)
+	runs = RunPanel.new()
+	runs.ui = self
+	add_child(runs)
 
 	left.floors.floor_pressed.connect(func(z: int) -> void: Q.vcall("set_floor_cut", [z]))
 	left.floors.lens_pressed.connect(set_lens)
@@ -168,11 +175,12 @@ func _process(delta: float) -> void:
 	var v := Q.view()
 	if v != _view:
 		_bind_view(v)
-	V4Shim.camera_process(v, delta)
 	_poll_t -= delta
 	if _poll_t <= 0.0:
 		_poll_t = HUD_POLL
 		_refresh_hud()
+	_sync_view_input()
+	toasts.side = any_window()
 	_names_t -= delta
 	_menu_t -= delta
 	if _menu_t <= 0.0:
@@ -182,6 +190,29 @@ func _process(delta: float) -> void:
 	var bs := build.get_combined_minimum_size()
 	if not bs.is_equal_approx(_build_laid):
 		_layout()
+
+
+## 뷰 입력(카메라 키·휠·끌기·호버·탭)은 창·확인 창·도움말·직접 줍기가 떠 있으면 끈다(계약 set_input_enabled).
+## 창이 떠 있을 때 도시를 누르면 창을 닫는다(_input) — 그러면 바로 다시 켜진다.
+var _view_input := true
+
+
+func run_open() -> bool:
+	return runs != null and runs.is_open()
+
+
+func view_blocked() -> bool:
+	return any_window() or Dialog.open_count > 0 or help.visible or run_open()
+
+
+func _sync_view_input() -> void:
+	var want := not view_blocked()
+	if want != _view_input:
+		_view_input = want
+		Q.vcall("set_input_enabled", [want])
+		if not want:
+			inspector.set_hover(null)
+			tips.cursor_text = ""
 
 
 func _bind_view(v: Node) -> void:
@@ -252,8 +283,8 @@ func confirm(opt: Dictionary, on_ok: Callable = Callable()) -> void:
 
 ## 배속: speed ∈ {1,2,4}, paused. 계약: Game.speed / Game.paused(v4 hud.speed·paused 로 읽는다).
 func set_speed(spd: float, paused: bool) -> void:
-	Game.speed = spd
-	Game.paused = paused
+	Game.set_speed(spd)
+	Game.set_paused(paused)
 	Sfx.play("speed")
 	tutorial.on_signal("speed")
 	refresh_soon()
@@ -329,6 +360,11 @@ func close_top_window() -> bool:
 	return false
 
 
+func close_all_windows() -> void:
+	while close_top_window():
+		pass
+
+
 func any_window() -> bool:
 	for w: Node in windows.get_children():
 		if (w as PcWindow).visible:
@@ -341,6 +377,8 @@ func jump(target: Variant) -> void:
 	var j := Q.norm_jump(target)
 	var s: String = j["screen"]
 	var a: String = j["arg"]
+	if s in ["focus", "lens", "inspect", "build"]:
+		close_all_windows()          # 도시로 가는 jump 는 창을 닫는다(창이 도시를 가리고 뷰 입력도 꺼져 있다)
 	match s:
 		"":
 			return
@@ -438,10 +476,15 @@ func _mouse_on_world() -> bool:
 
 
 func _input(ev: InputEvent) -> void:
-	if Dialog.open_count > 0 or help.visible:
+	if Dialog.open_count > 0 or help.visible or run_open():
 		return
-	var v := Q.view()
-	V4Shim.camera_input(v, ev)
+	# 창이 떠 있는 동안 도시(창 밖)를 누르면 창을 닫는다 — 뷰 입력은 창이 있는 동안 꺼져 있다(D-I2).
+	if ev is InputEventMouseButton and (ev as InputEventMouseButton).pressed and any_window() and not place.active() \
+			and (ev as InputEventMouseButton).button_index in [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_RIGHT] and _mouse_on_world():
+		while close_top_window():
+			pass
+		get_viewport().set_input_as_handled()
+		return
 	if ev is InputEventMouseMotion:
 		if _mouse_on_world():
 			var mp: Vector2 = (ev as InputEventMouseMotion).position
@@ -481,7 +524,7 @@ func _unhandled_key_input(ev: InputEvent) -> void:
 	if not (ev is InputEventKey) or not ev.pressed:
 		return
 	var k := ev as InputEventKey
-	if Dialog.open_count > 0:
+	if Dialog.open_count > 0 or run_open():
 		return
 	if k.echo:
 		return

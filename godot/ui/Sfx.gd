@@ -16,8 +16,8 @@ const AudioDirector := preload("res://audio/AudioDirector.gd")
 
 const NAMES := {
 	"click": "버튼·탭 누름",
-	"hover": "짓기 카드 위로 마우스(아주 작게, 아직 부르지 않음)",
-	"tab": "창 안의 탭 바꿈(아직 부르지 않음 — click 대신 쓰면 된다)",
+	"hover": "짓기 카드 위로 마우스(아주 작게)",
+	"tab": "창 안의 탭 바꿈(click 대신)",
 	"build": "시설을 놓았다(공사 시작)",
 	"zone": "판잣집을 칠해 지었다",
 	"place_fail": "놓을 수 없는 자리에 눌렀다",
@@ -104,6 +104,12 @@ func set_ambience_enabled(on: bool) -> void:
 
 func ambience_enabled() -> bool:
 	return director != null and director.ambience_on
+
+
+## 직접 줍기가 화면을 덮는 동안 도시 소리(효과음·배경·음악)를 끈다. 저장하지 않는다.
+func duck_city(on: bool) -> void:
+	if director != null:
+		director.set_city_duck(on)
 
 
 func set_rain(amount: float) -> void:

@@ -12,7 +12,7 @@ extends Node
 ##   place=<시설 id>@x,y,z[@rot]   배치 모드 + 마우스를 그 칸으로(고스트·범위·커서 글)
 ##   zone=x0,y0,z;x1,y1     주거 칠하기 모드 + 네모 미리보기(뗄 때 짓지 않음 — 그림 확인용)
 ##   mouse=x,y              마우스를 그 화면 점으로(툴팁·살피기 미리보기)   hovertext=<글자>  그 글자를 품은 버튼 위로
-##   hz=1                   V4Shim 불·병 견본 켜기      hazard_on=<fire|disease>  처음 켜짐 카드 견본
+##   hazard_on=<fire|disease>  처음 켜짐 카드 견본
 ##   scale=<1|1.25|1.5>     UI 크기
 ##   png=<절대 경로>         실제 창 크기 그대로 한 장 찍고 끝. png_wait=<초>
 ##   at=<초>                위 인자들을 적용할 시각(기본 0.6초)
@@ -57,8 +57,6 @@ func _ready() -> void:
 	if args.has("bot"):
 		_bot = Bot.new(Game.sim, str(args["bot"]))
 		Game.event.connect(_on_event)
-	if args.has("hz"):
-		V4Shim.sample_hazards = true
 	if args.has("scale"):
 		Settings.set_ui_scale(float(args["scale"]))
 
@@ -231,7 +229,7 @@ func _apply_dbg(spec: String) -> void:
 ##   {"key": "R", "shift": false, "ctrl": false}         키 한 번(Space, Tab, Esc, F1, Enter, PageUp …)   {"hold": "W", "secs": 0.6}
 ##   {"place": "<시설 id 또는 분류:<cat>>", "cell": [x,y,z], "rotate": 1}   짓기 막대에서 분류 탭 → 카드 → 그 칸 → 클릭(진짜 마우스)
 ##   {"mdown": "left"} {"mup": "left"}  지금 마우스 자리에서 버튼 누름/뗌(끌기 도중 찍기)   {"place": …, "commit": false} 고스트만
-##   {"hz": 1}  V4Shim 불·병 견본    {"event": "hazard_on", "payload": {"kind": "fire"}}  v4 이벤트 흉내(UI 로만)
+##   {"event": "hazard_on", "payload": {"kind": "fire"}}  v4 이벤트 흉내(UI 로만)
 ##   {"shot": "이름"}  {"q": "hud", "keys": [...]}  {"until": {"q","key","ge|le|eq|ne"}, "max": 초}
 ##   {"dbg": "…"}  {"speed": n}  {"say": "…"}  {"dump": "buttons|labels"}  {"expr": "…"}  {"cmd": 이름, "args": {}}  {"quit": 1}
 var _out_dir := ""
@@ -341,9 +339,6 @@ func _step(i: int, s: Dictionary) -> void:
 	elif s.has("mup"):
 		_mb(_mouse, _btn({"button": s["mup"]}), false)
 		await get_tree().process_frame
-	elif s.has("hz"):
-		V4Shim.sample_hazards = bool(s["hz"])
-		ui.refresh_soon()
 	elif s.has("event"):
 		# 시뮬 이벤트 흉내(v3 시뮬에 없는 v4 이벤트 — hazard_on 등) → UIRoot._on_event 로만
 		ui._on_event(str(s["event"]), _vecs(UI.to_dict(s.get("payload", {})).duplicate(true)))

@@ -9,6 +9,7 @@ signal state_replaced
 
 const SAVE_PATH := "user://save_v4.json"   # 옛 save_v3.json(모바일판)은 읽지도 지우지도 않는다
 const SPEEDS := [1.0, 2.0, 4.0]
+const RUN_IDS_SCRIPT := "res://ui/pc/RunPanel.gd"
 
 var state: CityState
 var sim: Sim
@@ -119,7 +120,15 @@ func cmd(cmd_name: String, args: Dictionary = {}) -> Dictionary:
 	if cmd_name == "debug" and str(args.get("op", "")) == "set_paused":
 		set_paused(bool(args.get("on", true)))
 		return {"ok": true, "reason": ""}
+	var ids: Variant = null
+	if cmd_name == "run_begin" or cmd_name == "run_result":
+		# (통합 접착) 줍기 물건 id ↔ 도시 id — 표는 ui/pc/RunPanel.gd RUN_IDS 한 곳. 줍기 쪽 city_id 가 맞으면 하는 일 없음.
+		ids = load(RUN_IDS_SCRIPT)
+		if ids != null:
+			args = ids.map_args(cmd_name, args)
 	var r: Dictionary = sim.apply(state, cmd_name, args)   # 멈춘 상태에서도 된다
+	if ids != null and cmd_name == "run_begin":
+		r = ids.map_result(cmd_name, r)
 	if autosave and bool(r.get("ok", false)):
 		_dirty_t = 0.0          # 조용해지면 저장(_autosave_tick)
 	_drain()
@@ -133,11 +142,27 @@ func can(cmd_name: String, args: Dictionary = {}) -> Dictionary:
 func query(q_name: String, args: Dictionary = {}) -> Variant:
 	if q_name == "offline_summary":
 		return null
+	if q_name == "run_ticker":
+		return _run_ticker()
 	var r: Variant = sim.query(state, q_name, args)
 	if q_name == "hud" and r is Dictionary:
 		r["speed"] = int(speed) if speed == floorf(speed) else speed
 		r["paused"] = paused
 	return r
+
+
+## (통합 접착) 직접 줍기 화면 오른쪽 위 "성채 소식" 줄: 지금 알림 + 최근 기록 몇 줄. 줍는 동안 도시에 무슨 일이 나는지 보인다.
+func _run_ticker() -> Array:
+	var out: Array = []
+	var h: Variant = sim.query(state, "hud")
+	if h is Dictionary:
+		for a: Variant in (h as Dictionary).get("alerts", []):
+			if a is Dictionary and str(a.get("text", "")) != "":
+				out.append("성채: " + str(a["text"]))
+	for e: Variant in state.logbook.slice(maxi(0, state.logbook.size() - 4)):
+		if e is Dictionary and str(e.get("tone", "")) != "debug" and str(e.get("text", "")) != "":
+			out.append(str(e["text"]))
+	return out
 
 
 func time_of_day() -> float:

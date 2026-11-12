@@ -61,16 +61,16 @@ func _build(b: VBoxContainer) -> void:
 
 
 func _cols() -> Array:
-	return [26, 160, 86, 86, 110, 80]
+	return [26, 160, 86, 86, 110, 80, 76]
 
 
 func _header_row() -> Control:
 	var r := UI.hbox(8)
 	var c := _cols()
-	for i in 6:
-		var l := UI.label(["", "항목", "공급", "수요", "", "남은 날"][i], "LabelMute")
+	for i in [0, 1, 2, 3, 6, 4, 5]:
+		var l := UI.label(["", "항목", "공급", "수요", "", "남은 날", "재고"][i], "LabelMute")
 		l.custom_minimum_size.x = c[i]
-		if i in [2, 3, 5]:
+		if i in [2, 3, 5, 6]:
 			l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		r.add_child(l)
 	var last := UI.label("무엇을 하면 되나", "LabelMute")
@@ -166,11 +166,17 @@ func _row(r: Dictionary) -> Control:
 	h.add_child(nm)
 	var unit := str(r.get("unit", ""))
 	for v: Variant in [r.get("supply", 0), r.get("demand", 0)]:
-		var l := UI.label(UI.dec(v) + ("%" if unit == "%" else ""), "LabelSmall")
+		# 꺼진 위험(불·병이 아직 안 켜짐)은 숫자 대신 "—"
+		var l := UI.label("—" if st == "off" else UI.dec(v) + ("%" if unit == "%" else ""), "LabelSmall")
 		l.custom_minimum_size.x = c[2]
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		h.add_child(l)
-	var no_demand := float(r.get("demand", 0)) <= 0.0 and str(r.get("group", "")) != "hazard"
+	var stv: Variant = r.get("stock")
+	var stl := UI.label(UI.dec(stv) if (stv is float or stv is int) else "", "LabelDim")
+	stl.custom_minimum_size.x = c[6]
+	stl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	h.add_child(stl)
+	var no_demand := (float(r.get("demand", 0)) <= 0.0 and str(r.get("group", "")) != "hazard") or st == "off"
 	var bar := PcWindow.bar(0.0 if no_demand else float(r.get("ratio", 0.0)), st, c[4], 12)
 	if no_demand:
 		b.modulate.a = 0.6
@@ -195,7 +201,7 @@ func _row(r: Dictionary) -> Control:
 			ui.jump(j))
 	TipLayer.set_tip(b, func() -> String:
 		var s := "%s\n공급 %s%s · 수요 %s%s" % [str(r.get("name", "")), UI.dec(r.get("supply", 0)), unit, UI.dec(r.get("demand", 0)), unit]
-		if r.has("stock"):
+		if r.get("stock") != null:
 			s += " · 재고 %s" % UI.dec(r.get("stock", 0))
 		s += "\n남은 날 %s\n%s\n누르면: %s" % [dls, str(r.get("hint", "")), LeftColumn._jump_word(Q.norm_jump(j))]
 		return s)
