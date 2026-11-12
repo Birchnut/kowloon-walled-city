@@ -46,6 +46,10 @@ static func cond_text(sim: Sim, cond: Variant) -> String:
 					parts.append("%s %d명" % [sim.tname(int(k.substr(5))), int(c[2])])
 				elif k.begins_with("count."):
 					parts.append("%s 완공" % sim.bdef(k.substr(6)).get("name", k))
+				elif k.begins_with("happy_held."):
+					parts.append("행복도 %s 이상을 %s일 유지" % [k.substr(11), _n(c[2])])
+				elif k == "floors":
+					parts.append("%d층이 열림" % int(c[2]))
 				else:
 					parts.append("%s %s %s" % [k, c[1], c[2]])
 	return " + ".join(parts) if not parts.is_empty() else "처음부터"
@@ -111,6 +115,18 @@ static func _hud(sim: Sim, state: CityState) -> Dictionary:
 
 
 ## G2: 층 진행 + 문장.
+static func _arriving_text(b: Dictionary) -> String:
+	var res := int(b.get("residents", 0))
+	var tgt := int(b.get("target", 0))
+	if str(b.get("burn", "")) != "":
+		return "불에 타 아무도 살 수 없다"
+	if res < tgt:
+		return "%d명이 짐을 들고 오는 중(%d/%d) — 행복할수록 빨리 온다" % [tgt - res, res, tgt]
+	if res < int(b.get("cap", 0)):
+		return "수요가 채워지면 더 들어온다(%d/%d)" % [res, int(b.get("cap", 0))]
+	return "만실"
+
+
 static func _floor_progress(sim: Sim, state: CityState, z: int, need: int) -> Dictionary:
 	var used := Cover.used_cells_fast(sim, state, z)
 	var text := ""
@@ -251,7 +267,9 @@ static func _info(sim: Sim, state: CityState, args: Dictionary) -> Dictionary:
 		return {"bid": bid, "kind": "house", "pos": b["pos"], "title": "%s의 집" % sim.tname(t), "tier": t, "tier_name": sim.tname(t),
 			"material": b["material"], "material_name": mn.get(b["material"], b["material"]), "residents": int(b["residents"]), "cap": int(b["cap"]),
 			"target": int(b.get("target", 0)), "happiness": snappedf(float(b.get("happiness", 50)), 0.1), "tax_per_day": snappedf(float(b.get("tax", 0)), 0.01),
-			"need_state": b["need_state"], "upgradable": b["upgradable"], "scaffold": b.get("upgrading") != null, "needs": [], "upgrade": {}}
+			"need_state": b["need_state"], "upgradable": b["upgradable"], "scaffold": b.get("upgrading") != null, "needs": [], "upgrade": {},
+			"arriving": snappedf(float(b.get("arriving", 0.0)), 0.01), "arriving_text": _arriving_text(b),
+			"burn": str(b.get("burn", "")), "sick": bool(b.get("sick", false)), "repair": {"ok": false, "cost_text": "", "days": 0.0}}
 	var d := sim.bdef(str(b["type"]))
 	if b["kind"] == "site":
 		var left := float(b.get("build_left", 0.0))

@@ -74,6 +74,7 @@ func apply(state: CityState, name: String, args: Dictionary) -> Variant:
 			var r := sim.item("research", id)
 			var cost := float(r.get("cost", 0))
 			state.money -= cost
+			state.stat_add("spent_research", cost)
 			state.book("build", -cost)
 			state.stat_add("research_spent", cost)
 			var days := float(r.get("days", 1.0))

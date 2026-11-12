@@ -55,7 +55,7 @@ func setup(s: Sim) -> void:
 	_uidx = {"water": _ngoods.size(), "power": _ngoods.size() + 1}
 	_food.clear()
 	for id: String in sim.items("needs"):
-		if id.ends_with("_meal"):
+		if sim.item("needs", id).get("food", false) or id.ends_with("_meal"):
 			for o: Dictionary in sim.item("needs", id).get("options", []):
 				if o.has("good"):
 					_food[str(o["good"])] = true
@@ -878,6 +878,7 @@ func tick(state: CityState, dt: float) -> void:
 		else:
 			b["grow"] = 0.0
 			b["leave"] = 0.0
+		b["arriving"] = float(b["grow"]) if res < target else 0.0
 		if res != old_res:
 			b["residents"] = res
 			if res > old_res:

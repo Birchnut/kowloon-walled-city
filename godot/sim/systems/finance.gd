@@ -65,6 +65,7 @@ func tick(state: CityState, dt: float) -> void:
 	due = minf(due, state.money)
 	state.money = maxf(0.0, state.money - due)
 	state.book("upkeep", -due)
+	state.stat_add("upkeep_total", due)
 
 
 func on_day_end(state: CityState, ended: int) -> void:

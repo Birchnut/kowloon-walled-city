@@ -11,7 +11,37 @@ func on_new_game(state: CityState) -> void:
 
 
 func tick(state: CityState, _dt: float) -> void:
+	_happy(state)
 	_check(state)
+
+
+## 사치 시설 해금 조건 "행복도 n 이상을 m일 유지": 조건에 나오는 n마다 연속 시작 시각을 state.flags.happy_since[n]에 둔다(-1 = 끊김).
+var _thr: Array = []
+
+
+func setup(s: Sim) -> void:
+	super.setup(s)
+	_thr.clear()
+	for id: String in sim.items("unlocks"):
+		for c: Variant in sim.item("unlocks", id).get("cond", []):
+			if c is Array and str(c[0]).begins_with("happy_held."):
+				var k := str(c[0]).substr(11)
+				if not (k in _thr):
+					_thr.append(k)
+
+
+func _happy(state: CityState) -> void:
+	if _thr.is_empty():
+		return
+	var hs: Dictionary = state.flags.get("happy_since", {})
+	for k: String in _thr:
+		var on := state.happiness >= float(k)
+		var cur := float(hs.get(k, -1.0))
+		if on and cur < 0.0:
+			hs[k] = state.econ_days
+		elif not on and cur >= 0.0:
+			hs[k] = -1.0
+	state.flags["happy_since"] = hs
 
 
 func _steps() -> Array:

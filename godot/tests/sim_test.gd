@@ -113,7 +113,7 @@ func _data() -> void:
 	bad["tiers"]["items"]["t4"]["cap"] = 10
 	_ok(not Validate.check(bad).is_empty(), "정원을 바꾸면 검증 오류(확정값 보호)")
 	var bad2 := _db_copy()
-	bad2["needs"]["items"]["t1_meal"]["options"].append({"good": "caviar"})
+	bad2["needs"]["items"]["t1_food"]["options"].append({"good": "caviar"})
 	_ok(not Validate.check(bad2).is_empty(), "없는 상품을 요구하는 수요 → 검증 오류")
 
 
@@ -167,10 +167,11 @@ func _market_city(n_houses: int, n_stalls: int, veg: float) -> Array:
 		_house(sim, st, Vector3i(i % 6, 4 + i / 6, 0), 1, 4)
 	for i: int in 4:
 		_fac(sim, st, "rain_catcher", Vector3i(11, 2 * i, 0))
-	_fac(sim, st, "stall", Vector3i(2, 2, 0), 1)
+	_fac(sim, st, "mahjong", Vector3i(8, 4, 0))
+	_fac(sim, st, "market_mat", Vector3i(2, 2, 0), 1)
 	if n_stalls > 1:
-		_fac(sim, st, "stall", Vector3i(2, 1, 0), 1)
-	st.stock["veg"] = veg
+		_fac(sim, st, "market_mat", Vector3i(2, 1, 0), 1)
+	st.stock["cans"] = veg
 	_steps(sim, st, 2)          # 공사 마무리·가동
 	st.stats.clear()
 	_steps(sim, st, 24)         # 반나절
@@ -181,8 +182,8 @@ func _markets() -> void:
 	print("시장: 겹침·재고·범위")
 	var a := _market_city(4, 1, 500.0)
 	var b := _market_city(4, 2, 500.0)
-	var ca := float(a[1].stats.get("cons.veg", 0.0))
-	var cb := float(b[1].stats.get("cons.veg", 0.0))
+	var ca := float(a[1].stats.get("cons.cans", 0.0))
+	var cb := float(b[1].stats.get("cons.cans", 0.0))
 	_ok(ca > 0.0 and _near(ca, cb), "겹친 시장 2개도 소비는 그대로 (%.3f vs %.3f)" % [ca, cb])
 	_ok(_near(float(a[1].stats.get("tax_total", 0.0)), float(b[1].stats.get("tax_total", 0.0))), "겹친 시장 2개도 세수는 그대로")
 	var z := _market_city(4, 1, 0.0)
@@ -191,10 +192,10 @@ func _markets() -> void:
 		if x["kind"] == "house":
 			h = x
 			break
-	var rec: Dictionary = h["needs"].get("t1_meal", {})
+	var rec: Dictionary = h["needs"].get("t1_food", {})
 	_ok(float(rec.get("ratio", 1.0)) == 0.0 and str(rec.get("cause", "")) == "stock", "시장이 있어도 재고 0이면 끼니 미충족(원인 재고 없음)")
 	var many := _market_city(10, 1, 5000.0)
-	var cm := float(many[1].stats.get("cons.veg", 0.0))
+	var cm := float(many[1].stats.get("cons.cans", 0.0))
 	_ok(_near(cm, ca * 2.5, 1e-3), "범위 안 인구 2.5배 → 도시 소비 2.5배, 시장별 상한 없음 (%.3f vs %.3f)" % [cm, ca])
 	var neg := true
 	for g: String in many[1].stock:
@@ -218,7 +219,7 @@ func _power_scaling() -> void:
 		_fac(sim, st, "radio_shop", Vector3i(0, 0, 0))
 		if sup > 0.0:
 			_fac(sim, st, "test_gen", Vector3i(2, 0, 0))
-		st.stock["elec"] = 100.0
+		st.stock["elec_scrap"] = 100.0
 		_steps(sim, st, 2)
 		st.stats.clear()
 		_steps(sim, st, 12)
@@ -232,12 +233,18 @@ func _contract_once() -> void:
 	var L := _lab()
 	var sim: Sim = L[0]
 	var st: CityState = L[1]
+	_ok(not sim.can(st, "contract_sign", {"offer": "ws_fish", "size": 1}).get("ok", true), "뒷문 무역관이 없으면 계약 자리 0(중반 시스템)")
+	_fac(sim, st, "trade_post", Vector3i(8, 8, 0))
+	st.waiting[2] = {"count": 4, "days_left": 999.0}
+	_steps(sim, st, 2)
 	st.money = 1000.0
 	st.ledger["today"] = {}
-	var r := sim.apply(st, "contract_sign", {"offer": "ws_flour", "size": 1})
-	_ok(r.get("ok", false), "기본 계약 자리 1개로 서명 %s" % str(r.get("reason", "")))
+	st.stats.erase("tax_total")
+	var r := sim.apply(st, "contract_sign", {"offer": "ws_fish", "size": 1})
+	_ok(r.get("ok", false), "무역관 자리로 서명 %s" % str(r.get("reason", "")))
 	var c: Dictionary = st.contracts[0]
 	var m0 := st.money
+	var upk0 := float(st.stats.get("upkeep_total", 0.0))
 	var rounds := 0
 	var day0 := st.day
 	for i: int in 48 * 2:
@@ -249,28 +256,29 @@ func _contract_once() -> void:
 		st.events.clear()
 		if rounds == 1 and float(st.stats.get("contract_rounds", 0.0)) == 1.0 and before == 0.0:
 			var pay := float(c["qty"]) * float(c["price"]) + float(c.get("transport", 0.0))
-			_ok(_near(float(st.stock.get("flour", 0.0)), float(c["qty"])), "상품이 qty만큼 들어옴")
+			_ok(_near(float(st.stock.get("fish", 0.0)), float(c["qty"])), "상품이 qty만큼 들어옴")
 			var led := 0.0
 			for d: Dictionary in st.ledger["days"]:
 				led += float(d.get("import", 0.0))
 			led += float(st.ledger["today"].get("import", 0.0))
 			_ok(_near(led, -pay), "장부 import 줄에 한 번(−%.1f)" % pay)
-			_ok(_near(m0 - st.money, pay), "금고에서 정확히 결제액만 빠짐(집·시설 없음 → 세수·유지비 0)")
+			var upk := float(st.stats.get("upkeep_total", 0.0)) - upk0
+			_ok(_near(m0 - st.money - upk, pay, 1e-3), "금고에서 결제액(+무역관 유지비 %.1f)만 빠짐" % upk)
 	var interval := float(c["interval_h"]) / 24.0
 	_ok(rounds == int(floorf((2.0 - float(sim.cfg("contracts.first_delay_h", 1)) / 24.0) / interval)) + 1, "2일 동안 회차 수 = 주기대로 (%d)" % rounds)
 	st.money = 0.0
-	var fl := float(st.stock.get("flour", 0.0))
+	var fl := float(st.stock.get("fish", 0.0))
 	c["next_at"] = st.econ_days
 	sim.step(st)
-	_ok(not c["last"]["ok"] and _near(float(st.stock.get("flour", 0.0)), fl) and st.money >= 0.0, "돈이 없으면 그 회차를 건너뜀(벌금 없음): %s" % c["last"]["reason"])
+	_ok(not c["last"]["ok"] and _near(float(st.stock.get("fish", 0.0)), fl) and st.money >= 0.0, "돈이 없으면 그 회차를 건너뜀(벌금 없음): %s" % c["last"]["reason"])
 	# 수출: reserve 위만
-	st.stock["noodles"] = 30.0
+	st.stock["moonshine"] = 30.0
 	var r2 := sim.apply(st, "contract_cancel", {"id": int(c["id"])})
-	r2 = sim.apply(st, "contract_sign", {"offer": "ws_noodles_sell", "size": 1, "reserve": 25.0})
+	r2 = sim.apply(st, "contract_sign", {"offer": "ws_moonshine_sell", "size": 1, "reserve": 25.0})
 	var e: Dictionary = st.contracts[0]
 	e["next_at"] = st.econ_days
 	sim.step(st)
-	_ok(_near(float(st.stock["noodles"]), 25.0), "수출은 최소 보유량 위만 보낸다(30 − 5 → 25)")
+	_ok(_near(float(st.stock["moonshine"]), 25.0), "수출은 최소 보유량 위만 보낸다(30 − 5 → 25)")
 
 
 func _supports() -> void:
@@ -288,9 +296,9 @@ func _supports() -> void:
 	var bid := _fac(sim, st, "shrine", Vector3i(3, 3, 3))
 	_ok(bid > 0 and st.supports.has(Vector3i(3, 3, 0)) and st.supports.has(Vector3i(3, 3, 1)) and st.supports.has(Vector3i(3, 3, 2)), "골조가 땅까지 한 번에 생김")
 	_steps(sim, st, 1)
-	sim.apply(st, "demolish", {"pos": Vector3i(3, 4, 3)})
+	sim.apply(st, "demolish", {"pos": Vector3i(3, 3, 3)})
 	_steps(sim, st, 1)
-	sim.apply(st, "build", {"type": "shrine", "pos": Vector3i(3, 3, 3), "rot": 1})
+	sim.apply(st, "build", {"type": "mahjong", "pos": Vector3i(3, 3, 3), "rot": 1})
 	for bb: Dictionary in st.buildings.values():
 		if bb["kind"] == "site":
 			bb["progress"] = 0.999999
@@ -319,14 +327,14 @@ func _floor_boundary() -> void:
 		var st: CityState = L[1]
 		match str(cs[1]):
 			"big":
-				_fac(sim, st, "market2", Vector3i(14, 14, 0))
+				_fac(sim, st, "market_alley", Vector3i(14, 14, 0))
 			"support":
 				for i: int in 6:
 					st.supports[Vector3i(i, 15, 0)] = true
 			"empty":
 				_house(sim, st, Vector3i(15, 15, 0), 1, 0)
 			"site":
-				var rs := sim.apply(st, "build", {"type": "shrine", "pos": Vector3i(14, 15, 0), "rot": 1})
+				var rs := sim.apply(st, "build", {"type": "mahjong", "pos": Vector3i(14, 15, 0), "rot": 1})
 				st.buildings[int(rs["bid"])]["progress"] = -100.0
 		_steps(sim, st, 1)
 		sim.apply(st, "debug", {"op": "fill_floor", "z": 0, "count": int(cs[0])})
@@ -511,14 +519,19 @@ func _circular() -> void:
 	print("순환 잠금 정적 검사")
 	_ok(Validate.lock_check(DB).is_empty(), "지금 데이터에 순환 잠금 없음 %s" % str(Validate.lock_check(DB).slice(0, 2)))
 	var bad := _db_copy()
-	bad["unlocks"]["items"]["t1_50"]["unlocks"].erase("tailor")
-	bad["unlocks"]["items"]["t2_60"]["unlocks"].append("tailor")
+	bad["unlocks"]["items"]["t2_1"]["unlocks"].erase("tailor")
+	bad["unlocks"]["items"]["t2_40"]["unlocks"].append("tailor")
 	var e := Validate.lock_check(bad)
-	_ok(not e.is_empty(), "봉제방을 세입자 60으로 미루면 → 세입자 기본 수요(옷) 순환 잠금 검출")
+	_ok(not e.is_empty(), "봉제방을 월세 전사 40으로 미루면 → 월세 전사 기본 수요(옷) 순환 잠금 검출")
 	var bad2 := _db_copy()
 	bad2["unlocks"]["items"]["t1_20"]["unlocks"].erase("candle_shop")
 	bad2["unlocks"]["items"]["t2_1"]["unlocks"].append("candle_shop")
-	_ok(not Validate.lock_check(bad2).is_empty(), "초 공방을 세입자 1로 미루면 → 떠돌이 승급 수요(등불) 순환 잠금 검출")
+	_ok(not Validate.lock_check(bad2).is_empty(), "초 공방을 월세 전사 1로 미루면 → 굴러온 돌 승급 수요(등불) 순환 잠금 검출")
+	var bad3 := _db_copy()
+	bad3["buildings"]["items"]["food_cans"]["recipe"]["in"] = {"fish": 5}
+	bad3["buildings"]["items"]["food_pilgrims"]["recipe"]["in"] = {"fish": 5}
+	bad3["partners"]["items"].erase("ws_fish")
+	_ok(not Validate.lock_check(bad3).is_empty(), "통조림에 수입 원료가 필요하면 → 순환 잠금 검출(성채식 조달)")
 
 
 # ------------------------------------------------------------------ 파트 B
@@ -539,12 +552,12 @@ func _exp_claim_rules() -> void:
 	_steps(sim, st, 1)
 	var q: Dictionary = sim.query(st, "expeditions")
 	_ok((q["teams"] as Array).size() == 1, "거점 1 → 팀 1")
-	var r := sim.apply(st, "expedition_send", {"team": 1, "dest": "scrap_yard", "provision": false})
+	var r := sim.apply(st, "expedition_send", {"team": 1, "dest": "junk_yard", "provision": false})
 	_ok(r.get("ok", false), "근거리 파견")
 	var wood0 := float(st.stock.get("metal", 0.0))
 	var c := sim.apply(st, "expedition_claim", {"team": 1})
 	_ok(not c.get("ok", false) and float(st.stock.get("metal", 0.0)) == wood0, "완료 전 수령 불가(재고 그대로)")
-	var again := sim.apply(st, "expedition_send", {"team": 1, "dest": "furniture_alley", "provision": false})
+	var again := sim.apply(st, "expedition_send", {"team": 1, "dest": "landfill", "provision": false})
 	_ok(not again.get("ok", false) and str(again.get("code", "")) == "busy", "나가 있는 팀은 다시 못 보냄(%s)" % again.get("reason", ""))
 	var n_steps := int(ceilf(float(r["days"]) / sim.step_days - 1e-6))
 	_steps(sim, st, n_steps - 1)
@@ -556,7 +569,7 @@ func _exp_claim_rules() -> void:
 	var m1 := float(st.stock.get("metal", 0.0))
 	var c2 := sim.apply(st, "expedition_claim", {"team": 1})
 	_ok(not c2.get("ok", false) and float(st.stock.get("metal", 0.0)) == m1, "두 번째 수령은 아무것도 주지 않는다")
-	_ok(bool(st.dests["warehouse_district"]["known"]), "첫 근거리 수령으로 중거리 목적지 공개")
+	_ok(bool(st.dests["old_factory"]["known"]), "첫 근거리 수령으로 중거리 목적지 공개")
 	sim.systems.clear()
 
 
@@ -571,7 +584,7 @@ func _exp_teams_follow_posts() -> void:
 	_ok(st.teams.size() == 3, "거점 4 → 팀 3(최대) (%d)" % st.teams.size())
 	sim.apply(st, "demolish", {"pos": Vector3i(3, 0, 0)})
 	_ok(st.teams.size() == 3, "거점 3 → 팀 3")
-	sim.apply(st, "expedition_send", {"team": 3, "dest": "furniture_alley", "provision": false})
+	sim.apply(st, "expedition_send", {"team": 3, "dest": "landfill", "provision": false})
 	sim.apply(st, "demolish", {"pos": Vector3i(2, 0, 0)})
 	var live := 0
 	for t: Dictionary in st.teams:
@@ -591,7 +604,7 @@ func _exp_save_load() -> void:
 	var st: CityState = L[1]
 	_fac(sim, st, "expedition_base", Vector3i(0, 0, 0))
 	_steps(sim, st, 1)
-	sim.apply(st, "expedition_send", {"team": 1, "dest": "demolition_site", "provision": false})
+	sim.apply(st, "expedition_send", {"team": 1, "dest": "demo_site", "provision": false})
 	var js := st.to_json()
 	var st2 := CityState.new()
 	_ok(st2.from_json(js), "불러오기")
@@ -613,12 +626,12 @@ func _labor_separate() -> void:
 	var st: CityState = L[1]
 	for i: int in 6:
 		_house(sim, st, Vector3i(i, 5, 0), 1, 4)
-	_fac(sim, st, "garden", Vector3i(0, 7, 0))
+	_fac(sim, st, "food_cans", Vector3i(0, 7, 0))
 	_steps(sim, st, 2)
 	var before := JSON.stringify(st.labor)
 	_fac(sim, st, "expedition_base", Vector3i(0, 0, 0))
 	_steps(sim, st, 1)
-	sim.apply(st, "expedition_send", {"team": 1, "dest": "furniture_alley", "provision": false})
+	sim.apply(st, "expedition_send", {"team": 1, "dest": "landfill", "provision": false})
 	_steps(sim, st, 1)
 	_ok(JSON.stringify(st.labor) == before, "탐험대를 보내도 노동력 배분이 그대로")
 	var ok := true
@@ -650,15 +663,15 @@ func _structure_v4() -> void:
 	var sim: Sim = L[0]
 	var st: CityState = L[1]
 	st.floors_unlocked = 4
-	var c0 := sim.can(st, "build", {"type": "shrine", "pos": Vector3i(0, 0, 0), "rot": 0})
-	var c1 := sim.can(st, "build", {"type": "shrine", "pos": Vector3i(0, 0, 0), "rot": 1})
-	var k0 := sim.fp("shrine", 0)
-	var k1 := sim.fp("shrine", 1)
+	var c0 := sim.can(st, "build", {"type": "mahjong", "pos": Vector3i(0, 0, 0), "rot": 0})
+	var c1 := sim.can(st, "build", {"type": "mahjong", "pos": Vector3i(0, 0, 0), "rot": 1})
+	var k0 := sim.fp("mahjong", 0)
+	var k1 := sim.fp("mahjong", 1)
 	_ok(k0.x == k1.y and k0.y == k1.x and (c0["cells"] as Array).size() == k0.x * k0.y, "회전하면 w·h가 바뀐다 (%s → %s)" % [k0, k1])
-	var edge := sim.can(st, "build", {"type": "shrine", "pos": Vector3i(sim.W - 1, sim.H - 1, 0), "rot": 0})
+	var edge := sim.can(st, "build", {"type": "mahjong", "pos": Vector3i(sim.W - 1, sim.H - 1, 0), "rot": 0})
 	_ok(not edge["ok"] and str(edge["code"]) == "shape", "모서리에서 발자국이 부지 밖이면 code shape (%s)" % edge["code"])
 	_house(sim, st, Vector3i(5, 5, 0), 1, 0)
-	var occ := sim.can(st, "build", {"type": "shrine", "pos": Vector3i(5, 4, 0), "rot": 0})
+	var occ := sim.can(st, "build", {"type": "mahjong", "pos": Vector3i(5, 4, 0), "rot": 0})
 	_ok(not occ["ok"] and str(occ["code"]) == "shape", "발자국 한 칸이 막혀도 shape")
 	# 사각 범위: 체비쇼프 r, 위·아래 층
 	var rg := {"r": 2, "up": 1, "down": 0}
@@ -791,8 +804,8 @@ func _policy_research() -> void:
 	for i: int in 8:
 		_house(s2, c2, Vector3i(i, 5, 0), 3, 12)
 	_fac(s2, c2, "study", Vector3i(0, 0, 0))
-	_fac(s2, c2, "candle_shop", Vector3i(1, 0, 0))
-	c2.stock["fat"] = 5000.0
+	_fac(s2, c2, "candle_shop", Vector3i(2, 0, 0))
+	c2.stock["oil"] = 5000.0
 	for i: int in 6:
 		_house(s2, c2, Vector3i(i, 7, 0), 1, 4)
 	_steps(s2, c2, 2)
@@ -861,5 +874,5 @@ func _alerts_goals() -> void:
 	_ok((g["steps"] as Array).size() > 10 and str(g["steps"].back()["id"]) == "g_final", "목표 단계, 마지막은 구룡성채")
 	_ok(int(g["done_count"]) >= 2, "3일 동안 목표 몇 개 달성 (%d)" % int(g["done_count"]))
 	_ok(sim.query(st, "offline_summary") == null, "offline_summary: 보여 줄 것이 없으면 null")
-	_ok(str(sim.can(st, "build", {"type": "stall", "pos": Vector3i(99, 0, 0)}).get("code", "")) == "bounds", "can build code: bounds")
+	_ok(str(sim.can(st, "build", {"type": "market_mat", "pos": Vector3i(99, 0, 0)}).get("code", "")) == "bounds", "can build code: bounds")
 	sim.systems.clear()

@@ -10,7 +10,7 @@
   "rationing": {
    "branch": "living",
    "tier": 1,
-   "name": "공동 배급",
+   "name": "솥 돌리기",
    "desc": "골목마다 솥을 건다. 끼니 소비 −15%.",
    "cost": 1800,
    "days": 1.0,
@@ -21,7 +21,7 @@
   "soundproof": {
    "branch": "living",
    "tier": 2,
-   "name": "방음",
+   "name": "솜 넣은 벽",
    "desc": "공장 벽에 솜을 채운다. 소음으로 깎이는 행복이 사라진다.",
    "cost": 4800,
    "days": 1.5,
@@ -33,7 +33,7 @@
   "greening": {
    "branch": "living",
    "tier": 3,
-   "name": "옥상 녹화",
+   "name": "화분 대작전",
    "desc": "지붕마다 화분. 모든 주거 행복 +5.",
    "cost": 12000,
    "days": 2.5,
@@ -45,7 +45,7 @@
   "high_water": {
    "branch": "living",
    "tier": 4,
-   "name": "고층 급수",
+   "name": "층마다 물탱크",
    "desc": "물탱크와 펌프를 층마다. 주민 물 수요 −20%.",
    "cost": 27000,
    "days": 3.5,
@@ -57,7 +57,7 @@
   "workflow": {
    "branch": "work",
    "tier": 1,
-   "name": "작업 정리",
+   "name": "공구 벽에 걸기",
    "desc": "공구를 벽에 건다. 생산 시설 처리량 +10%.",
    "cost": 2400,
    "days": 1.0,
@@ -68,7 +68,7 @@
   "night_shift": {
    "branch": "work",
    "tier": 2,
-   "name": "야간 교대",
+   "name": "불 안 끄는 공장",
    "desc": "불이 꺼지지 않는 작업장. 처리량 +15% 더.",
    "cost": 6000,
    "days": 1.5,
@@ -80,7 +80,7 @@
   "waste_heat": {
    "branch": "work",
    "tier": 3,
-   "name": "폐열 회수",
+   "name": "발전기 열로 목욕물",
    "desc": "발전기 열로 물을 데운다. 전기 공급 +20%.",
    "cost": 15000,
    "days": 2.5,
@@ -92,7 +92,7 @@
   "precision": {
    "branch": "work",
    "tier": 4,
-   "name": "정밀 공정",
+   "name": "덜 버리기 운동",
    "desc": "덜 버리고 덜 고친다. 시설 유지비 −15%.",
    "cost": 36000,
    "days": 3.5,
@@ -104,8 +104,8 @@
   "handcart": {
    "branch": "road",
    "tier": 1,
-   "name": "손수레",
-   "desc": "탐험대에 바퀴를. 탐험 시간 −15%.",
+   "name": "바퀴 달린 탐험",
+   "desc": "탐험대에 바퀴를. 탐험 날짜 −15%.",
    "cost": 1800,
    "days": 1.0,
    "effects": {
@@ -115,8 +115,8 @@
   "mapping": {
    "branch": "road",
    "tier": 2,
-   "name": "지도 제작",
-   "desc": "다녀온 길을 그려 둔다. 원거리 목적지를 모두 알게 되고 수확 +5%.",
+   "name": "약도 그리기",
+   "desc": "다녀온 길을 그려 둔다. 원거리 던전을 모두 알게 되고 수확 +5%.",
    "cost": 4500,
    "days": 1.5,
    "requires": "handcart",
@@ -124,16 +124,15 @@
     "exp.yield": 0.05
    },
    "reveals": [
-    "timber_yard",
-    "industrial_park",
-    "megasite",
+    "waste_plant",
+    "ghost_town",
     "old_plant"
    ]
   },
   "truck": {
    "branch": "road",
    "tier": 3,
-   "name": "화물차",
+   "name": "고물 트럭",
    "desc": "고물 트럭 한 대. 탐험 수확 +20%.",
    "cost": 13500,
    "days": 2.5,
@@ -145,7 +144,7 @@
   "regulars": {
    "branch": "road",
    "tier": 4,
-   "name": "단골 거래",
+   "name": "얼굴 아는 사이",
    "desc": "얼굴을 아는 거래처. 수입 단가 −10%, 수출 단가 +10%.",
    "cost": 30000,
    "days": 3.5,

@@ -78,6 +78,7 @@ func apply(state: CityState, name: String, args: Dictionary) -> Variant:
 	var mat: String = p["material"]
 	state.money -= float(p["money"])
 	state.book("build", -float(p["money"]))
+	state.stat_add("spent_upgrade", float(p["money"]))
 	state.stock[mat] = float(state.stock.get(mat, 0.0)) - float(p["qty"])
 	state.stat_add("used." + mat, float(p["qty"]))
 	for g: String in p["extra"]:

@@ -1,10 +1,10 @@
 {
- "_comment": "단계 목표(GDD §9, 확정: 단계 목표 + 이후 샌드박스). order 순서로 hud.next_goal에 하나씩 보인다(먼저 이룬 것은 그때 끝난다). cond = Expr 조건(Metrics 지표: pop.tN, houses.tN, count.<시설>, floors, contracts, research.done, stat.<통계 키> …). rewards: money(₩), stock{상품:n}, reveal[목적지]. unlock = 같은 순간 열리는 해금 단계 id(보상 문구에 이름을 보탠다). grade = 이 목표가 성채 등급을 바꾸는 단계(표시용, 실제 등급은 unlocks.json). final = 마지막(이후 샌드박스).",
+ "_comment": "단계 목표(v0.4 PC, 24단계). order 순서로 hud.next_goal에 하나씩 보인다(먼저 이룬 것은 그때 끝난다). cond = Expr 조건(Metrics 지표: pop.tN, houses.tN, count.<시설>, floors, contracts, lux_built(사치 시설 완공 수), stat.<통계>…). rewards: money, stock{상품:n}, reveal[목적지]. unlock = 같은 순간 열리는 해금 단계 id(보상 문구용). final = 마지막(이후 샌드박스).",
  "status": "제안(문구) / 실험값(보상)",
  "items": {
   "g_zone": {
    "order": 1,
-   "text": "판잣집 8채를 칠해 첫 떠돌이를 받아라",
+   "text": "판잣집 8채를 칠해 굴러온 돌을 받아라",
    "cond": [
     [
      "houses.t1",
@@ -16,9 +16,38 @@
     "money": 250
    }
   },
-  "g_t1_20": {
+  "g_basics": {
    "order": 2,
-   "text": "떠돌이 20명 — 텃밭·좌판·빗물받이로 먹이고 씻겨라",
+   "text": "1층의 필수 셋 — 돗자리 장터·캔 은행(먹을 것), 하늘 수도국(물), 패가망신 클럽(놀 것)",
+   "cond": [
+    [
+     "count.market_mat",
+     ">=",
+     1
+    ],
+    [
+     "count.food_cans",
+     ">=",
+     1
+    ],
+    [
+     "count.rain_catcher",
+     ">=",
+     1
+    ],
+    [
+     "count.mahjong",
+     ">=",
+     1
+    ]
+   ],
+   "rewards": {
+    "money": 300
+   }
+  },
+  "g_t1_20": {
+   "order": 3,
+   "text": "굴러온 돌 20명",
    "cond": [
     [
      "pop.t1",
@@ -28,12 +57,12 @@
    ],
    "unlock": "t1_20",
    "rewards": {
-    "money": 300
+    "money": 200
    }
   },
-  "g_base": {
-   "order": 3,
-   "text": "탐험 거점을 짓고 첫 탐험대를 보내라",
+  "g_exp": {
+   "order": 4,
+   "text": "줍줍 본부를 짓고 탐험대를 고물 야적장에 보내라",
    "cond": [
     [
      "stat.exp_sent",
@@ -46,8 +75,8 @@
    }
   },
   "g_claim": {
-   "order": 4,
-   "text": "돌아온 탐험대의 짐을 받아라",
+   "order": 5,
+   "text": "돌아온 탐험대의 짐을 풀어라",
    "cond": [
     [
      "stat.exp_claims",
@@ -57,14 +86,14 @@
    ],
    "rewards": {
     "reveal": [
-     "warehouse_district",
+     "old_factory",
      "back_docks"
     ]
    }
   },
   "g_t2_1": {
-   "order": 5,
-   "text": "첫 세입자 — 헌 옷·등불을 갖춘 만실 판잣집을 올려라(목재·철제·콘크리트 중 하나)",
+   "order": 6,
+   "text": "첫 월세 전사 — 헌 옷·초를 갖춘 만실 판잣집을 올려라(목재·철제·콘크리트 중 하나를 고르면 그게 외관이 된다)",
    "cond": [
     [
      "pop.t2",
@@ -77,58 +106,67 @@
     "money": 300
    }
   },
-  "g_trade": {
-   "order": 6,
-   "text": "교역소를 짓고 계약을 세 건 맺어라",
-   "cond": [
-    [
-     "count.trade_post",
-     ">=",
-     1
-    ],
-    [
-     "contracts",
-     ">=",
-     3
-    ]
-   ],
-   "rewards": {
-    "money": 200
-   }
-  },
-  "g_t1_50": {
+  "g_wonton": {
    "order": 7,
-   "text": "떠돌이 50명",
+   "text": "수타 제면소에서 생면을 뽑고 '완탕 한 그릇'을 끓여라(첫 2단 사슬)",
    "cond": [
     [
-     "pop.t1",
+     "stat.prod.wonton",
      ">=",
-     50
+     10
     ]
    ],
-   "unlock": "t1_50",
    "rewards": {
-    "money": 150
+    "money": 300
    }
   },
-  "g_t2_60": {
+  "g_floor2": {
    "order": 8,
-   "text": "세입자 60명",
+   "text": "1층의 80%를 쓰이는 칸으로 채워 2층을 열어라 — 2층부터는 불이 난다",
+   "cond": [
+    [
+     "floors",
+     ">=",
+     2
+    ]
+   ],
+   "unlock": "floor2",
+   "rewards": {
+    "money": 400
+   }
+  },
+  "g_fire": {
+   "order": 9,
+   "text": "양동이 소방대로 쓰이는 칸을 덮어라(위아래 한 층까지 닿는다)",
+   "cond": [
+    [
+     "count.fire_bucket",
+     ">=",
+     2
+    ]
+   ],
+   "rewards": {
+    "money": 300
+   }
+  },
+  "g_t2_40": {
+   "order": 10,
+   "text": "월세 전사 40명",
    "cond": [
     [
      "pop.t2",
      ">=",
-     60
+     40
     ]
    ],
-   "unlock": "t2_60",
+   "unlock": "t2_40",
    "rewards": {
     "money": 300
    }
   },
   "g_power": {
-   "order": 9,
-   "text": "발전기를 돌려 성채에 첫 전기를 들여라",
+   "order": 11,
+   "text": "털털이 발전기를 돌려 성채에 첫 전기를 들여라",
    "cond": [
     [
      "power.supply",
@@ -137,12 +175,12 @@
     ]
    ],
    "rewards": {
-    "money": 200
+    "money": 300
    }
   },
   "g_t3_1": {
-   "order": 10,
-   "text": "첫 토박이 — 비누·의원(무면허 치과)을 갖춘 만실 세입자 집을 올려라",
+   "order": 12,
+   "text": "첫 박힌 돌 — 비누·밀주를 갖춘 만실 월세 전사 집을 올려라",
    "cond": [
     [
      "pop.t3",
@@ -152,26 +190,12 @@
    ],
    "unlock": "t3_1",
    "rewards": {
-    "money": 300
-   }
-  },
-  "g_floor2": {
-   "order": 11,
-   "text": "1층 칸의 80%를 쓰이는 칸(사람 사는 집·시설)으로 채워 2층을 열어라",
-   "cond": [
-    [
-     "floors",
-     ">=",
-     2
-    ]
-   ],
-   "rewards": {
-    "money": 300
+    "money": 400
    }
   },
   "g_mid": {
-   "order": 12,
-   "text": "중거리 탐험(외곽 창고 지대·부두 뒷골목)에서 거래처를 찾아라",
+   "order": 13,
+   "text": "중거리(폐공장·부두 뒷골목)에 다녀와 거래처를 찾아라",
    "cond": [
     [
      "stat.exp_claims_mid",
@@ -180,30 +204,54 @@
     ]
    ],
    "rewards": {
-    "money": 200
+    "money": 300
    }
   },
-  "g_t3_100": {
-   "order": 13,
-   "text": "토박이 300명",
+  "g_floor3": {
+   "order": 14,
+   "text": "2층의 80%를 채워 3층을 열어라 — 3층부터는 쓰레기가 병을 부른다",
    "cond": [
     [
-     "pop.t3",
+     "floors",
      ">=",
-     300
+     3
     ]
    ],
-   "unlock": "t3_100",
+   "unlock": "floor3",
    "rewards": {
     "money": 600
    }
   },
-  "g_research": {
-   "order": 14,
-   "text": "공부방에서 연구 하나를 끝내라",
+  "g_disease": {
+   "order": 15,
+   "text": "넝마주이 조합(쓰레기)과 무면허 의원(병)을 세워라",
    "cond": [
     [
-     "research.done",
+     "count.trash_guild",
+     ">=",
+     1
+    ],
+    [
+     "count.clinic",
+     ">=",
+     1
+    ]
+   ],
+   "rewards": {
+    "money": 400
+   }
+  },
+  "g_trade": {
+   "order": 16,
+   "text": "뒷문 무역관을 짓고 계약을 하나 맺어라(남는 것을 팔고 사치품을 들인다)",
+   "cond": [
+    [
+     "count.trade_post",
+     ">=",
+     1
+    ],
+    [
+     "contracts",
      ">=",
      1
     ]
@@ -212,9 +260,53 @@
     "money": 300
    }
   },
+  "g_t3_80": {
+   "order": 17,
+   "text": "박힌 돌 80명",
+   "cond": [
+    [
+     "pop.t3",
+     ">=",
+     80
+    ]
+   ],
+   "unlock": "t3_80",
+   "rewards": {
+    "money": 800
+   }
+  },
+  "g_lux": {
+   "order": 18,
+   "text": "행복한 동네를 지켜 사치 시설(목욕탕·치과·약국…)을 하나 열고 지어라",
+   "cond": [
+    [
+     "lux_built",
+     ">=",
+     1
+    ]
+   ],
+   "rewards": {
+    "money": 800
+   }
+  },
+  "g_t4_1": {
+   "order": 19,
+   "text": "첫 깡통 귀족 — 라디오·공부방을 갖춘 만실 박힌 돌 집을 올려라",
+   "cond": [
+    [
+     "pop.t4",
+     ">=",
+     1
+    ]
+   ],
+   "unlock": "t4_1",
+   "rewards": {
+    "money": 1000
+   }
+  },
   "g_far": {
-   "order": 15,
-   "text": "원거리 탐험을 다녀와 설비 부품을 들여라",
+   "order": 20,
+   "text": "원거리 탐험에서 설비 부품을 들여라",
    "cond": [
     [
      "stat.exp_claims_far",
@@ -228,53 +320,24 @@
     }
    }
   },
-  "g_t4_1": {
-   "order": 16,
-   "text": "첫 유지 — 라디오·공부방을 갖춘 만실 토박이 집을 올려라",
+  "g_tower": {
+   "order": 21,
+   "text": "네온 용탑을 세워라(첫 명소, 두 개 층)",
    "cond": [
     [
-     "pop.t4",
+     "count.neon_tower",
      ">=",
      1
     ]
    ],
-   "unlock": "t4_1",
-   "rewards": {
-    "money": 800
-   }
-  },
-  "g_floor3": {
-   "order": 17,
-   "text": "2층 칸의 80%를 쓰이는 칸(사람 사는 집·시설)으로 채워 3층을 열어라",
-   "cond": [
-    [
-     "floors",
-     ">=",
-     3
-    ]
-   ],
-   "rewards": {
-    "money": 800
-   }
-  },
-  "g_t4_60": {
-   "order": 18,
-   "text": "유지 120명",
-   "cond": [
-    [
-     "pop.t4",
-     ">=",
-     120
-    ]
-   ],
    "unlock": "t4_60",
    "rewards": {
-    "money": 1500
+    "money": 2000
    }
   },
   "g_t5_1": {
-   "order": 19,
-   "text": "첫 거물 — 양주·공부방을 갖춘 만실 유지 집을 설비 부품 3개로 올려라",
+   "order": 22,
+   "text": "첫 옥상 황제 — 양주·짝퉁 명품을 갖춘 만실 깡통 귀족 집을 설비 부품으로 올려라",
    "cond": [
     [
      "pop.t5",
@@ -283,12 +346,12 @@
     ]
    ],
    "rewards": {
-    "money": 1500
+    "money": 2000
    }
   },
   "g_hall": {
-   "order": 20,
-   "text": "성채 회관을 세워라(₩25,000 + 목재·철제·콘크리트 각 150 + 설비 부품 20)",
+   "order": 23,
+   "text": "무허가 구청을 세워라(3×3, 세 자재 각 150 + 설비 부품 20)",
    "cond": [
     [
      "count.city_hall",
@@ -296,18 +359,19 @@
      1
     ]
    ],
+   "unlock": "t4_100",
    "rewards": {
     "money": 3000
    }
   },
   "g_final": {
-   "order": 21,
-   "text": "거물 150명과 성채 회관 — 구룡성채의 따거가 되어라",
+   "order": 24,
+   "text": "옥상 황제 120명과 무허가 구청 — 지도에 없는 곳의 따거가 되어라",
    "cond": [
     [
      "pop.t5",
      ">=",
-     150
+     120
     ],
     [
      "count.city_hall",
@@ -315,7 +379,7 @@
      1
     ]
    ],
-   "unlock": "t5_40",
+   "unlock": "final",
    "final": true,
    "rewards": {}
   }
