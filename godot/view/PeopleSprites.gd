@@ -1,13 +1,15 @@
 class_name PeopleSprites
 extends RefCounted
 ## PeopleSprites — 사람 스프라이트 시트를 코드로 그린다(에셋 없음). 큰 머리의 짧은 몸(치비) 픽셀 인형.
-## 세 크기: S 6×12(먼 확대) · M 10×20(중간) · L 16×32(가까이). 같은 자세 목록, 같은 배치.
-## 텍셀은 색이 아니라 "부위 번호"를 R에 담는다(R = 부위/16). 셰이더(actor.gdshader)가 인스턴스마다 피부·머리·옷·바지·소품 색으로 바꾼다.
-## 배치: 열 = 자세×2(프레임 0/1), 행 = 방향(0 앞, 1 옆(오른쪽을 봄), 2 뒤).
+## 크기: S 6×12(먼 확대) · M 10×20 · L 16×32 · X 20×40(확대 3단) · XX 26×52(가장 가까이: 한 층 64px에 사람 ≈44px).
+## 텍셀 = "부위 번호"(R = 부위/16). 셰이더(actor.gdshader)가 인스턴스마다 피부·머리·옷·바지·소품 색을 입힌다.
+## 배치: 열 = 자세×4(프레임 0..3), 행 = 방향(0 앞, 1 옆(오른쪽을 봄), 2 뒤).
+## 4프레임: 걷기 = 왼발·모음·오른발·모음(모음에서 1px 들림), 손일 = 손 높이 0·1·2·1, 그 밖 = 0·0·1·1(느린 번갈음).
 
 enum Part { NONE, OUTLINE, SKIN, HAIR, SHIRT, PANTS, SHOES, EYE, ACC, PROP, WHITE, CRATE, SHIRT_D, SKIN_D }
-const POSES := ["stand", "walk", "sit", "work", "swork", "cheer", "sing", "carry", "bucket", "lie", "squat", "bow", "bathe", "sit_eat", "can", "sack", "taichi", "pass"]
-const SIZES := {"S": Vector2i(6, 12), "M": Vector2i(10, 20), "L": Vector2i(16, 32)}
+const POSES := ["stand", "walk", "sit", "work", "swork", "cheer", "sing", "carry", "bucket", "lie", "squat", "bow", "bathe", "sit_eat", "can", "sack", "taichi", "pass", "scratch", "look", "smoke", "hammer", "cook", "run"]
+const SIZES := {"S": Vector2i(6, 12), "M": Vector2i(10, 20), "L": Vector2i(16, 32), "X": Vector2i(20, 40), "XX": Vector2i(26, 52)}
+const FRAMES := 4
 
 var img: Image
 var fw := 16
@@ -15,6 +17,8 @@ var fh := 32
 var _ox := 0
 var _oy := 0
 var _sz := "L"
+var big := true     # L 이상: 테두리·눈·목 같은 잔디테일을 그린다
+var k := 1.0        # L(32) 대비 배율
 
 
 static func pose_index(name: String) -> int:
@@ -22,9 +26,17 @@ static func pose_index(name: String) -> int:
 	return i if i >= 0 else 0
 
 
+static var _cache: Dictionary = {}
+
+
+## 시트는 크기마다 한 번만 그린다(주민·시설 안 사람이 같은 텍스처를 쓴다).
 static func build(size: String) -> ImageTexture:
+	if _cache.has(size):
+		return _cache[size]
 	var ps := PeopleSprites.new()
-	return ImageTexture.create_from_image(ps._sheet(size))
+	var t := ImageTexture.create_from_image(ps._sheet(size))
+	_cache[size] = t
+	return t
 
 
 func _sheet(size: String) -> Image:
@@ -32,22 +44,41 @@ func _sheet(size: String) -> Image:
 	var fs: Vector2i = SIZES[size]
 	fw = fs.x
 	fh = fs.y
-	img = Image.create(fw * POSES.size() * 2, fh * 3, false, Image.FORMAT_RGBA8)
-	img.fill(Color(0, 0, 0, 0))
+	big = fh >= 32
+	k = float(fh) / 32.0
+	var W := fw * POSES.size() * FRAMES
+	var H := fh * 3
+	var data := PackedByteArray()
+	data.resize(W * H * 4)
+	data.fill(0)
 	for pi in POSES.size():
-		for f in 2:
+		for f in FRAMES:
 			for dr in 3:
-				_ox = (pi * 2 + f) * fw
-				_oy = dr * fh
+				_buf = PackedByteArray()
+				_buf.resize(fw * fh)
+				_buf.fill(0)
 				_figure(POSES[pi], f, dr)
 				_outline()
+				var ox := (pi * FRAMES + f) * fw
+				var oy := dr * fh
+				for y in fh:
+					for x in fw:
+						var pt := _buf[y * fw + x]
+						if pt != 0:
+							var i := ((oy + y) * W + ox + x) * 4
+							data[i] = int((float(pt) / 16.0 + 0.01) * 255.0)
+							data[i + 3] = 255
+	img = Image.create_from_data(W, H, false, Image.FORMAT_RGBA8, data)
 	return img
+
+
+var _buf := PackedByteArray()
 
 
 func _put(x: int, y: int, part: int) -> void:
 	if x < 0 or y < 0 or x >= fw or y >= fh:
 		return
-	img.set_pixel(_ox + x, _oy + y, Color(float(part) / 16.0 + 0.01, 0, 0, 1))
+	_buf[y * fw + x] = part
 
 
 func _rect(x: int, y: int, w: int, h: int, part: int) -> void:
@@ -59,13 +90,9 @@ func _rect(x: int, y: int, w: int, h: int, part: int) -> void:
 func _part_at(x: int, y: int) -> int:
 	if x < 0 or y < 0 or x >= fw or y >= fh:
 		return 0
-	var c := img.get_pixel(_ox + x, _oy + y)
-	if c.a < 0.5:
-		return 0
-	return int(c.r * 16.0)
+	return _buf[y * fw + x]
 
 
-## 비어 있는 칸 중 그림과 맞닿은 칸에 테두리(대각선은 안 친다 → 작아도 뭉개지지 않는다)
 func _outline() -> void:
 	if _sz == "S":
 		return
@@ -83,15 +110,22 @@ func _outline() -> void:
 		_put(p.x, p.y, Part.OUTLINE)
 
 
-# ------------------------------------------------------------------ 인형
-## 크기별 기본 치수(발 = 맨 아래 줄)
+func _n(v: float) -> int:
+	return maxi(int(round(v * k)), 1)
+
+
 func _dims() -> Dictionary:
 	match _sz:
 		"S":
 			return {"hw": 4, "hh": 4, "bw": 4, "bh": 3, "lh": 3, "sh": 1, "aw": 1, "ah": 2, "lw": 1}
 		"M":
 			return {"hw": 6, "hh": 6, "bw": 4, "bh": 4, "lh": 3, "sh": 1, "aw": 1, "ah": 3, "lw": 2}
-	return {"hw": 10, "hh": 9, "bw": 8, "bh": 6, "lh": 5, "sh": 2, "aw": 2, "ah": 5, "lw": 3}
+	# L 기준 치수를 배율로(짝수 폭을 지켜 가운데가 맞게)
+	var hw := _n(10.0)
+	hw += hw % 2
+	var bw := _n(8.0)
+	bw += bw % 2
+	return {"hw": hw, "hh": _n(9.0), "bw": bw, "bh": _n(6.0), "lh": _n(5.0), "sh": _n(2.0), "aw": _n(2.0), "ah": _n(5.0), "lw": _n(3.0)}
 
 
 func _figure(pose: String, f: int, dr: int) -> void:
@@ -108,10 +142,10 @@ func _figure(pose: String, f: int, dr: int) -> void:
 	var cx := fw / 2
 	var side := dr == 1
 	var back := dr == 2
+	var f2 := 0 if f < 2 else 1          # 느린 번갈음
 	if side:
-		bw = maxi(bw - (2 if _sz == "L" else 1), 2)
-		hw = maxi(hw - (1 if _sz == "L" else 0), 3)
-	# 자세별 다리·몸 높이
+		bw = maxi(bw - (_n(2.0) if big else 1), 2)
+		hw = maxi(hw - (_n(1.0) if big else 0), 3)
 	var foot := fh - 1
 	var leg := lh
 	var sit := pose in ["sit", "work", "sit_eat"]
@@ -121,25 +155,29 @@ func _figure(pose: String, f: int, dr: int) -> void:
 	if squat:
 		leg = maxi(lh / 3, 1)
 	if pose == "lie":
-		_lie(D)
+		_lie(D, f2)
 		return
 	if pose == "bathe":
-		_bathe(D, f)
+		_bathe(D, f2)
 		return
+	var walking := pose in ["walk", "carry", "bucket", "can", "sack", "run"]
+	var lift := 1 if (walking and (f == 1 or f == 3) and big) else 0
+	if pose == "cook" and big and f == 2:
+		lift = 1
 	var shoe_y := foot - sh + 1
 	var leg_y := shoe_y - leg
-	var body_y := leg_y - bh
+	var body_y := leg_y - bh - lift
 	var head_y := body_y - hh + (1 if _sz != "S" else 0)
-	if pose == "bow" and f == 1:
+	if pose == "bow" and f2 == 1:
 		head_y += maxi(hh / 3, 1)
+	if pose == "hammer" and f == 2:
+		head_y += 1
 	var bx := cx - bw / 2
 	var hx := cx - hw / 2
 	if side:
-		hx = cx - hw / 2 + (1 if _sz == "L" else 0)
+		hx = cx - hw / 2 + (1 if big else 0)
 	# ── 다리
-	var walking := pose in ["walk", "carry", "bucket", "can", "sack"]
 	if sit:
-		# 앉음: 앞에선 무릎 덩어리, 옆에선 앞으로 뻗은 허벅지
 		if side:
 			_rect(bx, leg_y, bw + lw + 1, leg, Part.PANTS)
 			_rect(bx + bw + lw - 1, leg_y + leg, maxi(lw, 1) + 1, sh, Part.SHOES)
@@ -158,115 +196,130 @@ func _figure(pose: String, f: int, dr: int) -> void:
 		var l2 := bx + lw + gap
 		var up1 := 0
 		var up2 := 0
+		var done := false
 		if walking:
+			var stride := (2 if pose == "run" else 1) * (_n(2.0) if big else (1 if _sz == "M" else 0))
 			if side:
-				# 옆: 두 다리가 앞뒤로 벌어진다
-				var st := 1 if _sz != "S" else 0
-				var a := cx - lw + (st + 1 if f == 0 else -st - 1) - 1
-				var b := cx - lw + (-st - 1 if f == 0 else st + 1)
-				_rect(a, leg_y, lw, leg, Part.PANTS)
-				_rect(a, shoe_y, lw + 1, sh, Part.SHOES)
-				_rect(b, leg_y, lw, leg, Part.PANTS)
-				_rect(b, shoe_y, lw + 1, sh, Part.SHOES)
-				l1 = -99
+				# 옆: 왼발 앞 · 모음 · 오른발 앞 · 모음
+				var off: int = [stride + 1, 0, -stride - 1, 0][f]
+				var a: int = cx - lw / 2 + off - (1 if f % 2 == 1 else 0)
+				var b: int = cx - lw / 2 - off
+				_rect(a, leg_y, lw, leg - lift, Part.PANTS)
+				_rect(a, shoe_y - lift, lw + 1, sh, Part.SHOES)
+				_rect(b, leg_y, lw, leg - lift, Part.PANTS)
+				_rect(b, shoe_y - lift, lw + 1, sh, Part.SHOES)
+				done = true
 			else:
-				up1 = 1 if f == 0 else 0
-				up2 = 0 if f == 0 else 1
-		if l1 > -99:
+				up1 = maxi(stride, 1) if f == 0 else 0
+				up2 = maxi(stride, 1) if f == 2 else 0
+		if not done:
 			if side:
-				_rect(cx - lw / 2 - 1, leg_y, lw + 1, leg, Part.PANTS)
-				_rect(cx - lw / 2 - 1, shoe_y, lw + 2, sh, Part.SHOES)
+				_rect(cx - lw / 2 - 1, leg_y - lift, lw + 1, leg, Part.PANTS)
+				_rect(cx - lw / 2 - 1, shoe_y - lift, lw + 2, sh, Part.SHOES)
 			else:
-				_rect(l1, leg_y, lw, leg - up1, Part.PANTS)
-				_rect(l1, shoe_y - up1, lw, sh, Part.SHOES)
-				_rect(l2, leg_y, lw, leg - up2, Part.PANTS)
-				_rect(l2, shoe_y - up2, lw, sh, Part.SHOES)
+				_rect(l1, leg_y - lift, lw, leg - up1, Part.PANTS)
+				_rect(l1, shoe_y - up1 - lift, lw, sh, Part.SHOES)
+				_rect(l2, leg_y - lift, lw, leg - up2, Part.PANTS)
+				_rect(l2, shoe_y - up2 - lift, lw, sh, Part.SHOES)
 	# ── 몸
 	_rect(bx, body_y, bw, bh, Part.SHIRT)
-	if _sz == "L":
+	if big:
 		_rect(bx, body_y + bh - 1, bw, 1, Part.SHIRT_D)
+		# 그늘진 쪽(오른쪽)과 단추줄 — 큰 크기에서 몸통이 덩어리로 읽히게
+		_rect(bx + bw - maxi(_n(1.5), 1), body_y + 1, maxi(_n(1.5), 1), bh - 1, Part.SHIRT_D)
+		if not side and not back and k > 1.1:
+			for yy in range(body_y + 2, body_y + bh - 1, 2):
+				_put(cx, yy, Part.SHIRT_D)
 		if not back and not side:
-			_put(cx, body_y, Part.SKIN)   # 목
-	# ── 팔
+			_rect(cx - _n(1.0) / 2, body_y, maxi(_n(1.0), 1), 1, Part.SKIN)
+		if pose == "cook" and not back:
+			# 앞치마
+			_rect(bx + 1, body_y + 1, bw - 2, bh - 1, Part.WHITE)
 	_arms(pose, f, dr, bx, bw, body_y, aw, ah, hx, hw, head_y, hh)
-	# ── 머리
 	_head(hx, head_y, hw, hh, dr, f, pose)
-	# ── 들고 있는 것
-	_props(pose, f, dr, bx, bw, body_y, bh, head_y, cx, aw, ah)
+	_props(pose, f, dr, bx, bw, body_y, bh, head_y, cx, aw, ah, hx, hw, hh)
 
 
 func _arms(pose: String, f: int, dr: int, bx: int, bw: int, by: int, aw: int, ah: int, hx: int, hw: int, hy: int, hh: int) -> void:
 	var lx := bx - aw
 	var rx := bx + bw
 	var side := dr == 1
+	var f2 := 0 if f < 2 else 1
 	var sleeve := maxi(ah / 2, 1)
+	var hand := maxi(_n(1.0), 1) if big else 1
 	var arm := func(x: int, y: int, h: int, hand_top: bool = false) -> void:
 		if hand_top:
-			_rect(x, y, aw, 1, Part.SKIN)
-			_rect(x, y + 1, aw, maxi(h - 1, 0), Part.SHIRT)
+			_rect(x, y, aw, hand, Part.SKIN)
+			_rect(x, y + hand, aw, maxi(h - hand, 0), Part.SHIRT)
 		else:
 			_rect(x, y, aw, mini(sleeve, h), Part.SHIRT)
 			if h > sleeve:
 				_rect(x, y + sleeve, aw, h - sleeve, Part.SKIN)
+	var hy4: int = [0, 1, 2, 1][f]      # 손일 4단
 	match pose:
-		"walk", "can", "sack":
+		"walk", "can", "sack", "run":
+			var sw: int = [1, 0, -1, 0][f] * (2 if pose == "run" else 1)
 			if side:
-				arm.call(bx + bw / 2 - aw / 2 + (1 if f == 0 else -1), by + 1, ah)
+				arm.call(bx + bw / 2 - aw / 2 + sw, by + 1, ah)
 			else:
-				arm.call(lx, by + (1 if f == 0 else 0), ah)
-				arm.call(rx, by + (0 if f == 0 else 1), ah)
-		"work", "swork", "pass":
-			# 팔을 앞으로(위아래로 번갈아 움직임) — 손이 몸 가운데 앞에
-			var hand_y := by + ah / 2 + (1 if f == 1 else 0)
+				arm.call(lx, by + maxi(sw, 0), ah)
+				arm.call(rx, by + maxi(-sw, 0), ah)
+		"work", "swork", "pass", "cook":
+			# 손을 앞으로, 위아래 4단(재봉·패 섞기·칼질·건네기)
+			var hand_y := by + ah / 2 + hy4 - 1
 			if side:
-				_rect(bx + bw - 1, by + 1, aw + 2, 1 if _sz != "L" else 2, Part.SHIRT)
-				_rect(bx + bw + aw, hand_y - (1 if f == 0 else 0), 1 if _sz != "L" else 2, 1 if _sz != "L" else 2, Part.SKIN)
+				_rect(bx + bw - 1, by + 1, aw + 2, hand, Part.SHIRT)
+				_rect(bx + bw + aw, hand_y - 1, hand, hand, Part.SKIN)
 			elif dr == 0:
 				arm.call(lx, by, maxi(ah - 2, 1))
 				arm.call(rx, by, maxi(ah - 2, 1))
-				_rect(bx + 1, hand_y, aw, 1 if _sz != "L" else 2, Part.SKIN)
-				_rect(bx + bw - 1 - aw, hand_y + (1 if f == 0 else -1), aw, 1 if _sz != "L" else 2, Part.SKIN)
+				_rect(bx + 1, hand_y, aw, hand, Part.SKIN)
+				_rect(bx + bw - 1 - aw, by + ah / 2 + (2 - hy4) - 1, aw, hand, Part.SKIN)
 			else:
 				arm.call(lx, by, maxi(ah - 2, 1))
 				arm.call(rx, by, maxi(ah - 2, 1))
-		"cheer", "taichi":
-			var up := pose == "cheer"
+		"hammer":
+			# 망치를 들었다(0) 내리친다(2)
+			var up := f == 0 or f == 1
 			if side:
-				arm.call(bx + bw / 2, hy if up else by, ah, up)
+				arm.call(bx + bw / 2, hy if up else by + 1, ah, up)
 			else:
-				if up:
-					if f == 0:
-						arm.call(lx, by - ah + 1, ah, true)
-						arm.call(rx, by, ah)
-					else:
-						arm.call(lx, by, ah)
-						arm.call(rx, by - ah + 1, ah, true)
+				arm.call(lx, by, ah)
+				arm.call(rx, hy + (0 if up else hh), ah, up)
+		"cheer", "taichi":
+			var upc := pose == "cheer"
+			if side:
+				arm.call(bx + bw / 2, hy if upc else by, ah, upc)
+			elif upc:
+				if f2 == 0:
+					arm.call(lx, by - ah + 1, ah, true)
+					arm.call(rx, by, ah)
 				else:
-					# 태극권: 팔을 옆으로 뻗음 / 앞으로 모음
-					if f == 0:
-						_rect(lx - aw, by + 1, aw * 2, 1 if _sz != "L" else 2, Part.SHIRT)
-						_rect(rx, by + 1, aw * 2, 1 if _sz != "L" else 2, Part.SHIRT)
-						_put(lx - aw - 1, by + 1, Part.SKIN)
-						_put(rx + aw * 2, by + 1, Part.SKIN)
-					else:
-						arm.call(lx, by - ah + 2, ah, true)
-						arm.call(rx, by - ah + 2, ah, true)
+					arm.call(lx, by, ah)
+					arm.call(rx, by - ah + 1, ah, true)
+			else:
+				if f2 == 0:
+					_rect(lx - aw, by + 1, aw * 2, hand, Part.SHIRT)
+					_rect(rx, by + 1, aw * 2, hand, Part.SHIRT)
+					_rect(lx - aw - hand, by + 1, hand, hand, Part.SKIN)
+					_rect(rx + aw * 2, by + 1, hand, hand, Part.SKIN)
+				else:
+					arm.call(lx, by - ah + 2, ah, true)
+					arm.call(rx, by - ah + 2, ah, true)
 		"sing":
 			if dr == 2:
 				arm.call(lx, by, ah)
 				arm.call(rx, by, ah)
 			else:
-				# 마이크를 입가에
 				_rect(rx - (1 if side else 0), by - 1, aw, 2, Part.SHIRT)
-				_rect(rx - (1 if side else 0), hy + hh - 2, aw, 2, Part.SKIN)
+				_rect(rx - (1 if side else 0), hy + hh - 2, aw, hand + 1, Part.SKIN)
 				_put(rx - (1 if side else 0) - 1, hy + hh - 2, Part.PROP)
 				if not side:
-					arm.call(lx - (1 if f == 1 else 0), by + (0 if f == 0 else -1), ah)
+					arm.call(lx - (1 if f2 == 1 else 0), by + (0 if f2 == 0 else -1), ah)
 		"carry":
-			# 상자를 머리 위로
 			if not side:
-				arm.call(lx, by - ah + 1, ah, true)
-				arm.call(rx, by - ah + 1, ah, true)
+				arm.call(lx, by - ah + 1 + (1 if f % 2 == 1 else 0), ah, true)
+				arm.call(rx, by - ah + 1 + (1 if f % 2 == 1 else 0), ah, true)
 			else:
 				arm.call(bx + bw / 2, by - ah + 1, ah, true)
 		"bucket":
@@ -276,14 +329,15 @@ func _arms(pose: String, f: int, dr: int, bx: int, bw: int, by: int, aw: int, ah
 				arm.call(lx, by + (1 if f == 0 else 0), ah)
 				arm.call(rx, by, ah + 1)
 		"sit_eat":
+			var up2 := f == 1 or f == 2
 			if dr == 0:
 				_rect(bx, by + ah / 2, bw, 1, Part.SKIN)
 				arm.call(lx, by, maxi(ah - 2, 1))
-				arm.call(rx, by - (1 if f == 0 else 0), maxi(ah - 2, 1))
-				_put(rx, by - (2 if f == 0 else 1), Part.SKIN)
+				arm.call(rx, by - (1 if up2 else 0), maxi(ah - 2, 1))
+				_rect(rx, by - (2 if up2 else 1), hand, hand, Part.SKIN)
 			elif side:
 				_rect(bx + bw - 1, by + 1, aw + 2, 1, Part.SHIRT)
-				_put(bx + bw + aw, by + (0 if f == 0 else 1), Part.SKIN)
+				_rect(bx + bw + aw, by + (0 if up2 else 1), hand, hand, Part.SKIN)
 			else:
 				arm.call(lx, by, ah - 1)
 				arm.call(rx, by, ah - 1)
@@ -294,6 +348,25 @@ func _arms(pose: String, f: int, dr: int, bx: int, bw: int, by: int, aw: int, ah
 				_rect(bx + 1, by + ah / 2, bw - 2, 1, Part.SKIN)
 				arm.call(lx, by, ah - 1)
 				arm.call(rx, by, ah - 1)
+		"scratch":
+			# 머리를 긁는다(손이 머리 위를 오간다)
+			if side:
+				arm.call(bx + bw / 2, hy + (f % 2), ah, true)
+			else:
+				arm.call(lx, by, ah)
+				arm.call(rx + (1 if f % 2 == 1 else 0) - 1, hy + 1 - (1 if f % 2 == 1 else 0), ah, true)
+		"smoke":
+			# 담배: 손이 입으로(1·2) 내려오기(0·3)
+			var up3 := f == 1 or f == 2
+			if side:
+				arm.call(bx + bw / 2 + 1, hy + hh - 2 if up3 else by + 1, ah, up3)
+			else:
+				arm.call(lx, by, ah)
+				if up3:
+					_rect(rx - 1, by - 1, aw, 2, Part.SHIRT)
+					_rect(rx - 2, hy + hh - 2, hand, hand, Part.SKIN)
+				else:
+					arm.call(rx, by, ah)
 		_:
 			if side:
 				arm.call(bx + bw / 2 - aw / 2, by + 1, ah)
@@ -305,94 +378,105 @@ func _arms(pose: String, f: int, dr: int, bx: int, bw: int, by: int, aw: int, ah
 func _head(hx: int, hy: int, hw: int, hh: int, dr: int, f: int, pose: String) -> void:
 	_rect(hx, hy, hw, hh, Part.SKIN)
 	var hair_h := maxi(hh / 3, 1)
+	var px := maxi(_n(1.0), 1) if big else 1
 	if dr == 2:
 		_rect(hx, hy, hw, hh - (1 if _sz != "S" else 0), Part.HAIR)
 	elif dr == 1:
-		_rect(hx, hy, hw, hair_h + (1 if _sz == "L" else 0), Part.HAIR)
+		_rect(hx, hy, hw, hair_h + (1 if big else 0), Part.HAIR)
 		_rect(hx, hy, maxi(hw / 2 - 1, 1), hh - hh / 3, Part.HAIR)
 		if _sz != "S":
-			var ey := hy + hh / 2 + (1 if _sz == "L" else 0)
-			_put(hx + hw - 2, ey, Part.EYE)
-			if _sz == "L":
-				_put(hx + hw - 2, ey - 1, Part.EYE)
-				_put(hx + hw - 1, ey + 2, Part.SKIN_D)
+			var ey := hy + hh / 2 + (1 if big else 0)
+			_rect(hx + hw - 1 - px, ey, px, px, Part.EYE)
+			if big:
+				_rect(hx + hw - 1 - px, ey - px, px, px, Part.EYE)
+				_put(hx + hw - 1, ey + 2 * px, Part.SKIN_D)
 	else:
-		_rect(hx, hy, hw, hair_h + (1 if _sz == "L" else 0), Part.HAIR)
-		if _sz == "L":
-			_rect(hx, hy + hair_h, 1, hh / 2, Part.HAIR)
-			_rect(hx + hw - 1, hy + hair_h, 1, hh / 2, Part.HAIR)
-			_put(hx + 2, hy + hair_h + 1, Part.HAIR)
+		_rect(hx, hy, hw, hair_h + (1 if big else 0), Part.HAIR)
+		if big:
+			# 앞머리: 들쭉날쭉한 끝
+			var hs := hx * 7 + hw
+			for xx in range(hx, hx + hw, maxi(px, 1)):
+				if (xx + hs) % 3 == 0:
+					_rect(xx, hy + hair_h + 1, px, px, Part.HAIR)
+			_rect(hx, hy + hair_h, px, hh / 2, Part.HAIR)
+			_rect(hx + hw - px, hy + hair_h, px, hh / 2, Part.HAIR)
+			_rect(hx + 2 * px, hy + hair_h + 1, px, px, Part.HAIR)
 		if _sz != "S":
-			var ey2 := hy + hh / 2 + (1 if _sz == "L" else 0)
-			var blink := pose in ["stand", "sit"] and f == 1
-			var ex1 := hx + (2 if _sz == "L" else 1)
-			var ex2 := hx + hw - (3 if _sz == "L" else 2)
-			if blink:
-				_put(ex1, ey2, Part.SKIN_D)
-				_put(ex2, ey2, Part.SKIN_D)
-			else:
-				_put(ex1, ey2, Part.EYE)
-				_put(ex2, ey2, Part.EYE)
-				if _sz == "L":
-					_put(ex1, ey2 - 1, Part.EYE)
-					_put(ex2, ey2 - 1, Part.EYE)
-			if _sz == "L":
-				_put(hx + 1, ey2 + 1, Part.ACC if false else Part.SKIN_D)
-				_put(hx + hw - 2, ey2 + 1, Part.SKIN_D)
+			var ey2 := hy + hh / 2 + (1 if big else 0)
+			var blink := pose in ["stand", "sit", "look", "smoke"] and f == 3
+			var look := 0
+			if pose == "look":
+				look = [-1, 0, 1, 0][f] * px
+			var ex1 := hx + (2 * px if big else 1) + look
+			var ex2 := hx + hw - (2 * px + 1 if big else 2) + look
+			var part := Part.SKIN_D if blink else Part.EYE
+			_rect(ex1, ey2, px, px if blink else (2 * px if big else 1), part)
+			_rect(ex2, ey2, px, px if blink else (2 * px if big else 1), part)
+			if big:
+				_rect(hx + px, ey2 + 2 * px, px, px, Part.SKIN_D)
+				_rect(hx + hw - 2 * px, ey2 + 2 * px, px, px, Part.SKIN_D)
 				if pose in ["sing", "cheer"]:
-					_rect(hx + hw / 2 - 1, ey2 + 2, 2, 1, Part.OUTLINE)
+					_rect(hx + hw / 2 - px, ey2 + 2 * px + 1, 2 * px, px, Part.OUTLINE)
 
 
-func _props(pose: String, f: int, dr: int, bx: int, bw: int, by: int, bh: int, hy: int, cx: int, aw: int, ah: int) -> void:
-	var L := _sz == "L"
+func _props(pose: String, f: int, dr: int, bx: int, bw: int, by: int, bh: int, hy: int, cx: int, aw: int, ah: int, hx: int, hw: int, hh: int) -> void:
+	var s1 := maxi(_n(1.0), 1) if big else 1
 	match pose:
 		"carry":
-			var w2 := bw + (2 if L else 2)
-			var h2 := 4 if L else 2
-			_rect(cx - w2 / 2, hy - h2 + (0 if L else 1), w2, h2, Part.CRATE)
+			var w2 := bw + 2
+			var h2 := _n(4.0) if big else 2
+			_rect(cx - w2 / 2, hy - h2 + (0 if big else 1) + (1 if f % 2 == 1 else 0), w2, h2, Part.CRATE)
 		"bucket", "pass":
 			var bxp := bx + bw + (aw if dr != 1 else -1)
-			var byp := by + ah - (0 if pose == "bucket" else (2 if f == 0 else 3))
-			var s := 4 if L else 2
-			_rect(bxp - (1 if L else 0), byp, s, s, Part.PROP)
-			if L:
-				_rect(bxp - 1, byp, s, 1, Part.WHITE)
+			var byp: int = by + ah - (0 if pose == "bucket" else int([2, 3, 4, 3][f]))
+			var s := _n(4.0) if big else 2
+			_rect(bxp - (1 if big else 0), byp, s, s, Part.PROP)
+			if big:
+				_rect(bxp - 1, byp, s, s1, Part.WHITE)
 		"can":
-			var s2 := 2 if L else 1
-			_rect(bx + bw + (aw if dr != 1 else 0), by + ah - 1, s2, s2 + 1, Part.PROP)
+			_rect(bx + bw + (aw if dr != 1 else 0), by + ah - 1, s1 * 2, s1 * 2 + 1, Part.PROP)
 		"sack":
-			var s3 := 5 if L else 3
-			_rect(bx - (2 if L else 1), by - s3 + 2, s3 + 2, s3, Part.CRATE)
+			var s3 := _n(5.0) if big else 3
+			_rect(bx - (2 if big else 1), by - s3 + 2, s3 + 2, s3, Part.CRATE)
 		"sit_eat":
 			if dr == 0:
-				_rect(cx - (2 if L else 1), by + ah / 2 - 1, 4 if L else 2, 2 if L else 1, Part.WHITE)
-		"work", "swork":
-			pass
+				_rect(cx - 2 * s1, by + ah / 2 - 1, 4 * s1, 2 * s1, Part.WHITE)
+		"hammer":
+			if dr != 2 and big:
+				var up := f == 0 or f == 1
+				var hxp := bx + bw + aw - 1
+				var hyp := hy - s1 if up else hy + hh + s1
+				_rect(hxp, hyp, 3 * s1, 2 * s1, Part.PROP)
+		"smoke":
+			if dr != 2 and (f == 1 or f == 2):
+				_rect(bx + bw - 2 - s1, hy + hh - 2, s1, s1, Part.WHITE)
+				_put(bx + bw - 3 - s1, hy + hh - 2, Part.ACC)
+		"cook":
+			if dr == 0 and big:
+				# 국자/칼: 손에 들린 긴 막대
+				_rect(bx + 1, by + ah / 2 + [0, 1, 2, 1][f] - 1 - 2 * s1, s1, 2 * s1, Part.PROP)
 
 
-func _lie(D: Dictionary) -> void:
-	# 누운 사람: 베개 위 머리 + 이불 덩어리(침대·의자 위)
-	var L := _sz == "L"
-	var y0 := fh - (8 if L else (5 if _sz == "M" else 3))
-	var hs := 7 if L else (4 if _sz == "M" else 2)
-	_rect(1, y0, hs, hs, Part.SKIN)
-	_rect(1, y0, hs, maxi(hs / 3, 1), Part.HAIR)
-	if L:
-		_put(4, y0 + 4, Part.EYE)
-		_put(6, y0 + 4, Part.EYE)
+func _lie(D: Dictionary, f2: int) -> void:
+	var y0 := fh - (_n(8.0) if big else (5 if _sz == "M" else 3))
+	var hs := _n(7.0) if big else (4 if _sz == "M" else 2)
+	_rect(1, y0 + f2, hs, hs, Part.SKIN)
+	_rect(1, y0 + f2, hs, maxi(hs / 3, 1), Part.HAIR)
+	if big:
+		_rect(1 + hs / 2 - 1, y0 + f2 + hs / 2, maxi(_n(1.0), 1), 1, Part.SKIN_D)
 	_rect(1 + hs, y0 + 1, fw - hs - 2, hs - 1, Part.SHIRT)
-	_rect(1 + hs, y0 + 1, fw - hs - 2, 1, Part.SHIRT_D)
+	_rect(1 + hs, y0 + 1 + (f2 if big else 0), fw - hs - 2, 1, Part.SHIRT_D)
 
 
-func _bathe(D: Dictionary, f: int) -> void:
-	# 탕 속: 머리와 어깨만(물이 아래를 가린다)
+func _bathe(D: Dictionary, f2: int) -> void:
 	var hw: int = D["hw"]
 	var hh: int = D["hh"]
 	var cx := fw / 2
-	var y := fh - hh - (3 if _sz == "L" else 1) + (1 if f == 1 else 0)
+	var y := fh - hh - (_n(3.0) if big else 1) + f2
 	_rect(cx - hw / 2, y, hw, hh, Part.SKIN)
-	_rect(cx - hw / 2, y, hw, maxi(hh / 3, 1), Part.WHITE)   # 수건
+	_rect(cx - hw / 2, y, hw, maxi(hh / 3, 1), Part.WHITE)
 	if _sz != "S":
-		_put(cx - hw / 2 + 2, y + hh / 2 + 1, Part.EYE)
-		_put(cx + hw / 2 - 3, y + hh / 2 + 1, Part.EYE)
+		var px := maxi(_n(1.0), 1) if big else 1
+		_rect(cx - hw / 2 + 2 * px, y + hh / 2 + 1, px, px, Part.EYE)
+		_rect(cx + hw / 2 - 3 * px, y + hh / 2 + 1, px, px, Part.EYE)
 	_rect(cx - hw / 2 - 1, y + hh, hw + 2, fh - y - hh, Part.SKIN)

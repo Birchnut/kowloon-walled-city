@@ -6,9 +6,11 @@ extends Node3D
 
 const ActorShader := preload("res://view/shaders/actor.gdshader")
 const MAX_INST := 900
-const LOD_SIZE := [Vector2(6, 12), Vector2(10, 20), Vector2(16, 32)]
-const ANIM_HZ := {"shuffle": 5.0, "sew": 9.0, "write": 2.5, "phone": 1.6, "stamp": 3.5, "drill": 8.0, "cut": 4.0, "solder": 6.0, "hammer": 3.0, "dice": 4.0, "roll": 3.0, "stir": 1.5}
-const POSE_HZ := {"work": 4.0, "swork": 3.0, "cheer": 2.4, "sing": 1.8, "bow": 0.6, "bathe": 0.8, "sit_eat": 1.6, "taichi": 0.35, "squat": 1.2, "pass": 2.0, "walk": 4.0, "carry": 3.5, "bucket": 3.5, "can": 4.0, "sack": 3.5}
+const LOD_SIZE := [Vector2(6, 12), Vector2(10, 20), Vector2(20, 40), Vector2(26, 52)]
+const LOD_NAME := ["S", "M", "X", "XX"]
+const ANIM_HZ := {"shuffle": 5.0, "sew": 9.0, "write": 2.5, "phone": 1.6, "stamp": 3.5, "drill": 8.0, "cut": 4.0, "solder": 6.0, "hammer": 3.0, "dice": 4.0, "roll": 3.0, "stir": 1.5, "pour": 1.2}
+const POSE_HZ := {"work": 4.0, "swork": 3.0, "cheer": 2.4, "sing": 1.8, "bow": 0.6, "bathe": 0.8, "sit_eat": 1.6, "taichi": 0.35, "squat": 1.2, "pass": 2.0, "walk": 4.0, "hammer": 1.6, "cook": 2.2, "carry": 3.5, "bucket": 3.5, "can": 4.0, "sack": 3.5}
+const COOKS := ["noodle_stall", "burger", "sushi", "food_cans", "teahouse", "brewery", "noodle_mill", "candle", "soap"]
 const MOVERS := ["carry", "walk", "can", "bucket", "sack"]
 ## 일손 옷(분류·외형별 제복) — 없으면 계층 팔레트
 const UNIFORM := {"noodle_stall": "#f4f0e6", "burger": "#d85f5f", "sushi": "#f4f0e6", "dentist": "#eef4f6", "clinic": "#eef4f6", "pharmacy": "#eef4f6",
@@ -29,13 +31,34 @@ var _zoom_i := 1
 var _inner := false
 var _hour := 12.0
 var _t := 0.0
+var occupants: Dictionary = {}   # bid -> [{tier, shirt, pal, until, hs, look}] 걸어 들어온 손님
+var _leavers: Array = []
+var _guest_rank: Dictionary = {}
+
+
+## 걸어온 주민이 시설에 들어와 손님 자리에 앉는다(dur초). 자리가 차 있으면 그냥 들어가 사라진 것으로.
+func occupy(bid: int, who: Dictionary, dur: float) -> void:
+	if not occupants.has(bid):
+		occupants[bid] = []
+	var w2 := who.duplicate()
+	w2["until"] = _t + dur
+	w2["bid"] = bid
+	(occupants[bid] as Array).append(w2)
+	_dirty = true
+
+
+## 자리에서 일어난 손님들(주민 쪽이 문에서 다시 걷게 한다).
+func pop_leavers() -> Array:
+	var out := _leavers
+	_leavers = []
+	return out
 
 
 func setup(c: ViewCfg, v: Control, lg: Texture3D) -> void:
 	cfg = c
 	view = v
-	for i in 3:
-		var sz: String = ["S", "M", "L"][i]
+	for i in 4:
+		var sz: String = LOD_NAME[i]
 		var tex := PeopleSprites.build(sz)
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -115,8 +138,10 @@ static func busy_frac(busy: String, hr: float) -> float:
 			return 0.04
 		"always":
 			return 0.85 if (hr >= 7.0 and hr < 22.0) else 0.5
+	if hr >= 17.0 and hr < 19.0:
+		return 1.0      # 저녁 장보기 붐빔
 	if hr >= 8.0 and hr < 18.5:
-		return 0.95
+		return 0.85
 	if hr >= 18.5 and hr < 21.0:
 		return 0.35
 	if hr >= 6.5 and hr < 8.0:
@@ -158,8 +183,12 @@ func _visible_slot(s: Dictionary, bs: Dictionary, staff_rank: Dictionary, staff_
 		var n: int = int(staff_n.get(bid, 1))
 		var rank: int = int(staff_rank.get(int(s.get("i", 0)), 0))
 		return (float(rank) + 0.5) / float(maxi(n, 1)) <= ratio + 0.001
+	var rank: int = int(_guest_rank.get(int(s.get("i", 0)), 0))
+	var occ: Array = occupants.get(bid, [])
+	if rank < occ.size():
+		return true   # 걸어 들어온 주민이 앉은 자리
 	var h := ViewCfg.h2(int(s.get("i", 0)) * 13 + bid, 77) % 100
-	return float(h) < bf * 100.0
+	return float(h) < bf * 100.0 * float(cfg.r("interior.ambient_guests", 0.55))
 
 
 func _recompute() -> void:
@@ -167,11 +196,28 @@ func _recompute() -> void:
 	var bs: Dictionary = Game.state.buildings if Game.state != null else {}
 	var staff_n: Dictionary = {}
 	var staff_rank: Dictionary = {}
+	var guest_n: Dictionary = {}
+	_guest_rank = {}
 	for s in slots:
+		var bid := int(s.get("bid", -1))
 		if str(s.get("role", "")) == "staff":
-			var bid := int(s.get("bid", -1))
 			staff_rank[int(s.get("i", 0))] = int(staff_n.get(bid, 0))
 			staff_n[bid] = int(staff_n.get(bid, 0)) + 1
+		elif str(s.get("role", "")) == "guest":
+			_guest_rank[int(s.get("i", 0))] = int(guest_n.get(bid, 0))
+			guest_n[bid] = int(guest_n.get(bid, 0)) + 1
+	# 자리 시간이 끝난 손님은 일어난다(넘치는 손님도 — 자리 수만큼만 앉는다)
+	for bid in occupants.keys():
+		var keep_o: Array = []
+		for o in occupants[bid]:
+			if float(o["until"]) <= _t or keep_o.size() >= int(guest_n.get(bid, 0)):
+				_leavers.append(o)
+			else:
+				keep_o.append(o)
+		if keep_o.is_empty():
+			occupants.erase(bid)
+		else:
+			occupants[bid] = keep_o
 	var keep: Dictionary = {}
 	for v in _vis:
 		keep[v["key"]] = v
@@ -185,6 +231,13 @@ func _recompute() -> void:
 		if is_extra and _zoom_i < 1:
 			continue
 		var key: String = "%d:%d:%s" % [int(s.get("bid", -1)), int(s.get("i", 0)), str(s.get("pose", ""))]
+		var oc: Dictionary = {}
+		if str(s.get("role", "")) == "guest":
+			var occl: Array = occupants.get(int(s.get("bid", -1)), [])
+			var rk: int = int(_guest_rank.get(int(s.get("i", 0)), 99))
+			if rk < occl.size():
+				oc = occl[rk]
+				key += ":o%d" % int(oc.get("hs", 0))
 		if keep.has(key):
 			_vis.append(keep[key])
 			continue
@@ -207,7 +260,10 @@ func _recompute() -> void:
 			"stir":
 				prop = 3
 		var pal := (hs % 6) + ((hs / 6) % 8) * 8 + ((hs / 48) % 8) * 64 + prop * 512
-		_vis.append({"key": key, "s": s, "shirt": shirt, "pal": pal, "phase": float(hs % 1000) / 1000.0, "acc": float((hs / 300) % 8) / 8.0})
+		if not oc.is_empty():
+			shirt = oc["shirt"]
+			pal = int(oc["pal"]) + prop * 512
+		_vis.append({"key": key, "hs": hs, "s": s, "shirt": shirt, "pal": pal, "phase": float(hs % 1000) / 1000.0, "acc": float((hs / 300) % 8) / 8.0})
 
 
 func step(delta: float, hour: float) -> void:
@@ -225,8 +281,8 @@ func step(delta: float, hour: float) -> void:
 
 
 func _render() -> void:
-	var lod := 0 if _zoom_i <= 1 else (1 if _zoom_i == 2 else 2)
-	for i in 3:
+	var lod := lod_for(_zoom_i)
+	for i in 4:
 		(_mmi[i] as MultiMeshInstance3D).visible = i == lod
 	var mm: MultiMesh = (_mmi[lod] as MultiMeshInstance3D).multimesh
 	var mat: ShaderMaterial = _mats[lod]
@@ -241,13 +297,30 @@ func _render() -> void:
 		var dir: Vector3 = s.get("dir", Vector3(0, 0, 1))
 		var ph: float = v["phase"]
 		var anim := str(s.get("anim", ""))
+		if anim == "hammer":
+			pose = "hammer"
+		elif pose == "swork" and str(s.get("role", "")) == "staff" and str(s.get("look", "")) in COOKS:
+			pose = "cook"
 		var hz: float = float(ANIM_HZ.get(anim, POSE_HZ.get(pose, 0.0)))
 		var fr := 0
+		# 쉬는 사람의 다양성: 서 있는 자리는 가끔 두리번·머리 긁기, 일손은 가끔 문밖에서 담배 한 대
+		var idle_k := fposmod(_t / 40.0 + ph * 3.7, 1.0)
+		if pose == "stand" and not s.has("t0"):
+			if idle_k < 0.18:
+				pose = "look"
+			elif idle_k > 0.9:
+				pose = "scratch"
+		if str(s.get("role", "")) == "staff" and s.has("door") and idle_k > 0.86 and int(v.get("hs", 0)) % 3 == 0:
+			pose = "smoke"
+			pos = s["door"]
+			dir = -dir
+			hz = 0.45
 		if hz > 0.0:
-			fr = int(floor(_t * hz + ph * 7.0)) % 2
-		elif pose in ["stand", "sit"]:
-			# 가끔 눈을 깜빡인다
-			fr = 1 if fposmod(_t * 0.33 + ph * 5.0, 1.0) < 0.06 else 0
+			fr = int(floor(_t * hz * 2.0 + ph * 7.0)) % 4
+		elif pose in ["stand", "sit", "look"]:
+			fr = 3 if fposmod(_t * 0.33 + ph * 5.0, 1.0) < 0.06 else 0
+			if pose == "look":
+				fr = int(floor(_t * 0.8 + ph * 5.0)) % 4
 		if pose in MOVERS and not s.has("t0"):
 			# 제자리에서 앞뒤로 오간다(나르기·심부름)
 			var k := fposmod(_t * 0.18 + ph, 1.0)
@@ -273,10 +346,14 @@ func _render() -> void:
 		if pose == "lie" or pose == "bathe":
 			row = 0
 			flip = 1.0 if sx < 0.0 else 0.0
-		var col := PeopleSprites.pose_index(pose) * 2 + fr
+		var col := PeopleSprites.pose_index(pose) * PeopleSprites.FRAMES + fr
 		var inside := 0.0 if bool(s.get("out", false)) else 4.0
 		mm.set_instance_custom_data(i, Color(float(col), float(row), flip + inside, float(v["pal"])))
 	mm.visible_instance_count = n
+
+
+static func lod_for(zi: int) -> int:
+	return 0 if zi <= 1 else (1 if zi == 2 else (2 if zi == 3 else 3))
 
 
 func count() -> int:

@@ -180,6 +180,81 @@ func _paint_material(id: String) -> void:
 
 func _wall(pat: String, v: int, c0: Color, c1: Color, c2: Color, c3: Color, acc: Color) -> void:
 	match pat:
+		"patchboard":
+			# v4 목재 T2: 세로 판자 + 덧댄 판자 조각(다른 색)·못 자국 + 아래 물때
+			for p in 4:
+				var tone: Color = [c0, mx(c0, c1, 0.3), c0, mx(c0, c1, 0.55)][(p + _ri(2)) % 4]
+				_rc(p * 4, 0, 4, 16, tone)
+				_rc(p * 4 + 3, 0, 1, 16, mx(tone, c2, 0.5))
+			var np := 1 + _ri(2) + (1 if v >= 2 else 0)
+			for i in np:
+				var px0 := _ri(10)
+				var py0 := 2 + _ri(9)
+				var pw := 4 + _ri(4)
+				var pc: Color = [mx(c1, c2, 0.3), lt(c0, 0.08), mx(acc, c1, 0.4), Color("#9a8a6a")][_ri(4)]
+				_rc(px0, py0, pw, 3, pc)
+				_rc(px0, py0 + 2, pw, 1, dk(pc, 0.2))
+				_px(px0, py0 + 1, c3)
+				_px(px0 + pw - 1, py0 + 1, c3)
+			if v == 3:
+				# 방수포 자락
+				_rc(10, 0, 6, 7, Color("#4f7ab8"))
+				_rc(10, 6, 6, 1, Color("#3a5a90"))
+				_px(11, 2, Color("#7fa3d8"))
+			for x in 8:
+				if _rnd() < 0.5:
+					_rc(x * 2, 15 - _ri(2), 2, 2, mx(c2, c3, 0.5))
+			_rc(0, 0, 16, 1, mx(c1, c2, 0.6))
+		"rustsheet":
+			# v4 철제 T2: 골함석 + 리벳 줄 + 녹물 줄기(주황·갈색)
+			var cols2 := [lt(c0, 0.05), c0, c1, mx(c1, c2, 0.45)]
+			for x in 16:
+				_rc(x, 0, 1, 16, cols2[x % 4])
+			for x in range(1, 16, 4):
+				_px(x, 1, c3)
+				_px(x, 8, c3)
+				_px(x, 14, c3)
+			_rc(0, 7, 16, 1, mx(c1, c3, 0.5))
+			var nr := 2 + _ri(2) + v
+			for i in nr:
+				var rx := _ri(16)
+				var ry := 1 + _ri(7)
+				var rl := 3 + _ri(8)
+				var rc: Color = [Color("#b8643a"), Color("#9a5034"), Color("#c98a4a")][_ri(3)]
+				_rc(rx, ry, 1, rl, rc)
+				_px(rx, ry, dk(rc, 0.2))
+				if _rnd() < 0.5:
+					_rc(rx - 1, ry, 1, rl / 2, mx(rc, c1, 0.5))
+			_rc(0, 0, 16, 1, c3)
+		"rivetpanel":
+			# v4 철제 T3: 철판 네 장 + 테두리 리벳 + 옅은 녹 자국
+			_rc(0, 0, 16, 16, c0)
+			for q in 2:
+				_rc(0, q * 8, 16, 1, c2)
+				_rc(q * 8, 0, 1, 16, c2)
+				_rc(q * 8 + 1, q * 8 + 1, 6, 1, lt(c0, 0.08))
+			for y in [2, 6, 10, 14]:
+				for x in [2, 6, 10, 14]:
+					_px(x, y, c3)
+			for i in v + 1:
+				var rx2 := 1 + _ri(14)
+				_rc(rx2, 3 + _ri(5), 1, 3 + _ri(4), mx(Color("#b8643a"), c1, 0.45))
+			_rc(0, 15, 16, 1, c2)
+		"slab":
+			# v4 콘크리트 T2: 부어 만든 벽 — 거푸집 가로줄 + 타이 구멍 + 물때
+			_rc(0, 0, 16, 16, c0)
+			for y in [4, 9, 14]:
+				_rc(0, y, 16, 1, mx(c0, c2, 0.45))
+			for y in [2, 7, 12]:
+				for x in [3, 11]:
+					_px(x, y, c3)
+			for i in 3 + v:
+				var sx2 := _ri(16)
+				_rc(sx2, 5 + _ri(4), 1, 3 + _ri(6), mx(c1, c2, 0.5))
+			if v >= 2:
+				_m(_ri(6), 1, 2, 1, mx(c1, c2, 0.3))
+				_px(_ri(14) + 1, _ri(4) + 1, Color("#8a5040"))
+			_rc(0, 0, 16, 1, lt(c0, 0.05))
 		"planks":
 			for p in 4:
 				var tone: Color = [c0, c0, mx(c0, c1, 0.25), mx(c0, c1, 0.5)][_ri(4)]

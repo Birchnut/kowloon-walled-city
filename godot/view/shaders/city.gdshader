@@ -316,7 +316,11 @@ void fragment() {
 
 	// 재난: 병 = 누렇게 뜬 초록, 탄 뒤 = 그을음(얼룩 디더), 타는 중 = 아래에서 붉게 일렁임
 	if (hzs.g > 0.5 && kind != 2) {
-		col = mix(col, col * vec3(0.78, 0.95, 0.55) + vec3(0.02, 0.05, 0.0), 0.55);
+		// 병: 색을 빼고 회녹색으로 + 곰팡이 얼룩(자재와 상관없이 같은 "아픈" 색)
+		float lu = dot(col, vec3(0.3, 0.55, 0.15));
+		col = mix(col, vec3(lu) * vec3(0.78, 0.98, 0.72) + vec3(0.0, 0.03, 0.0), 0.7);
+		float mold = hash11(floor(wpos.x * 8.0) * 3.7 + floor(wpos.y * 8.0) * 1.3 + floor(wpos.z * 8.0) * 7.1);
+		if (mold > 0.86) { col *= vec3(0.62, 0.78, 0.5); }
 	}
 	if (hzs.r > 0.75) {
 		float soot = hash11(floor(wpos.x * 16.0) * 1.7 + floor(wpos.y * 16.0) * 3.1 + floor(wpos.z * 16.0) * 5.3);
@@ -325,8 +329,9 @@ void fragment() {
 	} else if (hzs.r > 0.25) {
 		float fl = 0.5 + 0.5 * sin(time_s * 9.0 + wpos.x * 3.0 + wpos.z * 2.0);
 		float fy2 = fract(wpos.y / floor_h);
-		col = mix(col, vec3(1.0, 0.45, 0.15), (1.0 - fy2) * (0.35 + 0.25 * fl));
-		col *= 0.8;
+		col *= 0.7;
+		col = mix(col, vec3(1.0, 0.5, 0.16), (1.0 - fy2) * (0.55 + 0.3 * fl));
+		if (fy2 < 0.3 && fl > 0.6) { col = mix(col, vec3(1.0, 0.85, 0.4), 0.5); }
 	}
 	if (kind == 5 && cs.b < 0.5 && owner > 0.5) {
 		// 멈춘 시설의 안: 불 꺼지고 어둡다

@@ -254,13 +254,19 @@ func _layout() -> void:
 		_up -= 1
 	_iw = int(ceil(real.x / float(_up) / 2.0)) * 2
 	_ih = int(ceil(real.y / float(_up) / 2.0)) * 2
+	_zmul = maxf(1.0, float(_ih) / th) if bool(cfg.r("pixel.fill_small_windows", true)) else 1.0
 	_vp.size = Vector2i(_iw + 2, _ih + 2)
 	_apply_camera()
 
 
 # ------------------------------------------------------------------ 카메라
 func ppu() -> float:
-	return cfg.ppu1 * _zf
+	return cfg.ppu1 * _zf * _zmul
+
+
+## 창 높이에 따른 확대 사다리 배율: 정수배로 나눈 내부 높이가 540보다 크면(720p ×1 = 720) 그만큼 올려
+## 가장 먼 확대에서도 1080p처럼 도시가 화면을 채운다(720p ×1.33). 1080p·1440p·2160p는 1.
+var _zmul := 1.0
 
 
 ## 지금 확대 단계의 배율(애니메이션 끝 값).
@@ -1673,41 +1679,40 @@ func _rebuild_overlay() -> void:
 	var gw := cfg.grid.x
 	var gh := cfg.grid.y
 	var unlocked := int(st.get("floors_unlocked")) if st.get("floors_unlocked") != null else cfg.grid.z
-	# ── 층 격자 ──
+	# ── 층 격자(PC): 그 층에 지을 수 있는 칸만, 칸에 맞춘 옅은 선 ──
+	# 받쳐진 칸(지상·아래가 찬 칸) = 밝은 선 + 옅은 칠, 골조를 세워야 하는 칸 = 더 옅은 선, 찬 칸·잠긴 층 = 없음
 	if _grid_z >= 0:
 		var z := _grid_z
 		var y := float(z) * fh + 0.02
 		var locked := z >= unlocked
-		var c_free := _ocol("grid_free", "#fff6dc40")
-		var c_used := _ocol("grid_used", "#ff7a5a50")
-		var c_lock := _ocol("grid_locked", "#8a8aa830")
 		var c_edge := _ocol("grid_edge", "#fff6dcc0")
-		var g := 0.06
-		for x in gw:
-			for yy in gh:
-				var p := Vector3i(x, yy, z)
-				var used := st.cells.has(p)
-				var col := c_lock if locked else (c_used if used else c_free)
-				flat.call(x + g, yy + g, x + 1 - g, yy + 1 - g, y, col)
-				if not used and not locked:
-					# 빈 칸은 밝은 테두리 → 칠할 수 있는 칸이 한눈에
-					var rc := Color(c_edge.r, c_edge.g, c_edge.b, c_edge.a * 0.7)
-					var t := 0.07
-					flat.call(x + g, yy + g, x + 1 - g, yy + g + t, y + 0.001, rc)
-					flat.call(x + g, yy + 1 - g - t, x + 1 - g, yy + 1 - g, y + 0.001, rc)
-					flat.call(x + g, yy + g + t, x + g + t, yy + 1 - g - t, y + 0.001, rc)
-					flat.call(x + 1 - g - t, yy + g + t, x + 1 - g, yy + 1 - g - t, y + 0.001, rc)
-		# 둘레(두꺼운 테) + 4칸마다 옅은 눈금
-		var e := 0.07
-		flat.call(-e, -e, gw + e, 0.0, y + 0.002, c_edge)
-		flat.call(-e, gh, gw + e, gh + e, y + 0.002, c_edge)
-		flat.call(-e, 0.0, 0.0, gh, y + 0.002, c_edge)
-		flat.call(gw, 0.0, gw + e, gh, y + 0.002, c_edge)
-		var c_mid := Color(c_edge.r, c_edge.g, c_edge.b, c_edge.a * 0.35)
-		for i in range(4, gw, 4):
-			flat.call(float(i) - 0.02, 0.0, float(i) + 0.02, gh, y + 0.003, c_mid)
-		for i in range(4, gh, 4):
-			flat.call(0.0, float(i) - 0.02, gw, float(i) + 0.02, y + 0.003, c_mid)
+		var c_ok := Color(c_edge.r, c_edge.g, c_edge.b, 0.55)
+		var c_frame := Color(c_edge.r, c_edge.g, c_edge.b, 0.28)
+		var lw := 1.0
+		if not locked:
+			for x in gw:
+				for yy in gh:
+					var p := Vector3i(x, yy, z)
+					if st.cells.has(p):
+						continue
+					var supported := z == 0 or mesher.solid.has(p - Vector3i(0, 0, 1))
+					var col := c_ok if supported else c_frame
+					if supported:
+						flat.call(x + 0.04, yy + 0.04, x + 0.96, yy + 0.96, y, Color(c_edge.r, c_edge.g, c_edge.b, 0.07))
+					# 칸 테두리: 겹치지 않게 아래·왼쪽 변은 이웃이 그리지 않을 때만
+					var a0 := Vector3(x, y, yy)
+					_line3(a0, a0 + Vector3(1, 0, 0), col, lw, add_quad)
+					_line3(a0, a0 + Vector3(0, 0, 1), col, lw, add_quad)
+					if x == gw - 1 or st.cells.has(p + Vector3i(1, 0, 0)):
+						_line3(a0 + Vector3(1, 0, 0), a0 + Vector3(1, 0, 1), col, lw, add_quad)
+					if yy == gh - 1 or st.cells.has(p + Vector3i(0, 1, 0)):
+						_line3(a0 + Vector3(0, 0, 1), a0 + Vector3(1, 0, 1), col, lw, add_quad)
+		# 부지 둘레(얇게) — 잠긴 층이면 회색
+		var ec := _ocol("grid_locked", "#8a8aa860") if locked else Color(c_edge.r, c_edge.g, c_edge.b, 0.8)
+		_line3(Vector3(0, y, 0), Vector3(gw, y, 0), ec, 1.5, add_quad)
+		_line3(Vector3(0, y, gh), Vector3(gw, y, gh), ec, 1.5, add_quad)
+		_line3(Vector3(0, y, 0), Vector3(0, y, gh), ec, 1.5, add_quad)
+		_line3(Vector3(gw, y, 0), Vector3(gw, y, gh), ec, 1.5, add_quad)
 	# ── 칸 표시(사각 범위·고르기·경고) ──
 	for style in _cell_sets:
 		var sc := _ocol(style, "#ffd84a90")
