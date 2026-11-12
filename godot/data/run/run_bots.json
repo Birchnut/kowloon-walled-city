@@ -1,0 +1,8 @@
+{
+ "_comment": "자동 플레이어 3종의 성격. react = 예고를 보고 반응하기까지 초, dodge = 예고를 보고 피할 확률, leave_hp = 이 체력 이하면 출구로, full_leave = 배낭이 이만큼 차면 출구로(칸 수), boss_hp = 두목에 덤비는 최소 체력, explore = 곁방까지 다 뒤질 확률, sneak = 경비원 시야를 피해 돌아갈지, throw = 던지기를 쓸 확률, greed_rooms = 이 깊이까지는 웬만하면 간다",
+ "items": {
+  "careless": {"name": "덜렁이", "react": 0.42, "dodge": 0.35, "leave_hp": 1, "full_leave": 7, "boss_hp": 1, "explore": 0.2, "sneak": false, "throw": 0.1, "aim_err": 0.35, "punish": false},
+  "average":  {"name": "보통",   "react": 0.24, "dodge": 0.68, "leave_hp": 2, "full_leave": 6, "boss_hp": 3, "explore": 0.5, "sneak": false, "throw": 0.4, "aim_err": 0.18, "punish": true},
+  "careful":  {"name": "꼼꼼 욕심", "react": 0.16, "dodge": 0.85, "leave_hp": 2, "full_leave": 6, "boss_hp": 4, "explore": 1.0, "sneak": true, "throw": 0.8, "aim_err": 0.08, "punish": true}
+ }
+}
