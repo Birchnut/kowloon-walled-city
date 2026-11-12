@@ -405,7 +405,7 @@ func _free_player(pool: Array) -> AudioStreamPlayer:
 
 func _on_game_event(n: String, p: Dictionary) -> void:
 	match n:
-		"fire_started":
+		"fire_started", "fire_spread":
 			_fires_ev += 1
 		"fire_out":
 			_fires_ev = maxi(0, _fires_ev - 1)
@@ -448,22 +448,27 @@ func _read_state() -> void:
 		if tod >= 0.0:
 			st["tod"] = tod
 		if s is Object and s.get("buildings") is Dictionary:
+			# ARCHITECTURE v4: 건물 burn = "" | "burning" | "burnt", 시설 build_left(일) > 0 = 공사 중. v3 는 kind "site".
 			var pop := 0
 			var sites := 0
 			var burning := 0
+			var has_burn := false
 			for b: Variant in (s.get("buildings") as Dictionary).values():
 				if not (b is Dictionary):
 					continue
 				var kind := str(b.get("kind", ""))
 				if kind == "house":
 					pop += int(b.get("residents", 0))
-				elif kind == "site":
+				if kind == "site" or float(b.get("build_left", 0.0)) > 0.0:
 					sites += 1
-				if bool(b.get("burning", false)) or float(b.get("fire", 0.0)) > 0.0:
-					burning += 1
+				if b.has("burn"):
+					has_burn = true
+					if str(b["burn"]) == "burning":
+						burning += 1
 			st["pop"] = pop
 			st["sites"] = sites
-			st["fires"] = maxi(burning, _fires_ev)
+			# 건물에 burn 칸이 있으면 그것이 진실, 없으면 사건(fire_started/spread − fire_out) 셈
+			st["fires"] = burning if has_burn else _fires_ev
 	if _tod_override >= 0.0:
 		st["tod"] = _tod_override
 	for k: String in ov:

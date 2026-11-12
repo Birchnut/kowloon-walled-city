@@ -88,7 +88,7 @@ func _run() -> void:
 	var t_all := Time.get_ticks_usec()
 	var cpu0 := AN.cpu_ms()
 	md.append("# 소리 분석표 (audio_test.gd 가 만든 것)\n")
-	md.append("'귀가중 짧은RMS' = 100 Hz 아래 깎고 1.7 kHz 위 +4 dB 한 뒤 가장 시끄러운 50 ms RMS(효과음은 이 값을 -20 dBFS 로 맞춰 만든다). '들리는 크기' = 귀가중 + 재생 이득. 버스 크기(기본 SFX 0.8 = -1.9 dB, 주 0.8)는 빼고 본 값.")
+	md.append("'귀가중 짧은RMS' = 100 Hz 아래 깎고 1.7 kHz 위 +4 dB 한 뒤 가장 시끄러운 50 ms RMS(효과음은 이 값을 -20 dBFS 로 맞춰 만든다). '들리는 크기' = 귀가중 + 재생 이득. 버스 크기는 빼고 본 값(기본: 주 0.9 = -0.9 dB, SFX 0.85 = -1.4 dB, 배경 0.7 = -3.1 dB, 음악 0.4 = -8 dB).")
 	# 1) 효과음
 	cpu_acc = 0.0
 	var sfx_us: int = await _one_shot_rows("효과음 (SFX 버스)", SB.names(), func(n: String) -> int: return SB.variants(n),

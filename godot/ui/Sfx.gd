@@ -48,7 +48,7 @@ const NAMES := {
 var muted: bool = false:
 	set(v):
 		muted = v
-		if director != null:
+		if director != null and director.sfx_muted != v:
 			director.set_sfx_muted(v)
 var last: String = ""          # 개발 확인용(DevHarness trace)
 var count: Dictionary = {}     # 이름 -> 부른 횟수
