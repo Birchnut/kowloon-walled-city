@@ -298,7 +298,7 @@ func _draw_ents() -> void:
 			"heal": tex = RunArt.tex("heal")
 			"big": tex = RunArt.tex("big")
 		var bob := 0.0 if it["z"] > 0 else (sin(t * 5.0 + ip.x) * 1.0 if it["kind"] != "throw" else 0.0)
-		ci.draw_texture(RunArt.tex("shadow"), ip - Vector2(6, 2), Color(1, 1, 1, 0.6))
+		_shadow(ci, ip, 0.7, 0.6)
 		ci.draw_texture(tex, (ip - tex.get_size() / 2 + Vector2(0, -3 - it["z"] + bob)).round())
 		if it["kind"] == "good" and is_same(world.item_under, it):
 			ci.draw_rect(Rect2(ip - Vector2(7, 10), Vector2(14, 14)), Color(YEL, 0.6 + 0.4 * sin(t * 8)), false, 1.0)
@@ -347,7 +347,7 @@ func _ypos(b: Variant) -> float:
 func _draw_player(ci: CanvasItem) -> void:
 	var p: Actor = world.player
 	var tex := RunArt.tex("char_player")
-	ci.draw_texture(RunArt.tex("shadow"), p.pos - Vector2(6, 2))
+	_shadow(ci, p.pos + Vector2(0, 2), 0.75)
 	var blink := p.inv > 0.0 and fmod(t * 16.0, 1.0) < 0.4
 	var col := Color(1, 1, 1, 0.45 if blink else 1.0)
 	if p.flash > 0.0:
@@ -445,13 +445,13 @@ func _draw_enemy(ci: CanvasItem, e: Actor) -> void:
 	var pos := e.pos + shake_o
 	match e.kind:
 		"rat":
-			ci.draw_texture(RunArt.tex("shadow"), pos - Vector2(5, 2), Color(1, 1, 1, 0.5))
+			_shadow(ci, pos + Vector2(0, 1), 0.5, 0.6)
 			var tex := RunArt.tex("rat%d" % (int(e.anim * 3.0) % 2))
 			ci.draw_set_transform(pos + Vector2(0, -3), 0 if not e.dead else PI, Vector2(-1 if flip else 1, 1))
 			ci.draw_texture(tex, Vector2(-7, -5), col)
 			ci.draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 		"dog":
-			ci.draw_texture(RunArt.tex("shadow"), pos - Vector2(8, 2), Color(1, 1, 1, 0.6))
+			_shadow(ci, pos + Vector2(0, 2), 0.9, 0.7)
 			var key := "dog%d" % (int(e.anim * 2.0) % 2)
 			if e.state == "tele":
 				key = "dog_tele"
@@ -464,7 +464,7 @@ func _draw_enemy(ci: CanvasItem, e: Actor) -> void:
 			if e.state == "recover":
 				_label(ci, pos + Vector2(0, -16), "헥헥", Color(0.8, 0.8, 0.8))
 		"guard", "rival":
-			ci.draw_texture(RunArt.tex("shadow"), pos - Vector2(6, 2))
+			_shadow(ci, pos + Vector2(0, 2), 0.75)
 			var tex := RunArt.tex("char_guard" if e.kind == "guard" else "char_rival")
 			var colx := 1
 			var fl := false
@@ -621,7 +621,7 @@ func _draw_air() -> void:
 	# 던진 것
 	for th in world.throws:
 		var tp: Vector2 = th["pos"]
-		ci.draw_texture(RunArt.tex("shadow"), tp - Vector2(6, 2), Color(1, 1, 1, 0.4))
+		_shadow(ci, tp, 0.4, 0.5)
 		var tex2 := RunArt.tex(str(th["kind"]))
 		ci.draw_set_transform(tp + Vector2(0, -th["z"] - 3), th["spin"], Vector2.ONE)
 		ci.draw_texture(tex2, -tex2.get_size() / 2)
@@ -653,6 +653,12 @@ func _draw_air() -> void:
 
 
 # ------------------------------------------------------------------ 작은 도구
+func _shadow(ci: CanvasItem, p: Vector2, sc: float, a: float = 1.0) -> void:
+	var tex := RunArt.tex("shadow")
+	var sz := tex.get_size() * sc
+	ci.draw_texture_rect(tex, Rect2((p - sz / 2).round(), sz.round()), false, Color(1, 1, 1, a))
+
+
 func _label(ci: CanvasItem, p: Vector2, s: String, col: Color, size: int = 10) -> void:
 	var w := font.get_string_size(s, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
 	var o := (p - Vector2(w / 2.0, 0)).round()

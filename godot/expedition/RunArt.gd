@@ -459,15 +459,31 @@ static func _pile(empty: bool) -> Image:
 
 
 static func _junk() -> Image:
-	var img := _new(18, 26)
-	var cols := [Color("7a4a34"), Color("5f6a74"), Color("8a7a52"), Color("4a5a3c"), Color("6a6a70"), Color("9a5a3a")]
-	for k in 26:
-		var y := 24 - int(hash01(k, 7, 50) * 22)
-		var spread := 8.0 - (24 - y) * 0.22
-		var x := 9 + int((hash01(k, 8, 51) - 0.5) * spread * 2)
-		_rect(img, x - 2, y - 1, 3 + int(hash01(k, 9, 52) * 3), 2, cols[k % cols.size()])
-	_rect(img, 7, 1, 5, 3, Color("8a3a36"))   # 꼭대기 차문
-	_rect(img, 8, 2, 2, 1, Color("26323c"))
+	# 위태롭게 쌓인 고철 탑: 타이어·상자·세탁기·차문·파이프
+	var img := _new(22, 28)
+	# 맨 아래 타이어 두 개
+	_ellipse(img, 6, 24, 5.5, 3.2, Color("2a2628"))
+	_ellipse(img, 6, 23.5, 2, 1.2, Color("141012"))
+	_ellipse(img, 16, 24, 5.5, 3.2, Color("2a2628"))
+	_ellipse(img, 16, 23.5, 2, 1.2, Color("141012"))
+	# 나무 상자
+	_rect(img, 3, 15, 9, 7, Color("8a6038"))
+	_rect(img, 3, 15, 9, 1, Color("a87a48"))
+	_rect(img, 7, 15, 1, 7, Color("5a3c20"))
+	# 세탁기
+	_rect(img, 11, 12, 9, 10, Color("c8c8c0"))
+	_rect(img, 11, 12, 9, 2, Color("a0a098"))
+	_ellipse(img, 15.5, 17.5, 3, 3, Color("4a5058"))
+	_ellipse(img, 15.5, 17.5, 1.6, 1.6, Color("7a8a98"))
+	# 비스듬한 차문(빨강)
+	for k in 9:
+		_rect(img, 4 + k, 10 - k / 2, 2, 4, Color("9a3a32"))
+	_rect(img, 7, 7, 4, 2, Color("26323c"))
+	# 꼭대기 양동이·파이프
+	_rect(img, 9, 2, 5, 4, Color("6a7a84"))
+	_rect(img, 9, 2, 5, 1, Color("8a9aa4"))
+	_rect(img, 15, 1, 1, 9, Color("8a8a8a"))
+	_rect(img, 14, 1, 3, 1, Color("8a8a8a"))
 	return _outline(img)
 
 

@@ -68,6 +68,7 @@ static func run_one(prof: String, seed_value: int, dt: float) -> Dictionary:
 		r = w.result
 		r["outcome"] = "timeout"
 	r["profile"] = prof
+	r["leave_reason"] = bot.leave_reason
 	# 장부 검산: 들고 나온 것 + 두고 온 것 + 잃은 것 = 찾은 것 ≤ 재고
 	var ok := true
 	var stock: Dictionary = sample["stock"]

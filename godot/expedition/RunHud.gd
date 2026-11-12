@@ -80,7 +80,7 @@ func _draw() -> void:
 	var pad := 6 * s
 	# 맞았을 때 붉은 테두리 / 체력이 낮으면 맥박
 	var edge := hurt_t / 0.35 * 0.55
-	if p.hp <= 2 and p.state != "down":
+	if p.hp <= 3 and p.state != "down":
 		edge = maxf(edge, 0.18 + 0.12 * sin(t * 6.0))
 	if edge > 0.01:
 		var bw := 18.0 * s
@@ -91,10 +91,14 @@ func _draw() -> void:
 		draw_rect(Rect2(vs.x - bw, 0, bw, vs.y), c)
 	# ---- 왼쪽 위: 하트·소란·손
 	var hs := (s + 1) * 7
-	for k in int(ceil(p.max_hp / 1.0)):
-		var key := "heart" if k < p.hp else "heart_empty"
+	for k in int(ceil(p.max_hp / 2.0)):
+		var key := "heart_empty"
+		if p.hp >= k * 2 + 2:
+			key = "heart"
+		elif p.hp == k * 2 + 1:
+			key = "heart_half"
 		var hp_bob := 0.0
-		if p.hp <= 2 and k < p.hp:
+		if p.hp <= 3 and key != "heart_empty":
 			hp_bob = -absf(sin(t * 6.0)) * s
 		draw_texture_rect(RunArt.tex(key), Rect2(pad + k * (hs + s * 2), pad + hp_bob, hs, hs), false)
 	var ny := pad + hs + 4 * s

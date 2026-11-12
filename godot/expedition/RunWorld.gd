@@ -70,6 +70,9 @@ var item_under: Dictionary = {}
 var last_hurt_by: String = ""
 var dodges: int = 0
 var hits_taken: int = 0
+var hurt_log: Dictionary = {}
+var hp_at_boss: int = -1
+var time_at_boss: float = -1.0
 
 
 # ------------------------------------------------------------------ 시작
@@ -223,6 +226,8 @@ func step(dt: float) -> void:
 	if input.pack_toggle:
 		pack_open = not pack_open
 		_ev("sfx", {"id": "tick"})
+	if input.slot_action >= 0:
+		slot_action(input.slot_action)
 	var sdt := dt * (0.3 if pack_open else 1.0)
 	time += sdt
 	_player_step(sdt)
@@ -325,8 +330,14 @@ func _interact(dt: float, mv: Vector2) -> void:
 	var still := mv.length() < 0.3 and p.state != "swing"
 	# 출구
 	exit_target = {}
+	var near_pile := 99.0
+	for pl in piles:
+		if not (pl["bundles"].is_empty() and pl["rummaged"]):
+			near_pile = minf(near_pile, p.pos.distance_to(pl["pos"]))
 	for ex in exits:
-		if ex["active"] and p.pos.distance_to(ex["pos"]) < 16.0:
+		var de: float = p.pos.distance_to(ex["pos"])
+		# 출구는 더 가까이 서야 하고, 더미가 더 가까우면 더미가 먼저다(뒤지다 실수로 나가지 않게)
+		if ex["active"] and de < 13.0 and de < near_pile:
 			exit_target = ex
 	if not exit_target.is_empty() and input.interact and still:
 		exit_progress += dt
@@ -494,6 +505,7 @@ func _hurt_player(dmg: int, from: Vector2, by: String) -> bool:
 		return false
 	p.hp -= dmg
 	hits_taken += 1
+	hurt_log[by] = int(hurt_log.get(by, 0)) + 1
 	last_hurt_by = by
 	p.inv = RunCfg.f("hurt_iframes", 0.9)
 	p.flash = 0.15
@@ -912,6 +924,8 @@ func _boss_step(dt: float) -> void:
 			if cur_room == b.room and rrect.grow(-12).has_point(player.pos):
 				b.set_state("intro", 1.4)
 				reached_boss = true
+				hp_at_boss = player.hp
+				time_at_boss = time
 				_ev("banner", {"text": "압축기 \"큰형\""})
 				_ev("sfx", {"id": "alarm"})
 				_ev("boss_intro", {})
@@ -940,6 +954,9 @@ func _boss_step(dt: float) -> void:
 					b.data["swept"] = false
 					_boss_spit_start(ph)
 		"stomp_tele":
+			# 예고 앞쪽 35% 동안은 머리가 줍는 이 쪽으로 조금 더 따라온다(그다음엔 고정)
+			if b.st < b.timer * 0.35:
+				b.pos += (player.pos - b.pos).limit_length(RunCfg.f("boss_speed2" if ph == 2 else "boss_speed", 52) * 1.2 * dt)
 			if b.st >= b.timer:
 				var area := Rect2(b.pos - Vector2(RunCfg.f("boss_stomp_w", 38), RunCfg.f("boss_stomp_h", 30)) / 2, Vector2(RunCfg.f("boss_stomp_w", 38), RunCfg.f("boss_stomp_h", 30)))
 				if area.grow(player.radius).has_point(player.pos):
@@ -1136,7 +1153,7 @@ func _items_step(dt: float) -> void:
 				held.append(it["tk"])
 				_ev("pickup", {"pos": p.pos, "text": "+%s" % ("깡통" if it["tk"] == "can" else "벽돌"), "col": "#c8c8c8"})
 			"heal":
-				p.hp = mini(p.max_hp, p.hp + 1)
+				p.hp = mini(p.max_hp, p.hp + RunCfg.i("heal_amount", 2))
 				_ev("pickup", {"pos": p.pos, "text": "+♥", "col": "#ff8098"})
 			"big":
 				big = {"goods": it["goods"], "finds": RunCfg.file("run_goods").get("big", {}).get("finds", [])}
@@ -1465,7 +1482,7 @@ func _finish(oc: String) -> void:
 		"time": time, "kills": kills.duplicate(), "rooms_visited": visited.size(), "rooms_total": rooms.size(),
 		"reached_boss": reached_boss, "boss_killed": boss_dead, "max_depth": max_depth_seen,
 		"noise_level": noise_level, "hp": player.hp, "seed": seed_value, "big": not big.is_empty() and oc != "down",
-		"last_hurt_by": last_hurt_by, "dodges": dodges, "hits_taken": hits_taken,
+		"last_hurt_by": last_hurt_by, "hurt_log": hurt_log.duplicate(), "hp_at_boss": hp_at_boss, "time_at_boss": time_at_boss, "dodges": dodges, "hits_taken": hits_taken,
 	}
 	_ev("finished", {"outcome": oc})
 
@@ -1513,15 +1530,30 @@ func _move(a: Actor, d: Vector2) -> void:
 			if not _box_hits(nx, a.pos.y, r):
 				a.pos.x = nx
 			else:
-				a.vel.x = 0.0
-				a.knock.x = 0.0
+				# 모서리 보정: 위아래로 4px 안에 빈 길이 있으면 그쪽으로 미끄러진다
+				var slid := false
+				for off in [1.0, -1.0, 2.0, -2.0, 3.0, -3.0, 4.0, -4.0, 5.0, -5.0]:
+					if not _box_hits(nx, a.pos.y + off, r) and not _box_hits(a.pos.x, a.pos.y + signf(off), r):
+						a.pos.y += signf(off) * minf(absf(sd.x), 1.5)
+						slid = true
+						break
+				if not slid:
+					a.vel.x = 0.0
+					a.knock.x = 0.0
 		if sd.y != 0.0:
 			var ny := a.pos.y + sd.y
 			if not _box_hits(a.pos.x, ny, r):
 				a.pos.y = ny
 			else:
-				a.vel.y = 0.0
-				a.knock.y = 0.0
+				var slid2 := false
+				for off in [1.0, -1.0, 2.0, -2.0, 3.0, -3.0, 4.0, -4.0, 5.0, -5.0]:
+					if not _box_hits(a.pos.x + off, ny, r) and not _box_hits(a.pos.x + signf(off), a.pos.y, r):
+						a.pos.x += signf(off) * minf(absf(sd.y), 1.5)
+						slid2 = true
+						break
+				if not slid2:
+					a.vel.y = 0.0
+					a.knock.y = 0.0
 	# 더미·큐브는 둥근 장애물로 밀어낸다
 	for pl in piles:
 		var dv: Vector2 = a.pos - pl["pos"]

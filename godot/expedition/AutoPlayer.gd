@@ -28,6 +28,10 @@ var goal_desc := ""
 var pack_op := -1
 var t := 0.0
 var leaving := false
+var leave_reason := ""
+var wd_pos := Vector2.ZERO
+var wd_t := 0.0
+var ignore: Dictionary = {}
 
 
 func setup(profile: String, seed_value: int) -> void:
@@ -66,6 +70,18 @@ func fill(inp: RunInput, w: RunWorld, dt: float) -> void:
 		pass
 	var moved := p.pos.distance_to(last_pos)
 	last_pos = p.pos
+	# 지켜보기: 8초 동안 제자리면(뒤지는 중 제외) 지금 노리던 더미를 포기한다
+	if p.pos.distance_to(wd_pos) > 10.0 or not w.search_target.is_empty():
+		wd_pos = p.pos
+		wd_t = 0.0
+	else:
+		wd_t += dt
+		if wd_t > 8.0:
+			var bp := _best_pile(w)
+			if not bp.is_empty():
+				ignore[bp["pos"]] = true
+			path = PackedVector2Array()
+			wd_t = 0.0
 	# 1) 위협 피하기
 	var dodge := _threat(w, dt)
 	if dodge != Vector2.INF:
@@ -95,6 +111,7 @@ func _threat(w: RunWorld, dt: float) -> Vector2:
 			continue
 		var rem := e.timer - e.st
 		var d := p.pos.distance_to(e.pos)
+		var tk := "%d_%d" % [e.id, int((w.time - e.st) * 20.0)]
 		match e.kind:
 			"dog":
 				var L := RunCfg.f("dog_lunge_speed", 255) * RunCfg.f("dog_lunge_time", 0.3)
@@ -103,16 +120,16 @@ func _threat(w: RunWorld, dt: float) -> Vector2:
 					var side := Vector2(-e.lock_dir.y, e.lock_dir.x)
 					if side.dot(p.pos - e.pos) < 0:
 						side = -side
-					cands.append(["d%d_%d" % [e.id, int(e.st * 0 + e.timer * 1000)], rem, side, true])
+					cands.append(["d" + tk, rem, side, true])
 			"rat":
 				if d < 36:
-					cands.append(["r%d" % e.id, rem, (p.pos - e.pos).normalized(), true])
+					cands.append(["r" + tk, rem, (p.pos - e.pos).normalized(), true])
 			"guard":
 				if d < RunCfg.f("guard_reach", 26) + 14:
-					cands.append(["g%d" % e.id, rem, (p.pos - e.pos).normalized(), true])
+					cands.append(["g" + tk, rem, (p.pos - e.pos).normalized(), true])
 			"rival":
 				if d < 34:
-					cands.append(["v%d" % e.id, rem, (p.pos - e.pos).normalized(), true])
+					cands.append(["v" + tk, rem, (p.pos - e.pos).normalized(), true])
 	for j in w.junks:
 		if j["state"] == "warn":
 			var tp: Vector2 = j["target"]
@@ -127,13 +144,13 @@ func _threat(w: RunWorld, dt: float) -> Vector2:
 					break
 			if on:
 				var cen := (wv["box"] as Rect2).get_center()
-				cands.append(["w%s" % str(wv["cells"][0]), 0.5, (p.pos - cen).normalized(), false])
+				cands.append(["w%s_%d" % [str(wv["cells"][0]), int((w.time + float(wv["phase"])) / RunCfg.f("wire_period", 3.4))], 0.5, (p.pos - cen).normalized(), false])
 	var b: Actor = w.boss
 	if b != null and not b.dead:
 		if b.state == "stomp_tele":
 			var area := Rect2(b.pos - Vector2(RunCfg.f("boss_stomp_w", 38), RunCfg.f("boss_stomp_h", 30)) / 2, Vector2(RunCfg.f("boss_stomp_w", 38), RunCfg.f("boss_stomp_h", 30))).grow(10)
 			if area.has_point(p.pos):
-				cands.append(["bs%d" % int(b.data.get("n", 0)), b.timer - b.st, (p.pos - b.pos).normalized() if p.pos.distance_to(b.pos) > 1 else Vector2.DOWN, true])
+				cands.append(["bs%d" % int((w.time - b.st) * 20.0), b.timer - b.st, (p.pos - b.pos).normalized() if p.pos.distance_to(b.pos) > 1 else Vector2.DOWN, true])
 		for m in w.marks:
 			if p.pos.distance_to(m["pos"]) < m["r"] + 10:
 				cands.append(["m%s" % str(m["pos"]), m["dur"] - m["t"], (p.pos - m["pos"]).normalized() if p.pos.distance_to(m["pos"]) > 1 else Vector2.LEFT, true])
@@ -147,7 +164,7 @@ func _threat(w: RunWorld, dt: float) -> Vector2:
 				if not in_gap:
 					var to_gap := Vector2(0, signf((gap.x + gap.y) / 2 - p.pos.y))
 					var rem2 := (ahead - 8) / RunCfg.f("boss_sweep_speed", 150) + (b.timer - b.st if b.state == "sweep_tele" else 0.0)
-					cands.append(["sw%d" % int(gap.x), rem2, to_gap, true])
+					cands.append(["sw%d_%d" % [int(gap.x), int(w.time - b.st)], rem2, to_gap, true])
 	if cands.is_empty():
 		return Vector2.INF
 	var act := Vector2.INF
@@ -204,7 +221,8 @@ func _fight(inp: RunInput, w: RunWorld) -> bool:
 			target = e
 	# 두목: 끼였을 때만 친다
 	var b: Actor = w.boss
-	if b != null and not b.dead and b.state not in ["dormant"] and w.cur_room == b.room:
+	var low: bool = p.hp <= int(P.get("leave_hp", 2))
+	if b != null and not b.dead and b.state not in ["dormant"] and w.cur_room == b.room and not low:
 		if b.state == "stuck" and (target == null or bd > 26):
 			_approach_attack(inp, w, b.pos, 20.0, 18.0)
 			return true
@@ -275,14 +293,23 @@ func _goal(inp: RunInput, w: RunWorld) -> Vector2:
 	goal_desc = ""
 	if p.hp <= int(P.get("leave_hp", 2)) and not (w.boss_dead and w.big.is_empty()):
 		should_leave = true
-	if w.pack_slots_used() >= full_leave and _pack_all_capped(w):
+		leave_reason = "hp"
+	elif w.noise_level >= int(P.get("noise_leave", 99)) and w.pack_bundles() > 0:
 		should_leave = true
-	if w.noise_level >= int(P.get("noise_leave", 99)) and w.pack_bundles() > 0:
+		leave_reason = "noise"
+	elif w.time > 540.0:
 		should_leave = true
-	if w.time > 540.0:
+		leave_reason = "time"
+	elif w.boss_dead and not w.big.is_empty():
 		should_leave = true
-	if w.boss_dead and not w.big.is_empty():
-		should_leave = true
+		leave_reason = "boss"
+	var full := w.pack_slots_used() >= full_leave and _pack_all_capped(w)
+	if full and not should_leave:
+		# 배낭이 찼다: 두목에 덤빌 체력이면 두목 방으로 곧장, 아니면 나간다
+		var b0: Actor = w.boss
+		if b0 == null or b0.dead or p.hp < int(P.get("boss_hp", 3)):
+			should_leave = true
+			leave_reason = "full"
 	leaving = should_leave
 	# 발밑의 더 좋은 물건과 바꿔 담기(꼼꼼 욕심만 신경 쓴다, 보통도 가끔)
 	if not w.item_under.is_empty() and P.get("explore", 0.5) > 0.4:
@@ -320,17 +347,17 @@ func _goal(inp: RunInput, w: RunWorld) -> Vector2:
 	if near_item != Vector2.INF:
 		goal_desc = "물건"
 		return near_item
-	# 지금 방의 더미
-	var pile := _best_pile(w)
+	# 지금 방의 더미(배낭이 찼으면 건너뛴다)
+	var pile := _best_pile(w) if not full else {}
 	if not pile.is_empty():
 		var pp: Vector2 = pile["pos"]
 		if p.pos.distance_to(pp) < 17.0:
 			# 주변이 조용하면 뒤진다
 			var calm := true
 			for e: Actor in w.enemies:
-				if not e.dead and e.aware and e.pos.distance_to(p.pos) < (60 if profile_id != "careless" else 20) and (e.kind != "rival" or e.data.get("hostile", false)):
+				if not e.dead and e.aware and e.pos.distance_to(p.pos) < (60 if profile_id != "careless" else 20) and (e.kind != "rival" or e.data.get("hostile", false)) and w._los(p.pos, e.pos):
 					calm = false
-			if calm or profile_id == "careless":
+			if calm or profile_id == "careless" or wd_t > 3.0:
 				inp.interact = true
 				inp.aim = pp
 				goal_desc = "뒤지기"
@@ -338,8 +365,9 @@ func _goal(inp: RunInput, w: RunWorld) -> Vector2:
 		goal_desc = "더미"
 		return pp
 	# 다음 방
-	var nxt := _next_room(w)
+	var nxt := _next_room(w, full)
 	if nxt < 0:
+		leave_reason = "done"
 		return _nearest_exit(inp, w)
 	var r: Dictionary = w.rooms[nxt]
 	goal_desc = "방 %d" % nxt
@@ -378,6 +406,8 @@ func _best_pile(w: RunWorld) -> Dictionary:
 	for pl in w.piles:
 		if pl["bundles"].is_empty() and pl["rummaged"]:
 			continue
+		if ignore.has(pl["pos"]):
+			continue
 		if pl["room"] != w.cur_room and not rect.has_point(w.to_cell(pl["pos"])):
 			continue
 		# 경비원 시야 안의 더미는 꼼꼼이만 피한다
@@ -400,7 +430,7 @@ func _in_guard_cone(w: RunWorld, pos: Vector2) -> bool:
 	return false
 
 
-func _next_room(w: RunWorld) -> int:
+func _next_room(w: RunWorld, boss_only: bool = false) -> int:
 	var p: Actor = w.player
 	var cands: Array = []
 	for rid in w.visited:
@@ -411,6 +441,8 @@ func _next_room(w: RunWorld) -> int:
 			if r["kind"] == "boss":
 				if p.hp < int(P.get("boss_hp", 3)):
 					continue
+			elif boss_only and not r["main"]:
+				continue
 			elif not r["main"]:
 				if not explore_rooms.has(l):
 					explore_rooms[l] = rng.randf() < float(P.get("explore", 0.5))

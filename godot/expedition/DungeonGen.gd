@@ -408,6 +408,10 @@ func _populate(danger: int) -> void:
 					cell = o["cell"]
 			if cell.x < 0:
 				cell = _nearest_floor(r["origin"] + Vector2i(RW / 2, RH / 2 - 1))
+			# 더미와 두 칸 이상 떨어뜨린다
+			for o in objects:
+				if o["type"] == "pile" and (o["cell"] as Vector2i).distance_to(cell) < 2.5:
+					o["type"] = "junked"
 			new_objs.append({"type": "exit", "cell": cell, "room": rid, "exit": "mid"})
 			r["has_exit"] = true
 		if r["kind"] == "entrance":
@@ -430,10 +434,17 @@ func _populate(danger: int) -> void:
 	piles.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return rooms[a["room"]]["depth"] > rooms[b["room"]]["depth"])
 	for p in piles:
 		var depth: int = rooms[p["room"]]["depth"]
-		var n := rng.randi_range(RunCfg.i("pile_bundles_min", 1), RunCfg.i("pile_bundles_max", 3))
-		if rng.randf() < RunCfg.f("pile_deep_bonus") * depth / 3.0:
-			n += 1
-		n = mini(n, 3)
+		# 얕은 더미는 자주 비어 있고(앞사람들이 털었다) 깊을수록 묶음이 많다
+		var n := 1
+		var empty_p := RunCfg.f("pile_empty_d0", 0.4) - depth * RunCfg.f("pile_empty_step", 0.1)
+		if rng.randf() < maxf(0.05, empty_p):
+			n = 0
+		else:
+			if rng.randf() < RunCfg.f("pile_more_per_depth", 0.22) * depth:
+				n += 1
+			if rng.randf() < RunCfg.f("pile_more_per_depth", 0.22) * depth * 0.5:
+				n += 1
+		n = mini(n, RunCfg.i("pile_bundles_max", 3))
 		var bundles: Array = []
 		for k in n:
 			var g := _roll_good(goods, depth, max_depth)

@@ -264,8 +264,6 @@ func _process(delta: float) -> void:
 				bot.fill(world.input, world, STEP)
 			if script_player != null:
 				script_player.fill(world.input, world, STEP)
-			if world.input.slot_action >= 0:
-				world.slot_action(world.input.slot_action)
 			world.step(STEP)
 			if world.finished:
 				break
