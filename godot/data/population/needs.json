@@ -183,6 +183,16 @@
     }
    ]
   },
+  "t2_power": {
+   "tier": 2,
+   "role": "advance",
+   "name": "전기",
+   "options": [
+    {
+     "utility": "power"
+    }
+   ]
+  },
   "t2_shrine": {
    "tier": 2,
    "role": "luxury",

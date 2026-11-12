@@ -97,8 +97,6 @@
    ],
    "unlocks": [
     "trade_post",
-    "gen_small",
-    "power_tap",
     "rat_farm",
     "study"
    ],
@@ -106,8 +104,27 @@
     "policy_slot_1"
    ]
   },
-  "floor3": {
+  "power": {
    "order": 6,
+   "cond": [
+    [
+     "floors",
+     ">=",
+     2
+    ],
+    [
+     "pop.t2",
+     ">=",
+     40
+    ]
+   ],
+   "unlocks": [
+    "gen_small",
+    "power_tap"
+   ]
+  },
+  "floor3": {
+   "order": 7,
    "cond": [
     [
      "floors",
@@ -121,7 +138,7 @@
    ]
   },
   "t3_1": {
-   "order": 7,
+   "order": 8,
    "cond": [
     [
      "pop.t3",
@@ -141,7 +158,7 @@
    "title": "무허가 구청장"
   },
   "lux_bath": {
-   "order": 8,
+   "order": 9,
    "cond": [
     [
      "pop.t2",
@@ -159,7 +176,7 @@
    ]
   },
   "t3_80": {
-   "order": 9,
+   "order": 10,
    "cond": [
     [
      "pop.t3",
@@ -180,7 +197,7 @@
    ]
   },
   "lux_health": {
-   "order": 10,
+   "order": 11,
    "cond": [
     [
      "pop.t3",
@@ -199,7 +216,7 @@
    ]
   },
   "t4_1": {
-   "order": 11,
+   "order": 12,
    "cond": [
     [
      "pop.t4",
@@ -218,7 +235,7 @@
    "title": "세금 안 내는 시장님"
   },
   "lux_top": {
-   "order": 12,
+   "order": 13,
    "cond": [
     [
      "pop.t4",
@@ -237,7 +254,7 @@
    ]
   },
   "t4_60": {
-   "order": 13,
+   "order": 14,
    "cond": [
     [
      "pop.t4",
@@ -254,7 +271,7 @@
    ]
   },
   "t4_100": {
-   "order": 14,
+   "order": 15,
    "cond": [
     [
      "pop.t4",
@@ -267,7 +284,7 @@
    ]
   },
   "final": {
-   "order": 15,
+   "order": 16,
    "cond": [
     [
      "pop.t5",

@@ -1,4 +1,53 @@
-# SIM 노트 — 도시경제(파트 A 코어 + 파트 B 시간·탐험·진행)
+# SIM 노트
+
+## v4 (PC) — 2026-11-13, 브랜치 `sim4`
+
+기준: `docs/GDD_PC.md`, `docs/ARCHITECTURE.md`의 "v4 (PC판) 계약 변경", `docs/DECISIONS.md` 라운드 9·10.
+수치 변경 이력은 `docs/BALANCE_CHANGELOG.md`(v4 절), 봇 결과는 `simulation/reports/SUMMARY.md`(+ 봇마다 `<봇>.md`·`.json`, v0.3 결과는 `simulation/reports/v0.3/`),
+검토용 표는 `docs/data_tables/`(`python3 godot/tools/data_tables.py`). 아래 v0.3 절(파트 A·B·C)은 기록으로 남긴다 — 바뀐 곳은 이 절이 우선.
+
+### 1. 무엇이 바뀌었나(한눈에)
+- **격자 16×16×10**(config `grid`). 층 해금 문턱 = ceil(0.8 × W × H) = 205칸(`Cover.floor_need`, `floors.eligible_cells` 0 = W×H). 12를 가정하는 코드 없음.
+- **시설 모양**: `footprint:[w,h]`, `floors:1|2`, `build {type, pos, rot}`(rot 1 = w·h 바뀜). 셀·건물에 `origin,w,h,d,rot,size(=max(w,h))`. 골조·철거·층 해금이 여러 칸·두 층을 안다(2개 층 시설은 두 층 모두 열려야 하고 두 층에 칸을 쓴다). can 결과 `cells`·`supports`(골조 칸 배열)·`support_count`·`code`(+ `shape`·`sky`·`floor`).
+- **사각 범위**: `range:{r,up,down}` — 발자국 사각형에서 체비쇼프 r, 시설 맨 아래층 −down … 맨 위층 +up(`Cover.reach`·`reach_b`). 다이아몬드·층 가중치(`distance.*`)는 지웠다. `range_preview {type,pos,rot}` → `{cells, by_floor, houses, text}`.
+- **하늘·층 조건**: `needs_sky`(옥상 텃밭·하늘 공원) — 위가 뚫린 자리만 짓고, 나중에 위에 무엇이 서면 **멈춘다**(cause `sky`, 허물면 다시 돈다 — 부수지 않는다. 결정 45). 위에 지을 때 can 결과에 `warn` 문장. `min_floor`(z 기준, 2 = 3층).
+- **게임 시계만**: 실제 시계·미접속 정산 제거(`Sim.catch_up`·`fast_forward` 삭제, `time.offline_speed` 0, `offline_summary`는 늘 null). 탐험·연구·계약·공사 모두 `econ_days`. Game: `speed`(1·2·4, 디버그 아무 값)·`paused`는 세터 — 바뀌면 `speed_changed{speed,paused}`. 명령은 멈춤 중에도 된다. 저장 `user://save_v4.json`(CityState v4), 디바운스 자동 저장 유지. hud의 `speed`·`paused`는 Game.query가 채운다.
+- **공사·입주**: 시설은 `site`(발자국 전체)로 시작해 `build_days`(데이터, 없으면 config `build.days_by_cells`: 1칸 0.1 · 2칸 0.15 · 4칸 0.3 · 8칸 0.5 · 9칸 이상 2.5일)에 완공(`construction_done`). 명소는 2~3일. 주거는 바로 서고 주민은 행복이 높을수록 빨리 들어온다(기존 규칙) — `arriving`(입주 진행 0..1), info `arriving_text`.
+- **탐험(게임 시계)**: 자동 파견 근거리 0.3일·중거리 1일·원거리 3일(옛 발전소 4일). 목적지마다 **던전 재고**(`stock{상품:최대}`, 하루 최대치 × `regen` 회복) — 자동 파견도 직접 줍기도 여기서 뺀다. 직접 줍기 약속: `run_begin {dest}` → `{ok, stock, danger, seed, carry, team}`(팀 하나가 `run`), `run_result {dest, loot, outcome, finds}` — 짐은 던전 재고와 배낭 칸(`run.carry`, 기본 40)으로 검사, 넘치면 전체 거절(code `stock`·`carry`), `down`이면 절반(나머지는 `lost`), `boss`면 `run.boss` 덤, finds는 `"partner:id"`·`"blueprint:id"`·`"dest:id"` 중 그 던전이 줄 수 있는 것만.
+- **콘텐츠 전면 개편**(§2) · **불·병**(§3) · **현황판**(§4) · **봇·러너**(§5).
+
+### 2. 콘텐츠 규칙(데이터 요약 — 전체 표는 `docs/data_tables/`)
+- **1층 필수 셋**: 굴러온 돌의 기본 수요 = 식수(1) · 끼니 통조림(2, 시장 범위) · **놀 거리**(1, 패가망신 클럽). 놀 거리는 모든 계층의 기본 수요(마작·찻집·노래방·카지노).
+- **먹을 것 사다리**: 통조림(찌그러진 캔 은행·마감 세일 순례단, 원료 없음) → 완탕면(수타 제면소 → 완탕 한 그릇) → 쥐고기 버거(쥐덫 조합 → 출처 묻지 마 버거) → 스시(생선 수입 → 어제 잡은 스시) → 신선 채소(하늘 텃밭: 위가 뚫린 3층 이상).
+- **성채식 조달**: 원료를 수입해 가공하는 공장이 없다. 사슬은 길어야 2단(둘 다 성채 안): 기름 수거단 → 초·비누, 넝마 수거단 → 봉제방·맞춤 양복점, 제면소 → 완탕, 쥐덫 → 버거. 원료 없는 것: 캔 은행·순례단·부스러기 양조장(Jin의 문장 그대로)·수거함 정리단·고물 분해소. 전자 폐품·설비 부품 = 탐험(고물 분해소가 전자 폐품을 조금). **수입은 진짜 사치품뿐**(생선·양주, + 비싼 건재).
+- **승급 관문**: 굴러온 돌 → 헌 옷·초 / 월세 전사 → 비누·밀주·**전기** / 박힌 돌 → 라디오·공부방 / 깡통 귀족 → 양주·짝퉁 명품 + 설비 부품.
+- **교역 = 중반 시스템**: 계약 기본 자리 0 — 뒷문 무역관(월세 전사 40명)을 지어야 계약. 수입은 생선·양주·건재(비싸게), 수출은 남는 것.
+- **사치 시설**(때밀이 성전·발치 전문·약 비슷한 것 약국·가위손 이모·하늘 공원): 비싸고, 해금 조건에 계층 인구 + **"도시 행복도 n 이상을 m일 유지"**(새 지표 `happy_held.<n>`, progression이 `flags.happy_since`에 연속 시작 시각을 둔다).
+- **모양**: 기본 1×2, 강한 것 2×2(시장 2~4등급·정수장·발전소·소방서·조립소·목욕탕·하늘 공원), 작은 설비 1×1(하늘 수도국·수도관·문어발·사당), 명소 = 네온 용탑 2×2×2층 · 무허가 구청 3×3. 주거는 1×1. 모든 시설에 `look`(계약 목록), `sign`(한글 4자 이내 — 검증), 한자 금지(검증).
+- **이름**(§8): 계층 굴러온 돌·월세 전사·박힌 돌·깡통 귀족·옥상 황제. 등급·호칭 공터/무단 점유 대표 → 판자촌/자칭 반장 → 골목/비공식 통장 → 성채/무허가 구청장 → 구룡/세금 안 내는 시장님 → 구룡성채/지도에 없는 곳의 따거. 던전: 고물 야적장·쓰레기 매립지·철거 현장(근) · 폐공장·부두 뒷골목(중) · 폐기물 처리장·버려진 신도시·옛 발전소(원). 정책·연구도 같은 결(반 공기 운동, 봉투 문화, 약도 그리기…).
+- **목표 24단계**: 칠하기 → 필수 셋 → 굴러온 돌 20 → 탐험 → 수령 → 첫 승급(자재 고르기) → 완탕(첫 사슬) → **2층(불)** → 소방대 → 월세 전사 40 → 첫 전기 → 첫 박힌 돌 → 중거리 → **3층(병)** → 수거·의원 → 무역관 계약 → 박힌 돌 80 → 사치 시설 → 첫 깡통 귀족 → 원거리 → 네온 용탑(첫 명소) → 첫 옥상 황제 → 무허가 구청 → 마지막(옥상 황제 N + 구청).
+
+### 3. 불·병(`sim/systems/hazards.gd`, config `hazards.*`)
+- 켜짐: 불 = 2층이 열리면, 병 = 3층이 열리면 `hazard_on{kind, grace_days}` + 기록 한 줄. 유예(2일) 동안은 위험이 쌓이지 않는다. 디버그 `set_hazard`로 강제(유예 0).
+- 범위: 방재 시설의 서비스 태그 `fire`·`trash`·`clinic`(config `hazards.tags`)은 주거 수요가 아니라 Cover가 **주거·시설 모두**에 대해 `hz[tag][bid] = [시설…]`로 계산한다. "덮임" = 그중 가동 중인 시설이 하나라도 있음.
+- **불**: 쓰이는 건물마다 위험 0..1이 하루 `risk_per_day`(범위 안이면 × `covered_mult` 0.1)씩 쌓인다. 한 경제시간마다 결정론 RNG로 위험 합 × `ignite_per_day` × dt 확률(상한 0.5)로 위험 비례 한 곳에 불(불 사이 `min_gap_days`, 동시에 타는 곳 `max_burning` + 쓰이는 건물/`burning_per` 이하). 범위 안 불은 `out_days`(약 1시간)에 꺼지고 주민 1명만 흩어진다. 범위 밖은 `burn_days`(0.3일) 타며 매시간 범위 밖 이웃(가로·세로·위)으로 `spread_per_day` 확률로 번지고, 끝나면 `burnt`: 주민은 **흩어져 대기 주민**(3일 안에 빈집을 찾거나 떠남 — 인구가 조용히 사라지지 않는다), 시설은 멈춤(cause `burnt`). `repair {bid}` = 돈(주거 계층별 / 시설 건설비 × 0.4) + 고물(칸당 3) + 0.25일 → `repaired`.
+- **병**: 주거마다 쓰레기 0..1이 수거 범위 밖에서 하루 `trash_per_day` × 주민/정원씩 쌓이고(셀 `trash`는 0.1 단위), 안이면 `clear_per_day`씩 준다. 매시간 `outbreak_at`(0.7)을 넘은 집들에서 결정론 RNG로 발병 — 그 집과 이웃(가로·세로 1칸, 위아래 1층)의 쓰레기 많은 집(최대 6채, 동시에 앓는 집 상한 8%·최소 6채). 앓는 집: **일손 절반**(workforce), 행복 −15(도시 평균에도), 세수 ×0.8, 새로 안 들어옴, 1일 뒤부터 하루 2명씩 떠남. 2.5일 뒤 낫고, 무면허 의원 범위면 0.6일(앓는 중 범위에 들어도 줄어든다).
+- 세 자재 계열의 차이는 없다(확정). 표시: 셀 `burn`/`sick`/`trash`, 건물 `burn`/`sick`/`sick_until`/`repair`, 질의 `hazards`·`coverage`, hud `hazards`·`signals`, 알림 `fire`(jump `focus` "x,y,z")·`burnt`(inspect)·`fire_cover`(jump `lens` fire)·`sick`(focus)·`trash_cover`(lens trash|clinic). 이벤트 `fire_started`·`fire_spread`·`fire_out{burnt}`·`repaired`·`outbreak{bids,pos}`·`outbreak_end`·`hazard_on`.
+- 손실 장부(stats): `house_days`, `hz_fire_house_days`(탄·타는 주거), `hz_sick_house_days`(앓는 주거 × 0.5) — 봇 보고서의 "불·병 손실 %".
+
+### 4. 현황판·신호등(`sim/Board.gd`)
+- `metrics` 질의 = 현황판: `rows`(물·전기 / 먹을 것 단계별 / 그 밖 상품 / 서비스·시장 범위 / 불·병) 각 `{id, group, name, supply, demand, unit, ratio, state, days_left, hint, jump, stock?}`, `labor`, `tiers`(+`arriving`), `finance`(어제 장부: income·cost·net·lines), `hazards`. 상품 수요 = 계층 인구 × 1인 소비 + 가동 시설 원료, 공급 = 최근 1일 생산 + 수입. 옛 지표 사전은 `metrics_raw`.
+- `hud.signals` = 물·전기·먹을 것·놀 것·불·병·일손 7개 `{id, name, state ok|warn|bad|off, text, jump}`(스텝마다 한 번 계산해 캐시).
+- `coverage {kind}` = `market`·`fun`·`fire`·`trash`·`clinic`·`service:<시설 id 또는 태그>` → `{covered, uncovered, pct, text}`(쓰이는 칸 기준).
+
+### 5. 봇·러너
+- `sim/Bot.gd` 새로 씀: 발자국·회전을 모두 시험, 범위 시설은 "아직 안 덮인 대상을 가장 많이 덮는 자리", 층마다 2×2 구멍(x, y mod 5 ∈ {3,4})을 시설 자리로 남기며 가운데부터 칠한다, 자리가 없으면 낮은 계층 주거를 허문다. 방재(불·쓰레기·의원) 범위를 덮고, 탄 건물을 수리하고, 2단 사슬은 원료가 모자라면 원료 시설을 먼저, 돈이 모자라 미룬 꼭 필요한 시설의 돈을 다음 손길까지 남기고(`flags.bot.want`), 일손이 모자라 못 지은 계층을 기억해 승급으로 채운다(`labor_want` — 교착 방지).
+- 봇 10종(`data/sim/bots.json`): 균형형·승급 과속형·수출 특화형·자급형(교역 없음)·목재/철제/콘크리트 집중형·공간 부족형·**방재 무시형**·**느긋한 사람형**(4시간마다, 적게).
+- `tools/sim_run.gd` = 게임 시계로 계속 플레이(봇은 `act_every_h`마다) → `simulation/reports/<봇>.md/.json`. `simulation/run_all.sh [days] [seed]`가 둘씩 나란히 돌리고 `make_summary.py`가 `SUMMARY.md`를 쓴다. `tools/sim_debug_run.gd`(튜닝용 들여다보기), `tools/sim_perf.gd`(16×16×10 도시, 불·병 켬).
+
+---
+
+# (기록) v0.3 SIM 노트 — 도시경제(파트 A 코어 + 파트 B 시간·탐험·진행)
 
 기준: `docs/GDD.md` v0.3 + 디렉터 수정 · 브랜치 `simb`. 수치 변경 이력은 `docs/BALANCE_CHANGELOG.md`, 검토용 표는 `docs/data_tables/`(자동 생성, `python3 godot/tools/data_tables.py`),
 시나리오 결과는 `simulation/reports/SUMMARY.md`(+ 봇마다 `<봇>.md`), 파트 A의 계속 접속 리포트는 `simulation/reports/core_balanced.md`.

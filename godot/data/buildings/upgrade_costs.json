@@ -18,7 +18,7 @@
   "2to3": {
    "from": 2,
    "to": 3,
-   "money": 150,
+   "money": 300,
    "qty": 30,
    "extra": {},
    "days": 0.05

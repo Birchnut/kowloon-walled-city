@@ -10,8 +10,13 @@ func on_new_game(state: CityState) -> void:
 	_check(state)
 
 
-func tick(state: CityState, _dt: float) -> void:
+func tick(state: CityState, dt: float) -> void:
 	_happy(state)
+	if sim.every(state, 4, dt):     # 해금 판정은 2경제시간마다(Metrics 계산이 큰 도시에서 무겁다) + 명령 직후
+		_check(state)
+
+
+func on_command(state: CityState, _name: String, _args: Dictionary, _result: Dictionary) -> void:
 	_check(state)
 
 

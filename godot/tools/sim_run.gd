@@ -42,10 +42,13 @@ static func run(bot_id: String, days: float, seed_value: int, verbose: bool = tr
 	var next_act := state.econ_days
 	var end := state.econ_days + days
 	var step_ms := 0.0
+	var bot_ms := 0.0
 	var steps := 0
 	while state.econ_days < end - 1e-9:
 		if state.econ_days + 1e-9 >= next_act:
+			var tb := Time.get_ticks_usec()
 			bot.act(state)
+			bot_ms += float(Time.get_ticks_usec() - tb) / 1000.0
 			next_act += every
 		var ts := Time.get_ticks_usec()
 		sim.step(state)
@@ -62,7 +65,7 @@ static func run(bot_id: String, days: float, seed_value: int, verbose: bool = tr
 					state.happiness, state.floors_unlocked, int(row["houses"]), int(row["burnt"]), int(row["sick"])])
 			day = state.day
 	if verbose:
-		print("ran %.0f days in %.1fs (step avg %.2fms)" % [days, float(Time.get_ticks_msec() - t0) / 1000.0, step_ms / maxf(1.0, float(steps))])
+		print("ran %.0f days in %.1fs (step avg %.2fms, bot total %.1fs)" % [days, float(Time.get_ticks_msec() - t0) / 1000.0, step_ms / maxf(1.0, float(steps)), bot_ms / 1000.0])
 	return {"ok": true, "sim": sim, "state": state, "bot": bot, "rows": rows, "min_money": min_money, "days": days, "seed": seed_value,
 		"step_ms": step_ms / maxf(1.0, float(steps)), "errors": errors}
 

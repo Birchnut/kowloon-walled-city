@@ -71,7 +71,21 @@ func tick(state: CityState, dt: float) -> void:
 	var cov := sim.cover(state)
 	var fire: Dictionary = hz["fire"]
 	var dis: Dictionary = hz["disease"]
-	# 손실 장부(주거-일): 탄·타는 주거, 앓는 주거
+	# 수리 진행(불이 꺼져 있어도) — 수리 중인 건물 목록만 본다
+	var reps: Dictionary = hz.get("repairs", {})     # {bid: true} — 정수 키는 저장 왕복에도 정수로 돌아온다
+	if not reps.is_empty():
+		for bid: int in reps.keys():
+			var b: Dictionary = state.buildings.get(bid, {})
+			var rp: Variant = b.get("repair")
+			if not (rp is Dictionary):
+				reps.erase(bid)
+			elif state.econ_days + 1e-9 >= float(rp["done_at"]):
+				reps.erase(bid)
+				_repaired(state, b)
+	if not sim.every(state, 2, dt):
+		return
+	# 손실 장부(주거-일, 한 경제시간마다): 탄·타는 주거, 앓는 주거(절반으로 셈)
+	var dth := sim.step_days * 2.0
 	var nh := 0
 	var nb := 0
 	var ns := 0
@@ -81,19 +95,11 @@ func tick(state: CityState, dt: float) -> void:
 			nb += 1
 		if b.get("sick", false):
 			ns += 1
-	state.stat_add("house_days", float(nh) * dt)
+	state.stat_add("house_days", float(nh) * dth)
 	if nb > 0:
-		state.stat_add("hz_fire_house_days", float(nb) * dt)
+		state.stat_add("hz_fire_house_days", float(nb) * dth)
 	if ns > 0:
-		state.stat_add("hz_sick_house_days", float(ns) * dt * 0.5)
-	# 수리 진행(불이 꺼져 있어도)
-	for b: Dictionary in cov["all"]:
-		var rp: Variant = b.get("repair")
-		if rp is Dictionary and state.econ_days + 1e-9 >= float(rp["done_at"]):
-			_repaired(state, b)
-	if not sim.every(state, 2, dt):
-		return
-	var dth := sim.step_days * 2.0
+		state.stat_add("hz_sick_house_days", float(ns) * dth * 0.5)
 	if bool(fire["on"]):
 		_fire_tick(state, cov, fire, dth)
 	if bool(dis["on"]):
@@ -326,6 +332,10 @@ func apply(state: CityState, name: String, args: Dictionary) -> Variant:
 				state.stock[g] = float(state.stock.get(g, 0.0)) - float(c["goods"][g])
 				state.stat_add("used." + g, float(c["goods"][g]))
 			b["repair"] = {"money": c["money"], "goods": c["goods"], "days": c["days"], "done_at": state.econ_days + float(c["days"])}
+			var hz := _hz(state)
+			if not hz.has("repairs"):
+				hz["repairs"] = {}
+			hz["repairs"][int(b["id"])] = true
 			_bump(state)
 			state.emit("building_changed", {"bid": int(b["id"])})
 			sim.say(state, "%s 수리를 시작했다(%s, %s)." % [_bname(b), Sim.won(float(c["money"])), Queries.day_text(float(c["days"]))])
@@ -366,7 +376,10 @@ func _disease_tick(state: CityState, cov: Dictionary, dis: Dictionary, dt: float
 		if tr != float(b.get("trash", 0.0)):
 			b["trash"] = tr
 			var shown := snappedf(tr, 0.1)
-			_cells_set(state, b, "trash", shown)
+			var cl: Dictionary = state.cells.get(b["pos"], {})
+			if not cl.is_empty() and float(cl.get("trash", 0.0)) != shown:
+				cl["trash"] = shown
+				state.emit("cell_changed", {"pos": b["pos"]})
 		if b.get("sick", false):
 			n_sick += 1
 			_sick_tick(state, cov, b, dt)
@@ -503,7 +516,20 @@ func query(state: CityState, name: String, args: Dictionary) -> Variant:
 	return null
 
 
+var _q_key := ""
+var _q_val: Dictionary = {}
+
+
 func _hazards_q(state: CityState) -> Dictionary:
+	var key := "%d:%d:%d:%d:%d" % [state.get_instance_id(), roundi(state.econ_days / sim.step_days), int(state.flags.get("hz_rev", 0)), state.layout_rev(), state.next_id]
+	if key == _q_key and not sim.no_cache:
+		return _q_val.duplicate(true)
+	_q_val = _hazards_q_raw(state)
+	_q_key = key
+	return _q_val.duplicate(true)
+
+
+func _hazards_q_raw(state: CityState) -> Dictionary:
 	var hz := _hz(state)
 	var cov := sim.cover(state)
 	var burning: Array = []
@@ -511,25 +537,43 @@ func _hazards_q(state: CityState) -> Dictionary:
 	var sick: Array = []
 	var trash_hi := 0
 	var nh := 0
+	var at := _s("outbreak_at", 0.7)
+	var n_all := 0
+	var c_fire := 0
+	var n_h := 0
+	var c_trash := 0
+	var c_clinic := 0
 	for b: Dictionary in cov["all"]:
 		var bn := str(b.get("burn", ""))
+		var bid := int(b["id"])
 		if bn == "burning":
-			burning.append({"bid": int(b["id"]), "pos": b["pos"]})
+			burning.append({"bid": bid, "pos": b["pos"]})
 		elif bn == "burnt":
 			var c := _repair_cost(b)
-			burnt.append({"bid": int(b["id"]), "pos": b["pos"], "repairing": b.get("repair") != null,
+			burnt.append({"bid": bid, "pos": b["pos"], "repairing": b.get("repair") != null,
 				"repair_text": "수리 중" if b.get("repair") != null else "수리 %s + 고물 %d · %s" % [Sim.won(float(c["money"])), int(c["goods"]["scrap"]), Queries.day_text(float(c["days"]))]})
+		var used := _used(b)
+		if used:
+			n_all += 1
+			if _covered(state, cov, "fire", bid):
+				c_fire += 1
 		if b["kind"] == "house":
 			nh += 1
-			if float(b.get("trash", 0.0)) >= _s("outbreak_at", 0.7):
+			if float(b.get("trash", 0.0)) >= at:
 				trash_hi += 1
 			if b.get("sick", false):
-				sick.append({"bid": int(b["id"]), "pos": b["pos"], "days_left": snappedf(maxf(0.0, float(b.get("sick_until", 0.0)) - state.econ_days), 0.01)})
+				sick.append({"bid": bid, "pos": b["pos"], "days_left": snappedf(maxf(0.0, float(b.get("sick_until", 0.0)) - state.econ_days), 0.01)})
+			if used:
+				n_h += 1
+				if _covered(state, cov, "trash", bid):
+					c_trash += 1
+				if _covered(state, cov, "clinic", bid):
+					c_clinic += 1
+	var fpct := 1.0 if n_all == 0 else float(c_fire) / float(n_all)
+	var tpct := 1.0 if n_h == 0 else float(c_trash) / float(n_h)
+	var cpct := 1.0 if n_h == 0 else float(c_clinic) / float(n_h)
 	var f: Dictionary = hz["fire"]
 	var d: Dictionary = hz["disease"]
-	var fpct := _pct(state, cov, "fire", false)
-	var tpct := _pct(state, cov, "trash", true)
-	var cpct := _pct(state, cov, "clinic", true)
 	var fgrace := maxf(0.0, float(f["since"]) - state.econ_days) if bool(f["on"]) else 0.0
 	var dgrace := maxf(0.0, float(d["since"]) - state.econ_days) if bool(d["on"]) else 0.0
 	var ft := "2층이 열리면 불이 나기 시작한다."
@@ -577,7 +621,7 @@ func _coverage_q(state: CityState, kind: String) -> Dictionary:
 	elif kind == "fun" or kind.begins_with("service:"):
 		var tags: Array = ["mahjong", "teahouse", "karaoke", "casino"] if kind == "fun" else []
 		if kind.begins_with("service:"):
-			var sid := kind.substr(8)
+			var sid := kind.substr(8)       # 시설 id(예: service:shrine) 또는 서비스 태그
 			tags = sim.bdef(sid).get("services", [sid])
 		test = func(b: Dictionary) -> bool:
 			var sv: Dictionary = cov["services"].get(int(b["id"]), {})
@@ -586,7 +630,7 @@ func _coverage_q(state: CityState, kind: String) -> Dictionary:
 					if state.buildings.get(fb, {}).get("active", false):
 						return true
 			return false
-		label = "놀 거리" if kind == "fun" else str(sim.bdef(kind.substr(8)).get("name", kind))
+		label = "놀 거리" if kind == "fun" else str(sim.bdef(kind.substr(8)).get("name", kind.substr(8)))
 	else:
 		return {"covered": [], "uncovered": [], "pct": 0.0, "text": "모르는 범위 종류다."}
 	for b: Dictionary in (cov["houses"] if houses_only else cov["all"]):

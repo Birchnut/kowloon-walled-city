@@ -1284,7 +1284,7 @@
    "recipe": {
     "in": {},
     "out": {
-     "scrap": 10,
+     "scrap": 16,
      "elec_scrap": 0.5
     }
    },

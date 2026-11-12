@@ -18,6 +18,8 @@ var _save: float = 0.0             # 꼭 필요한 시설을 위해 모으는 �
 var recorded = null                # 시험용(sim_cache_fuzz): Array면 명령마다 [name, args, 결과]
 var _dem: Dictionary = {}          # 이번 손길의 수요 추정(캐시)
 var _builds: int = 0               # 이번 손길에 지은 시설 수
+var _cnt: Dictionary = {}          # 이번 손길의 시설 수(종류별, 공사 포함) — 지을 때마다 갱신
+var _sup: Dictionary = {}          # 이번 손길의 생산 능력 캐시(상품별) — 지을 때마다 비움
 
 const MEAL_GOODS := ["cans", "wonton", "burger", "sushi", "veg"]
 
@@ -41,16 +43,26 @@ func act(state: CityState, context: Dictionary = {}) -> void:
 	ctx = context
 	if not state.flags.has("bot"):
 		state.flags["bot"] = {}
-	_save = 0.0
 	_builds = 0
+	_recount(state)
 	_dem = _demand(state)
+	# 꼭 필요한데 돈이 모자라 미룬 시설(mem.want)은 다음 손길에도 그 돈을 남겨 둔다(하루 지나면 잊는다)
+	var mem: Dictionary = state.flags["bot"]
+	var want: Dictionary = mem.get("want", {})
+	_save = 0.0
+	for t: String in want.keys():
+		if state.econ_days - float(want[t][1]) > 1.0 or _count(state, t) > int(want[t][2]):
+			want.erase(t)
+		else:
+			_save = maxf(_save, float(want[t][0]))
+	mem["want"] = want
 	_explore(state)
 	_repair(state)
 	_utilities(state)
 	if bool(c("hazards", true)):
 		_hazards(state)
-	_upgrades(state)
 	_markets_services(state)
+	_upgrades(state)
 	_production(state)
 	_contracts(state)
 	_zone(state)
@@ -71,12 +83,16 @@ func cmd(state: CityState, name: String, args: Dictionary) -> Dictionary:
 
 
 # ------------------------------------------------------------------ 세기
-func _count(state: CityState, type: String) -> int:
-	var n := 0
+func _recount(state: CityState) -> void:
+	_cnt.clear()
+	_sup.clear()
 	for b: Dictionary in state.buildings.values():
-		if (b["kind"] == "facility" or b["kind"] == "site") and str(b.get("type", "")) == type:
-			n += 1
-	return n
+		if b["kind"] == "facility" or b["kind"] == "site":
+			_cnt[str(b["type"])] = int(_cnt.get(str(b["type"]), 0)) + 1
+
+
+func _count(_state: CityState, type: String) -> int:
+	return int(_cnt.get(type, 0))
 
 
 func _sites_of(state: CityState, cat: String) -> int:
@@ -176,6 +192,16 @@ func _cover_spot(state: CityState, type: String, targets: Array) -> Variant:
 	var rg := Cover.rng_of(d)
 	var first: Dictionary = targets[0]
 	var fp0: Vector3i = first["pos"]
+	# 성능: 첫 대상 근처(범위 두 배 안)의 대상만 센다
+	var reach2 := int(rg.get("r", 0)) * 2 + 3
+	var near: Array = []
+	for t: Dictionary in targets:
+		var tp: Vector3i = t["pos"]
+		if absi(tp.x - fp0.x) <= reach2 and absi(tp.y - fp0.y) <= reach2 and absi(tp.z - fp0.z) <= int(rg.get("up", 0)) + int(rg.get("down", 0)) + 1:
+			near.append(t)
+			if near.size() >= 120:
+				break
+	targets = near
 	var best: Variant = null
 	var bs := -(1 << 30)
 	var mf := int(d.get("min_floor", 0))
@@ -261,6 +287,10 @@ func _afford(state: CityState, type: String, critical: bool) -> bool:
 		_block("돈 부족으로 %s 보류" % d.get("name", type))
 		if critical:
 			_save = maxf(_save, cost + float(c("money_reserve", 40)))
+			var want: Dictionary = state.flags["bot"].get("want", {})
+			if not want.has(type):
+				want[type] = [cost + float(c("money_reserve", 40)), state.econ_days, float(_count(state, type))]
+			state.flags["bot"]["want"] = want
 		return false
 	for g: String in d.get("cost", {}).get("goods", {}):
 		var keep := 0.0 if d.get("landmark", false) else _keep(state, g)
@@ -281,6 +311,14 @@ func _try_build(state: CityState, type: String, critical: bool = true, targets: 
 		return false
 	if labor_check and not _labor_ok(state, type):
 		_block("인력 부족으로 %s 보류" % d.get("name", type))
+		# 어느 계층 일손이 모자라 못 지었는지 기억 → 승급이 그 계층을 채우게(교착 방지)
+		var lw: Dictionary = state.flags["bot"].get("labor_want", {})
+		for tk: String in d.get("workforce", {}):
+			var t := int(tk.substr(1))
+			var l: Dictionary = state.labor.get(t, {"have": 0, "need": 0.0})
+			if float(l["have"]) - float(l["need"]) < float(d["workforce"][tk]):
+				lw[str(t)] = state.econ_days
+		state.flags["bot"]["labor_want"] = lw
 		return false
 	if not _afford(state, type, critical):
 		return false
@@ -295,6 +333,8 @@ func _try_build(state: CityState, type: String, critical: bool = true, targets: 
 		_block(str(r.get("reason", "")))
 		return false
 	_builds += 1
+	_cnt[type] = int(_cnt.get(type, 0)) + 1
+	_sup.clear()
 	return true
 
 
@@ -450,8 +490,11 @@ func _utilities(state: CityState) -> void:
 			if _try_build(state, t):
 				break
 	var p: Dictionary = state.util.get("power", {})
-	var pdem := float(p.get("demand", 0.0))
-	if _pop(state, 2) >= float(c("power_at_t2", 30)):
+	# 꼭 필요한 전기 = 계층 1인 전기(박힌 돌부터) + 시설 부하. 월세 전사의 "등불 대신 전기"는 남을 때만 쓰는 것이라 세지 않는다.
+	var pdem := float(p.get("fac_demand", 0.0))
+	for b: Dictionary in sim.cover(state)["houses"]:
+		pdem += float(b["residents"]) * float(sim.tier(int(b["tier"])).get("power", 0.0))
+	if _pop(state, 2) >= float(c("power_at_t2", 30)) or sim.is_unlocked(state, "market_hall"):
 		pdem = maxf(pdem, 30.0)
 	if pdem > 0.0 and float(p.get("supply", 0.0)) < pdem * 1.15 + 2.0 and _sites_of(state, "power") == 0:
 		for t: String in c("power_order", ["power_waste", "power_plant", "gen_small", "power_tap"]):
@@ -643,6 +686,8 @@ func _demand(state: CityState) -> Dictionary:
 
 
 func _supply(state: CityState, g: String) -> float:
+	if _sup.has(g):
+		return float(_sup[g])
 	var s := 0.0
 	for b: Dictionary in state.buildings.values():
 		if b["kind"] == "facility" or b["kind"] == "site":
@@ -652,6 +697,7 @@ func _supply(state: CityState, g: String) -> float:
 	for k: Dictionary in state.contracts:
 		if k["good"] == g and not k.get("paused", false):
 			s += (1.0 if k["dir"] == "import" else -1.0) * float(k["qty"]) * 24.0 / float(k["interval_h"])
+	_sup[g] = s
 	return s
 
 
@@ -693,6 +739,26 @@ func _production(state: CityState) -> void:
 			continue
 		var t := _producer(state, g)
 		if t == "":
+			continue
+		# 이미 있는 같은 시설이 물·전기·일손 때문에 덜 돌면 더 짓지 않는다(원인을 먼저 — 물·전기·칠하기가 따로 맡는다)
+		var starving := false
+		for b: Dictionary in sim.cover(state)["facs"]:
+			if str(b["type"]) == t and str(b.get("cause", "")) in ["water", "power", "staff"] and float(b.get("eff", 1.0)) < 0.8:
+				starving = true
+				break
+		if starving:
+			_block("%s이(가) 물·전기·일손이 모자라 덜 돌아 더 짓지 않음" % sim.bdef(t).get("name", t))
+			continue
+		# 2단 사슬: 원료가 이미 모자라면 이 시설 대신 원료 시설을 먼저 짓는다
+		var short_in := ""
+		for gi: String in sim.bdef(t).get("recipe", {}).get("in", {}):
+			if _supply(state, gi) < float(_dem.get(gi, 0.0)) * 1.05 + float(sim.bdef(t)["recipe"]["in"][gi]) * 0.5:
+				short_in = gi
+				break
+		if short_in != "":
+			var ti := _producer(state, short_in)
+			if ti != "" and not (short_in in ["fish", "liquor"]):
+				_try_build(state, ti, g in MEAL_GOODS)
 			continue
 		_try_build(state, t, g in MEAL_GOODS)
 	# 고물: 시설·수리 재료
@@ -842,7 +908,8 @@ func _upgrades(state: CityState) -> void:
 		if nt > int(c("max_tier", 5)):
 			continue
 		var ln: Dictionary = state.labor.get(nt, {"have": 0, "need": 0.0})
-		var short := float(ln["need"]) > float(ln["have"])
+		var lw: Dictionary = state.flags["bot"].get("labor_want", {})
+		var short := float(ln["need"]) > float(ln["have"]) or state.econ_days - float(lw.get(str(nt), -9.0)) < 0.5
 		if not short and int(hn.get(nt, 0)) >= int(c("pilot_houses", 3)) and float(hf.get(nt, 0)) < float(c("next_full_ratio", 0.7)) * float(hn.get(nt, 0)):
 			_block("%s 주거가 아직 안 차서 승급 보류" % sim.tname(nt))
 			continue

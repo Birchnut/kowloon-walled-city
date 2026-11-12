@@ -296,6 +296,9 @@ func _pick(state: CityState, n: Dictionary, pick_str: String, idx: int, mask: in
 		if by_key.has(k) and not inkeep.has(k) and not infail.has(k):
 			var o: Dictionary = by_key[k]
 			var bad := _avail(state, o) != ""
+			# 남을 때만 쓰는 유틸리티(prefer: 등불 대신 전기)는 공급률이 ok 밑이면 내려놓는다 — 그 전기가 박힌 돌의 기본 수요를 굶기지 않게
+			if not bad and o["kind"] == "utility" and o.get("prefer", false) and _util_ratio(state, str(o["utility"])) < _ok:
+				bad = true
 			# 재고가 조금씩만 들어와 매 스텝 바닥나는 상품(지난 스텝 공급률 < ok)도 끊긴 것으로 본다 — 넉넉한 대체품이 있으면 갈아탄다
 			if not bad and o["kind"] == "good" and _fillv(fills, o["good"]) < _ok:
 				bad = _has_better(state, opts, o, fills)
@@ -670,12 +673,7 @@ func tick(state: CityState, dt: float) -> void:
 	if resettled:
 		_settle_seen = state.settle_n
 		fast2 = false
-	# 불·병 상태가 바뀐 스텝(hazards가 hz_rev를 올림)도 건너뛰지 않고 다시 쓴다
-	var hzr := int(state.flags.get("hz_rev", 0))
-	if hzr != _hz_seen:
-		_hz_seen = hzr
-		fast2 = false
-		resettled = true
+
 	_aff_last = aff
 	_off_last = offline
 	var todo2 := PackedInt32Array()   # 2단계를 돌릴 주거 순번(주거 순서 유지)
@@ -696,7 +694,8 @@ func tick(state: CityState, dt: float) -> void:
 				used.append(le)
 			le.rsum += r
 			went[hi] = le
-			if fast2 and ri > 0 and _hset[hi] == 1 and _hres[hi] == ri:
+			# 불·병이 닿은 집은 건너뛰지 않는다(앓기 시작한 스텝부터 다시 쓴다 — 나은 집은 _hset이 0이라 한 번 더 쓴다)
+			if fast2 and ri > 0 and _hset[hi] == 1 and _hres[hi] == ri and not b.get("sick", false) and str(b.get("burn", "")) == "":
 				le.skip.append(hi)
 				le.skip_r += r
 			else:

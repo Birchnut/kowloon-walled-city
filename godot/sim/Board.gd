@@ -79,32 +79,47 @@ static func _good_row(sim: Sim, state: CityState, g: String, d: float, group: St
 
 
 ## 수요의 범위 부족(서비스·시장) — 그 수요를 가진 주거 중 범위 밖/등급 부족/인력 부족 비율.
+static var _nk: Dictionary = {}
+static var _nk_sim: int = -1
+
+
+## 수요 id → [행 키, 행 이름] (서비스·시장 범위가 필요한 비여유 수요만). 데이터에서 한 번만.
+static func _need_keys(sim: Sim) -> Dictionary:
+	if _nk_sim == sim.get_instance_id():
+		return _nk
+	_nk = {}
+	_nk_sim = sim.get_instance_id()
+	for nid: String in sim.items("needs"):
+		var n := sim.item("needs", nid)
+		if n.get("role", "") == "luxury":
+			continue
+		for o: Dictionary in n.get("options", []):
+			if o.has("service"):
+				_nk[nid] = ["fun" if nid.ends_with("_fun") else "svc:" + str(o["service"]), "놀 거리 범위" if nid.ends_with("_fun") else "%s 범위" % n.get("name", "")]
+				break
+			if o.has("good"):
+				var gr := int(sim.good(o["good"]).get("grade", 1))
+				_nk[nid] = ["mkt:%d" % gr, "%d등급 시장 범위" % gr]
+				break
+	return _nk
+
+
 static func _service_rows(sim: Sim, state: CityState) -> Array:
 	var rows: Array = []
-	var acc := {}     # key → [대상 집, 부족 집, 이름, 이동 시설]
+	var acc := {}     # key → [대상 집, 부족 집, 이름]
+	var nk := _need_keys(sim)
 	for b: Dictionary in sim.cover(state)["houses"]:
 		if int(b["residents"]) == 0:
 			continue
-		for nid: String in b.get("needs", {}):
-			var n := sim.item("needs", nid)
-			if n.get("role", "") == "luxury":
+		var needs: Dictionary = b.get("needs", {})
+		for nid: String in needs:
+			var kk: Variant = nk.get(nid)
+			if kk == null:
 				continue
-			var key := ""
-			var nm := ""
-			for o: Dictionary in n.get("options", []):
-				if o.has("service"):
-					key = "fun" if nid.ends_with("_fun") else "svc:" + str(o["service"])
-					nm = "놀 거리 범위" if nid.ends_with("_fun") else "%s 범위" % n.get("name", "")
-					break
-				if o.has("good"):
-					key = "mkt:%d" % int(sim.good(o["good"]).get("grade", 1))
-					nm = "%d등급 시장 범위" % int(sim.good(o["good"]).get("grade", 1))
-					break
-			if key == "":
-				continue
-			var a: Array = acc.get(key, [0, 0, nm])
+			var key: String = kk[0]
+			var a: Array = acc.get(key, [0, 0, kk[1]])
 			a[0] += 1
-			var c := str(b["needs"][nid].get("cause", ""))
+			var c := str(needs[nid].get("cause", ""))
 			if c in ["range", "grade", "staff"]:
 				a[1] += 1
 			acc[key] = a
