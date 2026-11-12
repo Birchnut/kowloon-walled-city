@@ -13,7 +13,7 @@ var _goal_bar: RatioBarPc
 var _goal_pct: Label
 var _goal_tip: Label
 var _goal_reward: Label
-var _goal_btns: HBoxContainer
+var _goal_btns: HFlowContainer
 var _goal_id: String = "?"
 var alert_box: PanelContainer
 var _alerts: VBoxContainer
@@ -65,7 +65,11 @@ func _ready() -> void:
 	_goal_reward = UI.label("", "LabelGoldSmall", true)
 	_goal_reward.custom_minimum_size.x = W - 30
 	gv.add_child(_goal_reward)
-	_goal_btns = UI.hbox(4)
+	# 가는 버튼은 넷까지, 넘치면 다음 줄로(1층 필수 셋은 시장·먹을 것·물·놀 것 넷)
+	_goal_btns = HFlowContainer.new()
+	_goal_btns.add_theme_constant_override("h_separation", 4)
+	_goal_btns.add_theme_constant_override("v_separation", 4)
+	_goal_btns.custom_minimum_size.x = W - 30
 	gv.add_child(_goal_btns)
 
 	# ── 알림 ──
@@ -101,8 +105,9 @@ func _refresh_goal(g: Dictionary) -> void:
 		return
 	var p := clampf(float(g.get("progress", 0.0)), 0.0, 1.0)
 	_goal_bar.ratio = p
-	_goal_pct.text = UI.pct(p)
+	# 목표 판정은 시뮬이 2경제시간마다 한다 — 100%가 된 뒤 카드가 뜨기까지의 공백을 "곧 달성"으로 메운다(통합 때 고침)
 	var id := str(g.get("id", ""))
+	_goal_pct.text = "곧 달성" if p >= 0.999 and id != "" else UI.pct(p)
 	if id == _goal_id and _goal_text.text != "":
 		return
 	_goal_id = id
@@ -116,7 +121,7 @@ func _refresh_goal(g: Dictionary) -> void:
 	_goal_tip.text = UI.keep(UI.no_hanja(str(tip.get("tip", ""))))
 	_goal_tip.visible = _goal_tip.text != ""
 	PcWindow.clear(_goal_btns)
-	for b: Variant in UI.to_array(tip.get("go", [])).slice(0, 3):
+	for b: Variant in UI.to_array(tip.get("go", [])).slice(0, 4):
 		var bd := UI.to_dict(b)
 		var btn := PcButton.make(str(bd.get("label", "")), "right", "", "Button")
 		btn.min_h = 32

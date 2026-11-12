@@ -147,9 +147,9 @@ func _header(kind: String) -> void:
 		sub = "%s · %s" % [str(info.get("tier_name", "")), str(info.get("material_name", ""))]
 	elif kind in ["facility", "site"]:
 		sub = "%d×%d%s" % [int(info.get("w", info.get("size", 1))), int(info.get("h", info.get("size", 1))), (" · %d개 층" % int(info.get("d", 1))) if int(info.get("d", 1)) > 1 else ""]
-	if _is_hover:
-		sub += "  — 마우스 아래 · 눌러서 고정"
 	tv.add_child(UI.label(sub, "LabelDim"))
+	if _is_hover:
+		tv.add_child(UI.label("마우스 아래 · 눌러서 고정", "LabelMute"))
 	if not _is_hover:
 		var x := PcButton.make("", "close", "", "ButtonFlat")
 		x.min_h = 32
@@ -164,7 +164,7 @@ func _kv(g: GridContainer, k: String, v: String, tone: String = "") -> void:
 	g.add_child(kl)
 	# 값은 줄을 바꾼다(긴 문장 — "수요가 채워지면 더 들어온다(0/4)" — 이 판 밖으로 나가지 않게)
 	var l := UI.label(v, "LabelSmall", true)
-	l.custom_minimum_size.x = W - 40.0 - 120.0 - 8.0
+	l.custom_minimum_size.x = W - 200.0
 	if tone != "":
 		l.add_theme_color_override("font_color", UI.tone_col(tone))
 	g.add_child(l)

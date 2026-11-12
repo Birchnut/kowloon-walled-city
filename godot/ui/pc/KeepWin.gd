@@ -380,13 +380,13 @@ func _debug() -> void:
 	var ops: Array = [["₩+1,000", {"op": "add_money", "n": 1000}], ["₩+10,000", {"op": "add_money", "n": 10000}],
 		["세 자재 +20", "mats"], ["고물 +50", {"op": "add_stock", "good": "scrap", "n": 50}], ["설비 부품 +5", {"op": "add_stock", "good": "parts", "n": 5}],
 		["하루 건너뛰기", {"op": "skip_days", "n": 1}], ["전부 해금", {"op": "unlock_all"}], ["거래처 공개", {"op": "reveal_partners"}],
-		["불 내기(가운데 집)", "fire"], ["병 퍼뜨리기", "outbreak"], ["지금 층 채우기", "fill"]]
+		["불 내기(고른 건물·없으면 아무 집)", "fire"], ["병 퍼뜨리기(고른 집·없으면 아무 집)", "outbreak"], ["불 켜기(유예 없이)", {"op": "set_hazard", "kind": "fire", "on": true}], ["병 켜기(유예 없이)", {"op": "set_hazard", "kind": "disease", "on": true}], ["층 채우기(다음 층 열릴 만큼)", "fill"]]
 	for o: Array in ops:
 		var b := PcButton.make(o[0], "", "", "Button")
 		var a: Variant = o[1]
 		b.pressed.connect(func() -> void: _dbg(a))
 		f.add_child(b)
-	_list.add_child(_w("불·병·층 채우기는 v4 시뮬의 debug 명령(start_fire / start_outbreak / fill_floor)을 부른다. 이 클론의 v3 시뮬에 없으면 이유가 토스트로 나온다. ", "LabelDim"))
+	_list.add_child(_w("불·병·층 채우기는 시뮬의 debug 명령(start_fire / start_outbreak / set_hazard / fill_floor)을 부른다. 불·병 내기는 살피기로 고른 건물에 — 고른 것이 없으면 주민 있는 집 하나에. ", "LabelDim"))
 
 
 func _dbg(a: Variant) -> void:
@@ -399,15 +399,25 @@ func _dbg(a: Variant) -> void:
 				for g: String in ["wood", "metal", "concrete"]:
 					r = ui.cmd("debug", {"op": "add_stock", "good": g, "n": 20})
 			"fire", "outbreak":
+				# 고른 건물이 있으면 그 칸, 없으면 시뮬이 주민 있는 집 하나를 고른다(SIM 감독 확인 8)
 				var pos: Variant = ui.inspector.selected_pos
-				if not (pos is Vector3i):
-					var g2 := UI.to_dict(ui.hud.get("grid", {}))
-					pos = Vector3i(int(g2.get("w", 12)) / 2, int(g2.get("h", 12)) / 2, 0)
-				r = ui.cmd("debug", {"op": "start_fire" if str(a) == "fire" else "start_outbreak", "pos": pos})
+				var dargs := {"op": "start_fire" if str(a) == "fire" else "start_outbreak"}
+				if pos is Vector3i:
+					dargs["pos"] = pos
+				r = ui.cmd("debug", dargs)
 			"fill":
 				var v := Q.view()
 				var z := maxi(0, int(v.get("floor_cut")) if v != null and v.get("floor_cut") != null else 0)
-				r = ui.cmd("debug", {"op": "fill_floor", "z": z, "count": 9999})
+				if v == null or int(v.get("floor_cut")) < 0:
+					z = maxi(0, int(ui.hud.get("floors_unlocked", 1)) - 1)    # '전체'를 보고 있으면 가장 위의 열린 층
+				# 다음 층이 열릴 만큼만(80% + 몇 칸) 채워 시설 자리를 남긴다 — 디버그 지름길
+				var g := UI.to_dict(ui.hud.get("grid", {}))
+				var area := int(g.get("w", 16)) * int(g.get("h", 16))
+				var used := 0
+				for c: Variant in Game.state.cells:
+					if (c as Vector3i).z == z:
+						used += 1
+				r = ui.cmd("debug", {"op": "fill_floor", "z": z, "count": maxi(0, int(ceil(area * 0.8)) + 6 - used)})
 	if not bool(r.get("ok", false)):
 		ui.toast("디버그: " + str(r.get("reason", "안 됨")), "warn")
 	else:

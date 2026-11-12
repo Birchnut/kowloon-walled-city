@@ -118,7 +118,12 @@ func _after_ready() -> void:
 	for s: String in OS.get_cmdline_user_args():
 		if s.begins_with("run_auto="):
 			auto = s.substr(9)
-	if auto == "" and a.has("auto"):
+	if auto != "":
+		var bot: Object = load("res://expedition/AutoPlayer.gd").new()
+		bot.call("setup", auto, int(UI.to_dict(run.get("begin")).get("seed", 1)))
+		run.set("bot", bot)
+		run.set("auto_profile", auto)
+	elif a.has("auto"):
 		run.set("bot", null)
 		run.set("auto_profile", "")
 

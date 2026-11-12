@@ -14,6 +14,7 @@ extends Node
 ##   mouse=x,y              마우스를 그 화면 점으로(툴팁·살피기 미리보기)   hovertext=<글자>  그 글자를 품은 버튼 위로
 ##   hazard_on=<fire|disease>  처음 켜짐 카드 견본
 ##   scale=<1|1.25|1.5>     UI 크기
+##   perf=1                 프레임마다 스크립트 시간 — 100프레임마다 평균·최대, 끝에 가장 큰 튐과 그때의 사건
 ##   png=<절대 경로>         실제 창 크기 그대로 한 장 찍고 끝. png_wait=<초>
 ##   at=<초>                위 인자들을 적용할 시각(기본 0.6초)
 ##   script=<json 경로>     시간 순서 동작을 진짜 입력(마우스·키보드, Input.parse_input_event)으로 몬다 — 아래 _step 참고
@@ -56,12 +57,15 @@ func _ready() -> void:
 		Game.speed = float(args["speed"])
 	if args.has("bot"):
 		_bot = Bot.new(Game.sim, str(args["bot"]))
+	if args.has("bot") or args.has("perf"):
 		Game.event.connect(_on_event)
 	if args.has("scale"):
 		Settings.set_ui_scale(float(args["scale"]))
 
 
 func _on_event(n: String, _p: Dictionary) -> void:
+	if args.has("perf") and n != "hour" and n != "cell_changed" and n != "building_changed":
+		_perf_events.append(n)
 	if n == "hour" and _bot != null:
 		_bot.act(Game.state)
 
@@ -70,7 +74,43 @@ var _tut_last := -99
 var _scr_last := "?"
 
 
+## perf=1: 프레임마다 스크립트(process) 시간을 모아 100프레임마다 평균·최대·가장 큰 튐(그때 무슨 일)을 찍는다.
+var _perf: Array = []
+var _perf_n := 0
+var _perf_worst := 0.0
+var _perf_worst_at := ""
+var _perf_events: Array = []
+
+
+func _perf_tick() -> void:
+	var ms := Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
+	_perf.append(ms)
+	_perf_n += 1
+	if ms > _perf_worst:
+		_perf_worst = ms
+		_perf_worst_at = "프레임 %d, 날 %s %s" % [_perf_n, str(Game.state.day) if Game.state != null else "?", ",".join(_perf_events.slice(-4))]
+	_perf_events.clear()
+	if _perf.size() >= 100:
+		var sum := 0.0
+		var mx := 0.0
+		var over := 0
+		for v: float in _perf:
+			sum += v
+			mx = maxf(mx, v)
+			if v > 33.0:
+				over += 1
+		print("[perf] 프레임 %d: 스크립트 평균 %.1f ms · 최대 %.1f ms · 33ms 넘은 프레임 %d/100 · 건물 %d" % [_perf_n, sum / _perf.size(), mx, over, Game.state.buildings.size() if Game.state != null else 0])
+		_perf.clear()
+
+
+func _exit_tree() -> void:
+	if args.has("perf"):
+		print("[perf] 가장 큰 튐 %.1f ms — %s" % [_perf_worst, _perf_worst_at])
+
+
 func _process(delta: float) -> void:
+	if args.has("perf"):
+		_perf_tick()
 	_t += delta
 	if args.has("trace") and ui != null:
 		var si: int = ui.tutorial.step_index() if ui.tutorial.running else -1
@@ -230,6 +270,7 @@ func _apply_dbg(spec: String) -> void:
 ##   {"place": "<시설 id 또는 분류:<cat>>", "cell": [x,y,z], "rotate": 1}   짓기 막대에서 분류 탭 → 카드 → 그 칸 → 클릭(진짜 마우스)
 ##   {"mdown": "left"} {"mup": "left"}  지금 마우스 자리에서 버튼 누름/뗌(끌기 도중 찍기)   {"place": …, "commit": false} 고스트만
 ##   {"event": "hazard_on", "payload": {"kind": "fire"}}  v4 이벤트 흉내(UI 로만)
+##   {"save": "이름.json"}  지금 도시를 out 폴더(또는 절대 경로)에 저장 — 다음 대본이 load=<경로> 로 잇는다
 ##   {"shot": "이름"}  {"q": "hud", "keys": [...]}  {"until": {"q","key","ge|le|eq|ne"}, "max": 초}
 ##   {"dbg": "…"}  {"speed": n}  {"say": "…"}  {"dump": "buttons|labels"}  {"expr": "…"}  {"cmd": 이름, "args": {}}  {"quit": 1}
 var _out_dir := ""
@@ -379,6 +420,16 @@ func _step(i: int, s: Dictionary) -> void:
 			_fails += 1
 	elif s.has("speed"):
 		Game.speed = float(s["speed"])
+	elif s.has("save"):
+		# 지금 도시를 파일로(다음 대본이 load= 로 이어 받는다)
+		var fp := str(s["save"])
+		if not fp.contains("/"):
+			fp = _out_dir.path_join(fp)
+		var f := FileAccess.open(fp, FileAccess.WRITE)
+		if f != null:
+			f.store_string(Game.state.to_json())
+			f.close()
+		print("[script] #%d save %s" % [i, fp])
 	elif s.has("expr"):
 		var e := Expression.new()
 		if e.parse(str(s["expr"]), ["ui", "view", "game"]) == OK:
