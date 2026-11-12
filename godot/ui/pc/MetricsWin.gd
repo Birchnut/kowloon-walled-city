@@ -61,7 +61,7 @@ func _build(b: VBoxContainer) -> void:
 
 
 func _cols() -> Array:
-	return [26, 160, 86, 86, 110, 80, 76]
+	return [26, 190, 80, 80, 100, 76, 70]
 
 
 func _header_row() -> Control:
