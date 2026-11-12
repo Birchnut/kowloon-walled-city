@@ -1,28 +1,23 @@
 extends Node
-## DevHarness — 개발용: 사용자 인자로 메인 씬을 몰아 본다(통합 확인·스크린샷). 게임 규칙 없음.
-## Main 이 인자를 보고 붙인다. tools/shot.sh "" <out> <frames> <WxH> key=value … 로 쓴다.
-##   skiptut                오프닝 건너뛰기            tut=<n>          오프닝을 n단계부터
+## DevHarness — 개발용(PC판 v0.4): 사용자 인자로 메인 씬을 몰아 본다(통합 확인·스크린샷). 게임 규칙 없음.
+## Main 이 인자를 보고 붙인다. tools/shot.sh "" <out> <frames> 1920x1080 key=value … 로 쓴다.
+##   skiptut                오프닝 건너뛰기            tut=<n>           오프닝을 n단계부터
 ##   load=<early|mid|late|경로>  상태 스냅샷(tools/fixtures/<이름>.json 또는 CityState.to_json 파일)
-##   bot=<id>  speed=<n>  pause=1
-##   tod=<0..1>  cut=<n>  zoom=<i>  angle=<0..3>  lens=1          뷰 고정
-##   dbg=<op[:n][,op…]>     디버그 명령: add_money:5000, mats:20(세 자재 +n), skip_days:1, skip_real:600, unlock_all, reveal_partners
-##   do=<cmd>|<json>        Game.cmd 를 그대로(예: do=zone|{"cells":[[0,0,0],[1,0,0]]}) — 여러 개면 ;; 로 잇는다
-##   open=<screen[:arg]>    화면 열기: build[:house|<시설 id>|<분류>] economy[:labor|utilities|finance|<상품>] expedition trade keep[:policy|research|log] upgrade(일괄)
-##   inspect=x,y,z          그 칸 들여다보기       upgrade=x,y,z[,material]  그 집 승급 창
-##   paint=x,y,z[;x,y,z…]   주거 칠하기 모드에서 칸 고르기(cell_dragged 흉내)
-##   place=<시설>@x,y,z     시설 배치 모드 + 그 자리 후보
-##   confirm=1              짓기 막대의 확정/짓기를 누른다(paint=/place= 뒤)
-##   tap=x,y                화면 좌표 탭(뷰 pick → UI)
-##   fakeexp=<json 경로>     탐험 질의 대신 이 파일(계약 모양 견본 — B 파트 데이터가 오기 전 지도 확인용)
-##   fakekeep=<json 경로>    연구·정책 질의 대신 이 파일(견본)
-##   offline=1              자리 비운 사이 창(견본 문장)
-##   toast=1 banner=<unlock|milestone|floor|power>   피드백 견본
-##   png=<절대 경로>         (무비 대신) 실제 창 크기 그대로 한 장 찍고 끝낸다 — 360x800 같은 화면비 확인용. png_wait=<초>
+##   bot=<id>  speed=<n>  pause=1   tod=<0..1>  cut=<n>  zoom=<i>  angle=<0..3>
+##   dbg=<op[:n][,op…]>     디버그 명령: add_money:5000, mats:20, skip_days:1, unlock_all, fill_floor:z, stock:good:n
+##   do=<cmd>|<json>        Game.cmd 그대로(;; 로 잇는다)
+##   open=<metrics|economy|trade|expedition|keep|upgrade|help>[:arg]   창 열기
+##   inspect=x,y,z          그 칸 살피기(고정)        upgrade=x,y,z[,material]  그 집 승급 창
+##   lens=<needs|market|fun|fire|trash|clinic|tier|happiness>
+##   place=<시설 id>@x,y,z[@rot]   배치 모드 + 마우스를 그 칸으로(고스트·범위·커서 글)
+##   zone=x0,y0,z;x1,y1     주거 칠하기 모드 + 네모 미리보기(뗄 때 짓지 않음 — 그림 확인용)
+##   mouse=x,y              마우스를 그 화면 점으로(툴팁·살피기 미리보기)   hovertext=<글자>  그 글자를 품은 버튼 위로
+##   hz=1                   V4Shim 불·병 견본 켜기      hazard_on=<fire|disease>  처음 켜짐 카드 견본
+##   scale=<1|1.25|1.5>     UI 크기
+##   png=<절대 경로>         실제 창 크기 그대로 한 장 찍고 끝. png_wait=<초>
 ##   at=<초>                위 인자들을 적용할 시각(기본 0.6초)
-##   script=<json 경로>     시간 순서 동작 목록을 진짜 입력(Input.parse_input_event)으로 몬다 — 아래 _run_script 참고.
-##   out=<폴더>             script 의 shot 이 PNG 를 남길 곳(기본: script 파일 옆 shots/)
-##   save_at=<경로>  ago=<초>  현재 상태를 last_saved_unix = 지금 - ago 로 저장하고 끝(미접속 시험용 세이브 만들기)
-##   load_save=<경로>        Game.load_game 과 같은 길(미접속 정산 포함)로 그 파일을 읽는다. load_ago=<초> 면 마지막 정산을 그만큼 전으로
+##   script=<json 경로>     시간 순서 동작을 진짜 입력(마우스·키보드, Input.parse_input_event)으로 몬다 — 아래 _step 참고
+##   out=<폴더>             script 의 shot 이 PNG 를 남길 곳      trace=1  오프닝 단계·창 변화를 찍는다
 
 const FIX := "res://tools/fixtures/%s.json"
 
@@ -32,6 +27,8 @@ var view: Node = null
 var _bot: Bot = null
 var _applied := false
 var _t := 0.0
+var _mouse := Vector2(960, 540)
+var _buttons_down := 0
 
 
 static func wanted() -> Dictionary:
@@ -44,19 +41,6 @@ static func wanted() -> Dictionary:
 
 
 func _ready() -> void:
-	if args.has("load_save"):
-		var s0 := CityState.new()
-		if s0.from_json(FileAccess.get_file_as_string(str(args["load_save"]))):
-			# Game.load_game 과 같은 순서: 상태 → 미접속 정산 → 교체 알림
-			Game.state = s0
-			if args.has("load_ago"):
-				s0.last_saved_unix = Game._now() - int(args["load_ago"])
-			Game.sim.now_unix = Game._now()
-			Game._last_frame_unix = Game.sim.now_unix
-			Game._offline_catch_up()
-			Game.replace_state(s0)
-		else:
-			push_warning("[DevHarness] 세이브를 읽지 못함: " + str(args["load_save"]))
 	if args.has("load"):
 		var p := str(args["load"])
 		if not p.contains("/"):
@@ -73,25 +57,10 @@ func _ready() -> void:
 	if args.has("bot"):
 		_bot = Bot.new(Game.sim, str(args["bot"]))
 		Game.event.connect(_on_event)
-	if args.has("fakeexp") and ui != null:
-		var j := JSON.new()
-		var p2 := str(args["fakeexp"])
-		if not p2.contains("/"):
-			p2 = FIX % p2
-		if j.parse(FileAccess.get_file_as_string(p2)) == OK and j.data is Dictionary:
-			var data: Dictionary = j.data
-			ui.expedition.source = func() -> Dictionary: return data
-
-
-	if args.has("fakekeep") and ui != null:
-		var j2 := JSON.new()
-		var p3 := str(args["fakekeep"])
-		if not p3.contains("/"):
-			p3 = FIX % p3
-		if j2.parse(FileAccess.get_file_as_string(p3)) == OK and j2.data is Dictionary:
-			var kd: Dictionary = j2.data
-			ui.keep.research_source = func() -> Dictionary: return UI.to_dict(kd.get("research", {}))
-			ui.keep.policy_source = func() -> Dictionary: return UI.to_dict(kd.get("policies", {}))
+	if args.has("hz"):
+		V4Shim.sample_hazards = true
+	if args.has("scale"):
+		Settings.set_ui_scale(float(args["scale"]))
 
 
 func _on_event(n: String, _p: Dictionary) -> void:
@@ -106,15 +75,13 @@ var _scr_last := "?"
 func _process(delta: float) -> void:
 	_t += delta
 	if args.has("trace") and ui != null:
-		# 오프닝 단계·화면이 바뀔 때마다 한 줄(통합 확인용)
 		var si: int = ui.tutorial.step_index() if ui.tutorial.running else -1
 		if si != _tut_last:
 			_tut_last = si
-			var st: Dictionary = UI.to_dict(ui.tutorial._steps[si]) if si >= 0 and si < ui.tutorial._steps.size() else {}
-			print("[trace] t=%.1f 오프닝 %d %s %s" % [_t, si, st.get("type", ""), str(st.get("text", st.get("hint", st.get("cmd", "")))).substr(0, 24)])
+			print("[trace] t=%.1f 오프닝 %d" % [_t, si])
 		if str(ui.screen) != _scr_last:
 			_scr_last = str(ui.screen)
-			print("[trace] t=%.1f 화면 '%s'" % [_t, _scr_last])
+			print("[trace] t=%.1f 창 '%s'" % [_t, _scr_last])
 	if args.has("png") and _applied and _t >= float(args.get("at", 0.6)) + float(args.get("png_wait", 1.6)):
 		var img := get_viewport().get_texture().get_image()
 		img.save_png(str(args["png"]))
@@ -124,10 +91,12 @@ func _process(delta: float) -> void:
 	if _applied or _t < float(args.get("at", 0.6)):
 		return
 	_applied = true
+	_apply()
+
+
+func _apply() -> void:
 	if args.has("script"):
 		_run_script.call_deferred()
-	if args.has("save_at"):
-		_save_at.call_deferred()
 	if args.has("skiptut") and ui != null:
 		ui.tutorial.skip()
 		ui.toasts.clear()
@@ -138,7 +107,7 @@ func _process(delta: float) -> void:
 	if args.has("pause"):
 		Game.paused = true
 	if args.has("dbg"):
-		_apply_dbg()
+		_apply_dbg(str(args["dbg"]))
 	if args.has("do"):
 		for part: String in str(args["do"]).split(";;"):
 			var cv := part.split("|", true, 1)
@@ -152,90 +121,63 @@ func _process(delta: float) -> void:
 	if view != null:
 		if args.has("angle"):
 			for i: int in int(args["angle"]):
-				view.rotate_view(1)
+				Q.vcall("rotate_view", [1])
 		if args.has("zoom"):
-			view.set_zoom(int(args["zoom"]))
+			Q.vcall("set_zoom", [int(args["zoom"])])
 		if args.has("cut"):
-			view.set_floor_cut(int(args["cut"]))
-			if ui != null:
-				ui.rail.set_cut(int(args["cut"]))
+			Q.vcall("set_floor_cut", [int(args["cut"])])
 		if args.has("tod"):
-			view.set_time_override(float(args["tod"]))
-		if args.has("lens") and ui != null:
-			ui.rail.set_lens(true)
-			view.set_lens("needs")
+			Q.vcall("set_time_override", [float(args["tod"])])
 	if ui == null:
 		return
+	if args.has("lens"):
+		ui.set_lens(str(args["lens"]))
 	if args.has("open"):
 		var o := str(args["open"]).split(":", true, 1)
-		if o[0] == "upgrade":
-			ui.upgrade_all()
-		else:
-			ui.open_screen(o[0], o[1] if o.size() > 1 else "")
+		match o[0]:
+			"upgrade":
+				ui.upgrade_all()
+			"help":
+				ui.help.toggle()
+			_:
+				ui.open_window(o[0], o[1] if o.size() > 1 else "")
 	if args.has("inspect"):
-		var p := _v3(str(args["inspect"]))
-		ui.open_screen("inspect")
-		ui.inspect.show_cell(p)
+		ui.inspector.select(_v3(str(args["inspect"])))
+		ui._layout()
 	if args.has("upgrade"):
 		var u := str(args["upgrade"]).split(",")
-		var p2 := _v3(str(args["upgrade"]))
-		var info := Q.dict("info", {"pos": p2})
+		var info := Q.dict("info", {"pos": _v3(str(args["upgrade"]))})
 		ui.open_upgrade(int(info.get("bid", -1)), info)
 		if u.size() > 3:
-			ui.upgrade.mat = u[3]
-			ui.upgrade._refresh()
-	if args.has("paint"):
-		ui.open_screen("build", "house")
-		var first := true
-		for c: String in str(args["paint"]).split(";"):
-			ui.build.on_drag({"ok": true, "in_grid": true, "pos": _v3(c), "first": first})
-			first = false
+			ui.upgrade.pick_material(u[3])
+	if args.has("hazard_on"):
+		ui._on_event("hazard_on", {"kind": str(args["hazard_on"]), "grace_days": 2.0})
 	if args.has("place"):
 		var pp := str(args["place"]).split("@")
-		ui.open_screen("build", pp[0])
-		var it: Dictionary = ui.build._find(pp[0])
-		if not it.is_empty():
-			ui.build._start(it)
-			if pp.size() > 1:
-				ui.build.on_drag({"ok": true, "in_grid": true, "pos": _v3(pp[1]), "first": true})
-	if args.has("go"):
-		var n0 := 0
-		for b: Variant in Game.state.buildings.values():
-			if b.get("upgrading") != null:
-				n0 += 1
-		ui.upgrade._on_go()
-		var n1 := 0
-		for b: Variant in Game.state.buildings.values():
-			if b.get("upgrading") != null:
-				n1 += 1
-		print("[DevHarness] upgrade go → 공사 중 ", n0, " → ", n1, " dialog ", ui.upgrade.visible)
-	if args.has("confirm"):
-		ui.build._on_confirm()
-		print("[DevHarness] confirm → money ", int(Game.state.money), " cells ", Game.state.cells.size())
-	if args.has("tap") and view != null:
-		var xy := str(args["tap"]).split(",")
-		var info2: Dictionary = view.pick(Vector2(float(xy[0]), float(xy[1])))
-		ui._on_cell_tapped(info2)
-	if args.has("offline"):
-		ui._show_offline({"real_hours": 3.4, "econ_days": 5.1, "lines": [
-			"자리를 비운 사이 경제 시간으로 5.1일이 흘렀다.", "국수 52개를 만들고 61개를 먹었다 — 2일째 저녁에 바닥났다.",
-			"계약 4회 이행, 1회 건너뜀(돈이 모자랐다).", "탐험대 1팀이 돌아와 수령을 기다린다."]})
-	if args.has("toast"):
-		ui.toast("국수 공장 완공.", "")
-		ui.toast("계약 회차를 건너뛰었다 — 밀가루가 모자란다(20 필요).", "warn")
-		ui.toast("탐험대가 돌아왔다. 탐험에서 수령하자.", "good", "mat")
-		ui.toast("돈이 없어 시설 2곳이 멈췄다.", "bad")
-	if args.has("banner"):
-		match str(args["banner"]):
-			"unlock":
-				ui._banner_unlock({"id": "noodle_mill", "name": "제면소"})
-			"milestone":
-				ui._banner_milestone({"grade": 3, "grade_name": "성채", "title": "성주"})
-			"floor":
-				ui._on_event("floor_unlocked", {"z": 2})
-			"power":
-				ui._last_dim_ms = -100000
-				ui._lights_on()
+		var it: Dictionary = ui.build.find(pp[0])
+		ui.build.select_cat(ui.build.cat_of(pp[0]))
+		ui.place.start_build(it)
+		if pp.size() > 2 and int(pp[2]) == 1:
+			ui.place.rotate()
+		if pp.size() > 1:
+			await get_tree().process_frame
+			await _move(_floor_xy(_v3(pp[1])))
+	if args.has("zone"):
+		var zz := str(args["zone"]).split(";")
+		ui.place.start_zone()
+		await get_tree().process_frame
+		var a0 := _v3(zz[0])
+		var a1 := _v3(zz[1] + "," + str(a0.z)) if zz.size() > 1 else a0
+		await _move(_floor_xy(a0))
+		ui.place.on_cell_dragged({"pos": a0, "first": true, "ok": true})
+		ui.place.on_cell_dragged({"pos": a1, "first": false, "ok": true})
+		await _move(_floor_xy(a1))
+	if args.has("mouse"):
+		await _move(_xy(str(args["mouse"]).split(",")))
+	if args.has("hovertext"):
+		var c := _find_ctrl(str(args["hovertext"]), 0, null)
+		if c != null:
+			await _move(c.get_global_rect().get_center())
 
 
 func _v3(s: String) -> Vector3i:
@@ -243,7 +185,6 @@ func _v3(s: String) -> Vector3i:
 	return Vector3i(int(a[0]), int(a[1]) if a.size() > 1 else 0, int(a[2]) if a.size() > 2 else 0)
 
 
-## JSON 의 [x,y,z] 배열을 Vector3i 로(pos·cells).
 func _vecs(d: Dictionary) -> Dictionary:
 	for k: String in d.keys():
 		var v: Variant = d[k]
@@ -258,24 +199,43 @@ func _vecs(d: Dictionary) -> Dictionary:
 	return d
 
 
+func _apply_dbg(spec: String) -> void:
+	for op: String in spec.split(","):
+		var kv := op.split(":")
+		match kv[0]:
+			"mats":
+				for g: String in ["wood", "metal", "concrete"]:
+					Game.cmd("debug", {"op": "add_stock", "good": g, "n": float(kv[1]) if kv.size() > 1 else 20.0})
+			"add_money":
+				Game.cmd("debug", {"op": "add_money", "n": float(kv[1]) if kv.size() > 1 else 1000.0})
+			"skip_days":
+				Game.cmd("debug", {"op": "skip_days", "n": float(kv[1]) if kv.size() > 1 else 1.0})
+			"stock":
+				Game.cmd("debug", {"op": "add_stock", "good": kv[1], "n": float(kv[2]) if kv.size() > 2 else 10.0})
+			"fill_floor":
+				Game.cmd("debug", {"op": "fill_floor", "z": int(kv[1]) if kv.size() > 1 else 0, "count": int(kv[2]) if kv.size() > 2 else 9999})
+			_:
+				Game.cmd("debug", {"op": kv[0]})
+
+
 # ------------------------------------------------------------------ script= (진짜 입력으로 몰기)
-## JSON 배열. 각 항목은 동작 하나 + 선택 "after"(그 전에 기다릴 초, 기본 0.3).
-##   {"wait": 초}                         기다림(게임 시간; 무비는 10fps 고정)
-##   {"tap": [x, y]}                      화면 좌표 터치(누름 → 0.1초 → 뗌). 진짜 InputEventScreenTouch
-##   {"click": [x, y]}                    마우스 왼쪽 클릭
-##   {"drag": [[x,y],[x,y]…], "steps": n}  한 손가락 끌기(점 사이를 n등분)
-##   {"pinch": [cx,cy], "d0": 120, "d1": 300, "frames": 10, "pan": [dx,dy], "jitter": px}  두 손가락 핀치(줌 단계 변화를 찍는다)
-##   {"press": "글자", "nth": 0, "region": [x0,y0,x1,y1]}   보이는 버튼(없으면 라벨) 중 글자를 품은 것의 가운데를 터치
-##   {"target": "exp:dest:<id>"}         UIRoot.target_rect 이름의 가운데를 터치
-##   {"cell": [x,y,z]}                    뷰가 그 칸을 그린 화면 좌표를 터치
-##   {"paint": [[x,y,z]…]}                칸들의 화면 좌표를 잇는 끌기(칠하기 모드에서 쓴다)
-##   {"shot": "이름"}                      out/이름.png
-##   {"cmd": 이름, "args": {}}            ui.cmd(검증용 — 진짜 UI 길이 아님을 로그에 남긴다)
-##   {"dbg": "skip_real:600,mats:20"}     디버그 명령(dbg= 와 같은 문법)
-##   {"q": "hud", "keys": ["money", …]}   질의를 찍는다(keys 가 있으면 그 키만)
-##   {"until": {"q":"hud","key":"pop_total","ge":5}, "max": 초}   조건까지 기다림(키는 a.b 점 경로)
-##   {"speed": n}  {"key": "F5"}  {"say": "로그"}  {"dump": "buttons"}  {"quit": 1}
+## JSON 배열. 각 항목은 동작 하나 + 선택 "after"(그 전에 기다릴 초, 기본 0.3). 좌표 대신 이름표·대상으로 쓴다.
+##   {"wait": 초}
+##   {"move": [x, y]}  {"move_cell": [x,y,z]}(그 칸 바닥)  {"move_target": "<대상>"}  {"hover": "글자"}(그 버튼 위, 툴팁 대기 0.6초)
+##   {"click": [x, y], "button": "left|right|middle"}   {"click_cell": [x,y,z]}(바닥)  {"click_top": [x,y,z]}(건물 윗면)
+##   {"press": "글자", "nth": 0, "region": [x0,y0,x1,y1]}   보이는 버튼 중 글자를 품은 것을 마우스로 누른다
+##   {"target": "<UIRoot.target_rect 이름>"}             그 가운데를 누른다(tool:house · cat:market · card:<id> · win:metrics · speed …)
+##   {"paint": [[x,y,z], [x,y,z]], "steps": n}            그 칸 바닥에서 바닥으로 왼쪽 끌기(칠하기)
+##   {"drag": [[x,y],[x,y]], "button": "right"}          화면 점 끌기(카메라 이동 등)
+##   {"wheel": n, "at": [x,y]}                           휠(+ 확대 / - 축소)
+##   {"key": "R", "shift": false, "ctrl": false}         키 한 번(Space, Tab, Esc, F1, Enter, PageUp …)   {"hold": "W", "secs": 0.6}
+##   {"place": "<시설 id 또는 분류:<cat>>", "cell": [x,y,z], "rotate": 1}   짓기 막대에서 분류 탭 → 카드 → 그 칸 → 클릭(진짜 마우스)
+##   {"mdown": "left"} {"mup": "left"}  지금 마우스 자리에서 버튼 누름/뗌(끌기 도중 찍기)   {"place": …, "commit": false} 고스트만
+##   {"hz": 1}  V4Shim 불·병 견본    {"event": "hazard_on", "payload": {"kind": "fire"}}  v4 이벤트 흉내(UI 로만)
+##   {"shot": "이름"}  {"q": "hud", "keys": [...]}  {"until": {"q","key","ge|le|eq|ne"}, "max": 초}
+##   {"dbg": "…"}  {"speed": n}  {"say": "…"}  {"dump": "buttons|labels"}  {"expr": "…"}  {"cmd": 이름, "args": {}}  {"quit": 1}
 var _out_dir := ""
+var _fails := 0
 
 
 func _run_script() -> void:
@@ -295,7 +255,7 @@ func _run_script() -> void:
 		var s: Dictionary = st
 		await _sleep(float(s.get("after", 0.3)))
 		await _step(i, s)
-	print("[script] 끝")
+	print("[script] 끝 (못 찾음 %d)" % _fails)
 	get_tree().quit()
 
 
@@ -304,91 +264,90 @@ func _sleep(sec: float) -> void:
 		await get_tree().create_timer(sec, true, false, false).timeout
 
 
+func _fail(i: int, what: String) -> void:
+	_fails += 1
+	print("[script] #%d 못 찾음: %s" % [i, what])
+
+
 func _step(i: int, s: Dictionary) -> void:
 	if s.has("wait"):
 		await _sleep(float(s["wait"]))
-	elif s.has("tap"):
-		await _touch(_xy(s["tap"]))
-	elif s.has("pinch"):
-		var z0 := int(view.get("zoom_i")) if view != null else -1
-		await _pinch(_xy(s["pinch"]), float(s.get("d0", 120)), float(s.get("d1", 300)), int(s.get("frames", 10)), _xy(s.get("pan", [0, 0])), float(s.get("jitter", 0)))
-		await get_tree().process_frame
-		var z1 := int(view.get("zoom_i")) if view != null else -1
-		print("[script] #%d pinch %s d %s→%s (%d프레임) zoom %d → %d (%+d단)" % [i, s["pinch"], s.get("d0", 120), s.get("d1", 300), int(s.get("frames", 10)), z0, z1, z1 - z0])
+	elif s.has("move"):
+		await _move(_xy(s["move"]))
+	elif s.has("move_cell"):
+		await _move(_floor_xy(_v3arr(s["move_cell"])))
+	elif s.has("move_target"):
+		var r0: Rect2 = ui.target_rect(str(s["move_target"]))
+		if r0.size.x > 0:
+			await _move(r0.get_center())
+		else:
+			_fail(i, str(s["move_target"]))
+	elif s.has("hover"):
+		var c0 := _find_ctrl(str(s["hover"]), int(s.get("nth", 0)), s.get("region"))
+		if c0 == null:
+			_fail(i, "hover " + str(s["hover"]))
+			return
+		await _move(c0.get_global_rect().get_center())
+		await _sleep(0.6)
 	elif s.has("click"):
-		await _click(_xy(s["click"]))
-	elif s.has("drag"):
-		var pts: Array = []
-		for p: Variant in s["drag"]:
-			pts.append(_xy(p))
-		await _drag(pts, int(s.get("steps", 6)))
-	elif s.has("press_in"):
-		# 글자 c 를 품은 라벨이 든 판(가장 가까운 PanelContainer) 안의 n번째 버튼. 끌기 목록이면 먼저 그 판이 보이게 굴린다.
-		var lab := _find_ctrl(str(s["press_in"]), int(s.get("nth", 0)), s.get("region"), true)
-		if lab == null:
-			print("[script] #%d press_in 못 찾음: %s" % [i, s["press_in"]])
-			return
-		# 행 = 끌기 목록 내용(DragScroll 의 자식)의 바로 아래 자식. 목록 밖이면 가장 가까운 PanelContainer
-		var panel: Node = lab
-		while panel != null and panel.get_parent() != null and not (panel.get_parent().get_parent() is DragScroll):
-			panel = panel.get_parent()
-		if panel == null or panel.get_parent() == null:
-			panel = lab
-			while panel != null and not (panel is PanelContainer):
-				panel = panel.get_parent()
-		var ds: Node = panel
-		while ds != null and not (ds is DragScroll):
-			ds = ds.get_parent()
-		if ds != null:
-			var d: DragScroll = ds
-			var rel := (panel as Control).get_global_rect().position.y - d.get_global_rect().position.y
-			d.scroll_to(d.offset + rel - 8.0)
-			await get_tree().process_frame
-			await get_tree().process_frame
-		var bs: Array = []
-		_buttons_in(panel, bs)
-		var want := str(s.get("button", ""))
-		var pick: Control = null
-		var k := 0
-		for b: Control in bs:
-			var bt := _plain((b as PixelButton).label_text if b is PixelButton else (b as Button).text)
-			if want == "" or bt.contains(want):
-				if k == int(s.get("bn", 0)):
-					pick = b
-					break
-				k += 1
-		if pick == null:
-			print("[script] #%d press_in '%s' 안에 버튼 없음(%d개)" % [i, s["press_in"], bs.size()])
-			return
-		print("[script] #%d press_in '%s' → '%s' @ %s" % [i, s["press_in"], _plain((pick as PixelButton).label_text if pick is PixelButton else (pick as Button).text), pick.get_global_rect().get_center()])
-		await _touch(pick.get_global_rect().get_center())
+		await _click(_xy(s["click"]), _btn(s))
+	elif s.has("click_cell"):
+		await _click(_floor_xy(_v3arr(s["click_cell"])), _btn(s))
+	elif s.has("click_top"):
+		await _click(_top_xy(_v3arr(s["click_top"])), _btn(s))
 	elif s.has("press"):
 		var c := _find_ctrl(str(s["press"]), int(s.get("nth", 0)), s.get("region"))
 		if c == null:
-			print("[script] #%d press 못 찾음: %s" % [i, s["press"]])
+			_fail(i, "press " + str(s["press"]))
 			if bool(s.get("must", false)):
 				_dump()
 			return
 		var at := c.get_global_rect().get_center()
-		print("[script] #%d press '%s' @ %s (%s)" % [i, s["press"], at, c.get_class()])
-		await _touch(at)
+		print("[script] #%d press '%s' @ %s" % [i, s["press"], at])
+		await _click(at, MOUSE_BUTTON_LEFT)
 	elif s.has("target"):
-		# 튜토리얼 강조 대상 이름(UIRoot.target_rect)의 가운데를 터치: exp:dest:<id>, exp:claim, nav_build, alert …
 		var r: Rect2 = ui.target_rect(str(s["target"]))
 		print("[script] #%d target %s → %s" % [i, s["target"], r])
 		if r.size.x > 0:
-			await _touch(r.get_center())
-	elif s.has("cell"):
-		var p := _v3arr(s["cell"])
-		var sp := _cell_xy(p, bool(s.get("top", true)))
-		print("[script] #%d cell %s → %s" % [i, p, sp])
-		await _touch(sp)
+			await _click(r.get_center(), MOUSE_BUTTON_LEFT)
+		else:
+			_fail(i, "target " + str(s["target"]))
 	elif s.has("paint"):
+		var pts: Array = []
+		for p: Variant in s["paint"]:
+			pts.append(_floor_xy(_v3arr(p)))
+		print("[script] #%d paint %s" % [i, s["paint"]])
+		await _drag(pts, int(s.get("steps", 4)), MOUSE_BUTTON_LEFT)
+	elif s.has("drag"):
 		var pts2: Array = []
-		for p2: Variant in s["paint"]:
-			pts2.append(_cell_xy(_v3arr(p2), false))
-		print("[script] #%d paint %s" % [i, pts2])
-		await _drag(pts2, int(s.get("steps", 3)))
+		for p2: Variant in s["drag"]:
+			pts2.append(_xy(p2))
+		await _drag(pts2, int(s.get("steps", 8)), _btn(s))
+	elif s.has("wheel"):
+		var n := int(s["wheel"])
+		var at2 := _xy(s.get("at", [_mouse.x, _mouse.y]))
+		for k in absi(n):
+			await _wheel(at2, n > 0)
+	elif s.has("key"):
+		await _key(str(s["key"]), bool(s.get("shift", false)), bool(s.get("ctrl", false)))
+		print("[script] #%d key %s" % [i, s["key"]])
+	elif s.has("hold"):
+		await _hold(str(s["hold"]), float(s.get("secs", 0.5)))
+	elif s.has("place"):
+		await _place(i, s)
+	elif s.has("mdown"):
+		_mb(_mouse, _btn({"button": s["mdown"]}), true)
+		await get_tree().process_frame
+	elif s.has("mup"):
+		_mb(_mouse, _btn({"button": s["mup"]}), false)
+		await get_tree().process_frame
+	elif s.has("hz"):
+		V4Shim.sample_hazards = bool(s["hz"])
+		ui.refresh_soon()
+	elif s.has("event"):
+		# 시뮬 이벤트 흉내(v3 시뮬에 없는 v4 이벤트 — hazard_on 등) → UIRoot._on_event 로만
+		ui._on_event(str(s["event"]), _vecs(UI.to_dict(s.get("payload", {})).duplicate(true)))
+		print("[script] #%d event %s (흉내)" % [i, s["event"]])
 	elif s.has("shot"):
 		await RenderingServer.frame_post_draw
 		var img := get_viewport().get_texture().get_image()
@@ -397,72 +356,105 @@ func _step(i: int, s: Dictionary) -> void:
 		print("[script] #%d shot %s" % [i, f])
 	elif s.has("cmd"):
 		var a: Dictionary = _vecs(UI.to_dict(s.get("args", {})).duplicate(true))
-		var r: Dictionary = ui.cmd(str(s["cmd"]), a)
-		print("[script] #%d cmd %s → %s" % [i, s["cmd"], JSON.stringify(r)])
+		var rr: Dictionary = ui.cmd(str(s["cmd"]), a)
+		print("[script] #%d cmd %s → %s (진짜 UI 길 아님)" % [i, s["cmd"], JSON.stringify(rr)])
 	elif s.has("dbg"):
-		args["dbg"] = str(s["dbg"])
-		_apply_dbg()
+		_apply_dbg(str(s["dbg"]))
 		print("[script] #%d dbg %s" % [i, s["dbg"]])
 	elif s.has("q"):
-		var v: Variant = Game.query(str(s["q"]), _vecs(UI.to_dict(s.get("args", {})).duplicate(true)))
+		var v: Variant = Q.raw(str(s["q"]), _vecs(UI.to_dict(s.get("args", {})).duplicate(true)))
 		if s.has("keys") and v is Dictionary:
 			var o := {}
-			for k: Variant in s["keys"]:
-				o[k] = _path(v, str(k))
+			for k2: Variant in s["keys"]:
+				o[k2] = _path(v, str(k2))
 			v = o
-		print("[script] #%d q %s = %s" % [i, s["q"], JSON.stringify(v)])
+		print("[script] #%d q %s = %s" % [i, s["q"], JSON.stringify(v).substr(0, 600)])
 	elif s.has("until"):
 		var u: Dictionary = s["until"]
 		var t0 := 0.0
 		var mx := float(s.get("max", 60.0))
 		while t0 < mx:
-			var v2: Variant = _path(Game.query(str(u.get("q", "hud"))), str(u.get("key", "")))
+			var v2: Variant = _path(Q.raw(str(u.get("q", "hud"))), str(u.get("key", "")))
 			if _cond(v2, u):
 				break
 			await _sleep(0.5)
 			t0 += 0.5
 		print("[script] #%d until %s → %s (%.1f초)" % [i, JSON.stringify(u), "됨" if t0 < mx else "시간 초과", t0])
+		if t0 >= mx:
+			_fails += 1
 	elif s.has("speed"):
 		Game.speed = float(s["speed"])
 	elif s.has("expr"):
-		# 개발 확인용: Expression 으로 값 찍기(입력 이름: ui, view, game)
 		var e := Expression.new()
 		if e.parse(str(s["expr"]), ["ui", "view", "game"]) == OK:
 			print("[script] #%d expr %s = %s" % [i, s["expr"], e.execute([ui, view, Game], self)])
 		else:
 			print("[script] #%d expr 해석 실패: %s" % [i, e.get_error_text()])
-	elif s.has("tod"):
-		Q.vcall("set_time_override", [float(s["tod"])])
-	elif s.has("view"):
-		# 뷰 조작: {"view": "rotate", "n": 1} / {"view": "zoom", "n": 1} / {"view": "cut", "n": 2}
-		match str(s["view"]):
-			"rotate":
-				Q.vcall("rotate_view", [int(s.get("n", 1))])
-			"zoom":
-				Q.vcall("zoom_step", [int(s.get("n", 1))])
-			"cut":
-				Q.vcall("set_floor_cut", [int(s.get("n", -1))])
-				ui.rail.set_cut(int(s.get("n", -1)))
-	elif s.has("jump"):
-		# 알림 jump 와 같은 길(UIRoot.jump) — 알림 줄은 돌아가며 바뀌어 터치로 고르기 어렵다
-		ui.jump(UI.to_dict(s["jump"]))
-		print("[script] #%d jump %s → 화면 '%s'" % [i, JSON.stringify(s["jump"]), ui.screen])
-	elif s.has("save"):
-		# 지금 상태를 파일로(ago 초 전에 저장한 것처럼). load_save= 로 다시 연다
-		var st: CityState = Game.state
-		var keep := st.last_saved_unix
-		st.last_saved_unix = Game._now() - int(s.get("ago", 0))
-		var f := FileAccess.open(str(s["save"]), FileAccess.WRITE)
-		f.store_string(st.to_json())
-		f.close()
-		st.last_saved_unix = keep
-		print("[script] #%d save %s" % [i, s["save"]])
 	elif s.has("say"):
 		print("[script] #%d %s" % [i, s["say"]])
 	elif s.has("dump"):
 		_dump(str(s["dump"]) == "labels")
 	elif s.has("quit"):
 		get_tree().quit()
+
+
+## 짓기 막대로 시설 하나를 진짜 마우스로 놓는다: 분류 탭 → 카드 → (R) → 그 칸으로 → 클릭.
+func _place(i: int, s: Dictionary) -> void:
+	var id := str(s["place"])
+	var cat := ""
+	if id.begins_with("분류:"):
+		cat = id.substr(3)
+		id = ""
+		for c: Variant in Q.list("build_menu"):
+			if str(UI.to_dict(c).get("cat", "")) == cat:
+				for it: Variant in UI.to_array(UI.to_dict(c).get("items", [])):
+					if not bool(UI.to_dict(it).get("locked", false)):
+						id = str(UI.to_dict(it).get("id", ""))
+						break
+	else:
+		cat = ui.build.cat_of(id)
+	if id == "":
+		_fail(i, "place " + str(s["place"]))
+		return
+	if ui.build.cat != cat:
+		var cr: Rect2 = ui.target_rect("cat:" + cat)
+		if cr.size.x <= 0:
+			_fail(i, "cat:" + cat)
+			return
+		await _click(cr.get_center(), MOUSE_BUTTON_LEFT)
+		await _sleep(0.2)
+	var kr: Rect2 = ui.target_rect("card:" + id)
+	if kr.size.x <= 0:
+		_fail(i, "card:" + id)
+		return
+	await _click(kr.get_center(), MOUSE_BUTTON_LEFT)
+	await _sleep(0.2)
+	for k in int(s.get("rotate", 0)):
+		await _key("R")
+	var cell := _v3arr(s.get("cell", [0, 0, 0]))
+	var fp: Vector2i = ui.place._fp()
+	# 마우스는 발자국 가운데(Placement._origin 이 되돌린다)
+	var hv := Vector3i(cell.x + (fp.x - 1) / 2, cell.y + (fp.y - 1) / 2, cell.z)
+	await _move(_floor_xy(hv))
+	await _sleep(0.25)
+	if not bool(s.get("commit", true)):
+		print("[script] #%d place %s @ %s (누르지 않음) — %s" % [i, id, cell, ui.tips.cursor_text.replace("\n", " / ")])
+		return
+	if s.has("shot_before"):
+		await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png(_out_dir.path_join(str(s["shot_before"]) + ".png"))
+	var n0: int = Game.state.buildings.size()
+	await _click(_floor_xy(hv), MOUSE_BUTTON_LEFT)
+	print("[script] #%d place %s @ %s rot %d → 건물 %d → %d (%s)" % [i, id, cell, ui.place.rot, n0, Game.state.buildings.size(), ui.tips.cursor_text.replace("\n", " / ")])
+
+
+func _btn(s: Dictionary) -> int:
+	match str(s.get("button", "left")):
+		"right":
+			return MOUSE_BUTTON_RIGHT
+		"middle":
+			return MOUSE_BUTTON_MIDDLE
+	return MOUSE_BUTTON_LEFT
 
 
 func _cond(v: Variant, u: Dictionary) -> bool:
@@ -490,139 +482,142 @@ func _path(v: Variant, key: String) -> Variant:
 	return v
 
 
-func _apply_dbg() -> void:
-	for op: String in str(args["dbg"]).split(","):
-		var kv := op.split(":")
-		match kv[0]:
-			"mats":
-				for g: String in ["wood", "metal", "concrete"]:
-					Game.cmd("debug", {"op": "add_stock", "good": g, "n": float(kv[1]) if kv.size() > 1 else 20.0})
-			"add_money":
-				Game.cmd("debug", {"op": "add_money", "n": float(kv[1]) if kv.size() > 1 else 1000.0})
-			"skip_days":
-				Game.cmd("debug", {"op": "skip_days", "n": float(kv[1]) if kv.size() > 1 else 1.0})
-			"skip_real":
-				Game.cmd("debug", {"op": "skip_real", "seconds": int(kv[1]) if kv.size() > 1 else 600})
-			"stock":
-				Game.cmd("debug", {"op": "add_stock", "good": kv[1], "n": float(kv[2]) if kv.size() > 2 else 10.0})
-			"fill_floor":
-				Game.cmd("debug", {"op": "fill_floor", "z": int(kv[1]) if kv.size() > 1 else 0, "count": int(kv[2]) if kv.size() > 2 else 9999})
-			_:
-				Game.cmd("debug", {"op": kv[0]})
+# ------------------------------------------------------------------ 좌표
+## 칸 바닥(그 층 평면)의 화면 좌표(논리 px).
+func _floor_xy(p: Vector3i) -> Vector2:
+	if view != null and view.has_method("project_world") and view.get("cfg") != null:
+		var fh: float = view.cfg.floor_h
+		return view.project_world(Vector3(p.x + 0.5, p.z * fh, p.y + 0.5))
+	return Q.project(Vector3i(p.x, p.y, p.z - 1))
 
 
-## 칸의 화면 좌표. top=true 면 건물 윗면(누르기), false 면 그 층 바닥(칠하기 — 뷰의 pick_floor 와 같은 평면).
-func _cell_xy(p: Vector3i, top: bool) -> Vector2:
-	if view == null:
-		return Q.project(p)
-	var fh: float = view.cfg.floor_h
-	return view.project_world(Vector3(p.x + 0.5, (p.z + (1 if top else 0)) * fh, p.y + 0.5))
+func _top_xy(p: Vector3i) -> Vector2:
+	return Q.project(p)
 
 
 func _xy(p: Variant) -> Vector2:
-	return Vector2(float(p[0]), float(p[1])) if p is Array and p.size() >= 2 else Vector2.ZERO
+	return Vector2(float(p[0]), float(p[1])) if (p is Array or p is PackedStringArray) and p.size() >= 2 else Vector2.ZERO
 
 
 func _v3arr(p: Variant) -> Vector3i:
 	return Vector3i(int(p[0]), int(p[1]), int(p[2])) if p is Array and p.size() >= 3 else Vector3i.ZERO
 
 
-func _touch(at: Vector2) -> void:
-	var d := InputEventScreenTouch.new()
-	d.index = 0
-	d.position = at
-	d.pressed = true
-	Input.parse_input_event(d)
-	await get_tree().process_frame
-	var u := InputEventScreenTouch.new()
-	u.index = 0
-	u.position = at
-	u.pressed = false
-	Input.parse_input_event(u)
-	await get_tree().process_frame
+## 논리 좌표 → 창 픽셀(UI 크기·창 크기 배율).
+func _win(p: Vector2) -> Vector2:
+	return get_tree().root.get_final_transform() * p
 
 
-func _click(at: Vector2) -> void:
+# ------------------------------------------------------------------ 진짜 입력
+func _move(to: Vector2, steps: int = 6) -> void:
+	var from := _mouse
+	for n in range(1, steps + 1):
+		var p := from.lerp(to, float(n) / steps)
+		var m := InputEventMouseMotion.new()
+		m.position = _win(p)
+		m.global_position = m.position
+		m.relative = _win(p) - _win(_mouse)
+		m.button_mask = _buttons_down
+		_mouse = p
+		Input.warp_mouse(m.position)
+		Input.parse_input_event(m)
+		await get_tree().process_frame
+
+
+func _mb(at: Vector2, button: int, pressed: bool) -> void:
 	var m := InputEventMouseButton.new()
-	m.button_index = MOUSE_BUTTON_LEFT
-	m.position = at
-	m.global_position = at
-	m.pressed = true
+	m.button_index = button
+	m.position = _win(at)
+	m.global_position = m.position
+	m.pressed = pressed
+	var mask: int = {MOUSE_BUTTON_LEFT: MOUSE_BUTTON_MASK_LEFT, MOUSE_BUTTON_RIGHT: MOUSE_BUTTON_MASK_RIGHT, MOUSE_BUTTON_MIDDLE: MOUSE_BUTTON_MASK_MIDDLE}.get(button, 0)
+	if pressed:
+		_buttons_down |= mask
+	else:
+		_buttons_down &= ~mask
+	m.button_mask = _buttons_down
 	Input.parse_input_event(m)
+
+
+func _click(at: Vector2, button: int = MOUSE_BUTTON_LEFT) -> void:
+	await _move(at, 3)
+	_mb(at, button, true)
 	await get_tree().process_frame
-	var m2 := m.duplicate() as InputEventMouseButton
-	m2.pressed = false
-	Input.parse_input_event(m2)
+	await get_tree().process_frame
+	_mb(at, button, false)
 	await get_tree().process_frame
 
 
-## 두 손가락 핀치(진짜 ScreenTouch/Drag, index 0·1). 가운데 c, 손가락 사이 d0 → d1 을 frames 프레임에 걸쳐.
-## pan 은 그동안 가운데가 움직일 양(두 손가락 팬 흉내), jitter 는 프레임마다 거리 흔들림(px).
-func _pinch(c: Vector2, d0: float, d1: float, frames: int, pan: Vector2 = Vector2.ZERO, jitter: float = 0.0) -> void:
-	var pos := [c - Vector2(d0 * 0.5, 0), c + Vector2(d0 * 0.5, 0)]
-	for i in 2:
-		var d := InputEventScreenTouch.new()
-		d.index = i
-		d.position = pos[i]
-		d.pressed = true
-		Input.parse_input_event(d)
-		await get_tree().process_frame
-	for n in range(1, frames + 1):
-		var r := float(n) / frames
-		var cc := c + pan * r
-		var dd := lerpf(d0, d1, r) + (jitter * (1.0 if n % 2 == 0 else -1.0))
-		var np := [cc - Vector2(dd * 0.5, 0), cc + Vector2(dd * 0.5, 0)]
-		for i in 2:
-			var m := InputEventScreenDrag.new()
-			m.index = i
-			m.position = np[i]
-			m.relative = (np[i] as Vector2) - (pos[i] as Vector2)
-			pos[i] = np[i]
-			Input.parse_input_event(m)
-		await get_tree().process_frame
-	for i in 2:
-		var u := InputEventScreenTouch.new()
-		u.index = i
-		u.position = pos[i]
-		u.pressed = false
-		Input.parse_input_event(u)
-		await get_tree().process_frame
-
-
-func _drag(pts: Array, steps: int) -> void:
+func _drag(pts: Array, steps: int, button: int) -> void:
 	if pts.is_empty():
 		return
-	var d := InputEventScreenTouch.new()
-	d.index = 0
-	d.position = pts[0]
-	d.pressed = true
-	Input.parse_input_event(d)
+	await _move(pts[0], 3)
+	_mb(pts[0], button, true)
 	await get_tree().process_frame
-	var last: Vector2 = pts[0]
 	for k in range(1, pts.size()):
 		for n in range(1, steps + 1):
 			var p: Vector2 = (pts[k - 1] as Vector2).lerp(pts[k], float(n) / steps)
-			var m := InputEventScreenDrag.new()
-			m.index = 0
-			m.position = p
-			m.relative = p - last
-			last = p
-			Input.parse_input_event(m)
-			await get_tree().process_frame
-	var u := InputEventScreenTouch.new()
-	u.index = 0
-	u.position = last
-	u.pressed = false
-	Input.parse_input_event(u)
+			await _move(p, 1)
+	await get_tree().process_frame
+	_mb(pts[pts.size() - 1], button, false)
 	await get_tree().process_frame
 
 
-## 보이는 컨트롤 중 글자를 품은 것(버튼 먼저, 그다음 라벨). region 이 있으면 그 안의 것만.
-func _find_ctrl(text: String, nth: int, region: Variant, labels_only: bool = false) -> Control:
+func _wheel(at: Vector2, up: bool) -> void:
+	await _move(at, 1)
+	for pressed: bool in [true, false]:
+		var m := InputEventMouseButton.new()
+		m.button_index = MOUSE_BUTTON_WHEEL_UP if up else MOUSE_BUTTON_WHEEL_DOWN
+		m.position = _win(at)
+		m.global_position = m.position
+		m.pressed = pressed
+		m.factor = 1.0
+		Input.parse_input_event(m)
+		await get_tree().process_frame
+
+
+func _keycode(kname: String) -> int:
+	var named := {"Space": KEY_SPACE, "Tab": KEY_TAB, "Esc": KEY_ESCAPE, "Escape": KEY_ESCAPE, "Enter": KEY_ENTER, "Delete": KEY_DELETE,
+		"PageUp": KEY_PAGEUP, "PageDown": KEY_PAGEDOWN, "Up": KEY_UP, "Down": KEY_DOWN, "Left": KEY_LEFT, "Right": KEY_RIGHT,
+		"F1": KEY_F1, "F2": KEY_F2, "F3": KEY_F3, "F4": KEY_F4, "F6": KEY_F6, "F11": KEY_F11, ",": KEY_COMMA, ".": KEY_PERIOD, "/": KEY_SLASH}
+	if named.has(kname):
+		return named[kname]
+	return OS.find_keycode_from_string(kname)
+
+
+func _key(kname: String, shift: bool = false, ctrl: bool = false) -> void:
+	var code := _keycode(kname)
+	for pressed: bool in [true, false]:
+		var k := InputEventKey.new()
+		k.keycode = code
+		k.physical_keycode = code
+		k.pressed = pressed
+		k.shift_pressed = shift
+		k.ctrl_pressed = ctrl
+		Input.parse_input_event(k)
+		await get_tree().process_frame
+
+
+func _hold(kname: String, secs: float) -> void:
+	var code := _keycode(kname)
+	var k := InputEventKey.new()
+	k.keycode = code
+	k.physical_keycode = code
+	k.pressed = true
+	Input.parse_input_event(k)
+	await _sleep(secs)
+	var k2 := k.duplicate() as InputEventKey
+	k2.pressed = false
+	Input.parse_input_event(k2)
+	await get_tree().process_frame
+
+
+# ------------------------------------------------------------------ 찾기
+func _find_ctrl(text: String, nth: int, region: Variant) -> Control:
 	var buttons: Array = []
 	var labels: Array = []
 	_collect(get_tree().root, text, buttons, labels, region)
-	var pool := buttons if not buttons.is_empty() and not labels_only else labels
+	var pool := buttons if not buttons.is_empty() else labels
 	return pool[nth] if nth < pool.size() else null
 
 
@@ -632,10 +627,12 @@ func _collect(n: Node, text: String, buttons: Array, labels: Array, region: Vari
 	if n is Control:
 		var c: Control = n
 		var t := ""
-		if c is PixelButton:
-			t = (c as PixelButton).label_text
+		if c is PcButton:
+			t = (c as PcButton).label_text
 		elif c is Button:
 			t = (c as Button).text
+			if t == "":
+				t = _child_text(c)
 		elif c is Label:
 			t = (c as Label).text
 		t = _plain(t)
@@ -649,18 +646,21 @@ func _collect(n: Node, text: String, buttons: Array, labels: Array, region: Vari
 		_collect(ch, text, buttons, labels, region)
 
 
-## 줄바꿈 방지용 폭 0 문자(UI.keep)를 걷어 낸 글자.
-static func _plain(t: String) -> String:
-	for z: String in ["\u200b", "\u2060", "\u200d", "\ufeff", "\u00a0"]:
-		t = t.replace(z, "" if z != "\u00a0" else " ")
-	return t
-
-
-func _buttons_in(n: Node, out: Array) -> void:
-	if n is BaseButton and not (n as BaseButton).disabled and (n as Control).is_visible_in_tree():
-		out.append(n)
+## 글자 없는 Button(카드·띠 칸)은 안의 라벨 글자를 이어 붙인 것으로 찾는다.
+func _child_text(n: Node) -> String:
+	var out := ""
 	for ch in n.get_children():
-		_buttons_in(ch, out)
+		if ch is Label:
+			out += (ch as Label).text + " "
+		elif ch is Control:
+			out += _child_text(ch)
+	return out
+
+
+static func _plain(t: String) -> String:
+	for z: String in ["​", "⁠", "‍", "﻿", " "]:
+		t = t.replace(z, "" if z != " " else " ")
+	return t
 
 
 func _in_region(c: Control, region: Variant) -> bool:
@@ -674,25 +674,15 @@ func _dump(with_labels: bool = false) -> void:
 	var b: Array = []
 	var l: Array = []
 	_collect(get_tree().root, "", b, l, null)
+	var vs := get_viewport().get_visible_rect().size
 	if with_labels:
 		for c: Control in l:
 			var r := c.get_global_rect()
-			# 화면 밖으로 삐져나간 글자만 표시(잘림 찾기)
-			var flag := " <<잘림?" if r.end.x > get_viewport().get_visible_rect().size.x + 0.5 or r.position.x < -0.5 else ""
+			var flag := " <<잘림?" if r.end.x > vs.x + 0.5 or r.position.x < -0.5 or r.end.y > vs.y + 0.5 else ""
 			print("  [lbl] '%s' %s%s" % [_plain((c as Label).text).replace("\n", "/").substr(0, 40), r, flag])
-	for c: Control in b:
-		var t: String = _plain((c as PixelButton).label_text if c is PixelButton else (c as Button).text)
+	for c2: Control in b:
+		var t: String = _plain((c2 as PcButton).label_text if c2 is PcButton else ((c2 as Button).text if (c2 as Button).text != "" else _child_text(c2)))
+		var r2 := c2.get_global_rect()
+		var flag2 := " <<잘림?" if r2.end.x > vs.x + 0.5 or r2.end.y > vs.y + 0.5 else ""
 		if t.strip_edges() != "":
-			print("  [btn] '%s' %s" % [t.replace("\n", "/"), c.get_global_rect()])
-
-
-## 미접속 시험용: 지금 상태를 "ago 초 전에 저장한 것"처럼 파일로 남기고 끝낸다.
-func _save_at() -> void:
-	await _sleep(float(args.get("save_wait", 0.5)))
-	var st: CityState = Game.state
-	st.last_saved_unix = Game._now() - int(args.get("ago", 3600))
-	var f := FileAccess.open(str(args["save_at"]), FileAccess.WRITE)
-	f.store_string(st.to_json())
-	f.close()
-	print("[DevHarness] save_at ", args["save_at"], " ago ", args.get("ago", 3600))
-	get_tree().quit()
+			print("  [btn] '%s' %s%s" % [t.replace("\n", "/").substr(0, 40), r2, flag2])

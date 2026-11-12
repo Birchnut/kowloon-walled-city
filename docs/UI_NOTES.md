@@ -1,3 +1,170 @@
+# UI 노트 v4 (PC판 v0.4, 브랜치 `ui4`)
+
+모바일 세로판(v0.3)의 화면은 이 브랜치에서 지웠다(`backup/v0.3-mobile`에 있다). 이제 `godot/ui/pc/**` 가 PC 화면 전부다.
+기준 1920×1080 가로, 마우스 + 키보드. v4 계약(`docs/ARCHITECTURE.md` "v4 (PC판) 계약 변경")의 이름 그대로 부르고, 이 클론에 아직 없는 v4 조각은 **`godot/ui/dev/V4Shim.gd` 한 곳**이 채운다(§5).
+스크린샷: `docs/shots/pc_ui_*.png`(§9). 아래 v3 노트는 역사로 남긴다.
+
+## 0. 다시 보기
+
+```
+# 새 도시 300프레임(스크립트 오류 0 확인)
+tools/shot.sh "" /tmp/f 300 1920x1080 skiptut
+# 첫 접속 전체를 진짜 마우스·키보드로(오프닝 따라: 카메라 → 판잣집 8 → 시장(R로 돌림)·물 둘·먹을 것·놀 것 → 살피기 → 배속 → 현황판 → 일괄 승급 자재 고르기)
+SHOT_TIMEOUT=1200 tools/shot.sh "" /tmp/w 6000 1920x1080 script=res://tools/fixtures/pc_first_session.json out=/tmp/w trace=1
+# 큐레이션 A(새 도시: 칠하기·고스트·돌리기·거절·두 층 명소·툴팁·철거 확인·도움말·불과 병) / B(load=mid: 살피기·창 전부·승급·렌즈)
+SHOT_TIMEOUT=900 tools/shot.sh "" /tmp/a 3000 1920x1080 script=res://tools/fixtures/pc_shots_a.json out=/tmp/a
+SHOT_TIMEOUT=900 tools/shot.sh "" /tmp/b 3000 1920x1080 load=mid skiptut script=res://tools/fixtures/pc_shots_b.json out=/tmp/b
+# 크기 확인
+tools/shot.sh "" /tmp/s 25 1280x720 skiptut load=mid open=metrics
+tools/shot.sh "" /tmp/s 25 1920x1080 skiptut load=mid scale=1.5 open=metrics
+# 웹(데스크톱 브라우저) — 빌드됨(브라우저 실행은 이번에 못 함)
+godot --headless --path godot --export-release "Web" build/web/index.html
+```
+대본 문법은 `godot/tools/DevHarness.gd`(머리 주석 + `_step`). 누름은 전부 `Input.parse_input_event` 의 **InputEventMouseButton/Motion/Key**(진짜 길). 좌표 대신 이름표·대상으로 쓴다: `{"place": "분류:market", "cell": [x,y,z], "rotate": 1}`, `{"target": "cat:water"}`, `{"press": "시작한다"}`, `{"key": "Tab"}`. 칸 좌표는 시뮬 칸(x,y,z)이라 v4 시뮬(16×16)에서도 그대로 뜻이 있다.
+
+## 1. 화면 지도 (1920×1080 논리 px)
+
+```
+┌ 위 띠 TopBar (높이 52) ──────────────────────────────────────────────────────────────────────────────┐
+│ ₩돈 +순수입/일 │ 계층 5칩(이름·인구) │ 행복 │ 신호등 7(물 전기 먹을것 놀것 불 병 일손) │      │ 날·시각 │ ❚❚ ×1 ×2 ×4 │
+├────────────────┬─────────────────────────────────────────────────────────────────┬──────────────────┤
+│ 왼쪽 기둥 340  │                                                                 │ 살피기 420        │
+│ ┌ 다음 목표 ┐  │                      도시(뷰) — 가운데                           │ (고른 것 / 마우스  │
+│ │글·진행·방법│  │       · 배치 중: 마우스 옆 한 줄(이름·비용·범위 안 집·골조·R / 거절 이유)│  아래 미리보기)   │
+│ │가는 버튼   │  │       · 알림·카드(토스트): 위 띠 아래 가운데                      │                  │
+│ └───────────┘  │                                                                 │                  │
+│ ┌ 알림 n ───┐  │                 창: 현황판·경제·교역·탐험·성채·승급(가운데, 끌어 옮김)   │                  │
+│ └───────────┘  │                                                                 │                  │
+│ ┌ 보는 층·렌즈┐ │  ┌ 짓기 막대 ───────────────────────────────────────┐            ├──────────────────┤
+│ │전체 1F 2F… │ │  │ [주거 칠하기 H][철거 X][따라 짓기 G] │ 분류 탭 Z C V B N M , . / │ │ 현황판Tab 경제F2 교역F3│
+│ │3F 열림까지%│ │  │ (분류를 고르면) 시설 카드: 그림·이름·모양·비용      │            │ 탐험F4 성채F6 도움말F1│
+│ │렌즈 8개    │ │  └──────────────────────────────────────────────────┘            │                  │
+└────────────────┴─────────────────────────────────────────────────────────────────┴──────────────────┘
+```
+- 뷰에는 `set_insets(왼 360, 위 52, 오른 440 또는 0, 아래 짓기 막대 높이)`를 알린다(살피기가 떠 있을 때만 오른쪽).
+- 좁은 창: 논리 폭 < 1800이면 계층 칩은 숫자만(이름은 툴팁), < 1450이면 순수입·날짜도 툴팁으로. 짓기 막대는 폭이 모자라면 분류 탭 이름을 빼고(그림·키), 그래도 모자라면 분류 줄이 둘째 줄로 내려간다.
+
+## 2. 단축키
+
+| 키 | 하는 일 | 키 | 하는 일 |
+|---|---|---|---|
+| 왼쪽 클릭 | 고르기(살피기) · 배치 중이면 짓기 | 오른쪽 클릭(끌지 않고) | 배치 그만 · 고름 풀기 |
+| 왼쪽 끌기(칠하기) | 네모 칠하기 · Shift = 지나간 칸만 | 오른쪽·가운데 끌기 / WASD·방향키 | 카메라 이동(v4 뷰 몫) |
+| 휠 | 확대(뷰 몫) | Q / E | 90° 돌리기(뷰 몫) |
+| PgUp/PgDn · [ ] | 보는 층 = 짓는 층(뷰 몫) | Space | 멈춤/다시 |
+| 1 · 2 · 3 | ×1 · ×2 · ×4 | H | 주거 칠하기 |
+| X · Delete | 철거 도구(고른 건물이 있으면 Delete = 그것 철거 확인) | G | 마우스 아래 시설 따라 짓기(없으면 고르기 도구) |
+| R | 배치 중 돌리기(1×2) | U | 승급(고른 집, 없으면 일괄) |
+| Z C V B N M , . / | 짓기 분류 1~9 열기·닫기 | Tab | 현황판 |
+| F2 · F3 · F4 · F6 | 경제 · 교역 · 탐험 · 성채 | F1 | 도움말 |
+| F11 | 전체 화면 | Ctrl+S | 저장 |
+| Esc | 배치 그만 → 맨 위 창 닫기 → 고름 풀기 → 렌즈 끄기 | Enter | 확인 창·승급·오프닝 '다음' |
+
+## 3. 파일
+
+| 파일 | 하는 일 | 읽는 것(질의) | 보내는 것 |
+|---|---|---|---|
+| `ui/UIRoot.gd` | 조립·배치·키·뷰 신호·이벤트·jump | hud(0.25초), build_menu(2초) | 모든 명령은 `UIRoot.cmd()` 로(오프닝이 엿듣는다) |
+| `ui/pc/TopBar.gd` | 위 띠 | hud: money, net_per_day, pop, labor(계층 이름), happiness, signals, day, hour, speed, paused | `Game.speed/paused` |
+| `ui/pc/LeftColumn.gd`, `FloorPanel.gd` | 목표·알림·층·렌즈 | hud.next_goal, alerts, floor_progress, floors_unlocked, grid; coverage{kind} | set_floor_cut, set_lens, set_coverage |
+| `ui/pc/BuildBar.gd` | 짓기 막대·시설 툴팁 | build_menu | (Placement 시작) |
+| `ui/pc/Placement.gd` | 칠하기·배치·철거·따라 짓기 | can zone/build{rot}, range_preview{rot}, info, demolish_preview | zone, build{type,pos,rot}, demolish; 뷰 show_floor_grid, set_drag_paint, show_ghost(…, floors), set_zone_preview, show_cells range/warn/select, pick_floor, hover |
+| `ui/pc/Inspector.gd` | 살피기 | info{pos}(1초), range_preview | pause, repair, demolish(확인), jump |
+| `ui/pc/MetricsWin.gd` | 현황판 | metrics | jump(행), 일괄 승급 |
+| `ui/pc/EconomyWin.gd` · `TradeWin.gd` · `ExpeditionWin.gd` · `KeepWin.gd` · `UpgradeWin.gd` | 창 | economy · contracts · expeditions · goals/policies/vice/research/log · info.upgrade/upgrade_preview/upgradable | contract_*, expedition_send/claim, run_begin, policy_set, research_start/cancel, upgrade, debug |
+| `ui/pc/PcTutorial.gd` + `data/ui/tutorial_pc.json` | 오프닝(마우스·키보드) | hud.tutorial, economy.tiers | tutorial{step} |
+| `ui/pc/Toasts.gd` · `Dialog.gd` · `TipLayer.gd` · `HelpOverlay.gd` · `Settings.gd` | 알림·확인·툴팁·도움말·설정 | | |
+| `ui/pc/PcTheme.gd` · `Picto.gd` · `PcButton.gd` · `ClickRow.gd` · `RatioBarPc.gd` · `FootprintDraw.gd` · `PcWindow.gd` | 키트 | | |
+| `ui/Sfx.gd`(오토로드) | 소리 자리(빈 함수) | | |
+| `ui/dev/V4Shim.gd` | **개발용 다리** — §5 | | |
+
+## 4. 내가 정한 것 (승인 필요)
+
+D1. **창 버튼은 오른쪽 아래 3×2 판**(현황판 Tab · 경제 F2 · 교역 F3 / 탐험 F4 · 성채 F6 · 도움말 F1). 위 띠에 다 넣으니 1920에서도 넘쳤다(돈·계층 5·행복·신호등 7·날짜·배속만으로 1730px). 이름과 키를 늘 보이게 하는 쪽을 골랐다. 현황판 버튼만 금색.
+D2. **키 배치**: 배속은 과제대로 Space·1·2·3. 그래서 짓기 분류는 숫자 키 대신 **아래 줄 글쇠 Z C V B N M , . /**(짓기 막대가 화면 아래라 손 위치도 아래). H 주거, X/Delete 철거, G 따라 짓기, R 돌리기, U 승급. 창은 F2·F3·F4·F6 — **F5는 Game 이 '데이터 다시 읽기'(state_replaced)로 써서 피했다.**
+D3. **UI 크기 = 고른 배율(100/125/150%) × max(창 배율, 0.8)**. 1280×720 창에서 그냥 줄이면 글자가 13px로 뭉개져서, 0.8 밑으로는 줄이지 않는다(논리 1600×900). 그래서 화면은 논리 1280×720(작은 창 + 125~150%)까지 맞췄다.
+D4. **글꼴은 정수배만**: 본문 Galmuri9 ×2 = 20px, 값·버튼 Galmuri11 ×2 = 24px, 창 제목 NeoDunggeunmo ×2 = 32px. 반 배율은 픽셀 글꼴이 번진다. 테마는 코드(`PcTheme`, StyleBoxFlat·각진 모서리·아래 턱 2px·마우스 올리면 금테). v0.3 텍스처 테마는 쓰지 않는다(호버 모양이 없었다).
+D5. **짓는 층 = 보는 층**. '전체'를 보다가 짓기를 시작하면 가장 위의 열린 층으로 바꿔 그 층 격자를 보이고, 그만두면 '전체'로 되돌린다. PgUp/PgDn·층 버튼으로 짓는 층을 바꾼다. (지면만 짓던 v0.3보다 위층 짓기가 쉽고, 어디에 짓는지 늘 보인다.)
+D6. **고스트의 기준 = 마우스 아래 칸이 발자국 가운데**(origin = 칸 − ⌊(w−1)/2⌋). 2×2·3×3이 마우스 왼쪽 위로 치우치지 않게.
+D7. **고스트 색 = 자리**: 돈·물건만 모자라면 고스트는 초록, 마우스 옆 글이 노랑으로 이유(can code money/goods). 자리 문제(occupied/shape/sky/floor/bounds)는 빨강. "어디에 놓을지"와 "살 수 있는지"를 나눠 보인다.
+D8. **주거 칠하기 = 네모**(누른 칸~지금 칸), Shift = 지나간 칸만. 떼는 순간 zone 한 번. 칠하는 동안 `can zone` 으로 칸마다 되는지 받아 `set_zone_preview(cells, ok)`(바닥만) + "판잣집 n채 · ₩m · 못 짓는 칸 k(이유)". 지우개 획은 없앴다 — 지우기는 철거 도구.
+D9. **지은 뒤에도 배치에 남는다**(연달아 짓기). 오른쪽 클릭(8px 안에서 누르고 뗌 — 끌면 카메라)·Esc 로 그만.
+D10. **살피기 = 고른 것 우선, 없으면 마우스 아래 건물을 옅게 미리**("마우스 아래 · 눌러서 고정"). 칸이 바뀔 때만 다시 묻는다. 고른 것은 오른쪽 클릭·Esc·×로 푼다.
+D11. **현황판**: 묶음(물·전기/먹을 것/물건/서비스·범위/위험) 안에서 빨강 → 노랑 → 초록 순. "문제만" 거르개. 행 = 상태·이름·공급·수요·막대·남은 날·할 일·→, 누르면 그 행의 jump. 수요 0인 행은 옅게(막대 0). 오른쪽에 일손·계층(일괄 승급 버튼)·재정·위험. jump arg 가 행 id·묶음·labor/tiers/finance 면 그 자리를 깜박인다.
+D12. **신호등 일곱**(물·전기·먹을 것·놀 것·불·병·일손): 색 = state(초록·노랑·빨강·회색 꺼짐), 아래 짧은 막대, 툴팁 = 한 줄 text, 누르면 jump. 데이터에 없는 신호도 물·먹을 것·놀 것은 칸을 남긴다(자리가 흔들리지 않게).
+D13. **불·병이 처음 켜질 때(hazard_on) 카드 한 장 — 누를 때까지** 남는다(그 렌즈 보기 / 알았다). 첫 불(fire_started)은 한 번만 카메라를 그 칸으로. 그 뒤로는 토스트와 알림 줄.
+D14. **오프닝 9단계**(카메라 → 판잣집 8 → 시장 → 물 → 놀 것 → 집 살피기 → 배속 → 현황판 → 목표 안내). 시설은 id 가 아니라 **짓기 분류**로 기다린다(`cats`) — SIM 이 시설 id 를 바꿔도 맞는다. 모든 기다림에 timeout. 진행은 시뮬 `tutorial{step}`(끝 1000). 화자는 v0.3 그대로 '춘자 이모'.
+D15. **목표 방법 줄** `data/ui/goal_tips.json`: items[목표 id] → patterns(목표 문장에 그 낱말) → 없으면 목표 문장만. 수치·시설 이름은 적지 않고 키·창·분류만 말한다.
+D16. **한자 0**: 그림문자는 코드로 그린 10×10 픽셀(`Picto`, 60여 개). `UI.no_hanja()` 가 모든 라벨·토스트·툴팁에서 한자를 걷어 낸다(v3 데이터의 간판 `sign` 이 아직 한자라 안전망). v3 의 한자 탭·현수막 글자는 코드와 함께 사라졌다.
+D17. **탐험 창은 목록**(v0.3 의 그린 지도는 버렸다): 탐험대 줄(남은 시간 막대·받기) + 거리 띠별 목적지 + 아래 보내기 판(고를 자재·보급·비용·이유). 목적지마다 **'직접 줍기' 버튼은 보이되 꺼짐**, 옆에 던전 재고 막대와 위험 ■□□. 지도는 직접 줍기와 함께 다시 그리는 게 맞다고 봤다.
+D18. **툴팁은 자체 TipLayer**(0.3초). 짓기 카드 툴팁에 모양 그림(발자국 + 사각 범위, 두 층이면 겹친 판)·범위·일손·유지비·공사 시간(×1 분)·자리 조건·잠긴 조건.
+D19. **알림**: 토스트는 위 띠 아래 가운데 최대 4줄 4초(같은 글은 다시 띄우지 않고 시간만 늘림). 소식 카드(목표 달성·해금·층·등급·연구·단속·불병 첫 안내)는 한 장씩, 넷째부터 "소식 n가지"로 합침. 목표 달성 카드에 같은 순간 열린 시설과 다음 목표를 싣는다.
+D20. **숫자**: 천 단위 쉼표, 100만 이상 만/억(₩1.2억), 하루 미만은 "n시간", 비율은 %, 남은 날 1일 미만은 빨강.
+D21. **승급 창**: 기본 자재 = 가장 많이 가진 것(표시 기본값), 다 안 되면 "앞에서부터 n채만"(upgrade_preview 이분 탐색, v0.3 U7), 모자란 자재 + 가장 빠른 탐험 + 탐험 창 버튼(v0.3 P9).
+D22. **층 잠금 표시 = "3F 열림까지 36%" + 막대**, 툴팁에 floor_progress.text 와 "쓰이는 칸 = 사는 집 + 다 지은 시설, 빈집·공사장·골조는 세지 않는다"(v0.3 F11·F13).
+D23. **렌즈 8개를 하나만**: 수요·시장·놀 곳·소방·수거·의원·계층·행복. 범위 렌즈는 `coverage{kind}` → `set_lens("coverage")` + `set_coverage(covered, uncovered)`, 켤 때 "범위 안 n/m채" 한 줄.
+D24. **시작 배속·UI 크기·효과음 끔**은 `user://ui_settings.cfg`(nosave 면 메모리만). 빠른 저장(Ctrl+S)은 nosave 실행에서 막는다.
+D25. **창은 가운데(위 띠 아래), 제목 띠로 끌어 옮기고 그 자리를 기억**, 여러 개 열 수 있고 누른 창이 앞으로. 크기 조절은 없다. 도시를 누르면 창은 그대로(Anno처럼).
+
+## 5. 심 목록 — 통합 때 다시 겨눌 것 (`ui/dev/V4Shim.gd`, 지금 ENABLED = true)
+
+모든 채움은 "키가 없을 때만" 한다 → v4 시뮬·뷰가 오면 대부분 저절로 꺼진다. 그래도 아래를 지우거나 확인한다.
+
+| # | 어디서 | 무엇을 흉내 | v4 에서 진짜는 |
+|---|---|---|---|
+| S1 | `Q.raw` → `V4Shim.query("hud")` | `grid{w,h,floors}`(config), `speed/paused`(Game), `hazards{fire,disease}`, `signals[7]`(물·전기 = supply/demand, 먹을 것 = 식품 상품 state, 놀 것 = coverage fun, 불·병 = hazards, 일손 = labor), hz=1 일 때 견본 알림(focus·lens jump) | hud 그대로 |
+| S2 | `query("build_menu")` | `footprint`(size 2 → 2×2, 1칸 시설 중 시장·서비스·식품·생활·전자·음성은 **가짜 1×2**), `floors`(명소 2), `rotatable`, `build_days`, `range{r,up:1,down:1}`, `needs_sky`(텃밭), `min_floor 0`, `sign` 한자 제거 | 데이터 |
+| S3 | `query("metrics")` | economy(utilities·goods·labor·tiers·finance) + coverage(market·fun) + hazards 로 행을 조립, 문장 "넉넉하다/만드는 곳을 늘리거나…" | metrics |
+| S4 | `query("hazards")` | 2층 열리면 불 켜짐, 3층이면 병. hz=1 이면 첫 집 불남·둘째 탐·셋째·넷째 아픔(수리 ₩120·고물 10) | hazards |
+| S5 | `query("coverage")` | v3 상태의 시설 + 데이터 range 로 **v4 사각 규칙**(체비쇼프 r, 위·아래 1층)을 UI에서 계산 | coverage |
+| S6 | `query("range_preview")` | 같은 사각 규칙으로 `by_floor`·houses | range_preview{rot} |
+| S7 | `query("info")` | 시설 `w,h,d,rot,range(사전),build_left_text,interior`, 집 `arriving_text,burn,sick,repair` | info |
+| S8 | `query("expeditions")` | `days_left/total_days`(초 ÷ 600), `stock_pct`(가짜), `run{available:false,danger,text}` | expeditions |
+| S9 | `Q.can_full` → `V4Shim.can("build")` | `cells`(발자국 전부·두 층), `supports`, 가짜 1×2 의 남은 칸·두 층 자리 검사(code shape/floor) | can build{rot} |
+| S10 | `Q.vcall` → `V4Shim.view_call` | `set_insets`→set_bottom_inset, `hover`→pick, `set_zone_preview`→show_cells valid/warn, `set_coverage`→show_cells range/warn, `focus`→target 옮기기, `set_input_enabled`→mouse_filter, `who`→없음 | CityView v4 |
+| S11 | `UIRoot._process/_input` → `V4Shim.camera_process/camera_input` | 옛 뷰에 없는 Q/E·PgUp/PgDn·[ ]·WASD·오른쪽/가운데 끌기. **뷰에 hover + set_zone_preview 가 있으면 스스로 꺼진다** | 뷰 몫 |
+| S12 | `Q.vcall` 인자 자르기 | 메서드 인자 수보다 많이 넘기면 자른다(옛 show_ghost 는 3개) | 남겨도 무해 |
+| S13 | `KeepWin` 디버그 '불·병 견본(심)' · DevHarness `hz=`·`{"hz":1}`·`{"event":…}` | 견본 켜기·v4 이벤트 흉내 | 진짜 debug start_fire/start_outbreak |
+
+지우는 법: `V4Shim.ENABLED = false` 로 한 번 돌려 본 뒤 → `ui/dev/V4Shim.gd` 삭제, `ui/Q.gd` 의 `V4Shim` 세 줄(주석 표시), `ui/UIRoot.gd` 의 `V4Shim.camera_process/camera_input` 두 줄, `KeepWin._dbg` 의 `shim_hz`, DevHarness 의 `hz` 두 곳.
+
+## 6. 계약 빈 곳 (디렉터·SIM·VIEW 에게)
+
+| # | 무엇 | 지금 UI | 제안 |
+|---|---|---|---|
+| C1 | 배속 명령이 없다(필드만) | `Game.speed = s; Game.paused = p` 를 직접 쓰고 hud.speed/paused 로 읽는다 | `Game.set_speed(speed, paused)` 가 `speed_changed` 를 내면 좋다 |
+| C2 | 칠하기 끌기의 **뗌** 신호가 없다(cell_dragged 는 누름·움직임만) | UI가 `_input` 에서 왼쪽 버튼 뗌을 직접 본다 | `cell_drag_end(info)` |
+| C3 | 오른쪽 클릭: 뷰가 끌기 = 카메라, cell_tapped{button:2} 도 낸다 | UI는 8px 안 누름·뗌을 오른쪽 클릭으로 본다. 뷰가 button 2 탭도 보내면 둘 다 '그만'(같은 일 두 번, 무해) | 뷰는 끌지 않은 오른쪽 뗌만 button 2 로 |
+| C4 | 계층 이름이 hud 에 따로 없다 | hud.labor[].name 을 쓴다 | `hud.tiers:[{tier,name}]` 또는 그대로 |
+| C5 | `metrics.rows[]` 에 재고가 없다 | 있으면(`stock`) 툴팁에 보인다 | `stock` 추가 |
+| C6 | 명소·두 층 시설: `can build` 의 cells 에 위층 칸도 드는지 | 드는 것으로 가정(고스트 floors 인자와 같이) | 문서화 |
+| C7 | 신호등 jump 의 screen | `build[:cat|id]`·`metrics[:row]`·`lens:<kind>`·`focus:x,y,z` 를 받는다 | 문서의 알림 jump 와 같게 |
+| C8 | 방재 시설(소방·수거·의원)의 짓기 분류 id | 모르는 분류는 상자 그림 | `cat:"hazard"` 등 하나로 |
+| C9 | `run_begin` 뒤 직접 줍기 화면 | 버튼은 꺼짐(run.available=false), 누르면 이유 토스트 | 3단계에서 |
+| C10 | 시설 공사 진행 | info.build_left_text 만 쓴다 | 막대용 `build_progress 0..1` 이 있으면 |
+| C11 | `hazard_on` 이 세이브를 다시 열 때 또 오는지 | UI 는 세션마다 한 번만 카드 | 시뮬이 한 번만 내면 그대로 |
+| C12 | 디버그 `start_fire/start_outbreak` 의 pos | 고른 칸, 없으면 부지 가운데 1층 | |
+| C13 | 집의 `arriving` 이 0..1 소수(표시용)라 했는데 info 는 `arriving_text` | 문장만 쓴다 | 그대로 |
+
+## 7. 소리 자리 (`Sfx.play(이름)`, 지금은 아무 소리 없음)
+`click`(모든 버튼·줄) · `build`(시설 공사 시작) · `zone`(판잣집) · `place_fail`(놓을 수 없음) · `rotate`(R) · `demolish` · `upgrade` · `money`(목표 보상) · `alert`(새 빨간 알림, id 마다 한 번) · `fire`(fire_started) · `disease`(outbreak) · `hazard_on` · `goal` · `unlock` · `floor`(새 층) · `window_open` · `window_close` · `speed` · `expedition`(보냄·받음·돌아옴). 목록과 설명은 `ui/Sfx.gd` NAMES. `Sfx.muted` 는 설정의 '효과음 끔'.
+
+## 8. 거친 곳
+- **V4Shim 견본으로만 본 것**: 불·병(신호등·카드·살피기·현황판·렌즈), 1×2 돌리기(v3 시뮬은 1칸만 짓는다 — 고스트만 1×2), 두 층 고스트(옛 뷰는 위층 칸을 따로 그리지 않아 한 층처럼 보인다 — v4 뷰 show_ghost(…, floors) 몫), 직접 줍기 버튼, coverage 렌즈 색(옛 뷰 show_cells 로 대신).
+- 웹 빌드는 만들어지나(`index.pck` 7.7MB) 브라우저에서 실행해 보지 못했다(이번 작업은 브라우저 금지).
+- 1280×720 창: 글자 16px 근처라 약간 무르다. 논리 1280×720(작은 창 + 150%)에서는 위 띠가 빠듯하다(날짜·순수입을 툴팁으로 뺀다).
+- 살피기의 마우스 아래 미리보기가 도시를 훑을 때 자주 바뀐다 — 거슬리면 끄는 설정이 필요할 수 있다.
+- 창 크기 조절 없음. 소식 카드가 창 제목을 잠깐 가릴 때가 있다(3.5초).
+- 오프닝 상자가 짓기 막대 위 가운데라 도시 아래쪽을 가린다.
+- 탐험 지도(그림)는 없다(목록만).
+- 그림문자는 10×10 손그림이라 몇 개(놀 것=주사위, 병=세균, 철거=금 간 벽)는 툴팁 없이는 뜻이 모호할 수 있다.
+- 목표 방법 줄의 patterns 는 낱말 맞추기라 엉뚱한 목표에 걸릴 수 있다(가장 앞의 패턴이 이긴다).
+
+## 9. 스크린샷 `docs/shots/pc_ui_*.png`
+01 전체(중반 도시) · 02 신호등 툴팁 · 03 짓기 카드 툴팁(모양 그림) · 04 배치 고스트 + 범위 + 커서 글 · 05 R로 돌린 고스트 · 06 거절 이유 · 06b 두 층 명소(물건 모자람 — 자리는 초록, 이유는 노랑) · 07 주거 칠하기(바닥 하이라이트) · 08 살피기(집) · 09 살피기(시설, 범위 켬) · 10 현황판 · 12 경제 · 13 교역 · 14 탐험(직접 줍기 꺼짐) · 15 성채 목표 · 16 연구 · 17 설정 · 18 일괄 승급(n채만) · 19 도움말 · 20 철거 확인 · 21 불 첫 안내 · 22 불 알림 → 그 자리 · 22b 탄 집 수리 · 23 소방 렌즈 · 23b 현황판 문제만 · 24 오프닝 · 25 1280×720 · 26 2560×1440 · 27 UI 150%(현황판) · 28 시장 렌즈.
+
+---
+
 # UI 노트 v3 (Anno식 도시경제, 브랜치 `ui3`)
 
 이전 분재 시기 문서는 `docs/archive/UI_NOTES_v0.2_bonsai.md`. 키트(테마·Panel9·PixelButton·Chip·Segmented·BottomSheet·Meter·ToastLayer·Banner·DialogBox·SignTile·IconLabel·DragScroll·TimeDial·Modal·Highlight·RainOverlay)는 그대로 쓰고, 분재 화면(PlantSheet·ZoneBar·옛 PolicySheet·CardsSheet·CardView·BubbleLayer·Bubble·VerbBar·ChoiceButton·옛 Inspect/Record·MockSim·MockView·UISandbox)은 지웠다. 이제 진짜 시뮬 + 진짜 뷰로만 돈다.

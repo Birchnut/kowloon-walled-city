@@ -15,7 +15,7 @@ ARGS=(--path "$HERE/godot" --rendering-driver opengl3 --resolution "$RES"
       --write-movie "$OUT/f.png" --fixed-fps 10 --quit-after "$FRAMES")
 [ -n "$SCENE" ] && ARGS+=("$SCENE")
 ARGS+=(-- nosave "$@")
-timeout 300 xvfb-run -a -s "-screen 0 ${RES}x24" "$GODOT" "${ARGS[@]}" 2>&1 \
+timeout "${SHOT_TIMEOUT:-300}" xvfb-run -a -s "-screen 0 ${RES}x24" "$GODOT" "${ARGS[@]}" 2>&1 \
   | grep -vE "^(Movie Maker|Done recording|[0-9]+ frames|CPU render|GPU render|Encoding time|-+$|OpenGL API|Godot Engine|$)" || true
 rm -f "$OUT/f.wav"
 ls "$OUT" | tail -1
