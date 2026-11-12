@@ -171,12 +171,12 @@
    "ignite_per_day": 0.05,
    "out_days": 0.04,
    "burn_days": 0.3,
-   "spread_per_day": 2.0,
-   "max_burning": 2,
+   "spread_per_day": 3.0,
+   "max_burning": 3,
    "burning_per": 150,
    "min_gap_days": 0.15,
    "_doc": "위험 0..1이 범위 밖이면 하루 risk_per_day씩(안이면 × covered_mult) 쌓이고, 매시간 위험 합 × ignite_per_day × dt 확률로 한 곳에 불. 범위 안은 out_days에 꺼짐(주민 1명 흩어짐), 밖은 burn_days 동안 타며 옆·위로 번지다 탐. 동시에 max_burning + 쓰이는 건물/burning_per곳까지, 불 사이 min_gap_days. 다 탄 주거의 주민 중 burn_leave_frac은 성채를 떠나고 나머지만 빈집을 찾는다.",
-   "burn_leave_frac": 0.5
+   "burn_leave_frac": 0.6
   },
   "disease": {
    "floor": 3,
@@ -193,13 +193,13 @@
    "leave_per_day": 2.0,
    "sick_happy": 15,
    "sick_tax": 0.8,
-   "max_sick_frac": 0.12,
+   "max_sick_frac": 0.15,
    "max_sick_min": 6,
    "min_gap_days": 0.2,
    "_doc": "쓰레기 0..1이 수거 범위 밖에서 하루 trash_per_day × 주민/정원씩 쌓이고(안이면 clear_per_day씩 줄고), outbreak_at 넘은 집들에서 매시간 확률로 발병(이웃 cluster_max채까지). 앓는 집: 일손 절반, 행복 −sick_happy, 세수 × sick_tax, 입주 없음, leave_after일 뒤 leave_per_day씩 떠남. sick_days 뒤 낫고 의원 범위면 clinic_days. 수거 범위 안도 쓰레기가 trash_per_day × covered_mult씩 쌓여 covered_cap에서 멈추고, 그 집들은 covered_weight 가중으로 가끔 작은 병이 돈다(나으면 수거가 싹 치운다).",
    "covered_mult": 0.1,
    "covered_cap": 0.5,
-   "covered_weight": 0.2
+   "covered_weight": 0.35
   },
   "repair": {
    "house_money": [

@@ -270,13 +270,18 @@
     "policy_slot_3"
    ]
   },
-  "t4_100": {
+  "hall": {
    "order": 15,
    "cond": [
     [
      "pop.t4",
      ">=",
-     100
+     60
+    ],
+    [
+     "count.neon_tower",
+     ">=",
+     1
     ]
    ],
    "unlocks": [
@@ -289,7 +294,7 @@
     [
      "pop.t5",
      ">=",
-     60
+     80
     ],
     [
      "count.city_hall",

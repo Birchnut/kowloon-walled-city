@@ -19,8 +19,12 @@ func _init() -> void:
 		db = SimIO.load_db()
 		for kv: String in str(args["set"]).split(";", false):
 			var p := kv.split(":", true, 1)
-			var keys := p[0].split(".")
+			var root := p[0]
 			var node: Dictionary = db["config"]
+			if root.begins_with("@"):      # @파일.경로 — config 밖(예: @unlocks.items.t4_100.cond)
+				root = root.substr(1)
+				node = db
+			var keys := root.split(".")
 			for i: int in keys.size() - 1:
 				node = node[keys[i]]
 			node[keys[keys.size() - 1]] = JSON.parse_string(p[1])

@@ -1108,7 +1108,7 @@ func _upgrades(state: CityState) -> void:
 		var ln: Dictionary = state.labor.get(nt, {"have": 0, "need": 0.0})
 		var lw: Dictionary = state.flags["bot"].get("labor_want", {})
 		# 마지막 목표를 보고 움직인다: 옥상 황제가 목표 수(60)를 넘었는데 구청이 아직 안 열렸으면(깡통 귀족 100이 조건) 깡통 귀족을 남긴다
-		if nt == 5 and _pop(state, 5) >= float(c("final_t5", 60)) + 6.0 and not sim.is_unlocked(state, "city_hall"):
+		if nt == 5 and _pop(state, 5) >= _final_t5() + 6.0 and not sim.is_unlocked(state, "city_hall"):
 			_block("구청 조건(깡통 귀족)을 위해 옥상 황제 승급 보류")
 			continue
 		var short := float(ln["need"]) > float(ln["have"]) or state.econ_days - float(lw.get(str(nt), -9.0)) < 0.5
@@ -1151,6 +1151,16 @@ func _upgrades(state: CityState) -> void:
 			done += 1
 		else:
 			_block(str(r.get("reason", "")))
+
+
+## 마지막 목표의 옥상 황제 수(goals.json의 final 목표 조건에서 읽는다).
+func _final_t5() -> float:
+	for g: Dictionary in sim.items("goals").values():
+		if g.get("final", false):
+			for cnd: Array in g.get("cond", []):
+				if str(cnd[0]) == "pop.t5":
+					return float(cnd[2])
+	return 60.0
 
 
 ## 명소(용탑·구청)가 열렸는데 아직 없으면 그 자재를 남겨 둔다.
