@@ -105,15 +105,16 @@ void vertex() {
 		life = fract(time_s / dur + seed * 7.0);
 		p.x += (h1(seed * 17.0) - 0.5) * 0.7 + sin(time_s * 9.0 + seed * 30.0) * 0.04;
 		p.z += (h1(seed * 29.0) - 0.5) * 0.7;
-		p.y += life * (0.7 + 0.45 * h1(seed * 3.0));
-		sz = floor(5.0 - life * 3.5 + 0.5) * zoom;
+		p.y += life * (0.85 + 0.6 * h1(seed * 3.0));
+		p.x += sin(time_s * 13.0 + seed * 50.0 + life * 9.0) * 0.03 * life;   // 아지랑이처럼 흔들림
+		sz = floor(6.0 - life * 4.0 + 0.5) * zoom;
 	} else if (kind > 8.5 && kind < 9.5) {   // 검은 연기(불)
 		float dur = 3.0 + seed * 1.5;
 		life = fract(time_s / dur + seed * 7.0);
-		p.y += 0.4 + life * 2.6;
-		p.x += life * life * 0.9 + sin(life * 5.0 + seed * 20.0) * 0.15;
-		p.z += (h1(seed * 9.0) - 0.5) * 0.5 + life * 0.3;
-		sz = floor(3.0 + life * 6.0) * zoom;
+		p.y += 0.4 + life * 4.2;
+		p.x += life * life * 1.2 + sin(life * 5.0 + seed * 20.0) * 0.2;
+		p.z += (h1(seed * 9.0) - 0.5) * 0.6 + life * 0.4;
+		sz = floor(4.0 + life * 9.0) * zoom;
 	} else if (kind > 9.5 && kind < 10.5) {  // 파리: 쓰레기 위를 맴돈다
 		float a = time_s * (3.0 + seed * 2.0) + seed * 40.0;
 		float r = 0.12 + 0.12 * h1(seed * 13.0);
@@ -204,7 +205,7 @@ void fragment() {
 		if (dot(c, c) > r * r + 0.3) { discard; }
 		float fade = (1.0 - life) * 0.95 * smoothstep(0.0, 0.1, life);
 		if (fade < dth) { discard; }
-		col = mix(vec3(0.18, 0.15, 0.18), vec3(0.42, 0.38, 0.42), life) * mix(amb, vec3(1.0), 0.3);
+		col = mix(vec3(0.14, 0.12, 0.14), vec3(0.4, 0.36, 0.4), life) * mix(amb, vec3(1.0), 0.3);
 	} else if (kind > 9.5 && kind < 10.5) {
 		col = vec3(0.1, 0.1, 0.12);
 	} else if (kind > 10.5 && kind < 11.5) {

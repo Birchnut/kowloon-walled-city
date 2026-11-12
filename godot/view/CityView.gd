@@ -254,13 +254,19 @@ func _layout() -> void:
 		_up -= 1
 	_iw = int(ceil(real.x / float(_up) / 2.0)) * 2
 	_ih = int(ceil(real.y / float(_up) / 2.0)) * 2
+	_zmul = maxf(1.0, float(_ih) / th) if bool(cfg.r("pixel.fill_small_windows", true)) else 1.0
 	_vp.size = Vector2i(_iw + 2, _ih + 2)
 	_apply_camera()
 
 
 # ------------------------------------------------------------------ 카메라
 func ppu() -> float:
-	return cfg.ppu1 * _zf
+	return cfg.ppu1 * _zf * _zmul
+
+
+## 창 높이에 따른 확대 사다리 배율: 정수배로 나눈 내부 높이가 540보다 크면(720p ×1 = 720) 그만큼 올려
+## 가장 먼 확대에서도 1080p처럼 도시가 화면을 채운다(720p ×1.33). 1080p·1440p·2160p는 1.
+var _zmul := 1.0
 
 
 ## 지금 확대 단계의 배율(애니메이션 끝 값).
