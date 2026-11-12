@@ -4,13 +4,13 @@ extends RefCounted
 ##  heightmap: 기둥 높이(1/16층) → 격자 DDA 그림자·맞닿음 음영.
 ##  lightgrid: 복셀 빛(RGB=네온, A=창 불빛) → 네온이 벽·바닥에 실제로 번진다. 실시간 광원 0개.
 
-const HM := 32
 const HM_ORG := -10
-
-const LX := 32      # 반 칸 해상도(x,z)
-const LZ := 32
-const LY := 14      # 층당 1복셀
 const L_ORG := Vector3(-2.0, 0.0, -2.0)
+
+var HM := 36        # 격자 + 둘레(그림자 높이맵, -10..)
+var LX := 40        # 반 칸 해상도(x,z): (격자+4)×2
+var LZ := 40
+var LY := 14        # 층당 1복셀
 
 var cfg: ViewCfg
 var hm_img: Image
@@ -21,6 +21,11 @@ var _acc := PackedFloat32Array()
 
 func setup(c: ViewCfg) -> void:
 	cfg = c
+	HM = maxi(c.grid.x, c.grid.y) + 20
+	LX = (c.grid.x + 4) * 2
+	LZ = (c.grid.y + 4) * 2
+	LY = c.grid.z + 4
+	_acc = PackedFloat32Array()
 	hm_img = Image.create(HM, HM, false, Image.FORMAT_R8)
 	hm_tex = ImageTexture.create_from_image(hm_img)
 	var slices: Array[Image] = []

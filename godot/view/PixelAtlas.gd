@@ -5,7 +5,7 @@ extends RefCounted
 ##       큰 형태는 매크로 격자에, 가는 디테일(홀수 열·드문 가로줄)은 ×2 이상에서만 보이게 그린다.
 ## 알파 규약: 0 = 투명, 0.5 = 유리(밤에 켜질 수 있음), 0.75 = 항상 발광, 1 = 보통.
 
-const SIZE := 512
+const SIZE := 1024
 const T := 16
 const A_GLASS := 0.5
 const A_EMIT := 0.75
@@ -23,6 +23,7 @@ var _h := 16
 var _rs := 1
 var _sign_x := 0
 var _sign_y := 352
+var _sign_row_h := 0
 var _signs: Dictionary = {}
 var _fonts: Array = []
 var dirty := false
@@ -38,6 +39,7 @@ func build(c: ViewCfg) -> void:
 	_tall_next = 0
 	_sign_x = 0
 	_sign_y = 352
+	_sign_row_h = 0
 	_load_fonts()
 	_paint_basics()
 	for m in cfg.material_ids():
@@ -69,8 +71,8 @@ func has(name: String) -> bool:
 
 # ------------------------------------------------------------------ 그리기 도우미
 func _begin(name: String, seed_v: int = 0) -> void:
-	_ox = (_next % 32) * T
-	_oy = (_next / 32) * T
+	_ox = (_next % (SIZE / T)) * T
+	_oy = (_next / (SIZE / T)) * T
 	_w = T
 	_h = T
 	_next += 1
@@ -934,7 +936,8 @@ func _paint_interiors() -> void:
 # ------------------------------------------------------------------ 간판 글자
 func _load_fonts() -> void:
 	_fonts.clear()
-	for spec in [["res://assets/view/fonts/FusionPixel12-zh_hk.ttf", 12], ["res://assets/fonts/Galmuri11.ttf", 11]]:
+	# 한글만(한자 글꼴은 v4에서 뺐다). 0 = 보통 간판(9px), 1 = 큰 간판(11px)
+	for spec in [["res://assets/fonts/Galmuri9.ttf", 9], ["res://assets/fonts/Galmuri11.ttf", 11]]:
 		if ResourceLoader.exists(spec[0]):
 			var f: Variant = load(spec[0])
 			if f is FontFile:
@@ -942,19 +945,23 @@ func _load_fonts() -> void:
 
 
 ## 글자열을 아틀라스에 굽고 텍셀 사각형을 돌려준다. vertical=true면 세로쓰기.
-func sign_rect(text: String, vertical: bool) -> Rect2i:
-	var key := ("v:" if vertical else "h:") + text
+func sign_rect(text: String, vertical: bool, big: bool = false) -> Rect2i:
+	var key := ("v:" if vertical else "h:") + ("B" if big else "") + text
 	if _signs.has(key):
 		return _signs[key]
 	var glyphs: Array = []
+	var fi := 1 if big and _fonts.size() > 1 else 0
 	for i in text.length():
-		var g: Variant = _glyph(text.unicode_at(i))
+		var cp := text.unicode_at(i)
+		if (cp >= 0x4E00 and cp <= 0x9FFF) or (cp >= 0x3400 and cp <= 0x4DBF) or (cp >= 0xF900 and cp <= 0xFAFF):
+			continue   # 한자는 그리지 않는다(v4: 간판은 한글)
+		var g: Variant = _glyph(cp, fi)
 		if g != null:
 			glyphs.append(g)
 	if glyphs.is_empty():
 		_signs[key] = Rect2i(0, 0, 0, 0)
 		return _signs[key]
-	var cell := 12
+	var cell := 12 if fi == 1 else 10
 	var w := 0
 	var h := 0
 	if vertical:
@@ -967,7 +974,8 @@ func sign_rect(text: String, vertical: bool) -> Rect2i:
 		h = cell
 	if _sign_x + w + 1 > SIZE:
 		_sign_x = 0
-		_sign_y += 40
+		_sign_y += _sign_row_h + 1
+		_sign_row_h = 0
 	if _sign_y + h > SIZE:
 		_signs[key] = Rect2i(0, 0, 0, 0)
 		return _signs[key]
@@ -994,14 +1002,19 @@ func sign_rect(text: String, vertical: bool) -> Rect2i:
 		else:
 			cx += adv + 1
 	_sign_x += w + 2
+	_sign_row_h = maxi(_sign_row_h, h)
 	var r := Rect2i(ox, oy, w, h)
 	_signs[key] = r
 	dirty = true
 	return r
 
 
-func _glyph(code: int) -> Variant:
-	for fs in _fonts:
+func _glyph(code: int, fi: int = 0) -> Variant:
+	var order: Array = [_fonts[fi]] if fi < _fonts.size() else []
+	for fs2 in _fonts:
+		if not order.has(fs2):
+			order.append(fs2)
+	for fs in order:
 		var f: FontFile = fs[0]
 		var px: int = fs[1]
 		if not f.has_char(code):
@@ -1025,5 +1038,5 @@ func _glyph(code: int) -> Variant:
 		var off := f.get_glyph_offset(0, size, gidx)
 		var adv := f.get_glyph_advance(0, px, gidx)
 		var asc := f.get_cache_ascent(0, px)
-		return {"img": gimg, "src": Rect2i(uv), "off": Vector2i(int(round(off.x)), int(round(asc + off.y)) - (int(round(asc)) - px + 1)), "adv": clampi(int(round(adv.x)), 3, 12)}
+		return {"img": gimg, "src": Rect2i(uv), "off": Vector2i(int(round(off.x)), int(round(asc + off.y)) - (int(round(asc)) - px + 1)), "adv": clampi(int(round(adv.x)), 3, px + 1)}
 	return null

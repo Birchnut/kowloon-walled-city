@@ -124,7 +124,7 @@ func _load_city() -> void:
 		else:
 			push_warning("state= 파일을 읽지 못함: %s" % path)
 	if s == null:
-		s = FakeCity.build(_preset, _seed, Vector3i(int(Data.cfg("grid.width", 12)), int(Data.cfg("grid.height", 12)), int(Data.cfg("grid.max_floors", 10))))
+		s = FakeCity.build(_preset, _seed, Vector3i(int(_args.get("gw", 16)), int(_args.get("gh", 16)), int(_args.get("gz", 10))))
 	if _args.has("wave"):
 		# 첫 전기 시험: 전기 시설을 꺼 둔 채 시작한다
 		for bid in s.buildings:
@@ -306,14 +306,6 @@ func _unhandled_key_input(ev: InputEvent) -> void:
 		return
 	var k: InputEventKey = ev
 	match k.keycode:
-		KEY_Q:
-			view.rotate_view(-1)
-		KEY_E:
-			view.rotate_view(1)
-		KEY_R:
-			view.set_floor_cut(mini(view.floor_cut + 1, 10))
-		KEY_F:
-			view.set_floor_cut(maxi(view.floor_cut - 1, -1))
 		KEY_EQUAL, KEY_KP_ADD:
 			view.zoom_step(1)
 		KEY_MINUS, KEY_KP_SUBTRACT:

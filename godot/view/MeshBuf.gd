@@ -3,7 +3,7 @@ extends RefCounted
 ## MeshBuf — 쿼드/상자를 배열에 쌓아 ArrayMesh 하나로 만든다.
 ## 정점 속성: COLOR.rgb = 색조, COLOR.a = 흔들림 가중치 / UV2.x = 칸 번호 + 난수(소수부), UV2.y = 종류(K_*).
 
-const INV := 1.0 / 512.0
+const INV := 1.0 / 1024.0
 const K_PLAIN := 0.0
 const K_WINDOW := 1.0     # 유리 텍셀이 밤에 켜질 수 있음
 const K_NEON := 2.0       # 전기가 있으면 밤에 통째로 발광

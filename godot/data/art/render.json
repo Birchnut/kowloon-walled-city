@@ -1,18 +1,32 @@
 {
   "_comment": "렌더 설정(VIEW 소유). 색은 #rrggbb. 고치고 F5. 설명은 docs/VIEW_NOTES.md.",
   "pixel": {
-    "target_width": 270,
-    "cell_half_px": 8,
-    "storey_px": 8,
-    "zoom_levels": [1.25, 2, 4],
-    "default_zoom": 0,
-    "center_y": 0.56,
+    "cell_half_px": 16,
+    "storey_px": 16,
+    "zoom_levels": [
+      1,
+      1.5,
+      2,
+      3,
+      4
+    ],
+    "default_zoom": 1,
+    "center_y": 0.5,
     "elevation_deg": 30.0,
     "cut_elevation_deg": 30.0,
     "people_near_zoom": 4,
-    "subpixel_scroll": true
+    "subpixel_scroll": true,
+    "_comment": "PC(v4): 칸 반폭 16px·한 층 16px = 텍셀 1:1(확대 단계 0). 내부 해상도 높이 ≈ target_height(창 높이/정수배). 확대 5단계 = 칸 폭 32·48·64·96·128 내부 px.",
+    "target_height": 540,
+    "min_width": 480,
+    "interior_levels": 2,
+    "smooth_zoom": true
   },
-  "outline": { "enabled": true, "strength": 0.22, "depth_threshold": 0.8 },
+  "outline": {
+    "enabled": true,
+    "strength": 0.22,
+    "depth_threshold": 0.8
+  },
   "shade": {
     "ao_strength": 0.22,
     "depth_haze": 0.035,
@@ -21,22 +35,186 @@
     "light_bands": 3.0,
     "light_dither": 0.0
   },
-  "post": { "quantize": false, "levels": 24.0 },
-  "sun": { "noon_elevation_deg": 52.0, "min_elevation_deg": 14.0, "azimuth_morning_deg": -58.0, "azimuth_dusk_deg": 118.0, "moon_azimuth_deg": -35.0, "moon_elevation_deg": 48.0 },
+  "post": {
+    "quantize": false,
+    "levels": 24.0
+  },
+  "sun": {
+    "noon_elevation_deg": 52.0,
+    "min_elevation_deg": 14.0,
+    "azimuth_morning_deg": -58.0,
+    "azimuth_dusk_deg": 118.0,
+    "moon_azimuth_deg": -35.0,
+    "moon_elevation_deg": 48.0
+  },
   "tod": {
     "_comment": "t: 0=자정 0.25=06시 0.5=정오 0.75=18시. 사이는 선형 보간. win=창 켜짐 비율, night=네온·빛번짐 세기, stars=별.",
     "keys": [
-      { "t": 0.00, "sky_top": "#0b0d2c", "sky_mid": "#1a1846", "sky_low": "#2e2456", "haze": "#1d1a3c", "lit_top": "#5e69a8", "lit_side": "#4a5290", "shade": "#343a74", "sil_far": "#262250", "sil_near": "#161436", "night": 1.0, "win": 0.30, "stars": 1.0 },
-      { "t": 0.17, "sky_top": "#0b0d2c", "sky_mid": "#1a1846", "sky_low": "#2e2456", "haze": "#1d1a3c", "lit_top": "#5e69a8", "lit_side": "#4a5290", "shade": "#343a74", "sil_far": "#262250", "sil_near": "#161436", "night": 1.0, "win": 0.07, "stars": 1.0 },
-      { "t": 0.235, "sky_top": "#34407e", "sky_mid": "#8a6c9c", "sky_low": "#f0a98c", "haze": "#6f5f8a", "lit_top": "#b9a3c4", "lit_side": "#a88fae", "shade": "#62609a", "sil_far": "#8a6f9c", "sil_near": "#4c4478", "night": 0.55, "win": 0.26, "stars": 0.2 },
-      { "t": 0.29, "sky_top": "#7fb0d2", "sky_mid": "#c6dadc", "sky_low": "#fbe3bd", "haze": "#e9d3bd", "lit_top": "#fff3d6", "lit_side": "#f6dcb8", "shade": "#a8a4cf", "sil_far": "#e3d8d0", "sil_near": "#c4c2cc", "night": 0.0, "win": 0.05, "stars": 0.0 },
-      { "t": 0.50, "sky_top": "#86c0dc", "sky_mid": "#bfe0e2", "sky_low": "#f3ecd2", "haze": "#e6dcc8", "lit_top": "#fffbe8", "lit_side": "#f4e8cf", "shade": "#aeb0da", "sil_far": "#dde3dc", "sil_near": "#c2cfd2", "night": 0.0, "win": 0.0, "stars": 0.0 },
-      { "t": 0.66, "sky_top": "#7fb2d6", "sky_mid": "#d9d9c4", "sky_low": "#ffdca0", "haze": "#ecd0ac", "lit_top": "#fff0c4", "lit_side": "#ffdf9f", "shade": "#a79fd0", "sil_far": "#e6cfb8", "sil_near": "#c4b0b8", "night": 0.0, "win": 0.02, "stars": 0.0 },
-      { "t": 0.745, "sky_top": "#4b4a94", "sky_mid": "#c5628e", "sky_low": "#ffb060", "haze": "#b46a7c", "lit_top": "#ffb98a", "lit_side": "#ff9f6e", "shade": "#6a5aa2", "sil_far": "#a6608c", "sil_near": "#5a3f7a", "night": 0.45, "win": 0.55, "stars": 0.1 },
-      { "t": 0.80, "sky_top": "#1c1d5a", "sky_mid": "#4c3a82", "sky_low": "#a8587e", "haze": "#3e2f66", "lit_top": "#7f76b6", "lit_side": "#6a60a4", "shade": "#44438a", "sil_far": "#4a3878", "sil_near": "#231d4e", "night": 0.9, "win": 0.95, "stars": 0.6 },
-      { "t": 0.86, "sky_top": "#0b0d2c", "sky_mid": "#1c1a4a", "sky_low": "#35285c", "haze": "#1f1c40", "lit_top": "#5e69a8", "lit_side": "#4a5290", "shade": "#343a74", "sil_far": "#262250", "sil_near": "#161436", "night": 1.0, "win": 1.0, "stars": 1.0 },
-      { "t": 0.95, "sky_top": "#0b0d2c", "sky_mid": "#1a1846", "sky_low": "#2e2456", "haze": "#1d1a3c", "lit_top": "#5e69a8", "lit_side": "#4a5290", "shade": "#343a74", "sil_far": "#262250", "sil_near": "#161436", "night": 1.0, "win": 0.62, "stars": 1.0 },
-      { "t": 1.00, "sky_top": "#0b0d2c", "sky_mid": "#1a1846", "sky_low": "#2e2456", "haze": "#1d1a3c", "lit_top": "#5e69a8", "lit_side": "#4a5290", "shade": "#343a74", "sil_far": "#262250", "sil_near": "#161436", "night": 1.0, "win": 0.30, "stars": 1.0 }
+      {
+        "t": 0.0,
+        "sky_top": "#0b0d2c",
+        "sky_mid": "#1a1846",
+        "sky_low": "#2e2456",
+        "haze": "#1d1a3c",
+        "lit_top": "#5e69a8",
+        "lit_side": "#4a5290",
+        "shade": "#343a74",
+        "sil_far": "#262250",
+        "sil_near": "#161436",
+        "night": 1.0,
+        "win": 0.3,
+        "stars": 1.0
+      },
+      {
+        "t": 0.17,
+        "sky_top": "#0b0d2c",
+        "sky_mid": "#1a1846",
+        "sky_low": "#2e2456",
+        "haze": "#1d1a3c",
+        "lit_top": "#5e69a8",
+        "lit_side": "#4a5290",
+        "shade": "#343a74",
+        "sil_far": "#262250",
+        "sil_near": "#161436",
+        "night": 1.0,
+        "win": 0.07,
+        "stars": 1.0
+      },
+      {
+        "t": 0.235,
+        "sky_top": "#34407e",
+        "sky_mid": "#8a6c9c",
+        "sky_low": "#f0a98c",
+        "haze": "#6f5f8a",
+        "lit_top": "#b9a3c4",
+        "lit_side": "#a88fae",
+        "shade": "#62609a",
+        "sil_far": "#8a6f9c",
+        "sil_near": "#4c4478",
+        "night": 0.55,
+        "win": 0.26,
+        "stars": 0.2
+      },
+      {
+        "t": 0.29,
+        "sky_top": "#7fb0d2",
+        "sky_mid": "#c6dadc",
+        "sky_low": "#fbe3bd",
+        "haze": "#e9d3bd",
+        "lit_top": "#fff3d6",
+        "lit_side": "#f6dcb8",
+        "shade": "#a8a4cf",
+        "sil_far": "#e3d8d0",
+        "sil_near": "#c4c2cc",
+        "night": 0.0,
+        "win": 0.05,
+        "stars": 0.0
+      },
+      {
+        "t": 0.5,
+        "sky_top": "#86c0dc",
+        "sky_mid": "#bfe0e2",
+        "sky_low": "#f3ecd2",
+        "haze": "#e6dcc8",
+        "lit_top": "#fffbe8",
+        "lit_side": "#f4e8cf",
+        "shade": "#aeb0da",
+        "sil_far": "#dde3dc",
+        "sil_near": "#c2cfd2",
+        "night": 0.0,
+        "win": 0.0,
+        "stars": 0.0
+      },
+      {
+        "t": 0.66,
+        "sky_top": "#7fb2d6",
+        "sky_mid": "#d9d9c4",
+        "sky_low": "#ffdca0",
+        "haze": "#ecd0ac",
+        "lit_top": "#fff0c4",
+        "lit_side": "#ffdf9f",
+        "shade": "#a79fd0",
+        "sil_far": "#e6cfb8",
+        "sil_near": "#c4b0b8",
+        "night": 0.0,
+        "win": 0.02,
+        "stars": 0.0
+      },
+      {
+        "t": 0.745,
+        "sky_top": "#4b4a94",
+        "sky_mid": "#c5628e",
+        "sky_low": "#ffb060",
+        "haze": "#b46a7c",
+        "lit_top": "#ffb98a",
+        "lit_side": "#ff9f6e",
+        "shade": "#6a5aa2",
+        "sil_far": "#a6608c",
+        "sil_near": "#5a3f7a",
+        "night": 0.45,
+        "win": 0.55,
+        "stars": 0.1
+      },
+      {
+        "t": 0.8,
+        "sky_top": "#1c1d5a",
+        "sky_mid": "#4c3a82",
+        "sky_low": "#a8587e",
+        "haze": "#3e2f66",
+        "lit_top": "#7f76b6",
+        "lit_side": "#6a60a4",
+        "shade": "#44438a",
+        "sil_far": "#4a3878",
+        "sil_near": "#231d4e",
+        "night": 0.9,
+        "win": 0.95,
+        "stars": 0.6
+      },
+      {
+        "t": 0.86,
+        "sky_top": "#0b0d2c",
+        "sky_mid": "#1c1a4a",
+        "sky_low": "#35285c",
+        "haze": "#1f1c40",
+        "lit_top": "#5e69a8",
+        "lit_side": "#4a5290",
+        "shade": "#343a74",
+        "sil_far": "#262250",
+        "sil_near": "#161436",
+        "night": 1.0,
+        "win": 1.0,
+        "stars": 1.0
+      },
+      {
+        "t": 0.95,
+        "sky_top": "#0b0d2c",
+        "sky_mid": "#1a1846",
+        "sky_low": "#2e2456",
+        "haze": "#1d1a3c",
+        "lit_top": "#5e69a8",
+        "lit_side": "#4a5290",
+        "shade": "#343a74",
+        "sil_far": "#262250",
+        "sil_near": "#161436",
+        "night": 1.0,
+        "win": 0.62,
+        "stars": 1.0
+      },
+      {
+        "t": 1.0,
+        "sky_top": "#0b0d2c",
+        "sky_mid": "#1a1846",
+        "sky_low": "#2e2456",
+        "haze": "#1d1a3c",
+        "lit_top": "#5e69a8",
+        "lit_side": "#4a5290",
+        "shade": "#343a74",
+        "sil_far": "#262250",
+        "sil_near": "#161436",
+        "night": 1.0,
+        "win": 0.3,
+        "stars": 1.0
+      }
     ]
   },
   "light": {
@@ -48,6 +226,21 @@
     "neon_radius": 2.2,
     "window_radius": 1.3
   },
-  "people": { "max": 140, "gate_side": 2 },
-  "fx": { "plane_period_s": 55.0, "plane_shake_px": 1.0, "power_wave_s": 4.5 }
+  "people": {
+    "max": 140,
+    "gate_side": 2
+  },
+  "fx": {
+    "plane_period_s": 55.0,
+    "plane_shake_px": 1.0,
+    "power_wave_s": 4.5
+  },
+  "input": {
+    "keyboard_pan": true,
+    "key_pan_px": 900.0
+  },
+  "interior": {
+    "dollhouse": true,
+    "cut_actor_zoom": 2
+  }
 }
