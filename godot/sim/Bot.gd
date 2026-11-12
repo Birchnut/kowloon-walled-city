@@ -1108,9 +1108,13 @@ func _upgrades(state: CityState) -> void:
 		var ln: Dictionary = state.labor.get(nt, {"have": 0, "need": 0.0})
 		var lw: Dictionary = state.flags["bot"].get("labor_want", {})
 		# 마지막 목표를 보고 움직인다: 옥상 황제가 목표 수(60)를 넘었는데 구청이 아직 안 열렸으면(깡통 귀족 100이 조건) 깡통 귀족을 남긴다
-		if nt == 5 and _pop(state, 5) >= _final_t5() + 6.0 and not sim.is_unlocked(state, "city_hall"):
-			_block("구청 조건(깡통 귀족)을 위해 옥상 황제 승급 보류")
-			continue
+		if nt == 5 and not sim.is_unlocked(state, "city_hall"):
+			# 마지막 목표를 보고 움직인다: 구청(깡통 귀족 60 + 용탑)이 잠겨 있으면 깡통 귀족을 그 아래로 깎아 먹지 않는다
+			# (첫 옥상 황제는 예외 — 목표 22). 옥상 황제가 마지막 목표 + 6을 넘었으면 구청이 열릴 때까지 아예 보류.
+			var t4_after := _pop(state, 4) - float(b["residents"])
+			if _pop(state, 5) >= _final_t5() + 6.0 or (_pop(state, 5) > 0.0 and t4_after < _hall_t4() + 8.0):
+				_block("구청 조건(깡통 귀족)을 위해 옥상 황제 승급 보류")
+				continue
 		var short := float(ln["need"]) > float(ln["have"]) or state.econ_days - float(lw.get(str(nt), -9.0)) < 0.5
 		if not short and int(hn.get(nt, 0)) >= int(c("pilot_houses", 3)) and float(hf.get(nt, 0)) < float(c("next_full_ratio", 0.7)) * float(hn.get(nt, 0)):
 			_block("%s 주거가 아직 안 차서 승급 보류" % sim.tname(nt))
@@ -1151,6 +1155,16 @@ func _upgrades(state: CityState) -> void:
 			done += 1
 		else:
 			_block(str(r.get("reason", "")))
+
+
+## 구청 해금의 깡통 귀족 수(unlocks.json에서 city_hall을 여는 조건).
+func _hall_t4() -> float:
+	for u: Dictionary in sim.items("unlocks").values():
+		if "city_hall" in u.get("unlocks", []):
+			for cnd: Array in u.get("cond", []):
+				if str(cnd[0]) == "pop.t4":
+					return float(cnd[2])
+	return 60.0
 
 
 ## 마지막 목표의 옥상 황제 수(goals.json의 final 목표 조건에서 읽는다).
