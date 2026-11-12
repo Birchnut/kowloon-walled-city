@@ -235,13 +235,27 @@ func _process(_dt: float) -> void:
 			RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME),
 			RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME),
 			view.people.agents.size(), view.markers.count()])
+		print("PERF slots=%d actors_visible=%d grid=%s" % [view.actors.slots.size(), view.actors.count(), str(view.cfg.grid)])
 		var t0 := Time.get_ticks_usec()
 		view.rebuild_all()
 		var t1 := Time.get_ticks_usec()
 		Game.event.emit("building_changed", {"bid": 1})
 		view._process(0.0)
 		var t2 := Time.get_ticks_usec()
-		print("PERF rebuild_all_ms=%.1f building_changed_ms=%.2f" % [(t1 - t0) / 1000.0, (t2 - t1) / 1000.0])
+		var t3 := Time.get_ticks_usec()
+		view.set_floor_cut(3)
+		var t4 := Time.get_ticks_usec()
+		view.set_floor_cut(-1)
+		var t5 := Time.get_ticks_usec()
+		for i in 10:
+			view._process(0.016)
+		var t6 := Time.get_ticks_usec()
+		print("PERF rebuild_all_ms=%.1f building_changed_ms=%.2f cut_ms=%.1f process_cpu_ms=%.2f" % [(t1 - t0) / 1000.0, (t2 - t1) / 1000.0, (t4 - t3) / 1000.0, (t6 - t5) / 10000.0])
+	if _args.has("perf") and _frame == 7:
+		view.prof_on = true
+	if _args.has("perf") and _frame > 10 and _frame % 10 == 0:
+		print("PROF ", view.prof)
+		print("PERF fps=%.1f frame_ms=%.1f draw_calls=%d" % [Engine.get_frames_per_second(), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME)])
 	if _args.has("dbgact") and _frame == int(_args["dbgact"]):
 		print("ACT slots=%d vis=%d zoom=%d inner=%s cut=%d" % [view.actors.slots.size(), view.actors.count(), view.zoom_i, str(view.interior_zoom()), view.floor_cut])
 		if view.actors.slots.size() > 0:

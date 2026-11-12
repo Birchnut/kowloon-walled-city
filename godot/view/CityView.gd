@@ -1179,7 +1179,19 @@ func _update_uniforms() -> void:
 
 
 # ------------------------------------------------------------------ 매 프레임
+var prof: Dictionary = {}
+var prof_on := false
+
+
+func _pt(key: String, t0: int) -> int:
+	var t1 := Time.get_ticks_usec()
+	if prof_on:
+		prof[key] = float(prof.get(key, 0.0)) * 0.9 + float(t1 - t0) * 0.1
+	return t1
+
+
 func _process(delta: float) -> void:
+	var _p0 := Time.get_ticks_usec()
 	_t += delta
 	var cam_dirty := false
 	if not _insets_cur.is_equal_approx(_insets):
@@ -1296,10 +1308,12 @@ func _process(delta: float) -> void:
 		_rebuild_overlay()
 	if markers != null:
 		markers.set_frame(ppu(), maxf(1.0, floor(_zf * 0.5)), _t)
+	_p0 = _pt("pre", _p0)
 	if cam_dirty:
 		_apply_camera()
 	_update_hover(cam_dirty)
 	_update_uniforms()
+	_p0 = _pt("cam_uniforms", _p0)
 	if not _tod_vals.is_empty():
 		var lit: Color = _tod_vals["lit_side"]
 		var shd: Color = _tod_vals["shade"]
@@ -1312,6 +1326,7 @@ func _process(delta: float) -> void:
 		if people != null:
 			people.call("set_light", amb, night, ng, grid_tex.origin(), grid_tex.inv_size())
 			people.call("step", delta, tod())
+		_p0 = _pt("people", _p0)
 		if actors != null:
 			if _slots_dirty:
 				_push_slots()
@@ -1319,6 +1334,7 @@ func _process(delta: float) -> void:
 			var wc := ViewCfg.col(cfg.r("light.window_warm", "#ffc46a"))
 			actors.set_light(amb, night, ng, grid_tex.origin(), grid_tex.inv_size(), Vector3(wc.r, wc.g, wc.b))
 			actors.step(delta, tod() * 24.0)
+		_p0 = _pt("actors", _p0)
 		if fx != null:
 			var cut_y := 1000.0 if floor_cut < 0 else float(floor_cut) * cfg.floor_h + 0.6
 			fx.call("set_frame", ppu(), maxf(floor(_zf), 1.0), _t, night, work, amb, ng, grid_tex.origin(), grid_tex.inv_size(), cut_y)

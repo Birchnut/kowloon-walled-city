@@ -491,6 +491,9 @@ func _sign_main() -> void:
 		tcol = Color("#3b3558") if board.v > 0.8 else Color("#ffe9a8")
 	var tk := MeshBuf.K_NEON if neon else MeshBuf.K_PLAIN
 	if not vertical:
+		# 가로 간판은 가까운 확대(인형의 집)에서 걷힌다 — 방을 가리지 않게
+		if str(rec.get("form", "box")) == "box":
+			m.mb.kind_add = 32.0
 		var pad := 0.08
 		var bw := tw + pad * 2.0
 		var bh := th + pad * 1.5
@@ -507,6 +510,7 @@ func _sign_main() -> void:
 		var bb := P(tu + tw, -0.104, h1 - (pad * 0.75) / fh)
 		var dy := Vector3(0, -th, 0)
 		m.mb.quad(a, bb, bb + dy, a + dy, -RV, tr, tcol, rnd, tk)
+		m.mb.kind_add = 0.0
 		if neon:
 			light_at(float(Wf) * 0.5, -0.5, h0, col, 2.4)
 	else:
