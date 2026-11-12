@@ -5,7 +5,7 @@ extends SceneTree
 ## - 만드는 시간(효과음 합, 전체 합)
 ## - 구절 생성기가 결정적인지, 음역 안인지
 ## - 감독(AudioDirector)의 상태 → 층 목표·한 번짜리 빈도가 말이 되는지(밤 귀뚜라미 > 낮, 저녁 웅성 > 새벽, 멀리 보면 바람 ↑, 불 → 불 층)
-## - 같은 효과음 연타 막기
+## - 같은 효과음 연타 막기, 사건 소리(construction_done·milestone), 불 사건 셈
 ## 결과: 콘솔 표 + out 폴더에 WAV 와 report.md. 실패가 있으면 종료 코드 1.
 
 const S := preload("res://audio/Synth.gd")
@@ -247,6 +247,18 @@ func _director_checks() -> void:
 		if p.playing and p.get_meta("sfx", "") == "click":
 			playing_before += 1
 	_check(playing_before == 1, "click 연타가 막히지 않았다(%d)" % playing_before)
+	# 사건 소리: UI 가 부르지 않는 사건은 Sfx 가 스스로
+	d.call("_on_game_event", "construction_done", {"bid": 1})
+	d.call("_on_game_event", "milestone", {"grade": 2})
+	var heard := {}
+	for p: AudioStreamPlayer in d.get("_sfx_pool"):
+		if p.playing:
+			heard[p.get_meta("sfx", "")] = true
+	_check(heard.has("construction_done") and heard.has("tier_up"), "사건 소리가 안 났다: %s" % str(heard.keys()))
+	d.call("_on_game_event", "fire_started", {})
+	d.call("_on_game_event", "fire_spread", {})
+	d.call("_on_game_event", "fire_out", {})
+	_check(int(d.get("_fires_ev")) == 1, "불 사건 셈이 틀렸다: %d" % int(d.get("_fires_ev")))
 	# 볼륨 API
 	d.call("set_volume", "music", 0.25)
 	_check(absf(float(d.call("get_volume", "Music")) - 0.25) < 1e-6, "get_volume(music)")
