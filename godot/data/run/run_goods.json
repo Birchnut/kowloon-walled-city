@@ -1,0 +1,106 @@
+{
+ "_comment": "직접 줍기에서 나오는 물건. id는 도시의 goods id(canned만 도시에 아직 없음 — 통합 때 확인). bundle = 묶음 하나의 수량, cap = 한 칸에 겹칠 수 있는 묶음 수, value = 봇이 버릴 것 고를 때 쓰는 대략 값, w_shallow/w_deep = 얕은 방/깊은 방 출현 가중치, min_depth = 이 깊이부터 나온다.",
+ "items": {
+  "scrap": {
+   "name": "고물",
+   "short": "고물",
+   "bundle": 3,
+   "cap": 4,
+   "value": 1.0,
+   "w_shallow": 5,
+   "w_deep": 2,
+   "min_depth": 0,
+   "color": "#a08a6a"
+  },
+  "metal": {
+   "name": "철제",
+   "short": "철제",
+   "bundle": 2,
+   "cap": 4,
+   "value": 3.0,
+   "w_shallow": 3,
+   "w_deep": 4,
+   "min_depth": 0,
+   "color": "#8fa3b8"
+  },
+  "wood": {
+   "name": "목재",
+   "short": "목재",
+   "bundle": 3,
+   "cap": 4,
+   "value": 1.5,
+   "w_shallow": 2,
+   "w_deep": 1,
+   "min_depth": 0,
+   "color": "#b9824a"
+  },
+  "concrete": {
+   "name": "콘크리트",
+   "short": "콘크",
+   "bundle": 3,
+   "cap": 4,
+   "value": 1.5,
+   "w_shallow": 2,
+   "w_deep": 1,
+   "min_depth": 0,
+   "color": "#b4b0a4"
+  },
+  "canned": {
+   "name": "통조림",
+   "short": "캔",
+   "bundle": 2,
+   "cap": 4,
+   "value": 2.0,
+   "w_shallow": 1,
+   "w_deep": 1,
+   "min_depth": 0,
+   "color": "#d8574a"
+  },
+  "elec": {
+   "name": "전자 폐품",
+   "short": "전자",
+   "bundle": 2,
+   "cap": 4,
+   "value": 4.0,
+   "w_shallow": 1,
+   "w_deep": 3,
+   "min_depth": 1,
+   "color": "#5fc48a"
+  },
+  "parts": {
+   "name": "설비 부품",
+   "short": "부품",
+   "bundle": 1,
+   "cap": 2,
+   "value": 10.0,
+   "w_shallow": 0,
+   "w_deep": 2,
+   "min_depth": 3,
+   "color": "#f0c040"
+  }
+ },
+ "big": {
+  "name": "큰 짐",
+  "desc": "압축기가 끝까지 안 내놓던 것. 배낭 밖에 멘다.",
+  "goods": {
+   "parts": 3,
+   "elec": 4
+  },
+  "finds": [
+   "도면: 압축기 큰형의 설계도"
+  ]
+ },
+ "sample_begin": {
+  "_comment": "Game에 run_begin이 아직 없을 때 쓰는 견본",
+  "stock": {
+   "scrap": 45,
+   "metal": 30,
+   "elec": 16,
+   "wood": 12,
+   "concrete": 12,
+   "parts": 6,
+   "canned": 10
+  },
+  "danger": 2
+ }
+}

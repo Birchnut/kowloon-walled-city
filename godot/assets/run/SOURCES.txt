@@ -1,0 +1,7 @@
+직접 줍기(expedition) 그림 출처 — 전부 CC0
+- char_player.png  = rubberduck "Customizable character pack" sample_character_05.png (CC0, opengameart.org/content/customizable-character-pack)
+- char_guard.png   = 같은 팩 sample_character_01.png
+- char_rival.png   = 같은 팩 sample_character_13.png
+- kenney_tiny_factory.png = Kenney "Tiny Factory" 1.0 Tilemap/tilemap_packed.png (CC0, kenney.nl)
+원본: /home/claude/kowloon/assets_raw/sigco-releases/ (바이트 그대로 복사)
+그 밖의 그림(바닥·벽·쥐·들개·압축기·더미·효과)은 expedition/RunArt.gd가 코드로 그린다.
