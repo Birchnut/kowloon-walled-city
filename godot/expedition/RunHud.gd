@@ -78,6 +78,13 @@ func _draw() -> void:
 		return
 	var p: Actor = world.player
 	var pad := 6 * s
+	for k in 6:
+		var bw0 := (6 - k) * 14.0 * s
+		var a0 := 0.06
+		draw_rect(Rect2(0, 0, vs.x, bw0), Color(0, 0, 0, a0))
+		draw_rect(Rect2(0, vs.y - bw0, vs.x, bw0), Color(0, 0, 0, a0))
+		draw_rect(Rect2(0, 0, bw0, vs.y), Color(0, 0, 0, a0))
+		draw_rect(Rect2(vs.x - bw0, 0, bw0, vs.y), Color(0, 0, 0, a0))
 	# 맞았을 때 붉은 테두리 / 체력이 낮으면 맥박
 	var edge := hurt_t / 0.35 * 0.55
 	if p.hp <= 3 and p.state != "down":
@@ -209,7 +216,7 @@ func _pack_strip(vs: Vector2) -> void:
 
 
 func _minimap(area: Rect2) -> void:
-	draw_rect(area, Color(0.06, 0.05, 0.07, 0.78))
+	draw_rect(area, Color(0.06, 0.05, 0.07, 0.45))
 	var rooms: Array = world.rooms
 	var maxg := Vector2i.ZERO
 	for r in rooms:

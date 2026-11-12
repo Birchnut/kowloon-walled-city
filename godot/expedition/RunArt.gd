@@ -180,6 +180,15 @@ static func _floor(img: Image, tx: int, ty: int, ox: int, oy: int, base: Color, 
 			elif r > 0.94:
 				c = base.lightened(var_amt * 0.8)
 			img.set_pixel(ox + x, oy + y, c)
+	# 바닥 장식(드물게): 잡초, 나사, 신문지, 바퀴 자국
+	var deco := hash01(tx, ty, 70)
+	if deco < 0.035:
+		for g in 4:
+			_rect(img, ox + 5 + g * 2, oy + 9 - (g % 2) * 2, 1, 3 + (g % 2) * 2, Color("5f6e3c"))
+	elif deco < 0.11:
+		for x in range(0, 16, 3):
+			_rect(img, ox + x, oy + 6, 2, 1, base.darkened(0.25))
+			_rect(img, ox + x + 1, oy + 11, 2, 1, base.darkened(0.25))
 	# 자갈·얼룩
 	var k := hash01(tx, ty, 7)
 	if k < 0.18:
@@ -443,20 +452,22 @@ static func _dog(frame: int) -> Image:
 # ------------------------------------------------------------------ 물건
 static func _pile(empty: bool) -> Image:
 	var img := _new(22, 15)
-	var base := Color("5a4c3c") if not empty else Color("4a4038")
+	if empty:
+		# 다 털린 더미: 납작하게 흩어진 부스러기(구멍처럼 보이지 않게 밝은 흙빛)
+		_ellipse(img, 11, 10, 9.5, 3.5, Color("7a6650"))
+		for k in 9:
+			_rect(img, 3 + int(hash01(k, 5, 44) * 15), 7 + int(hash01(k, 6, 45) * 5), 2, 1, [Color("5f5348"), Color("8a7a66"), Color("6f7d88")][k % 3])
+		return _outline(img, Color("3a2e26"))
+	var base := Color("5a4c3c")
 	_ellipse(img, 11, 10, 10.5, 4.5, base.darkened(0.2))
-	_ellipse(img, 11, 8.5 if not empty else 10, 9, 5 if not empty else 3.5, base)
-	if not empty:
-		var cols := [Color("8a4a30"), Color("6f7d88"), Color("a58a52"), Color("5f7048"), Color("b0b0a8"), Color("3c5a8a")]
-		for k in 14:
-			var x := 3 + int(hash01(k, 1, 40) * 15)
-			var y := 4 + int(hash01(k, 2, 41) * 8)
-			_rect(img, x, y, 2 + int(hash01(k, 3, 42) * 3), 1 + int(hash01(k, 4, 43) * 2), cols[k % cols.size()])
-		_rect(img, 9, 2, 1, 5, Color("888888"))   # 삐죽 나온 파이프
-		_rect(img, 14, 3, 3, 1, Color("c09050"))
-	else:
-		for k in 5:
-			_rect(img, 4 + int(hash01(k, 5, 44) * 13), 8 + int(hash01(k, 6, 45) * 3), 2, 1, Color("5f5348"))
+	_ellipse(img, 11, 8.5, 9, 5, base)
+	var cols := [Color("8a4a30"), Color("6f7d88"), Color("a58a52"), Color("5f7048"), Color("b0b0a8"), Color("3c5a8a")]
+	for k in 14:
+		var x := 3 + int(hash01(k, 1, 40) * 15)
+		var y := 4 + int(hash01(k, 2, 41) * 8)
+		_rect(img, x, y, 2 + int(hash01(k, 3, 42) * 3), 1 + int(hash01(k, 4, 43) * 2), cols[k % cols.size()])
+	_rect(img, 9, 2, 1, 5, Color("888888"))   # 삐죽 나온 파이프
+	_rect(img, 14, 3, 3, 1, Color("c09050"))
 	return _outline(img)
 
 

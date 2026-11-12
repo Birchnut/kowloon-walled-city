@@ -984,7 +984,6 @@ func _boss_step(dt: float) -> void:
 					var it := _mk_item("throw", b.pos + Vector2(0, 18), {"tk": "can"})
 					_pop_item(it)
 				b.set_state("stuck", RunCfg.f("boss_stuck", 1.7))
-				_ev("text", {"pos": b.pos + Vector2(0, -30), "text": "끼였다! 지금!", "col": "yellow"})
 		"stuck":
 			if b.st >= b.timer:
 				b.set_state("rise", 0.45)

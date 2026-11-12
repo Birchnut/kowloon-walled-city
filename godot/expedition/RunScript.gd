@@ -1,7 +1,7 @@
 extends RefCounted
 ## 화면 확인용 입력 대본(script=이름). 장면을 차려 놓고(적 배치·순간 이동) 정해진 입력을 넣는다.
 ## 사람이 하는 것과 같은 RunInput만 쓴다. 차림은 확인용이라 규칙 밖의 일(순간 이동)을 한다.
-## 이름: rat dog guard search pack noise junk wire boss bosswin exit down
+## 이름: rat dog guard throw search pack noise junk wire boss bosswin exit down
 
 const RunWorld = preload("res://expedition/RunWorld.gd")
 const RunInput = preload("res://expedition/RunInput.gd")
@@ -36,6 +36,15 @@ func setup(n: String, world: RunWorld) -> void:
 			g.data["patrol"] = [p.pos + Vector2(90, 0), p.pos + Vector2(90, 40)]
 			g.set_state("look", 99.0)
 			g.data["look_base"] = PI
+		"throw":
+			_teleport_room_center(1)
+			var g2 := w._spawn_enemy("guard", p.pos + Vector2(80, 0), w.cur_room)
+			g2.face = Vector2.LEFT
+			g2.data["patrol"] = [p.pos + Vector2(80, 0)]
+			g2.set_state("look", 99.0)
+			g2.data["look_base"] = PI
+			w.held = ["can", "can"]
+			p.pos += Vector2(-40, 0)
 		"search", "noise":
 			var pl := _nearest_pile_with_loot()
 			p.pos = (pl["pos"] as Vector2) + Vector2(-14, 2)
@@ -46,7 +55,7 @@ func setup(n: String, world: RunWorld) -> void:
 			var goods := ["scrap", "wood", "concrete", "scrap", "metal", "canned"]
 			for k in 6:
 				w.pack[k] = {"good": goods[k], "bundles": 3 if goods[k] != "metal" else 2, "units": 9 if goods[k] != "metal" else 4}
-			var it := w._mk_item("good", p.pos + Vector2(20, 0), {"good": "elec", "units": 2, "bundles": 1})
+			var it := w._mk_item("good", p.pos + Vector2(4, 3), {"good": "elec", "units": 2, "bundles": 1})
 			w.items.append(it)
 		"junk":
 			for j in w.junks:
@@ -157,16 +166,32 @@ func fill(inp: RunInput, world: RunWorld, dt: float) -> void:
 						elif e.state == "recover":
 							inp.move = (e.pos - p.pos).normalized()
 							inp.attack = p.pos.distance_to(e.pos) < 28
+		"throw":
+			var g: Actor = null
+			for e: Actor in world.enemies:
+				if e.kind == "guard" and not e.dead:
+					g = e
+			if g == null:
+				return
+			if t > 0.6 and not mem.has("thrown"):
+				mem["thrown"] = true
+				inp.aim = g.pos + Vector2(70, 40)
+				inp.throw = true
+			elif mem.has("thrown") and t > 2.0:
+				# 등 뒤로 돌아 들어가 기습
+				var behind := g.pos - g.face * 16.0
+				inp.aim = g.pos
+				if p.pos.distance_to(behind) > 8 and p.pos.distance_to(g.pos) > 22:
+					inp.move = (behind - p.pos).normalized()
+				else:
+					inp.attack = true
+			else:
+				inp.aim = g.pos + Vector2(70, 40)
 		"search", "noise":
 			inp.interact = true
 			inp.aim = p.pos + Vector2(20, 0)
 		"pack":
-			if t > 0.5 and not mem.has("open"):
-				mem["open"] = true
-				inp.move = Vector2(1, 0)
-			elif t < 0.8:
-				inp.move = Vector2(1, 0)
-			elif t > 1.0 and not mem.has("tab"):
+			if t > 1.0 and not mem.has("tab"):
 				mem["tab"] = true
 				inp.pack_toggle = true
 			elif t > 2.6 and not mem.has("swap"):
