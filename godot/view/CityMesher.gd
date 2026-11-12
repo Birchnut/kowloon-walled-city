@@ -1332,27 +1332,34 @@ func _big_sign(lft: Vector3i, d: int, c: Dictionary, rec: Dictionary, seed_v: in
 		light(fp(lft, d, 1.0, v0 + bh * 0.5, 0.4), col, 2.4)
 
 
-func _hall_roof(o: Vector3i, top: Vector3, front: int, seed_v: int) -> void:
-	# 성채 회관: 두 겹 처마의 맞배지붕 + 금빛 용마루 + 작은 탑
+func _hall_roof(o: Vector3i, top: Vector3, front: int, seed_v: int, sx: float = 2.0, sz: float = 2.0) -> void:
+	# 성채 회관: 두 겹 처마 지붕 + 금빛 용마루(발자국 크기에 맞춘다)
 	var tc := Color("#3f6a5a")
 	var tc2 := Color("#5a8a72")
 	var gold := Color("#f2d27a")
-	cbox(top + Vector3(-0.15, 0, -0.15), top + Vector3(2.15, 0.1, 2.15), tc, tc2)
-	cbox(top + Vector3(0.1, 0.1, 0.1), top + Vector3(1.9, fh * 0.5, 1.9), Color("#b0303a"), Color("#d04a4a"))
-	cbox(top + Vector3(-0.05, fh * 0.5, -0.05), top + Vector3(2.05, fh * 0.5 + 0.1, 2.05), tc, tc2)
-	cbox(top + Vector3(0.25, fh * 0.5 + 0.1, 0.25), top + Vector3(1.75, fh * 0.5 + 0.22, 1.75), tc, tc2)
-	cbox(top + Vector3(0.5, fh * 0.5 + 0.22, 0.5), top + Vector3(1.5, fh * 0.5 + 0.34, 1.5), tc, tc2)
-	cbox(top + Vector3(0.45, fh * 0.5 + 0.34, 0.95), top + Vector3(1.55, fh * 0.5 + 0.42, 1.05), gold)
-	for q in [Vector3(-0.15, 0.1, -0.15), Vector3(2.05, 0.1, -0.15), Vector3(-0.15, 0.1, 2.05), Vector3(2.05, 0.1, 2.05)]:
+	var e := Vector3(sx, 0, sz)
+	cbox(top + Vector3(-0.15, 0, -0.15), top + e + Vector3(0.15, 0.1, 0.15), tc, tc2)
+	cbox(top + Vector3(0.1, 0.1, 0.1), top + e + Vector3(-0.1, fh * 0.5, -0.1), Color("#b0303a"), Color("#d04a4a"))
+	cbox(top + Vector3(-0.05, fh * 0.5, -0.05), top + e + Vector3(0.05, fh * 0.5 + 0.1, 0.05), tc, tc2)
+	cbox(top + Vector3(0.25, fh * 0.5 + 0.1, 0.25), top + e + Vector3(-0.25, fh * 0.5 + 0.22, -0.25), tc, tc2)
+	cbox(top + Vector3(0.5, fh * 0.5 + 0.22, 0.5), top + e + Vector3(-0.5, fh * 0.5 + 0.34, -0.5), tc, tc2)
+	if sx >= sz:
+		cbox(top + Vector3(0.45, fh * 0.5 + 0.34, sz * 0.5 - 0.05), top + Vector3(sx - 0.45, fh * 0.5 + 0.42, sz * 0.5 + 0.05), gold)
+	else:
+		cbox(top + Vector3(sx * 0.5 - 0.05, fh * 0.5 + 0.34, 0.45), top + Vector3(sx * 0.5 + 0.05, fh * 0.5 + 0.42, sz - 0.45), gold)
+	for q in [Vector3(-0.15, 0.1, -0.15), Vector3(sx + 0.05, 0.1, -0.15), Vector3(-0.15, 0.1, sz + 0.05), Vector3(sx + 0.05, 0.1, sz + 0.05)]:
 		cbox(top + q, top + q + Vector3(0.1, 0.1, 0.1), gold)
-	# 처마 밑 등롱 줄
 	var lr := tile("lantern")
-	for i in 3:
-		var x := 0.2 + 0.6 * float(i)
-		mb.quad2(top + Vector3(x, -0.02, 2.16), top + Vector3(x + 0.4, -0.02, 2.16), top + Vector3(x + 0.4, -0.3, 2.16), top + Vector3(x, -0.3, 2.16), Vector3(0, 0, 1), sub(lr, 0, 0, 16, 8))
-		mb.quad2(top + Vector3(2.16, -0.02, x + 0.4), top + Vector3(2.16, -0.02, x), top + Vector3(2.16, -0.3, x), top + Vector3(2.16, -0.3, x + 0.4), Vector3(1, 0, 0), sub(lr, 0, 0, 16, 8))
-	light(top + Vector3(1.0, 0.2, 2.1), Color("#ff6a4a"), 1.8)
-	light(top + Vector3(1.0, fh * 0.4, 1.0), Color("#ffb060"), 1.6)
+	var n := int(sx * 1.5)
+	for i in n:
+		var x := 0.2 + (sx - 0.6) * float(i) / float(maxi(n - 1, 1))
+		mb.quad2(top + Vector3(x, -0.02, sz + 0.16), top + Vector3(x + 0.3, -0.02, sz + 0.16), top + Vector3(x + 0.3, -0.25, sz + 0.16), top + Vector3(x, -0.25, sz + 0.16), Vector3(0, 0, 1), sub(lr, 0, 0, 16, 8))
+	var n2 := int(sz * 1.5)
+	for i in n2:
+		var x2 := 0.2 + (sz - 0.6) * float(i) / float(maxi(n2 - 1, 1))
+		mb.quad2(top + Vector3(sx + 0.16, -0.02, x2 + 0.3), top + Vector3(sx + 0.16, -0.02, x2), top + Vector3(sx + 0.16, -0.25, x2), top + Vector3(sx + 0.16, -0.25, x2 + 0.3), Vector3(1, 0, 0), sub(lr, 0, 0, 16, 8))
+	light(top + Vector3(sx * 0.5, 0.2, sz + 0.1), Color("#ff6a4a"), 1.8)
+	light(top + Vector3(sx * 0.5, fh * 0.4, sz * 0.5), Color("#ffb060"), 1.6)
 
 
 func _cage_balcony(p: Vector3i, d: int, hs: int) -> void:
@@ -2112,6 +2119,8 @@ func _cut_cell(p: Vector3i, c: Dictionary) -> void:
 	if lived:
 		_furnish(p, c, rec, seed_v)
 		light(b + Vector3(0.5, 0.4, 0.5), Color(1, 1, 1), 1.1, 0.9)
+		if kind == "house":
+			_resident_slots(p, c, rec, seed_v)
 
 
 ## 칸 안 좌표(0..1)를 k×90° 돌린 상자. h0/h1은 월드 단위 높이.
@@ -2256,6 +2265,31 @@ func _furnish(p: Vector3i, c: Dictionary, rec: Dictionary, seed_v: int) -> void:
 		_:
 			_ib(p, k, 0.16, 0.16, 0.84, 0.3, 0.0, 0.2, "white", "white", WOODC, WOODT)
 			_ib(p, k, 0.16, 0.7, 0.34, 0.86, 0.0, 0.3, "shelf", "white", MeshBuf.WHITE, Color("#7a5848"))
+
+
+## 층 컷의 집: 낮엔 식탁·의자에, 밤엔 잠자리에 한두 사람(사는 사람 수만큼).
+func _resident_slots(p: Vector3i, c: Dictionary, rec: Dictionary, seed_v: int) -> void:
+	var b := bld(c)
+	var res := int(b.get("residents", 1))
+	if res <= 0:
+		return
+	var cap := maxi(int(b.get("cap", 4)), 1)
+	var n := 2 if res * 2 > cap else 1
+	var hs := ViewCfg.h2(seed_v, 600)
+	var k := hs % 4
+	var tier := int(c.get("tier", 1))
+	var what: String = str(rec.get("interior", ""))
+	var bed_at := Vector2(0.33, 0.5)
+	var day_at: Array = [Vector2(0.66, 0.36), Vector2(0.66, 0.78)] if what == "flat" else [Vector2(0.62, 0.45), Vector2(0.45, 0.8)]
+	var dirs: Array = [Vector3(0, 0, 1), Vector3(0, 0, -1), Vector3(1, 0, 0), Vector3(-1, 0, 0)]
+	for i in n:
+		var dp: Vector2 = day_at[i]
+		var pose := "sit" if (what == "flat" or i == 0) else "stand"
+		if tier <= 1 and i == 0:
+			pose = "squat"
+		slots.append({"bid": int(c.get("bid", -1)), "pos": _ipos(p, k, dp.x, dp.y, 0.0), "dir": dirs[(hs + i) % 4], "pose": pose, "role": "resident", "when": "day", "z": p.z, "tier": tier, "look": "", "out": false, "i": slots.size()})
+		var bp := bed_at + Vector2(0.0, (0.18 if i == 1 else 0.0))
+		slots.append({"bid": int(c.get("bid", -1)), "pos": _ipos(p, k, bp.x, bp.y, 0.1), "dir": dirs[(k + 1) % 4], "pose": "lie", "role": "resident", "when": "night", "z": p.z, "tier": tier, "look": "", "out": false, "i": slots.size()})
 
 
 ## 공사가 끝날 때 떨어져 나갈 비계만 따로(연출용).

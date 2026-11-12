@@ -23,6 +23,8 @@ var col := PackedColorArray()
 var idx := PackedInt32Array()
 ## 지금 짓는 칸의 번호(0 = 없음). UV2.x = owner + rnd(0..1) → 셰이더가 셀 상태 텍스처를 읽는다.
 var owner := 0
+## 이 값을 모든 정점 종류에 더한다(+32 = 시설 지붕: 가까운 확대에서 걷힌다)
+var kind_add := 0.0
 
 const UP := Vector3(0, 1, 0)
 const WHITE := Color(1, 1, 1, 1)
@@ -51,7 +53,7 @@ func quad(p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, nrm: Vector3, r: R
 	uv.append(Vector2(x1, y0))
 	uv.append(Vector2(x1, y1))
 	uv.append(Vector2(x0, y1))
-	var u2 := Vector2(float(owner) + clampf(rnd, 0.0, 0.999), kind)
+	var u2 := Vector2(float(owner) + clampf(rnd, 0.0, 0.999), kind + kind_add)
 	uv2.append(u2)
 	uv2.append(u2)
 	uv2.append(u2)
@@ -89,7 +91,7 @@ func cloth(p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, nrm: Vector3, r: 
 			v.append(p1); v.append(p0); v.append(p3); v.append(p2)
 		for i in 4:
 			n.append(nn)
-			uv2.append(Vector2(float(owner) + clampf(rnd, 0.0, 0.999), K_SWAY))
+			uv2.append(Vector2(float(owner) + clampf(rnd, 0.0, 0.999), K_SWAY + kind_add))
 		var x0 := r.position.x * INV
 		var y0 := r.position.y * INV
 		var x1 := (r.position.x + r.size.x) * INV

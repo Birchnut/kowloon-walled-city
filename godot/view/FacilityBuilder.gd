@@ -121,7 +121,10 @@ func build_cell(p: Vector3i, c: Dictionary, cut_mode: bool) -> void:
 	if zi == d - 1 and form != "open":
 		_sign_main()
 	if not cut and zi == d - 1:
+		if form == "box":
+			m.mb.kind_add = 32.0
 		_roof_props()
+		m.mb.kind_add = 0.0
 	_exterior_fx()
 
 
@@ -262,7 +265,9 @@ func _shell() -> void:
 			# 걸레받이
 			m.mb.quad(m.fp(q, dd, 1, 0.08, -0.016), m.fp(q, dd, 0, 0.08, -0.016), m.fp(q, dd, 0, 0, -0.016), m.fp(q, dd, 1, 0, -0.016), -CityMesher.NRM[dd], m.tile("white"), paper.darkened(0.35), 0.0, KI)
 	if not cut and zi == d - 1:
+		m.mb.kind_add = 32.0
 		_roof(mat)
+		m.mb.kind_add = 0.0
 
 
 func _cut_wall(q: Vector3i, dd: int, mat: String, exposed: bool, open_front: bool) -> void:
@@ -591,7 +596,7 @@ func _roof_props() -> void:
 			"neon_roof":
 				_roof_neon(top)
 			"hall":
-				m._hall_roof(Vector3i(o.x, o.y, z), m.cellv(Vector3i(o.x, o.y, z + 1)), F, seed_v)
+				m._hall_roof(Vector3i(o.x, o.y, z), m.cellv(Vector3i(o.x, o.y, z + 1)), F, seed_v, float(w), float(h))
 		i += 1
 
 
@@ -603,8 +608,10 @@ func _roof_neon(top: float) -> void:
 	var tr := Rect2(m.atlas.sign_rect(text, false, true))
 	if tr.size.x <= 0.0:
 		return
-	var tw := tr.size.x / 16.0
-	var th := tr.size.y / 16.0
+	# 글자 텍셀 1/16(크게)이 지붕보다 넓으면 1/32
+	var sc := 16.0 if tr.size.x / 16.0 <= float(Wf) - 0.3 else 32.0
+	var tw := tr.size.x / sc
+	var th := tr.size.y / sc
 	var col := m.cfg.neon(rec.get("glow", rec.get("sign_color", "magenta")))
 	var u0 := float(Wf) * 0.5 - tw * 0.5
 	var v := 0.35

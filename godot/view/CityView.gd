@@ -40,6 +40,7 @@ var _dirty: Dictionary = {}        # z -> true
 var _lights_dirty := false
 var _lights_timer := 0.0
 var people: Node = null
+var actors: CityActors = null
 var fx: Node = null
 var markers: CityMarkers = null
 var _cell_img: Image
@@ -215,6 +216,10 @@ func _build_tree() -> void:
 	pn.setup(cfg, self, mesher, grid_tex.lg_tex)
 	_world.add_child(pn)
 	people = pn
+	var an := CityActors.new()
+	an.setup(cfg, self, grid_tex.lg_tex)
+	_world.add_child(an)
+	actors = an
 	markers = CityMarkers.new()
 	markers.setup(cfg, self, mesher)
 	_world.add_child(markers)
@@ -688,6 +693,8 @@ func _regrid() -> void:
 		fx.call("set_lightgrid", grid_tex.lg_tex)
 	if people != null and people.has_method("set_lightgrid"):
 		people.call("set_lightgrid", grid_tex.lg_tex)
+	if actors != null:
+		actors.set_lightgrid(grid_tex.lg_tex)
 	_make_cell_tex()
 
 
@@ -742,6 +749,16 @@ func _refresh_lights() -> void:
 				br.append({"a": (e["pos"] as Vector3) - dv, "b": (e["pos"] as Vector3) + dv})
 		people.call("set_bridges", br)
 		people.call("rebuild", Game.state)
+
+
+func _push_slots() -> void:
+	_slots_dirty = false
+	var all: Array = []
+	for z in _floor_data.size():
+		if floor_cut < 0 or z < floor_cut:
+			all.append_array(_floor_data[z].get("slots", []))
+	all.append_array(_cut_slots)
+	actors.set_slots(all)
 
 
 func _push_emitters() -> void:
@@ -1288,6 +1305,13 @@ func _process(delta: float) -> void:
 		if people != null:
 			people.call("set_light", amb, night, ng, grid_tex.origin(), grid_tex.inv_size())
 			people.call("step", delta, tod())
+		if actors != null:
+			if _slots_dirty:
+				_push_slots()
+			actors.set_view_state(floor_cut, zoom_i, interior_zoom())
+			var wc := ViewCfg.col(cfg.r("light.window_warm", "#ffc46a"))
+			actors.set_light(amb, night, ng, grid_tex.origin(), grid_tex.inv_size(), Vector3(wc.r, wc.g, wc.b))
+			actors.step(delta, tod() * 24.0)
 		if fx != null:
 			var cut_y := 1000.0 if floor_cut < 0 else float(floor_cut) * cfg.floor_h + 0.6
 			fx.call("set_frame", ppu(), maxf(floor(_zf), 1.0), _t, night, work, amb, ng, grid_tex.origin(), grid_tex.inv_size(), cut_y)

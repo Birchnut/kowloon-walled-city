@@ -202,6 +202,10 @@ func _process(_dt: float) -> void:
 		view._process(0.0)
 		var t2 := Time.get_ticks_usec()
 		print("PERF rebuild_all_ms=%.1f building_changed_ms=%.2f" % [(t1 - t0) / 1000.0, (t2 - t1) / 1000.0])
+	if _args.has("dbgact") and _frame == int(_args["dbgact"]):
+		print("ACT slots=%d vis=%d zoom=%d inner=%s cut=%d" % [view.actors.slots.size(), view.actors.count(), view.zoom_i, str(view.interior_zoom()), view.floor_cut])
+		if view.actors.slots.size() > 0:
+			print("  first ", view.actors.slots[0])
 	if _args.has("plane") and _frame == 2:
 		view._plane_next = 0.0
 	if _args.has("dump_atlas") and _frame == 3:

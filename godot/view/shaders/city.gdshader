@@ -62,7 +62,7 @@ varying float owner;
 
 void vertex() {
 	vec3 p = VERTEX;
-	float kind = UV2.y;
+	float kind = mod(UV2.y, 16.0);
 	if (kind > 2.5 && kind < 3.5) {
 		float ph = fract(UV2.x) * 6.283 + (p.x + p.z) * 0.9;
 		float s = sin(time_s * 1.7 + ph) + 0.5 * sin(time_s * 2.9 + ph * 1.7);
@@ -133,8 +133,11 @@ void fragment() {
 	vec4 t = texture(atlas, UV);
 	if (t.a < 0.25) { discard; }
 	float kraw = info.y + 0.5;
+	bool doll_roof = kraw > 32.0;
+	if (doll_roof) { kraw -= 32.0; }
 	bool doll_face = kraw > 16.0;
 	int kind = int(mod(kraw, 16.0));
+	if (doll_roof && doll > 0.5) { discard; }
 	if (doll_face && doll > 0.5 && dot(wnrm, view_fwd) < -0.2) {
 		// 시설 외벽 중 카메라를 향한 면: 바닥 근처 띠만 남기고 걷는다
 		float fy = wpos.y / floor_h - floor(wpos.y / floor_h + 0.002);
