@@ -16,7 +16,7 @@ const MB := preload("res://audio/MusicBank.gd")
 
 const CFG_PATH := "user://audio.cfg"
 const BUS_NAMES := {"master": "Master", "sfx": "SFX", "ambience": "Ambience", "music": "Music"}
-const DEFAULT_VOL := {"master": 0.8, "sfx": 0.8, "ambience": 0.7, "music": 0.4}
+const DEFAULT_VOL := {"master": 0.9, "sfx": 0.85, "ambience": 0.7, "music": 0.4}
 const SFX_VOICES := 12
 const AMB_VOICES := 3
 const MUS_VOICES := 8
@@ -65,6 +65,7 @@ var _pad_players: Array = []
 var _pad_cur := ""
 var _pad_slot := 0
 var _pad_tw: Array = []
+var _bus_last: Dictionary = {}
 var _last_play: Dictionary = {}
 var _var_idx: Dictionary = {}
 var _layer_p: Dictionary = {}     # 층 → AudioStreamPlayer
@@ -232,13 +233,21 @@ func _apply_volumes() -> void:
 			off = off or not music_on
 		elif k == "ambience":
 			off = off or not ambience_on
-		AudioServer.set_bus_mute(i, off)
 		var extra := 0.0
 		if k == "ambience":
 			extra = _duck_db
 		elif k == "music":
 			extra = _mduck_db
-		AudioServer.set_bus_volume_db(i, linear_to_db(maxf(v, 0.001)) + extra)
+		var db := linear_to_db(maxf(v, 0.001)) + extra
+		# 바뀐 때만 건드린다(웹 '표본 재생'에서는 버스 값이 바뀔 때마다 브라우저 쪽으로 넘어간다)
+		var last: Array = _bus_last.get(k, [null, 999.0])
+		if last[0] != off:
+			AudioServer.set_bus_mute(i, off)
+			last[0] = off
+		if absf(float(last[1]) - db) > 0.05:
+			AudioServer.set_bus_volume_db(i, db)
+			last[1] = db
+		_bus_last[k] = last
 
 
 func _load_cfg() -> void:
@@ -540,7 +549,9 @@ func _mix_layers(dt: float) -> void:
 			p.volume_db = -80.0
 			continue
 		_layer_quiet[l] = 0.0
-		p.volume_db = float(LAYERS[l][0]) + linear_to_db(g)
+		var db := float(LAYERS[l][0]) + linear_to_db(g)
+		if absf(p.volume_db - db) > 0.05:
+			p.volume_db = db
 		if not p.playing:
 			var ln: float = p.stream.get_length()
 			p.play(_rng.randf_range(0.0, ln * 0.95))
