@@ -1,52 +1,50 @@
 class_name UIRoot
 extends Control
-## UIRoot — 플레이어가 만지는 층 전체의 조립과 교통정리(구룡성채 v3, Anno식 도시경제).
+## UIRoot — PC판(v0.4) 화면 층의 조립과 교통정리. 1920×1080 기준, 마우스 + 키보드.
 ##
 ## 규칙(ARCHITECTURE 규칙 3): UI는 규칙을 모른다. Game.query()/can() 이 준 값·이유·문장을 그리고,
-## 명령은 전부 cmd() 를 지나 Game.cmd() 로 부탁한다. Game.state 는 고치지 않는다.
-## 뷰는 계약의 CityView API 로만 부른다(Q.vcall).
+## 명령은 전부 cmd() 를 지나 Game.cmd() 로 부탁한다. 뷰는 계약의 CityView API 로만(Q.vcall).
+## v4 계약 중 아직 없는 것은 ui/dev/V4Shim.gd 한 곳이 채운다(Q 를 거친다).
 ##
-## 화면 구성(아래 → 위):
-##   chrome: TopStrip · FloorRail · 화면들(들여다보기/짓기/경제/교역/성채 시트, 탐험 지도) · NavBar
-##   위층: UpgradeDialog · ToastLayer · Banner · Tutorial · 모달
-## 화면(screen): "" | inspect | build | economy | expedition | trade | keep. 한 번에 하나.
+## 배치(docs/UI_NOTES.md v4 '화면 지도'):
+##   위 띠 TopBar · 왼쪽 기둥 LeftColumn(목표·알림·층/렌즈) · 아래 가운데 BuildBar · 오른쪽 Inspector
+##   창: 현황판(Tab) 경제(F2) 교역(F3) 탐험(F4) 성채(F6) 승급 · 도움말(F1) · 확인 창 · 알림(Toasts) · 오프닝(PcTutorial) · 툴팁(TipLayer)
 
 signal cmd_done(cmd_name: String, args: Dictionary, result: Dictionary)
 signal screen_changed(screen: String)
 
 const HUD_POLL := 0.25
-const SHEET_SCREENS := ["build", "economy", "expedition", "trade", "keep"]
+const GAP := 10.0
 
 @export var auto_tutorial: bool = true
 
-var screen: String = ""
-var chrome: Control
-var strip: TopStrip
-var rail: FloorRail
-var nav: NavBar
-var screens: Dictionary = {}          # id -> Screen
-var inspect: InspectSheet
-var build: BuildSheet
-var economy: EconomySheet
-var expedition: ExpeditionScreen
-var trade: ContractsSheet
-var keep: KeepSheet
-var upgrade: UpgradeDialog
-var toasts: ToastLayer
-var banner: Banner
-var tutorial: Tutorial
-var modals: Control
 var hud: Dictionary = {}
+var chrome: Control
+var top: TopBar
+var left: LeftColumn
+var build: BuildBar
+var inspector: Inspector
+var menu: MenuGrid
+var place: Placement
+var windows: Control
+var wins: Dictionary = {}          # id -> PcWindow
+var upgrade: UpgradeWin
+var help: HelpOverlay
+var toasts: Toasts
+var tutorial: PcTutorial
+var modals: Control
+var tips: TipLayer
+var lens: String = ""
+var screen: String = ""            # 맨 위에 열린 창 id(없으면 "") — 튜토리얼·하네스가 본다
 
 var _view: Node = null
 var _poll_t: float = 0.0
-var _dim_tw: Tween
-var _last_dim_ms: int = -100000
-var _names: Dictionary = {}          # 상품 id -> 이름(경제 질의에서)
+var _names: Dictionary = {}
 var _names_t: float = 0.0
-var _badge_keep: int = 0
-var _goal_done: int = -1
-var _research_active: String = ""
+var _right_down := Vector2(-1, -1)
+var _left_down := false
+var _hz_seen: Dictionary = {}
+var _alert_ids: Dictionary = {}
 
 
 func _init() -> void:
@@ -55,77 +53,71 @@ func _init() -> void:
 
 
 func _ready() -> void:
+	theme = PcTheme.get_theme()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	UI.ensure_cjk_fallback()
 	chrome = _layer()
 	add_child(chrome)
+	top = TopBar.new()
+	chrome.add_child(top)
+	top.jump.connect(jump)
+	top.speed_pressed.connect(set_speed)
+	menu = MenuGrid.new()
+	chrome.add_child(menu)
+	menu.window_pressed.connect(toggle_window)
+	left = LeftColumn.new()
+	chrome.add_child(left)
+	left.jump.connect(jump)
+	inspector = Inspector.new()
+	inspector.ui = self
+	chrome.add_child(inspector)
+	inspector.jump.connect(jump)
+	build = BuildBar.new()
+	build.ui = self
+	chrome.add_child(build)
+	build.tool_pressed.connect(_on_tool)
+	build.item_pressed.connect(func(it: Dictionary) -> void: place.start_build(it))
+	place = Placement.new()
+	place.ui = self
+	add_child(place)
+	place.mode_changed.connect(func(_m: String) -> void: _layout())
 
-	strip = TopStrip.new()
-	chrome.add_child(strip)
-	strip.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	strip.jump.connect(jump)
-	strip.resized.connect(_layout)
-
-	rail = FloorRail.new()
-	chrome.add_child(rail)
-	rail.cut_changed.connect(_on_cut_changed)
-	rail.rotate_pressed.connect(func(d: int) -> void: Q.vcall("rotate_view", [d]))
-	rail.zoom_pressed.connect(func(d: int) -> void: Q.vcall("zoom_step", [d]))
-	rail.lens_toggled.connect(func(on: bool) -> void: Q.vcall("set_lens", ["needs" if on else ""]))
-	rail.progress_pressed.connect(func() -> void: toast(rail._progress.info_text(), "dim"))
-
-	inspect = InspectSheet.new()
-	build = BuildSheet.new()
-	economy = EconomySheet.new()
-	trade = ContractsSheet.new()
-	keep = KeepSheet.new()
-	expedition = ExpeditionScreen.new()
-	screens = {"inspect": inspect, "build": build, "economy": economy, "trade": trade, "keep": keep, "expedition": expedition}
-	for id: String in ["inspect", "build", "economy", "trade", "keep"]:
-		var s: Screen = screens[id]
-		s.ui = self
-		chrome.add_child(s)
-		s.finished.connect(_on_screen_finished.bind(id))
-		if s.sheet != null:
-			s.sheet.opened.connect(_sync_inset)
-			s.sheet.closed.connect(_sync_inset)
-
-	nav = NavBar.new()
-	chrome.add_child(nav)
-	nav.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	nav.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	nav.screen_pressed.connect(func(id: String) -> void: open_screen("" if id == screen else id))
-	nav.resized.connect(_layout)
-
-	# 탐험 지도는 전면(하단 바는 남긴다)
-	expedition.ui = self
-	chrome.add_child(expedition)
-	chrome.move_child(expedition, nav.get_index())
-	expedition.finished.connect(_on_screen_finished.bind("expedition"))
-
-	upgrade = UpgradeDialog.new()
-	upgrade.ui = self
-	add_child(upgrade)
-	toasts = ToastLayer.new()
+	windows = _layer()
+	add_child(windows)
+	for w: PcWindow in [MetricsWin.new(), EconomyWin.new(), TradeWin.new(), ExpeditionWin.new(), KeepWin.new()]:
+		_add_window(w)
+	upgrade = UpgradeWin.new()
+	_add_window(upgrade)
+	toasts = Toasts.new()
 	add_child(toasts)
-	banner = Banner.new()
-	add_child(banner)
-	tutorial = Tutorial.new()
+	tutorial = PcTutorial.new()
 	tutorial.ui = self
 	add_child(tutorial)
-	tutorial.remove_child(tutorial.rain)
-	add_child(tutorial.rain)
-	move_child(tutorial.rain, 0)
+	help = HelpOverlay.new()
+	add_child(help)
 	modals = _layer()
 	add_child(modals)
+	tips = TipLayer.new()
+	add_child(tips)
+
+	left.floors.floor_pressed.connect(func(z: int) -> void: Q.vcall("set_floor_cut", [z]))
+	left.floors.lens_pressed.connect(set_lens)
 
 	Game.event.connect(_on_event)
 	Game.state_replaced.connect(_on_state_replaced)
 	get_viewport().size_changed.connect(_layout)
 	resized.connect(_layout)
-	_layout()
+	Settings.apply_all(self)
 	_refresh_hud()
+	build.refresh()
+	_layout()
 	_start_session.call_deferred()
+
+
+func _add_window(w: PcWindow) -> void:
+	w.ui = self
+	windows.add_child(w)
+	wins[w.win_id] = w
+	w.closed.connect(_on_window_closed)
 
 
 func _layer() -> Control:
@@ -136,40 +128,34 @@ func _layer() -> Control:
 
 
 # ------------------------------------------------------------------ 배치
-func top_h() -> float:
-	return strip.get_combined_minimum_size().y if strip != null else 110.0
-
-
-func bar_h() -> float:
-	return maxf(nav.get_combined_minimum_size().y, NavBar.BAR_H) if nav != null else NavBar.BAR_H
-
-
 func _layout() -> void:
-	if nav == null or not is_inside_tree():
+	if top == null or not is_inside_tree():
 		return
-	var safe := UI.safe_insets(self)
-	strip.set_safe_top(safe.x)
-	nav.set_safe_bottom(safe.y)
-	var top := top_h()
-	var bar := bar_h()
-	rail.reset_size()
-	rail.position = Vector2(size.x - rail.size.x - 4.0, top + 6.0)
-	# 레일이 하단 바에 닿으면 카메라 버튼을 접는다(두 손가락·휠로도 된다)
-	rail.show_camera = true
-	rail.reset_size()
-	if rail.position.y + rail.get_combined_minimum_size().y > size.y - bar - 8.0:
-		rail.show_camera = false
-	for id: String in screens:
-		(screens[id] as Screen).set_frame(bar, top + 36.0)
-	expedition.set_area(top, bar)
-	upgrade.set_area(top, bar)
-	toasts.top_offset = top + 8.0
-	toasts.right_reserve = rail.size.x + 12.0
-	banner.top_offset = top + 6.0
-	banner.right_reserve = rail.size.x + 12.0
-	tutorial.dialog.bottom_gap = bar
-	tutorial.dialog.top_offset = top + 8.0
-	_sync_inset()
+	var vs := get_viewport_rect().size
+	top.set_compact(0 if vs.x >= 1800.0 else (1 if vs.x >= 1450.0 else 2))
+	top.position = Vector2.ZERO
+	top.size = Vector2(vs.x, 0)
+	top.reset_size()
+	top.size.x = vs.x
+	var th := top.size.y
+	toasts.top = th + 8.0
+	left.position = Vector2(GAP, th + GAP)
+	left.size = Vector2(LeftColumn.W, vs.y - th - 2.0 * GAP)
+	var bw := minf(vs.x - LeftColumn.W - Inspector.W - 4.0 * GAP, 1240.0)
+	build.max_w = bw
+	build.reset_size()
+	var bsz := build.get_combined_minimum_size()
+	var bx0 := LeftColumn.W + 2.0 * GAP
+	var w := clampf(bsz.x, 300.0, maxf(bw, 300.0))
+	build.size = Vector2(w, bsz.y)
+	var mid := bx0 + (vs.x - Inspector.W - GAP - bx0) * 0.5
+	build.position = Vector2(floorf(mid - w * 0.5), vs.y - bsz.y - GAP)
+	menu.reset_size()
+	menu.size.x = Inspector.W
+	menu.position = Vector2(vs.x - Inspector.W - GAP, vs.y - menu.size.y - GAP)
+	inspector.position = Vector2(vs.x - Inspector.W - GAP, th + GAP)
+	inspector.max_h = menu.position.y - th - 2.0 * GAP
+	Q.vcall("set_insets", [LeftColumn.W + 2.0 * GAP, th, (Inspector.W + 2.0 * GAP) if inspector.visible else 0.0, bsz.y + 2.0 * GAP])
 
 
 # ------------------------------------------------------------------ 매 프레임
@@ -177,17 +163,16 @@ func _process(delta: float) -> void:
 	var v := Q.view()
 	if v != _view:
 		_bind_view(v)
-	if Game.state != null:
-		strip.set_time(Game.time_of_day())
-	# 토스트는 위쪽 대화·힌트 아래로 비킨다(겹쳐 읽히지 않게)
-	var t_off := maxf(maxf(top_h() + 8.0, tutorial.dialog.occupied_bottom() + 6.0), banner.occupied_bottom() + 10.0)
-	if absf(toasts.top_offset - t_off) > 0.5:
-		toasts.top_offset = t_off
+	V4Shim.camera_process(v, delta)
 	_poll_t -= delta
 	if _poll_t <= 0.0:
 		_poll_t = HUD_POLL
 		_refresh_hud()
 	_names_t -= delta
+	# 빌드 막대 폭이 바뀌면(분류 열기) 다시 배치
+	var bs := build.get_combined_minimum_size()
+	if absf(bs.y - build.size.y) > 0.5 or (bs.x > build.size.x + 0.5):
+		_layout()
 
 
 func _bind_view(v: Node) -> void:
@@ -202,23 +187,25 @@ func _bind_view(v: Node) -> void:
 		v.connect("cell_tapped", _on_cell_tapped)
 	if v.has_signal("cell_dragged"):
 		v.connect("cell_dragged", _on_cell_dragged)
-	_sync_inset()
+	_layout()
 
 
 func _refresh_hud() -> void:
 	hud = Q.dict("hud")
-	strip.refresh(hud)
-	rail.refresh(hud)
-	nav.set_badge("expedition", int(hud.get("teams_done", 0)))
-	nav.set_badge("trade", int(hud.get("contracts_failed", 0)))
-	nav.set_badge("keep", _badge_keep)
+	top.refresh(hud)
+	left.refresh(hud)
+	if lens != "":
+		_apply_lens_cells()
+	_check_alerts()
+	(menu.btns["expedition"] as PcButton).set_badge(int(hud.get("teams_done", 0)), "jade")
+	(menu.btns["trade"] as PcButton).set_badge(int(hud.get("contracts_failed", 0)))
 
 
 func refresh_soon() -> void:
 	_poll_t = 0.0
 
 
-## 상품 id → 이름(경제 질의의 goods 행). 몇 초에 한 번만 다시 읽는다.
+## 상품 id → 이름(경제 질의). 몇 초에 한 번만 다시 읽는다.
 func good_names() -> Dictionary:
 	if _names.is_empty() or _names_t <= 0.0:
 		_names_t = 5.0
@@ -229,12 +216,7 @@ func good_names() -> Dictionary:
 
 
 func title() -> String:
-	return str(hud.get("title", "대장"))
-
-
-## 지금 작업 층(레일에서 고른 층, 전체면 지상).
-func work_z() -> int:
-	return maxi(rail.cut, 0)
+	return str(hud.get("title", ""))
 
 
 # ------------------------------------------------------------------ 공용 창구
@@ -245,53 +227,107 @@ func cmd(cmd_name: String, args: Dictionary = {}) -> Dictionary:
 	cmd_done.emit(cmd_name, args, d)
 	tutorial.on_cmd(cmd_name, args, d)
 	refresh_soon()
+	inspector.refresh_now()
+	if cmd_name in ["build", "zone", "demolish"]:
+		build.refresh.call_deferred()
 	return d
 
 
-func toast(text: String, tone: String = "", icon_id: String = "") -> void:
-	toasts.push(text, tone, icon_id)
+func toast(text: String, tone: String = "", pic: String = "") -> void:
+	toasts.push(text, tone, pic)
 
 
 func confirm(opt: Dictionary, on_ok: Callable = Callable()) -> void:
-	Modal.confirm(modals, opt, on_ok)
+	Dialog.confirm(modals, opt, on_ok)
 
 
-# ------------------------------------------------------------------ 화면
-func open_screen(id: String, a: String = "") -> void:
-	if tutorial.running and id != "" and id != "inspect" and not tutorial.screen_allowed(id):
+## 배속: speed ∈ {1,2,4}, paused. 계약: Game.speed / Game.paused(v4 hud.speed·paused 로 읽는다).
+func set_speed(spd: float, paused: bool) -> void:
+	Game.speed = spd
+	Game.paused = paused
+	Sfx.play("speed")
+	tutorial.on_signal("speed")
+	refresh_soon()
+
+
+func set_lens(id: String) -> void:
+	lens = id
+	left.floors.set_lens(id)
+	Q.vcall("set_coverage", [[], []])
+	if id in ["", "needs", "tier", "happiness"]:
+		Q.vcall("set_lens", [id])
+	else:
+		Q.vcall("set_lens", ["coverage"])
+		_apply_lens_cells()
+		var cv := Q.dict("coverage", {"kind": id})
+		if str(cv.get("text", "")) != "":
+			toast("%s — 범위 안 %s" % [_lens_name(id), str(cv.get("text", ""))], "dim", "eye")
+	tutorial.on_signal("lens")
+
+
+func _lens_name(id: String) -> String:
+	for l: Array in FloorPanel.LENSES:
+		if l[0] == id:
+			return l[1]
+	return id
+
+
+func _apply_lens_cells() -> void:
+	if lens in ["", "needs", "tier", "happiness"]:
 		return
-	var prev := screen
-	if prev != "" and prev != id and screens.has(prev):
-		(screens[prev] as Screen).close()
+	var cv := Q.dict("coverage", {"kind": lens})
+	Q.vcall("set_coverage", [UI.to_array(cv.get("covered", [])), UI.to_array(cv.get("uncovered", []))])
+
+
+# ------------------------------------------------------------------ 창
+func toggle_window(id: String) -> void:
+	if id == "help":
+		help.toggle()
+		return
+	if wins.has(id) and (wins[id] as PcWindow).visible:
+		(wins[id] as PcWindow).close()
+	else:
+		open_window(id)
+
+
+func open_window(id: String, arg: String = "") -> void:
+	if not wins.has(id):
+		return
+	var w: PcWindow = wins[id]
+	w.open(arg)
+	windows.move_child(w, -1)
 	screen = id
-	if id != "" and screens.has(id):
-		(screens[id] as Screen).open(a)
-	nav.set_active(id if id in SHEET_SCREENS else "")
-	_sync_inset()
+	screen_changed.emit(screen)
+	tutorial.on_signal("window:" + id)
+
+
+func _on_window_closed() -> void:
+	screen = ""
+	for i in range(windows.get_child_count() - 1, -1, -1):
+		var w: PcWindow = windows.get_child(i)
+		if w.visible:
+			screen = w.win_id
+			break
 	screen_changed.emit(screen)
 
 
-func close_screen() -> void:
-	open_screen("")
+func close_top_window() -> bool:
+	for i in range(windows.get_child_count() - 1, -1, -1):
+		var w: PcWindow = windows.get_child(i)
+		if w.visible:
+			w.close()
+			return true
+	return false
 
 
-func _on_screen_finished(id: String) -> void:
-	if screen == id:
-		screen = ""
-		nav.set_active("")
-		_sync_inset()
-		screen_changed.emit(screen)
+func any_window() -> bool:
+	for w: Node in windows.get_children():
+		if (w as PcWindow).visible:
+			return true
+	return false
 
 
-## 열린 하단 시트 높이를 뷰에 알린다 → 도시가 시트 위 빈 영역으로 올라온다.
-func _sync_inset() -> void:
-	var h := 0.0
-	if screens.has(screen):
-		h = (screens[screen] as Screen).inset()
-	Q.vcall("set_bottom_inset", [h])
-
-
-## 다른 화면으로 건너뛰기: {screen, arg}. 알림·수요 원인·튜토리얼이 쓴다.
+## 다른 화면으로 건너뛰기: {screen, arg} 또는 "screen:arg". 알림·수요 원인·목표·신호등이 쓴다.
 func jump(target: Variant) -> void:
 	var j := Q.norm_jump(target)
 	var s: String = j["screen"]
@@ -300,20 +336,47 @@ func jump(target: Variant) -> void:
 		"":
 			return
 		"upgrade":
-			upgrade_all()
+			upgrade_all(int(a) if a.is_valid_int() else 0)
+		"focus":
+			var p := a.split(",")
+			if p.size() >= 3:
+				var pos := Vector3i(int(p[0]), int(p[1]), int(p[2]))
+				Q.vcall("focus", [pos, -1])
+				inspector.select(pos)
+				_layout()
+		"lens":
+			set_lens(a)
 		"inspect":
-			# G12: inspect:<bid> — 그 건물을 들여다본다(알림 "단속으로 닫혀 있다" 등)
 			var inf := Q.dict("info", {"bid": int(a)}) if a.is_valid_int() else {}
 			var pp: Variant = inf.get("pos")
 			if pp is Vector3i:
-				open_screen("inspect")
-				inspect.show_cell(pp)
+				Q.vcall("focus", [pp, -1])
+				inspector.select(pp)
+		"build":
+			_jump_build(a)
 		_:
-			if screens.has(s):
-				open_screen(s, a)
+			if wins.has(s):
+				open_window(s, a)
 
 
-## 승급 가능한 집을 계층 묶음으로 일괄 승급 창에. tier=0 이면 가장 낮은 계층 묶음부터(창 안에서 계층을 바꿀 수 있다).
+func _jump_build(a: String) -> void:
+	if a == "" :
+		return
+	if a == "house":
+		place.start_zone()
+		return
+	var it := build.find(a)
+	if not it.is_empty():
+		build.select_cat(build.cat_of(a))
+		place.start_build(it)
+		return
+	# 분류 id 이거나 모르는 id(SIM 이 이름을 바꿨을 때) → 그 분류만 연다
+	build.select_cat(a if build.cat_rect(a).size.x > 0 else "")
+	if build.cat == "":
+		toast("짓기 막대에서 찾는다(아래).", "dim")
+
+
+## 승급 가능한 집을 계층 묶음으로 일괄 승급 창에. tier=0 이면 가장 낮은 계층부터.
 func upgrade_all(tier: int = 0) -> void:
 	var groups: Array = []
 	for row: Variant in Q.upgradable():
@@ -323,206 +386,295 @@ func upgrade_all(tier: int = 0) -> void:
 		toast("지금 승급할 수 있는 집이 없다.", "dim")
 		return
 	upgrade.open_groups(groups, tier)
+	_after_open_upgrade()
 
 
 func open_upgrade(bid: int, info: Dictionary) -> void:
 	upgrade.open_single(bid, info)
+	_after_open_upgrade()
+
+
+func _after_open_upgrade() -> void:
+	windows.move_child(upgrade, -1)
+	screen = "upgrade"
+	screen_changed.emit(screen)
+
+
+# ------------------------------------------------------------------ 입력
+func _on_tool(id: String) -> void:
+	match id:
+		"house":
+			if place.mode == "zone":
+				place.cancel()
+			else:
+				place.start_zone()
+		"demolish":
+			if place.mode == "demolish":
+				place.cancel()
+			else:
+				place.start_demolish()
+		"pick":
+			if place.mode == "pick":
+				place.cancel()
+			else:
+				place.start_pick()
+
+
+func _mouse_on_world() -> bool:
+	var h := get_viewport().gui_get_hovered_control()
+	if h == null:
+		return true
+	var v := Q.view()
+	return v != null and (h == v or v.is_ancestor_of(h))
+
+
+func _input(ev: InputEvent) -> void:
+	if Dialog.open_count > 0 or help.visible:
+		return
+	var v := Q.view()
+	V4Shim.camera_input(v, ev)
+	if ev is InputEventMouseMotion:
+		if _mouse_on_world():
+			var mp: Vector2 = (ev as InputEventMouseMotion).position
+			if place.active():
+				place.on_mouse_move(mp)
+			else:
+				var hv: Dictionary = UI.to_dict(Q.vcall("hover", [mp], {}))
+				inspector.set_hover(hv.get("pos") if bool(hv.get("hit", false)) else null)
+				_layout_inspector_inset()
+		elif not place.active():
+			inspector.set_hover(null)
+	elif ev is InputEventMouseButton:
+		var mb := ev as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed:
+			place.on_left_release()
+		if mb.button_index == MOUSE_BUTTON_RIGHT:
+			if mb.pressed:
+				_right_down = mb.position if _mouse_on_world() else Vector2(-1, -1)
+			elif _right_down.x >= 0.0 and mb.position.distance_to(_right_down) < 8.0:
+				_right_down = Vector2(-1, -1)
+				_on_right_click()
+
+
+func _on_right_click() -> void:
+	if place.active():
+		place.cancel()
+	elif inspector.selected_pos != null:
+		inspector.deselect()
+		_layout()
+
+
+func _layout_inspector_inset() -> void:
+	pass
+
+
+func _unhandled_key_input(ev: InputEvent) -> void:
+	if not (ev is InputEventKey) or not ev.pressed:
+		return
+	var k := ev as InputEventKey
+	if Dialog.open_count > 0:
+		return
+	if k.echo:
+		return
+	if help.visible:
+		if k.keycode in [KEY_ESCAPE, KEY_F1]:
+			help.toggle()
+			get_viewport().set_input_as_handled()
+		return
+	var handled := true
+	match k.keycode:
+		KEY_ESCAPE:
+			if place.active():
+				place.cancel()
+			elif close_top_window():
+				pass
+			elif inspector.selected_pos != null:
+				inspector.deselect()
+			elif lens != "":
+				set_lens("")
+			else:
+				handled = false
+		KEY_SPACE:
+			set_speed(Game.speed, not Game.paused)
+		KEY_1:
+			set_speed(1.0, false)
+		KEY_2:
+			set_speed(2.0, false)
+		KEY_3:
+			set_speed(4.0, false)
+		KEY_TAB:
+			toggle_window("metrics")
+		KEY_F1:
+			help.toggle()
+		KEY_F2:
+			toggle_window("economy")
+		KEY_F3:
+			toggle_window("trade")
+		KEY_F4:
+			toggle_window("expedition")
+		KEY_F6:
+			toggle_window("keep")
+		KEY_F11:
+			Settings.toggle_fullscreen()
+		KEY_H:
+			_on_tool("house")
+		KEY_X, KEY_DELETE:
+			if not place.active() and inspector.selected_pos != null and k.keycode == KEY_DELETE:
+				place.confirm_demolish(inspector.selected_pos)
+			else:
+				_on_tool("demolish")
+		KEY_G:
+			var hv: Dictionary = UI.to_dict(Q.vcall("hover", [get_viewport().get_mouse_position()], {}))
+			if bool(hv.get("hit", false)) and _mouse_on_world():
+				place.pick_at(hv.get("pos"))
+			else:
+				_on_tool("pick")
+		KEY_R:
+			if place.mode == "build":
+				place.rotate()
+			else:
+				handled = false
+		KEY_U:
+			var inf := inspector.info
+			if inspector.selected_pos != null and str(inf.get("kind", "")) == "house":
+				open_upgrade(int(inf.get("bid", -1)), inf)
+			else:
+				upgrade_all()
+		KEY_S:
+			if k.ctrl_pressed:
+				Settings.quick_save(self)
+			else:
+				handled = false
+		_:
+			var i := BuildBar.CAT_KEYCODES.find(k.keycode)
+			if i >= 0 and not k.ctrl_pressed:
+				var c := build.cat_at(i)
+				if c != "":
+					build.select_cat("" if build.cat == c else c)
+			else:
+				handled = false
+	if handled:
+		get_viewport().set_input_as_handled()
 
 
 # ------------------------------------------------------------------ 뷰에서 오는 것
-func _on_cut_changed(n: int) -> void:
-	Q.vcall("set_floor_cut", [n])
-	if screen == "build":
-		build.on_floor_changed()
-
-
 func _on_cell_tapped(info: Variant) -> void:
 	var d: Dictionary = info if info is Dictionary else {}
-	if upgrade.visible:
+	if int(d.get("button", 1)) == 2:
+		_on_right_click()
 		return
-	if screens.has(screen) and (screens[screen] as Screen).on_tap(d):
+	if place.active():
+		return          # 배치·칠하기는 cell_dragged 로 받는다
+	var pos: Variant = d.get("pos")
+	if not bool(d.get("hit", false)) or not (pos is Vector3i):
+		inspector.deselect()
+		_layout()
 		return
-	if screen in ["economy", "trade", "keep"]:
-		close_screen()          # 바깥(도시)을 누르면 닫힌다
-		return
-	_inspect(d)
+	inspector.select(pos)
+	tutorial.on_signal("inspect:" + str(inspector.info.get("kind", "")))
+	_layout()
 
 
 func _on_cell_dragged(info: Variant) -> void:
-	if screens.has(screen):
-		(screens[screen] as Screen).on_drag(info if info is Dictionary else {})
-
-
-func _inspect(info: Dictionary) -> void:
-	var pos: Variant = info.get("pos")
-	if not bool(info.get("hit", false)) or not (pos is Vector3i):
-		if screen == "inspect":
-			close_screen()
-		return
-	if screen != "inspect":
-		open_screen("inspect")
-	inspect.show_cell(pos)
+	if place.active():
+		place.on_cell_dragged(info if info is Dictionary else {})
 
 
 # ------------------------------------------------------------------ 이벤트
 func _on_event(n: String, p: Dictionary) -> void:
-	if screens.has(screen):
-		(screens[screen] as Screen).on_event(n, p)
+	for w: Node in windows.get_children():
+		if (w as PcWindow).visible and w.has_method("on_event"):
+			w.call("on_event", n, p)
+	tutorial.on_event(n, p)
 	match n:
 		"log":
 			var tone := str(p.get("tone", ""))
 			var tx := str(p.get("text", ""))
-			# 목표 달성·등급·해금은 현수막이 말한다(같은 말을 두 번 하지 않게). 일지에는 남는다.
 			if tx.begins_with("목표 달성") or tx.begins_with("성채 등급") or tx.begins_with("새로 지을 수 있다"):
 				return
 			if tone != "debug" or bool(Data.cfg("debug.enabled", false)):
 				toasts.push(tx, tone)
 		"unlock":
-			# 한꺼번에 열리면(목표·등급 하나에 넷씩) 카드 하나로 묶고, 같은 순간 끝난 목표가 있으면 그 카드에 싣는다
 			_unlock_pending.append(p)
 			_celebrate_soon()
+			build.refresh.call_deferred()
+		"goal_done":
+			_goal_pending.append(p)
+			_celebrate_soon()
+			Sfx.play("goal")
 		"milestone":
-			_banner_milestone(p)
+			toasts.card({"kicker": "성채 등급: %s" % str(p.get("grade_name", "")), "title": "이제 사람들은 당신을 '%s'(이)라 부른다" % str(p.get("title", "")), "tone": "red", "picto": "keep", "life": 4.0})
 		"floor_unlocked":
 			var z := int(p.get("z", 0))
-			banner.show_banner("새 층", "%d층이 열렸다" % (z + 1), "레일에서 %dF를 골라 칠한다." % (z + 1), "jade", 2.4, "樓")
-			refresh_soon()
-		"power_changed":
-			if bool(p.get("on", false)):
-				_lights_on()
-		"expedition_done":
-			refresh_soon()
-			_refresh_hud.call_deferred()
-			nav.pulse.call_deferred("expedition")
-			# 문장은 시뮬 기록 줄("탐험대 n이 …에서 돌아왔다")이 토스트로 이미 띄운다 — 배지·알림 줄로 충분
-		"goal_done":
-			_on_goal_done(p)
+			Sfx.play("floor")
+			toasts.card({"kicker": "새 층", "title": "%d층이 열렸다" % (z + 1), "body": "왼쪽 아래 층 고르기나 PgUp으로 %dF를 보고 짓는다." % (z + 1), "tone": "jade", "picto": "floor"})
+		"hazard_on":
+			_hazard_intro(str(p.get("kind", "")), float(p.get("grace_days", 0.0)))
+		"fire_started":
+			Sfx.play("fire")
+			var pos: Variant = p.get("pos")
+			toasts.push("불이 났다! 왼쪽 알림을 누르면 그 자리로 간다.", "bad", "fire")
+			if pos is Vector3i and not bool(_hz_seen.get("fire_first", false)):
+				_hz_seen["fire_first"] = true
+				Q.vcall("focus", [pos, -1])
+		"fire_out":
+			toasts.push("불이 꺼졌다%s" % (" — 탄 집은 수리해야 쓴다" if bool(p.get("burnt", false)) else ""), "dim", "fire")
+		"outbreak":
+			Sfx.play("disease")
+			toasts.push("병이 돌기 시작했다 — 집 %d채" % UI.to_array(p.get("bids", [])).size(), "bad", "disease")
+		"construction_done":
+			pass
 		"research_done":
-			banner.show_banner("연구 끝", str(p.get("name", "")), "성채 › 연구에서 다음 것을 고른다.", "jade", 2.0, "學")
-			_badge_keep += 1
-			nav.set_badge("keep", _badge_keep)
+			toasts.card({"kicker": "연구 끝", "title": str(p.get("name", "")), "body": "성채 › 연구에서 다음 것을 고른다.", "tone": "jade", "picto": "check"})
 		"raid":
-			# 단속: 시설 이름은 build_menu 에서(이벤트는 type 만 준다)
-			var nm := str(p.get("type", ""))
-			for cat: Variant in Q.list("build_menu"):
-				for it: Variant in UI.to_array(UI.to_dict(cat).get("items", [])):
-					if it is Dictionary and str(it.get("id", "")) == nm:
-						nm = str(it.get("name", nm))
-			banner.show_banner("단속", "%s 닫혔다" % UI.josa(nm, "가", "이"), "벌금 ₩%s. 이틀 뒤 다시 연다. 뒷돈 정책이 위험을 늦춘다." % UI.num(float(p.get("fine", 0))), "red", 2.6, "警")
+			toasts.card({"kicker": "단속", "title": "%s 닫혔다" % UI.josa(_type_name(str(p.get("type", ""))), "가", "이"), "body": "벌금 %s. 이틀 뒤 다시 연다. 뒷돈 정책이 위험을 늦춘다." % UI.won(p.get("fine", 0)), "tone": "red", "picto": "warn"})
 		"raid_end":
 			toast("단속이 풀렸다. 닫혔던 곳이 다시 연다.", "good")
+		"expedition_done":
+			Sfx.play("expedition")
+			refresh_soon()
 		"contract_done":
 			if not bool(p.get("ok", true)):
 				toast("계약 회차를 건너뛰었다 — %s" % str(p.get("reason", "")), "warn")
+		"speed_changed":
+			refresh_soon()
 		"day_started", "hour":
 			_poll_t = 0.0
-			if n == "day_started":
-				_check_keep_badge()
 
 
-func _on_state_replaced() -> void:
-	open_screen("")
-	upgrade.close()
-	toasts.clear()
-	rail.set_cut(-1)
-	Q.vcall("set_floor_cut", [-1])
-	Q.vcall("set_lens", [""])
-	rail.set_lens(false)
-	_names.clear()
-	_goal_done = -1
-	_refresh_hud()
-	_start_session.call_deferred()
+func _type_name(id: String) -> String:
+	var it := build.find(id)
+	return str(it.get("name", id))
 
 
-## 성채 배지: 새로 끝난 목표 단계 수 + 연구가 끝났으면 1.
-func _check_keep_badge() -> void:
-	var g := Q.dict("goals")
-	var done := 0
-	for s: Variant in UI.to_array(g.get("steps", [])):
-		if s is Dictionary and bool(s.get("done", false)):
-			done += 1
-	if _goal_done < 0:
-		_goal_done = done
-	elif done > _goal_done:
-		_badge_keep += done - _goal_done
-		_goal_done = done
-		nav.pulse.call_deferred("keep")
-	var r := Q.dict("research")
-	var act := str(UI.to_dict(r.get("active", {})).get("id", ""))
-	if _research_active != "" and act == "":
-		_badge_keep += 1
-	_research_active = act
+## 새 경고 알림이 뜨면 소리(같은 id 는 한 번).
+func _check_alerts() -> void:
+	var now := {}
+	for a: Variant in UI.to_array(hud.get("alerts", [])):
+		var id := str(UI.to_dict(a).get("id", UI.to_dict(a).get("text", "")))
+		now[id] = true
+		if not _alert_ids.has(id) and str(UI.to_dict(a).get("tone", "")) in ["bad", "danger", "red", "alert"]:
+			Sfx.play("alert")
+	_alert_ids = now
 
 
-func clear_keep_badge() -> void:
-	_badge_keep = 0
-	nav.set_badge("keep", 0)
-
-
-## 접속(또는 새 도시) 직후: 자리 비운 사이 요약 → 필요하면 오프닝.
-func _start_session() -> void:
-	_check_keep_badge()
-	var s: Variant = Game.query("offline_summary")
-	if s is Dictionary and (float(s.get("real_hours", 0.0)) > 0.0 or not UI.to_array(s.get("lines", [])).is_empty()):
-		_show_offline(s)
+## 불·병이 처음 켜질 때 한 번: 짧은 설명 카드(누를 때까지) + 렌즈 버튼.
+func _hazard_intro(kind: String, grace: float) -> void:
+	if bool(_hz_seen.get(kind, false)):
 		return
-	if auto_tutorial and not tutorial.running and not tutorial.is_done():
-		tutorial.start(tutorial.saved_step())
+	_hz_seen[kind] = true
+	Sfx.play("hazard_on")
+	if kind == "fire":
+		toasts.card({"kicker": "새 위험 — 불", "title": "이제부터 불이 날 수 있다%s" % ((" (%s 뒤부터)" % UI.days(grace)) if grace > 0.0 else ""),
+			"body": "소방대 범위 밖의 칸에 불이 나면 옆·위로 번진다. 탄 집은 수리해야 쓴다. 소방대(양동이)는 위아래 한 층까지 닿는다. 위 띠의 불 신호등과 '소방' 렌즈로 빈 곳을 본다.",
+			"tone": "red", "picto": "fire", "life": 0.0, "buttons": [{"label": "소방 렌즈 보기", "cb": func() -> void: set_lens("fire")}, {"label": "알았다", "cb": Callable()}]})
+	elif kind == "disease":
+		toasts.card({"kicker": "새 위험 — 병", "title": "이제부터 병이 돌 수 있다%s" % ((" (%s 뒤부터)" % UI.days(grace)) if grace > 0.0 else ""),
+			"body": "집마다 쓰레기가 나온다. 수거 범위 밖에 쌓이면 그 구역에 병이 돈다 — 일손 반, 행복 하락. 넝마주이 조합(수거)과 의원으로 막는다. '수거'·'의원' 렌즈로 본다.",
+			"tone": "red", "picto": "disease", "life": 0.0, "buttons": [{"label": "수거 렌즈 보기", "cb": func() -> void: set_lens("trash")}, {"label": "알았다", "cb": Callable()}]})
 
 
-func _show_offline(s: Dictionary) -> void:
-	var hours := float(s.get("real_hours", 0.0))
-	var mins := int(fmod(hours, 1.0) * 60.0)
-	var span := (("%d시간" % int(hours)) + ((" %d분" % mins) if mins > 0 else "")) if hours >= 1.0 else ("%d분" % maxi(1, int(round(hours * 60.0))))
-	var lines := UI.to_array(s.get("lines", []))
-	# 10분이 안 되는 짧은 공백은 창을 띄우지 않고 한 줄만(통합 결정: 앱을 잠깐 내렸다 올릴 때마다 모달이 뜨면 귀찮다)
-	if hours < 1.0 / 6.0 and not bool(s.get("clamped", false)):
-		var last := str(lines[lines.size() - 1]) if not lines.is_empty() else ""
-		toast("자리를 비운 %s 사이%s" % [span, (" — " + last) if last != "" else ""], "dim")
-		return
-	if lines.is_empty():
-		lines = ["별일 없었다. 그게 제일 수상하다."]
-	var ed := float(s.get("econ_days", 0.0))
-	var etxt := ("%s일" % str(snappedf(ed, 0.1))) if ed >= 1.0 else ("%d시간" % maxi(1, int(round(ed * 24.0))))
-	Modal.notice(modals, {
-		"kicker": "자리를 비운 사이",
-		"title": "%s 동안 경제 시간으로 %s" % [span, etxt],
-		"lines": lines, "bullets": true, "ok_text": "돌아왔다",
-	})
-
-
-## 목표 id → {tip, go:[{label, jump}]}(data/ui/goal_tips.json). 없으면 {}.
-static func goal_tip(id: String) -> Dictionary:
-	var root: Variant = Data.file("goal_tips")
-	if root is Dictionary:
-		return UI.to_dict(UI.to_dict(root.get("items", {})).get(id, {}))
-	return {}
-
-
-## 목표 달성: 카드 하나(보상 + 같은 순간 열린 건물) → 토스트(다음 목표). 해금 이벤트와 0.3초 안에 모아 합친다.
-func _on_goal_done(p: Dictionary) -> void:
-	_goal_pending.append(p)
-	_celebrate_soon()
-	_after_goal.call_deferred()
-
-
-func _after_goal() -> void:
-	var h := Q.dict("hud")
-	var ng := UI.to_dict(h.get("next_goal", {}))
-	if str(ng.get("text", "")) != "":
-		toasts.push("다음 목표: " + str(ng["text"]) + " — [성채]에 방법", "good", "", 5.0)
-	nav.pulse("keep")
-
-
-func replay_tutorial() -> void:
-	open_screen("")
-	tutorial.start(0)
-
-
-# ------------------------------------------------------------------ 현수막
 var _unlock_pending: Array = []
-
-
 var _goal_pending: Array = []
 var _celebrate_armed := false
 
@@ -534,18 +686,6 @@ func _celebrate_soon() -> void:
 	get_tree().create_timer(0.3).timeout.connect(_flush_celebrate)
 
 
-func _unlock_name(q: Variant) -> String:
-	var id := str(UI.to_dict(q).get("id", ""))
-	var nm := str(UI.to_dict(q).get("name", id))
-	if nm == id:
-		for cat: Variant in Q.list("build_menu"):
-			for it: Variant in UI.to_array(UI.to_dict(cat).get("items", [])):
-				if it is Dictionary and str(it.get("id", "")) == id:
-					nm = str(it.get("name", id))
-	return nm
-
-
-## 모인 목표·해금을 카드로: 목표마다 한 장(마지막 목표에 해금을 싣는다), 목표가 없으면 해금 한 장.
 func _flush_celebrate() -> void:
 	_celebrate_armed = false
 	var goals := _goal_pending.duplicate()
@@ -554,95 +694,81 @@ func _flush_celebrate() -> void:
 	_unlock_pending.clear()
 	var names: Array = []
 	for q: Variant in ps:
-		names.append(_unlock_name(q))
+		var id := str(UI.to_dict(q).get("id", ""))
+		var nm := str(UI.to_dict(q).get("name", id))
+		names.append(_type_name(id) if nm == id else nm)
 	for gi in goals.size():
 		var g: Dictionary = UI.to_dict(goals[gi])
 		var rw: Array = []
 		for r: Variant in UI.to_array(g.get("rewards", [])):
 			rw.append(str(r))
-		var sub := str(g.get("text", ""))
-		var title := ("보상 " + " · ".join(rw)) if not rw.is_empty() else "해냈다"
+		var body := ("보상 " + " · ".join(rw)) if not rw.is_empty() else ""
 		if gi == goals.size() - 1 and not names.is_empty():
-			title += "\n새로 지을 수 있다: " + " · ".join(names)
+			body += ("\n" if body != "" else "") + "새로 지을 수 있다: " + " · ".join(names)
 			names.clear()
-		banner.show_banner("목표 달성", title, sub, "jade", 2.0 if tutorial.running else 2.4, "成")
-	if names.size() == 1:
-		_banner_unlock(ps[0])
-	elif names.size() > 1:
-		banner.show_banner("새로 지을 수 있다 · %d가지" % names.size(), " · ".join(names), "[짓기]에서 찾는다.", "gold", 2.4, "新")
+		var ng := UI.to_dict(Q.dict("hud").get("next_goal", {}))
+		if gi == goals.size() - 1 and str(ng.get("text", "")) != "":
+			body += "\n다음: " + str(ng.get("text", ""))
+		toasts.card({"kicker": "목표 달성", "title": str(g.get("text", "")), "body": body, "tone": "jade", "picto": "goal", "life": 4.0})
+		if not rw.is_empty():
+			Sfx.play("money")
+	if not names.is_empty():
+		Sfx.play("unlock")
+		toasts.card({"kicker": "새로 지을 수 있다" + (" · %d가지" % names.size() if names.size() > 1 else ""), "title": " · ".join(names), "body": "아래 짓기 막대에서 찾는다.", "tone": "gold", "picto": "plus"})
 
 
-func _banner_unlock(p: Dictionary) -> void:
-	var id := str(p.get("id", ""))
-	var nm := str(p.get("name", id))
-	var glyph := ""
-	var desc := ""
-	for cat: Variant in Q.list("build_menu"):
-		for it: Variant in UI.to_array(UI.to_dict(cat).get("items", [])):
-			if it is Dictionary and str(it.get("id", "")) == id:
-				glyph = str(it.get("sign", ""))
-				desc = str(it.get("effect_text", it.get("desc", "")))
-				if nm == id:
-					nm = str(it.get("name", id))
-	banner.show_banner("새로 지을 수 있다", nm, desc, "gold", 2.2, glyph.substr(0, 2))
+func _on_state_replaced() -> void:
+	place.cancel()
+	for w: Node in windows.get_children():
+		(w as PcWindow).close()
+	toasts.clear()
+	inspector.deselect()
+	set_lens("")
+	Q.vcall("set_floor_cut", [-1])
+	_names.clear()
+	_hz_seen.clear()
+	_refresh_hud()
+	build.refresh()
+	_start_session.call_deferred()
 
 
-func _banner_milestone(p: Dictionary) -> void:
-	var t := str(p.get("title", title()))
-	var j := UI.josa(t, "라", "이라").substr(t.length())
-	banner.show_banner("성채 등급: %s" % str(p.get("grade_name", "")), "이제 사람들은 당신을\n'%s'%s 부른다" % [t, j], "", "red", 3.6, "城")
+func _start_session() -> void:
+	if auto_tutorial and not tutorial.running and not tutorial.is_done():
+		tutorial.start(tutorial.saved_step())
 
 
-## 전기가 들어오면: 몇 초간 UI를 거의 지운다. 뷰가 창을 하나씩 켜는 장면이 주인공이다. (1분에 한 번만)
-func _lights_on() -> void:
-	var now := Time.get_ticks_msec()
-	if now - _last_dim_ms < 60000:
-		return
-	_last_dim_ms = now
-	if _dim_tw != null and _dim_tw.is_valid():
-		_dim_tw.kill()
-	_dim_tw = create_tween()
-	_dim_tw.tween_property(chrome, "modulate:a", 0.1, 0.5)
-	_dim_tw.parallel().tween_property(toasts, "modulate:a", 0.0, 0.4)
-	_dim_tw.tween_interval(3.2)
-	_dim_tw.tween_property(chrome, "modulate:a", 1.0, 0.8)
-	_dim_tw.parallel().tween_property(toasts, "modulate:a", 1.0, 0.8)
-	_dim_tw.tween_callback(func() -> void:
-		banner.show_banner("불이 들어왔다", "창이 하나씩 켜진다", "전기세 고지서는 아직 안 왔다.", "gold", 2.4, "電"))
-
-
-# ------------------------------------------------------------------ 튜토리얼 강조 대상
-## 이름 → 화면 영역. 모르는 이름이면 빈 Rect2(강조 없음).
-func target_rect(target: String) -> Rect2:
-	if target.begins_with("nav_"):
-		var b := nav.button(target.substr(4))
+# ------------------------------------------------------------------ 튜토리얼·하네스 대상
+## 이름 → 화면 영역. 모르는 이름이면 빈 Rect2.
+func target_rect(t: String) -> Rect2:
+	if t.begins_with("tool:"):
+		return build.tool_rect(t.substr(5))
+	if t.begins_with("cat:"):
+		return build.cat_rect(t.substr(4))
+	if t.begins_with("card:"):
+		return build.card_rect(t.substr(5))
+	if t.begins_with("win:"):
+		var b: Control = menu.btns.get(t.substr(4))
 		return b.get_global_rect() if b != null else Rect2()
-	if target.begins_with("flow:"):
-		# 짓기 흐름을 따라 강조가 옮겨 다닌다: 바 버튼 → 카드 → 확정
-		var id := target.substr(5)
-		if screen != "build":
-			return nav.button("build").get_global_rect()
-		if build.mode in ["paint", "place"]:
-			return build.target_rect("confirm")
-		var r := build.target_rect(id)
-		return r if r.size.x > 0 else build.sheet.get_global_rect()
-	if target.begins_with("build:"):
-		return build.target_rect(target.substr(6))
-	if target.begins_with("exp:"):
-		return expedition.target_rect(target.substr(4))
-	if target.begins_with("inspect:"):
-		return inspect.target_rect(target.substr(8))
-	if target.begins_with("upgrade:"):
-		return upgrade.target_rect(target.substr(8))
-	match target:
-		"strip":
-			return strip.get_global_rect()
-		"alert":
-			return strip.alert_rect()
-		"money":
-			return strip.money_rect()
-		"rail":
-			return rail.floor_rect()
-		"progress":
-			return rail.progress_rect()
+	if t.begins_with("signal:"):
+		return top.signal_rect(t.substr(7))
+	if t.begins_with("lens:"):
+		return left.floors.lens_rect(t.substr(5))
+	match t:
+		"top":
+			return top.get_global_rect()
+		"speed":
+			return (top._speed_btns["x1"] as Control).get_global_rect().merge((top._speed_btns["x4"] as Control).get_global_rect()).merge((top._speed_btns["pause"] as Control).get_global_rect())
+		"goal":
+			return left.goal_rect()
+		"floors":
+			return left.floors.floors_rect()
+		"inspector":
+			return inspector.get_global_rect() if inspector.visible else Rect2()
+		"build":
+			return build.get_global_rect()
+		"cats":
+			return build._cat_row.get_global_rect()
+		"world":
+			var vs := get_viewport_rect().size
+			return Rect2(Vector2(LeftColumn.W + 40, 120), Vector2(vs.x - LeftColumn.W - Inspector.W - 80, vs.y - 400))
 	return Rect2()

@@ -18,6 +18,8 @@ static var _misc: Dictionary = {}
 
 static func theme() -> Theme:
 	if _theme == null:
+		_theme = PcTheme.get_theme()
+	if _theme == null:
 		_theme = ThemeDB.get_project_theme()
 		if _theme == null and ResourceLoader.exists(FALLBACK_THEME):
 			_theme = load(FALLBACK_THEME)
@@ -127,6 +129,7 @@ static func keep(text: String) -> String:
 
 static func label(text: String = "", variation: String = "", wrap: bool = false) -> Label:
 	var l := Label.new()
+	text = no_hanja(text)
 	l.text = keep(text) if wrap else text
 	if variation != "":
 		l.theme_type_variation = variation
@@ -284,3 +287,127 @@ static func josa(word: String, no_batchim: String, with_batchim: String) -> Stri
 		# 숫자: 영·일·삼·육·칠·팔 은 받침 있음
 		return word + (with_batchim if (code - 0x30) in [0, 1, 3, 6, 7, 8] else no_batchim)
 	return word + no_batchim
+
+
+# ------------------------------------------------------------------ PC(v4) 표시 도우미
+## 한자(CJK 통합 한자) 글자를 걷어 낸다. Jin: "한자 표기는 전부 뺀다" — 데이터(간판 sign 등)에 남은 한자가 화면에 새지 않게 하는 안전망.
+static func no_hanja(s: String) -> String:
+	var has := false
+	for i in s.length():
+		var c := s.unicode_at(i)
+		if (c >= 0x4E00 and c <= 0x9FFF) or (c >= 0x3400 and c <= 0x4DBF) or (c >= 0xF900 and c <= 0xFAFF):
+			has = true
+			break
+	if not has:
+		return s
+	var out := PackedStringArray()
+	for i in s.length():
+		var c2 := s.unicode_at(i)
+		if not ((c2 >= 0x4E00 and c2 <= 0x9FFF) or (c2 >= 0x3400 and c2 <= 0x4DBF) or (c2 >= 0xF900 and c2 <= 0xFAFF)):
+			out.append(s[i])
+	return "".join(out).strip_edges()
+
+
+## 돈: ₩1,234 / 100만 이상은 ₩123.4만 / ₩1.25억
+static func won(v: Variant) -> String:
+	var f := float(v) if (v is float or v is int) else 0.0
+	return ("-₩" if f < 0.0 else "₩") + big(absf(f))
+
+
+## 부호 붙은 돈: +₩12 / -₩3
+static func won_signed(v: Variant) -> String:
+	var f := float(v) if (v is float or v is int) else 0.0
+	return ("+₩" if f >= 0.0 else "-₩") + big(absf(f))
+
+
+## 소수 한 자리까지(정수면 정수로): 12 / 12.5
+static func dec(v: Variant) -> String:
+	var f := float(v) if (v is float or v is int) else 0.0
+	if absf(f - roundf(f)) < 0.05 or absf(f) >= 100.0:
+		return num(roundf(f))
+	return str(snappedf(f, 0.1))
+
+
+## 남은 날: 0.4일 → "10시간", 2.3일 → "2.3일"
+static func days(d: Variant) -> String:
+	var f := float(d) if (d is float or d is int) else 0.0
+	if f < 0.0:
+		return "—"
+	if f < 1.0:
+		return "%d시간" % maxi(1, int(round(f * 24.0)))
+	if f >= 99.0:
+		return "99일+"
+	return str(snappedf(f, 0.1)) + "일"
+
+
+## 0..1 비율 → "73%"
+static func pct(r: Variant) -> String:
+	var f := float(r) if (r is float or r is int) else 0.0
+	return "%d%%" % int(round(f * 100.0))
+
+
+## 상태 문자열 → 색. ok/warn/bad/off
+static func state_col(st: String) -> Color:
+	match st:
+		"ok", "good":
+			return col("jade_hi")
+		"warn":
+			return col("gold")
+		"bad", "danger":
+			return col("red_hi")
+		"off", "":
+			return col("mute")
+	return col("dim")
+
+
+## 계층 색(1~5). 칩·표·렌즈 범례가 같이 쓴다.
+static func tier_col(t: int) -> Color:
+	match t:
+		1:
+			return col("paper3")
+		2:
+			return col("jade_hi")
+		3:
+			return Color("5aa0e0")
+		4:
+			return col("gold")
+		5:
+			return col("red_hi")
+	return col("dim")
+
+
+## 신호등 id → 그림문자 이름
+static func signal_picto(id: String) -> String:
+	return {"water": "water", "power": "power", "food": "food", "fun": "fun", "fire": "fire", "disease": "disease", "labor": "labor"}.get(id, "dot")
+
+
+## 짓기 분류(cat) → 그림문자. 모르는 분류는 상자.
+static func cat_picto(cat: String) -> String:
+	match cat:
+		"house":
+			return "house"
+		"market":
+			return "market"
+		"water":
+			return "water"
+		"power":
+			return "power"
+		"utility", "utilities":
+			return "water"
+		"food":
+			return "food"
+		"goods":
+			return "goods"
+		"electronics":
+			return "electronics"
+		"service", "fun":
+			return "service"
+		"vice":
+			return "vice"
+		"infra":
+			return "infra"
+		"landmark":
+			return "landmark"
+		"hazard", "safety", "fire":
+			return "fire"
+	return "goods"

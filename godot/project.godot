@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="구룡성채"
-config/description="구룡성채 분재 — 도시를 짓지 않는다. 기른다."
+config/description="구룡성채 — PC 도시경제(v0.4). 마우스와 키보드."
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 boot_splash/bg_color=Color(0.08, 0.07, 0.1, 1)
@@ -21,18 +21,23 @@ config/icon="res://icon.svg"
 
 Data="*res://core/Data.gd"
 Game="*res://core/Game.gd"
+Sfx="*res://ui/Sfx.gd"
 
 [display]
 
-window/size/viewport_width=540
-window/size/viewport_height=960
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/size/mode=2
+window/size/resizable=true
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
-window/handheld/orientation=1
+window/handheld/orientation=0
 
 [gui]
 
 theme/custom="res://assets/themes/main_theme.tres"
+common/drop_mouse_on_gui_input_disabled=true
+timers/tooltip_delay_sec=0.35
 
 [input_devices]
 
