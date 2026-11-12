@@ -17,7 +17,7 @@
  "items": {
   "stall": {
    "name": "좌판",
-   "sign": "雜",
+   "sign": "",
    "cat": "market",
    "priority": "service",
    "size": 1,
@@ -29,14 +29,21 @@
    "workforce": {
     "t1": 2
    },
-   "build_days": 0.04,
    "market": 1,
-   "range": 5,
-   "desc": "잡동사니를 늘어놓은 좌판. 1등급 상품을 취급한다."
+   "range": {
+    "r": 4,
+    "up": 1,
+    "down": 1
+   },
+   "desc": "잡동사니를 늘어놓은 좌판. 1등급 상품을 취급한다.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "market2": {
    "name": "생활 시장",
-   "sign": "市",
+   "sign": "",
    "cat": "market",
    "priority": "service",
    "size": 2,
@@ -50,14 +57,21 @@
    "workforce": {
     "t2": 4
    },
-   "build_days": 0.08,
    "market": 2,
-   "range": 6,
-   "desc": "옷과 비누까지 파는 골목 시장. 2등급까지."
+   "range": {
+    "r": 5,
+    "up": 1,
+    "down": 1
+   },
+   "desc": "옷과 비누까지 파는 골목 시장. 2등급까지.",
+   "footprint": [
+    2,
+    2
+   ]
   },
   "market3": {
    "name": "종합 시장",
-   "sign": "百貨",
+   "sign": "",
    "cat": "market",
    "priority": "service",
    "size": 2,
@@ -71,15 +85,22 @@
    "workforce": {
     "t3": 6
    },
-   "build_days": 0.08,
    "market": 3,
-   "range": 7,
+   "range": {
+    "r": 6,
+    "up": 1,
+    "down": 1
+   },
    "power": 6,
-   "desc": "불 켜진 백화 골목. 3등급까지. 전기 필요."
+   "desc": "불 켜진 백화 골목. 3등급까지. 전기 필요.",
+   "footprint": [
+    2,
+    2
+   ]
   },
   "market4": {
    "name": "고급 상가",
-   "sign": "名店",
+   "sign": "",
    "cat": "market",
    "priority": "service",
    "size": 2,
@@ -94,11 +115,18 @@
    "workforce": {
     "t4": 6
    },
-   "build_days": 0.08,
    "market": 4,
-   "range": 8,
+   "range": {
+    "r": 7,
+    "up": 1,
+    "down": 1
+   },
    "power": 10,
-   "desc": "간판이 번쩍이는 명품 거리. 4등급까지. 전기 필요."
+   "desc": "간판이 번쩍이는 명품 거리. 4등급까지. 전기 필요.",
+   "footprint": [
+    2,
+    2
+   ]
   },
   "rain_catcher": {
    "name": "빗물받이",
@@ -112,15 +140,18 @@
    },
    "upkeep": 0.5,
    "workforce": {},
-   "build_days": 0.04,
    "supply": {
     "water": 20
    },
-   "desc": "양철 홈통과 드럼통. 싸고 약하다."
+   "desc": "양철 홈통과 드럼통. 싸고 약하다.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "water_tower": {
    "name": "급수탑",
-   "sign": "水",
+   "sign": "",
    "cat": "water",
    "priority": "utility",
    "size": 1,
@@ -134,15 +165,18 @@
    "workforce": {
     "t1": 2
    },
-   "build_days": 0.04,
    "supply": {
     "water": 120
    },
-   "desc": "지붕 위 물탱크와 펌프."
+   "desc": "지붕 위 물탱크와 펌프.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "water_ext": {
    "name": "외부 수도",
-   "sign": "駁水",
+   "sign": "",
    "cat": "water",
    "priority": "utility",
    "size": 1,
@@ -152,11 +186,14 @@
    },
    "upkeep": 35,
    "workforce": {},
-   "build_days": 0.04,
    "supply": {
     "water": 250
    },
-   "desc": "성채 밖 수도관에 몰래 이은 관. 자리는 적게, 돈은 많이."
+   "desc": "성채 밖 수도관에 몰래 이은 관. 자리는 적게, 돈은 많이.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "water_plant": {
    "name": "정수장",
@@ -175,16 +212,19 @@
    "workforce": {
     "t3": 4
    },
-   "build_days": 0.08,
    "supply": {
     "water": 600
    },
    "power": 10,
-   "desc": "거르고 끓여 보내는 큰 설비. 전기 필요."
+   "desc": "거르고 끓여 보내는 큰 설비. 전기 필요.",
+   "footprint": [
+    2,
+    2
+   ]
   },
   "generator": {
    "name": "소형 발전기",
-   "sign": "電",
+   "sign": "",
    "cat": "power",
    "priority": "utility",
    "size": 1,
@@ -198,18 +238,21 @@
    "workforce": {
     "t2": 1
    },
-   "build_days": 0.04,
    "supply": {
     "power": 40
    },
    "tags": [
     "noise"
    ],
-   "desc": "털털거리는 디젤 발전기. 시끄럽다."
+   "desc": "털털거리는 디젤 발전기. 시끄럽다.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "power_ext": {
    "name": "외부 전력",
-   "sign": "駁電",
+   "sign": "",
    "cat": "power",
    "priority": "utility",
    "size": 1,
@@ -219,11 +262,14 @@
    },
    "upkeep": 140,
    "workforce": {},
-   "build_days": 0.04,
    "supply": {
     "power": 150
    },
-   "desc": "전봇대에서 끌어온 선. 자리는 적게, 돈은 많이."
+   "desc": "전봇대에서 끌어온 선. 자리는 적게, 돈은 많이.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "power_plant": {
    "name": "발전소",
@@ -242,14 +288,17 @@
    "workforce": {
     "t3": 6
    },
-   "build_days": 0.08,
    "supply": {
     "power": 300
    },
    "tags": [
     "noise"
    ],
-   "desc": "성채의 심장. 설비 부품이 든다."
+   "desc": "성채의 심장. 설비 부품이 든다.",
+   "footprint": [
+    2,
+    2
+   ]
   },
   "chp": {
    "name": "열병합 발전",
@@ -269,12 +318,15 @@
     "t3": 4,
     "t4": 2
    },
-   "build_days": 0.08,
    "supply": {
     "power": 800
    },
    "blueprint": "chp",
-   "desc": "폐열까지 쓰는 발전 설비. 도면이 있어야 짓는다(탐험)."
+   "desc": "폐열까지 쓰는 발전 설비. 도면이 있어야 짓는다(탐험).",
+   "footprint": [
+    2,
+    2
+   ]
   },
   "garden": {
    "name": "옥상 텃밭",
@@ -290,7 +342,6 @@
    "workforce": {
     "t1": 2
    },
-   "build_days": 0.04,
    "recipe": {
     "in": {},
     "out": {
@@ -298,11 +349,15 @@
     }
    },
    "water": 3,
-   "desc": "스티로폼 상자에 키우는 채소."
+   "desc": "스티로폼 상자에 키우는 채소.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "noodle_mill": {
    "name": "제면소",
-   "sign": "麵",
+   "sign": "",
    "cat": "food",
    "priority": "food",
    "size": 1,
@@ -316,7 +371,6 @@
    "workforce": {
     "t1": 4
    },
-   "build_days": 0.04,
    "recipe": {
     "in": {
      "flour": 20
@@ -329,11 +383,15 @@
    "tags": [
     "noise"
    ],
-   "desc": "밀가루를 뽑아 국수를 만든다."
+   "desc": "밀가루를 뽑아 국수를 만든다.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "fishball_factory": {
    "name": "어묵 공장",
-   "sign": "魚蛋",
+   "sign": "",
    "cat": "food",
    "priority": "food",
    "size": 1,
@@ -347,7 +405,6 @@
    "workforce": {
     "t1": 4
    },
-   "build_days": 0.04,
    "recipe": {
     "in": {
      "fishmeat": 20
@@ -360,11 +417,15 @@
    "tags": [
     "noise"
    ],
-   "desc": "어육을 치대 어묵을 빚는다."
+   "desc": "어육을 치대 어묵을 빚는다.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "distillery": {
    "name": "밀주 양조장",
-   "sign": "酒",
+   "sign": "",
    "cat": "food",
    "priority": "goods",
    "size": 1,
@@ -376,7 +437,6 @@
    "workforce": {
     "t1": 3
    },
-   "build_days": 0.04,
    "recipe": {
     "in": {
      "flour": 10
@@ -386,11 +446,15 @@
     }
    },
    "water": 4,
-   "desc": "밀가루로 담그는 독한 술."
+   "desc": "밀가루로 담그는 독한 술.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "candle_shop": {
    "name": "초 공방",
-   "sign": "燭",
+   "sign": "",
    "cat": "goods",
    "priority": "goods",
    "size": 1,
@@ -402,7 +466,6 @@
    "workforce": {
     "t1": 3
    },
-   "build_days": 0.04,
    "recipe": {
     "in": {
      "fat": 8
@@ -411,11 +474,15 @@
      "candle": 16
     }
    },
-   "desc": "유지를 녹여 초를 붓는다."
+   "desc": "유지를 녹여 초를 붓는다.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "tailor": {
    "name": "봉제방",
-   "sign": "衣",
+   "sign": "",
    "cat": "goods",
    "priority": "goods",
    "size": 1,
@@ -429,7 +496,6 @@
    "workforce": {
     "t2": 4
    },
-   "build_days": 0.04,
    "recipe": {
     "in": {
      "cloth": 8
@@ -438,11 +504,15 @@
      "clothes": 12
     }
    },
-   "desc": "재봉틀 여섯 대가 쉬지 않는다."
+   "desc": "재봉틀 여섯 대가 쉬지 않는다.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "soap_shop": {
    "name": "비누 공방",
-   "sign": "皂",
+   "sign": "",
    "cat": "goods",
    "priority": "goods",
    "size": 1,
@@ -454,7 +524,6 @@
    "workforce": {
     "t2": 3
    },
-   "build_days": 0.04,
    "recipe": {
     "in": {
      "fat": 8
@@ -463,11 +532,15 @@
      "soap": 16
     }
    },
-   "desc": "유지로 비누를 굳힌다."
+   "desc": "유지로 비누를 굳힌다.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "suit_shop": {
    "name": "양복점",
-   "sign": "洋服",
+   "sign": "",
    "cat": "goods",
    "priority": "goods",
    "size": 1,
@@ -481,7 +554,6 @@
    "workforce": {
     "t3": 4
    },
-   "build_days": 0.04,
    "recipe": {
     "in": {
      "clothes": 4,
@@ -491,11 +563,15 @@
      "suit": 6
     }
    },
-   "desc": "봉제방 옷감을 다시 지어 양복을 맞춘다(2단 체인)."
+   "desc": "봉제방 옷감을 다시 지어 양복을 맞춘다(2단 체인).",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "radio_shop": {
    "name": "전파사",
-   "sign": "電器",
+   "sign": "",
    "cat": "electronics",
    "priority": "goods",
    "size": 1,
@@ -509,7 +585,6 @@
    "workforce": {
     "t3": 4
    },
-   "build_days": 0.04,
    "recipe": {
     "in": {
      "elec": 4
@@ -519,11 +594,15 @@
     }
    },
    "power": 6,
-   "desc": "라디오를 조립하고 고친다. 전기 필요."
+   "desc": "라디오를 조립하고 고친다. 전기 필요.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "assembly": {
    "name": "조립소",
-   "sign": "裝配",
+   "sign": "",
    "cat": "electronics",
    "priority": "goods",
    "size": 2,
@@ -539,7 +618,6 @@
     "t3": 6,
     "t4": 2
    },
-   "build_days": 0.08,
    "recipe": {
     "in": {
      "radio": 2,
@@ -550,11 +628,15 @@
     }
    },
    "power": 12,
-   "desc": "라디오를 뜯어 가전을 만든다(2단 체인). 전기 필요."
+   "desc": "라디오를 뜯어 가전을 만든다(2단 체인). 전기 필요.",
+   "footprint": [
+    2,
+    2
+   ]
   },
   "fake_shop": {
    "name": "짝퉁 공방",
-   "sign": "名牌",
+   "sign": "",
    "cat": "vice",
    "priority": "vice",
    "size": 1,
@@ -567,7 +649,6 @@
     "t2": 4,
     "t3": 2
    },
-   "build_days": 0.04,
    "recipe": {
     "in": {
      "cloth": 3,
@@ -585,11 +666,15 @@
     "income": 0,
     "heat": 4,
     "raid_line": "짝퉁 공방이 압수됐다. 압수품 목록에 '진짜'라고 적힌 상자가 있었다."
-   }
+   },
+   "footprint": [
+    1,
+    2
+   ]
   },
   "shrine": {
    "name": "사당",
-   "sign": "福",
+   "sign": "",
    "cat": "service",
    "priority": "service",
    "size": 1,
@@ -601,16 +686,23 @@
    "workforce": {
     "t1": 1
    },
-   "build_days": 0.04,
    "services": [
     "shrine"
    ],
-   "range": 5,
-   "desc": "향 연기가 피어오르는 작은 사당."
+   "range": {
+    "r": 4,
+    "up": 1,
+    "down": 1
+   },
+   "desc": "향 연기가 피어오르는 작은 사당.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "teahouse": {
    "name": "찻집",
-   "sign": "茶",
+   "sign": "",
    "cat": "service",
    "priority": "service",
    "size": 1,
@@ -622,16 +714,23 @@
    "workforce": {
     "t1": 2
    },
-   "build_days": 0.04,
    "services": [
     "teahouse"
    ],
-   "range": 5,
-   "desc": "딤섬과 차, 그리고 수다."
+   "range": {
+    "r": 4,
+    "up": 1,
+    "down": 1
+   },
+   "desc": "딤섬과 차, 그리고 수다.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "mahjong": {
    "name": "마작방",
-   "sign": "麻雀",
+   "sign": "",
    "cat": "service",
    "priority": "service",
    "size": 1,
@@ -643,16 +742,23 @@
    "workforce": {
     "t1": 2
    },
-   "build_days": 0.04,
    "services": [
     "mahjong"
    ],
-   "range": 5,
-   "desc": "패 섞는 소리가 밤새 난다."
+   "range": {
+    "r": 4,
+    "up": 1,
+    "down": 1
+   },
+   "desc": "패 섞는 소리가 밤새 난다.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "dentist": {
    "name": "무면허 치과",
-   "sign": "牙科",
+   "sign": "",
    "cat": "service",
    "priority": "service",
    "size": 1,
@@ -664,11 +770,14 @@
    "workforce": {
     "t2": 2
    },
-   "build_days": 0.04,
    "services": [
     "clinic"
    ],
-   "range": 6,
+   "range": {
+    "r": 5,
+    "up": 1,
+    "down": 1
+   },
    "tags": [
     "vice"
    ],
@@ -677,11 +786,15 @@
     "income": 0,
     "heat": 1,
     "raid_line": "무면허 치과에 단속. 면허는 여전히 본토에 있다고 한다."
-   }
+   },
+   "footprint": [
+    1,
+    2
+   ]
   },
   "bathhouse": {
    "name": "목욕탕",
-   "sign": "浴",
+   "sign": "",
    "cat": "service",
    "priority": "service",
    "size": 2,
@@ -695,17 +808,24 @@
    "workforce": {
     "t2": 4
    },
-   "build_days": 0.08,
    "services": [
     "bath"
    ],
-   "range": 7,
+   "range": {
+    "r": 6,
+    "up": 1,
+    "down": 1
+   },
    "water": 30,
-   "desc": "뜨거운 물이 귀한 성채의 사치."
+   "desc": "뜨거운 물이 귀한 성채의 사치.",
+   "footprint": [
+    2,
+    2
+   ]
   },
   "study": {
    "name": "공부방",
-   "sign": "學",
+   "sign": "",
    "cat": "service",
    "priority": "service",
    "size": 1,
@@ -717,16 +837,23 @@
    "workforce": {
     "t3": 3
    },
-   "build_days": 0.04,
    "services": [
     "study"
    ],
-   "range": 7,
-   "desc": "아이들과 야간반 어른들."
+   "range": {
+    "r": 6,
+    "up": 1,
+    "down": 1
+   },
+   "desc": "아이들과 야간반 어른들.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "karaoke": {
    "name": "가라오케",
-   "sign": "卡拉OK",
+   "sign": "",
    "cat": "service",
    "priority": "service",
    "size": 1,
@@ -738,13 +865,20 @@
    "workforce": {
     "t2": 3
    },
-   "build_days": 0.04,
    "services": [
     "karaoke"
    ],
-   "range": 6,
+   "range": {
+    "r": 5,
+    "up": 1,
+    "down": 1
+   },
    "power": 8,
-   "desc": "네온과 떼창. 전기 필요."
+   "desc": "네온과 떼창. 전기 필요.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "roof_garden": {
    "name": "옥상 정원",
@@ -760,18 +894,25 @@
    "workforce": {
     "t1": 1
    },
-   "build_days": 0.04,
    "services": [
     "garden"
    ],
-   "range": 4,
+   "range": {
+    "r": 3,
+    "up": 1,
+    "down": 1
+   },
    "water": 4,
-   "open_sky": true,
-   "desc": "하늘이 열린 자리에만 지을 수 있다."
+   "desc": "하늘이 열린 자리에만 지을 수 있다.",
+   "footprint": [
+    1,
+    2
+   ],
+   "needs_sky": true
   },
   "gambling_den": {
    "name": "하우스",
-   "sign": "賭",
+   "sign": "",
    "cat": "vice",
    "priority": "vice",
    "size": 1,
@@ -783,11 +924,14 @@
    "workforce": {
     "t1": 3
    },
-   "build_days": 0.04,
    "services": [
     "mahjong"
    ],
-   "range": 5,
+   "range": {
+    "r": 4,
+    "up": 1,
+    "down": 1
+   },
    "vice": {
     "income": 30,
     "heat": 3,
@@ -797,11 +941,15 @@
     "vice",
     "stub"
    ],
-   "desc": "문 닫고 하는 판. 마작방 수요도 채운다."
+   "desc": "문 닫고 하는 판. 마작방 수요도 채운다.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "callcenter": {
    "name": "콜센터",
-   "sign": "客服",
+   "sign": "",
    "cat": "vice",
    "priority": "vice",
    "size": 1,
@@ -814,7 +962,6 @@
     "t1": 6,
     "t2": 4
    },
-   "build_days": 0.04,
    "power": 15,
    "vice": {
     "income": 160,
@@ -825,11 +972,15 @@
     "vice",
     "stub"
    ],
-   "desc": "고객님, 검찰청입니다."
+   "desc": "고객님, 검찰청입니다.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "casino": {
    "name": "카지노",
-   "sign": "賭場",
+   "sign": "",
    "cat": "vice",
    "priority": "vice",
    "size": 2,
@@ -844,11 +995,14 @@
     "t2": 8,
     "t3": 4
    },
-   "build_days": 0.08,
    "services": [
     "casino"
    ],
-   "range": 8,
+   "range": {
+    "r": 7,
+    "up": 1,
+    "down": 1
+   },
    "power": 30,
    "vice": {
     "income": 500,
@@ -859,11 +1013,15 @@
     "vice",
     "stub"
    ],
-   "desc": "유지와 거물이 돈을 잃으러 온다."
+   "desc": "유지와 거물이 돈을 잃으러 온다.",
+   "footprint": [
+    2,
+    2
+   ]
   },
   "fireworks": {
    "name": "화약 가공소",
-   "sign": "炮",
+   "sign": "",
    "cat": "vice",
    "priority": "vice",
    "size": 1,
@@ -875,7 +1033,6 @@
    "workforce": {
     "t1": 4
    },
-   "build_days": 0.04,
    "recipe": {
     "in": {
      "scrap": 2
@@ -894,11 +1051,15 @@
     "income": 0,
     "heat": 5,
     "raid_line": "화약 가공소가 봉인됐다. 이웃들은 처음으로 조용한 밤을 보낸다."
-   }
+   },
+   "footprint": [
+    1,
+    2
+   ]
   },
   "scrapyard": {
    "name": "고물 작업장",
-   "sign": "收買",
+   "sign": "",
    "cat": "infra",
    "priority": "other",
    "size": 1,
@@ -910,7 +1071,6 @@
    "workforce": {
     "t1": 3
    },
-   "build_days": 0.04,
    "recipe": {
     "in": {},
     "out": {
@@ -920,11 +1080,15 @@
    "tags": [
     "noise"
    ],
-   "desc": "고물을 사고 판다."
+   "desc": "고물을 사고 판다.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "warehouse": {
    "name": "창고",
-   "sign": "倉",
+   "sign": "",
    "cat": "infra",
    "priority": "other",
    "size": 1,
@@ -936,13 +1100,16 @@
    "workforce": {
     "t1": 2
    },
-   "build_days": 0.04,
    "storage": true,
-   "desc": "저장 한도를 늘린다."
+   "desc": "저장 한도를 늘린다.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "trade_post": {
    "name": "교역소",
-   "sign": "行",
+   "sign": "",
    "cat": "infra",
    "priority": "other",
    "size": 1,
@@ -954,13 +1121,16 @@
    "workforce": {
     "t1": 2
    },
-   "build_days": 0.04,
    "contract_slots": 2,
-   "desc": "정기 계약 2자리."
+   "desc": "정기 계약 2자리.",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "expedition_base": {
    "name": "탐험 거점",
-   "sign": "探",
+   "sign": "",
    "cat": "infra",
    "priority": "other",
    "size": 1,
@@ -970,13 +1140,16 @@
    },
    "upkeep": 2,
    "workforce": {},
-   "build_days": 0.04,
    "teams": 1,
-   "desc": "탐험대 1팀(최대 3)."
+   "desc": "탐험대 1팀(최대 3).",
+   "footprint": [
+    1,
+    2
+   ]
   },
   "city_hall": {
    "name": "성채 회관",
-   "sign": "城寨",
+   "sign": "",
    "cat": "landmark",
    "priority": "service",
    "size": 2,
@@ -993,13 +1166,20 @@
    "workforce": {
     "t4": 4
    },
-   "build_days": 0.25,
    "services": [
     "landmark"
    ],
-   "range": 12,
+   "range": {
+    "r": 11,
+    "up": 1,
+    "down": 1
+   },
    "landmark": true,
-   "desc": "성채의 얼굴. 세 자재를 모두 쓴다 — 최종 목표."
+   "desc": "성채의 얼굴. 세 자재를 모두 쓴다 — 최종 목표.",
+   "footprint": [
+    2,
+    2
+   ]
   }
  }
 }

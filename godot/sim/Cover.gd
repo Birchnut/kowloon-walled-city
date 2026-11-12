@@ -1,61 +1,105 @@
 class_name Cover
 extends RefCounted
 ## Cover — 배치에서만 나오는 파생 값(저장 안 함). 건물이 생기거나 없어질 때만 다시 만든다(state.layout_rev).
-## 거리 = |dx| + |dy| + vertical_weight×|dz|, |dz| ≤ max_floor_delta. 2×2는 네 칸 중 가장 가까운 칸.
+## v4 범위 = 사각형(체비쇼프): 발자국의 어느 칸에서든 max(|dx|,|dy|) ≤ r, 층은 시설의 가장 아래층 −down … 가장 위층 +up.
+## 발자국: 시설 w×h칸, d개 층(origin = 최소 x,y,z). 주거는 1×1×1.
 ## 결과: {markets:{hbid:[fbid…]}, services:{hbid:{tag:[fbid…]}}, noise:{hbid:n}, served:{fbid:n},
 ##        warehouses:n, posts:n, teams:n, by_prio:[fbid…], houses:[주거 dict…](buildings 순서), facs:[완공 시설 dict…],
-##        cls:{hbid:덮임 등급}, cls_mk/cls_sv/cls_noise:[등급별], vice:[음성 시설 bid…]}
+##        cls:{hbid:덮임 등급}, cls_mk/cls_sv/cls_noise:[등급별], vice:[음성 시설 bid…],
+##        hz:{tag:{bid:[fbid…]}}(방재 범위 — 주거와 시설 모두, config hazards.tags), sky:[하늘이 필요한 시설 bid…]}
 ## 주의: houses/facs는 상태의 dict 참조다. 건물 dict를 통째로 바꾸는 코드는 반드시 state.layout_changed()를 부른다.
 
 
-static func dist(sim: Sim, a: Vector3i, origin: Vector3i, size: int) -> int:
-	var dz := absi(a.z - origin.z)
-	if dz > int(sim.cfg("distance.max_floor_delta", 2)):
-		return 1 << 20
-	var best := 1 << 20
-	for dx: int in size:
-		for dy: int in size:
-			best = mini(best, absi(a.x - origin.x - dx) + absi(a.y - origin.y - dy))
-	return best + int(sim.cfg("distance.vertical_weight", 2)) * dz
+## 건물 b의 (w, h, d). 주거·옛 저장은 size로.
+static func dims(b: Dictionary) -> Vector3i:
+	if b.has("w"):
+		return Vector3i(int(b["w"]), int(b["h"]), int(b.get("d", 1)))
+	var s := int(b.get("size", 1))
+	return Vector3i(s, s, 1)
 
 
-static func footprint(origin: Vector3i, size: int) -> Array:
+static func cells_of(o: Vector3i, w: int, h: int, d: int = 1) -> Array:
 	var out: Array = []
-	for dx: int in size:
-		for dy: int in size:
-			out.append(Vector3i(origin.x + dx, origin.y + dy, origin.z))
+	for dz: int in d:
+		for dx: int in w:
+			for dy: int in h:
+				out.append(Vector3i(o.x + dx, o.y + dy, o.z + dz))
 	return out
 
 
-## 범위 안 칸들(미리보기용).
-static func range_cells(sim: Sim, origin: Vector3i, size: int, rng: int) -> Array:
+## 건물이 차지하는 모든 칸.
+static func bcells(b: Dictionary) -> Array:
+	var k := dims(b)
+	return cells_of(b["pos"], k.x, k.y, k.z)
+
+
+## 옛 호환: 한 층 size×size.
+static func footprint(origin: Vector3i, size: int) -> Array:
+	return cells_of(origin, size, size, 1)
+
+
+## 데이터의 range → {r, up, down} 또는 {}(범위 없음). 옛 정수 값은 {r, up 1, down 1}.
+static func rng_of(d: Dictionary) -> Dictionary:
+	var r: Variant = d.get("range", null)
+	if r is Dictionary:
+		return {"r": int(r.get("r", 0)), "up": int(r.get("up", 0)), "down": int(r.get("down", 0))}
+	if r is float or r is int:
+		return {"r": int(r), "up": 1, "down": 1}
+	return {}
+
+
+## 시설(o, w,h,d, 범위 rg)이 칸 p에 닿나.
+static func reach(o: Vector3i, w: int, h: int, d: int, rg: Dictionary, p: Vector3i) -> bool:
+	if p.z < o.z - int(rg["down"]) or p.z > o.z + d - 1 + int(rg["up"]):
+		return false
+	var dx := maxi(0, maxi(o.x - p.x, p.x - (o.x + w - 1)))
+	var dy := maxi(0, maxi(o.y - p.y, p.y - (o.y + h - 1)))
+	return maxi(dx, dy) <= int(rg["r"])
+
+
+## 시설이 건물 b(여러 칸일 수 있음)의 어느 칸에든 닿나.
+static func reach_b(o: Vector3i, w: int, h: int, d: int, rg: Dictionary, b: Dictionary) -> bool:
+	var p: Vector3i = b["pos"]
+	var k := dims(b)
+	if p.z + k.z - 1 < o.z - int(rg["down"]) or p.z > o.z + d - 1 + int(rg["up"]):
+		return false
+	var dx := maxi(0, maxi(o.x - (p.x + k.x - 1), p.x - (o.x + w - 1)))
+	var dy := maxi(0, maxi(o.y - (p.y + k.y - 1), p.y - (o.y + h - 1)))
+	return maxi(dx, dy) <= int(rg["r"])
+
+
+## 범위 안 칸들(미리보기용) — 부지 안, 층 0..F-1.
+static func range_cells(sim: Sim, o: Vector3i, w: int, h: int, d: int, rg: Dictionary) -> Array:
 	var out: Array = []
-	var md := int(sim.cfg("distance.max_floor_delta", 2))
-	for z: int in range(maxi(0, origin.z - md), mini(sim.F, origin.z + md + 1)):
-		for x: int in sim.W:
-			for y: int in sim.H:
-				var p := Vector3i(x, y, z)
-				if dist(sim, p, origin, size) <= rng:
-					out.append(p)
+	if rg.is_empty():
+		return out
+	var r := int(rg["r"])
+	for z: int in range(maxi(0, o.z - int(rg["down"])), mini(sim.F, o.z + d + int(rg["up"]))):
+		for x: int in range(maxi(0, o.x - r), mini(sim.W, o.x + w + r)):
+			for y: int in range(maxi(0, o.y - r), mini(sim.H, o.y + h + r)):
+				out.append(Vector3i(x, y, z))
 	return out
 
 
 static func build(sim: Sim, state: CityState) -> Dictionary:
 	var c := {"markets": {}, "services": {}, "noise": {}, "served": {}, "warehouses": 0, "posts": 0, "teams": 0,
-		"by_prio": [], "houses": [], "facs": [], "cls": {}, "cls_mk": [], "cls_sv": [], "cls_noise": [], "vice": [], "ranged": [], "sites": [], "floor_houses": {}, "floor_fac_cells": {}}
-	var ranged: Array = []      # [fbid, def, origin, size, range, is_market, services]
+		"by_prio": [], "houses": [], "facs": [], "cls": {}, "cls_mk": [], "cls_sv": [], "cls_noise": [], "vice": [], "ranged": [], "sites": [],
+		"floor_houses": {}, "floor_fac_cells": {}, "hz": {}, "sky": [], "all": []}
+	var ranged: Array = []      # [fbid, origin, w, h, d, rg, is_market, services(주거용), hz_tags]
 	var noisy: Array = []
 	var prio: Array = sim.cfg("workforce.priority", [])
+	var hz_tags: Array = sim.cfg("hazards.tags", [])
+	for t: String in hz_tags:
+		c["hz"][t] = {}
 	var buckets: Array = []
 	for i: int in prio.size() + 1:
 		buckets.append([])
-	var vw := int(sim.cfg("distance.vertical_weight", 2))
-	var md := int(sim.cfg("distance.max_floor_delta", 2))
 	for bid: int in state.buildings:
 		var b: Dictionary = state.buildings[bid]
 		var bz: int = (b["pos"] as Vector3i).z
 		if b["kind"] == "house":
 			c["houses"].append(b)
+			c["all"].append(b)
 			if not c["floor_houses"].has(bz):
 				c["floor_houses"][bz] = []
 			c["floor_houses"][bz].append(b)
@@ -66,7 +110,10 @@ static func build(sim: Sim, state: CityState) -> Dictionary:
 		if b["kind"] != "facility":
 			continue
 		c["facs"].append(b)
-		c["floor_fac_cells"][bz] = int(c["floor_fac_cells"].get(bz, 0)) + int(b["size"]) * int(b["size"])
+		c["all"].append(b)
+		var k := dims(b)
+		for dz: int in k.z:
+			c["floor_fac_cells"][bz + dz] = int(c["floor_fac_cells"].get(bz + dz, 0)) + k.x * k.y
 		var d := sim.bdef(str(b["type"]))
 		if d.get("storage", false):
 			c["warehouses"] += 1
@@ -74,8 +121,18 @@ static func build(sim: Sim, state: CityState) -> Dictionary:
 		c["teams"] += int(d.get("teams", 0))
 		if d.has("vice") or "vice" in d.get("tags", []):
 			c["vice"].append(bid)
-		if d.has("range"):
-			ranged.append([bid, d, b["pos"], int(b.get("size", 1)), int(d["range"]), d.has("market"), d.get("services", [])])
+		if d.get("needs_sky", false) or d.get("open_sky", false):
+			c["sky"].append(bid)
+		var rg := rng_of(d)
+		if not rg.is_empty():
+			var sv: Array = []
+			var hz: Array = []
+			for tg: String in d.get("services", []):
+				if tg in hz_tags:
+					hz.append(tg)
+				else:
+					sv.append(tg)
+			ranged.append([bid, b["pos"], k.x, k.y, k.z, rg, d.has("market"), sv, hz])
 			c["ranged"].append(b)
 			c["served"][bid] = 0
 		if "noise" in d.get("tags", []):
@@ -101,6 +158,18 @@ static func build(sim: Sim, state: CityState) -> Dictionary:
 		var sup: Dictionary = d.get("supply", {})
 		c["groups"][gi[p]][1].append([b, float(sup.get("water", 0.0)), float(sup.get("power", 0.0)), float(d.get("water", 0.0)),
 			float(d.get("power", 0.0)), wf, float(d.get("upkeep", 0.0))])
+	# 방재 범위(주거·시설 모두)
+	for r: Array in ranged:
+		if (r[8] as Array).is_empty():
+			continue
+		for b: Dictionary in c["all"]:
+			if reach_b(r[1], r[2], r[3], r[4], r[5], b):
+				for tg: String in r[8]:
+					var m: Dictionary = c["hz"][tg]
+					var bid := int(b["id"])
+					if not m.has(bid):
+						m[bid] = []
+					m[bid].append(r[0])
 	var cls_of := {}
 	for h: Dictionary in c["houses"]:
 		var hbid := int(h["id"])
@@ -108,19 +177,16 @@ static func build(sim: Sim, state: CityState) -> Dictionary:
 		var mk: Array = []
 		var sv: Dictionary = {}
 		for r: Array in ranged:
-			var o: Vector3i = r[2]
-			var dz := absi(pos.z - o.z)
-			if dz > md:
+			if (r[7] as Array).is_empty() and not r[6]:
+				if not (r[8] as Array).is_empty() and reach(r[1], r[2], r[3], r[4], r[5], pos):
+					c["served"][r[0]] += 1
 				continue
-			var sz: int = r[3]
-			var dx := maxi(0, maxi(o.x - pos.x, pos.x - (o.x + sz - 1)))
-			var dy := maxi(0, maxi(o.y - pos.y, pos.y - (o.y + sz - 1)))
-			if dx + dy + vw * dz > int(r[4]):
+			if not reach(r[1], r[2], r[3], r[4], r[5], pos):
 				continue
 			c["served"][r[0]] += 1
-			if r[5]:
+			if r[6]:
 				mk.append(r[0])
-			for tag: String in r[6]:
+			for tag: String in r[7]:
 				if not sv.has(tag):
 					sv[tag] = []
 				sv[tag].append(r[0])
@@ -129,7 +195,8 @@ static func build(sim: Sim, state: CityState) -> Dictionary:
 		var n := 0
 		for fb: Dictionary in noisy:
 			var o: Vector3i = fb["pos"]
-			if o.z == pos.z and dist(sim, pos, o, int(fb.get("size", 1))) <= 1:
+			var k := dims(fb)
+			if pos.z >= o.z and pos.z < o.z + k.z and reach(o, k.x, k.y, 1, {"r": 1, "up": 0, "down": 0}, Vector3i(pos.x, pos.y, o.z)):
 				n += 1
 		c["noise"][hbid] = n
 		# 같은 시장·서비스 접근 + 같은 소음 = 같은 "덮임 등급"(needs가 등급 단위로 한 번만 계산한다)
@@ -145,7 +212,7 @@ static func build(sim: Sim, state: CityState) -> Dictionary:
 	return c
 
 
-## 쓰이는 칸 수(z층): 주민 1명 이상인 주거 + 완공 시설 칸(2×2 = 4). 빈 판잣집·공사장·골조만 있는 칸 = 0.
+## 쓰이는 칸 수(z층): 주민 1명 이상인 주거 + 완공 시설 칸(그 층에 걸친 칸). 빈 판잣집·공사장·골조만 있는 칸 = 0.
 static func used_cells_fast(sim: Sim, state: CityState, z: int) -> int:
 	var c := sim.cover(state)
 	var n: int = c["floor_fac_cells"].get(z, 0)
@@ -159,10 +226,33 @@ static func used_cells(state: CityState, z: int) -> int:
 	var n := 0
 	for b: Dictionary in state.buildings.values():
 		var p: Vector3i = b["pos"]
-		if p.z != z:
-			continue
-		if b["kind"] == "house" and int(b.get("residents", 0)) >= 1:
-			n += 1
+		if b["kind"] == "house":
+			if p.z == z and int(b.get("residents", 0)) >= 1:
+				n += 1
 		elif b["kind"] == "facility":
-			n += int(b["size"]) * int(b["size"])
+			var k := dims(b)
+			if z >= p.z and z < p.z + k.z:
+				n += k.x * k.y
 	return n
+
+
+## 층 하나에서 다음 층을 여는 데 필요한 쓰이는 칸 수 = ceil(threshold × 부지 칸). eligible_cells가 0이면 W×H.
+static func floor_need(sim: Sim) -> int:
+	var cells := int(sim.cfg("floors.eligible_cells", 0))
+	if cells <= 0:
+		cells = sim.W * sim.H
+	return int(ceilf(float(sim.cfg("floors.threshold", 0.8)) * float(cells) - 1e-6))
+
+
+## "가로·세로 4칸, 위아래 1층" 같은 범위 문장.
+static func range_text(rg: Dictionary) -> String:
+	if rg.is_empty():
+		return "범위 없음"
+	var up := int(rg["up"])
+	var dn := int(rg["down"])
+	var z := ""
+	if up == dn:
+		z = "위아래 %d층" % up if up > 0 else "같은 층만"
+	else:
+		z = "위 %d층·아래 %d층" % [up, dn]
+	return "가로·세로 %d칸, %s" % [int(rg["r"]), z]

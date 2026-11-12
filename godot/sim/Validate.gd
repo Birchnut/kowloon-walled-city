@@ -48,8 +48,19 @@ static func check(db: Dictionary) -> Array:
 			e.append("시설 %s의 priority '%s'가 config workforce.priority에 없다." % [id, d.get("priority", "")])
 		if not cats.has(str(d.get("cat", ""))):
 			e.append("시설 %s의 분류 '%s'가 buildings.cats에 없다." % [id, d.get("cat", "")])
-		if not (int(d.get("size", 1)) in [1, 2]):
-			e.append("시설 %s의 크기는 1 또는 2여야 한다." % id)
+		var fpv: Variant = d.get("footprint", [int(d.get("size", 1)), int(d.get("size", 1))])
+		if not (fpv is Array) or (fpv as Array).size() != 2 or int(fpv[0]) < 1 or int(fpv[1]) < 1 or int(fpv[0]) > 4 or int(fpv[1]) > 4:
+			e.append("시설 %s의 footprint는 [w, h](1~4)여야 한다." % id)
+		if not (int(d.get("floors", 1)) in [1, 2]):
+			e.append("시설 %s의 floors는 1 또는 2여야 한다." % id)
+		var rgv: Variant = d.get("range", null)
+		if rgv != null and not (rgv is Dictionary and (rgv as Dictionary).has("r")):
+			e.append("시설 %s의 range는 {r, up, down}이어야 한다(v4 사각 범위)." % id)
+		if str(d.get("sign", "")).length() > 4:
+			e.append("시설 %s의 간판(sign)은 4자 이내여야 한다." % id)
+		for fld: String in ["name", "sign", "desc"]:
+			if _has_hanja(str(d.get(fld, ""))):
+				e.append("시설 %s의 %s에 한자가 있다(한자 금지)." % [id, fld])
 		for t: String in d.get("workforce", {}):
 			if not tiers.has(t):
 				e.append("시설 %s의 인력 계층 '%s'가 없다." % [id, t])
@@ -172,8 +183,11 @@ static func check_b(db: Dictionary) -> Array:
 		var d: Dictionary = dests[id]
 		if not (str(d.get("band", "")) in ["near", "mid", "far"]):
 			e.append("목적지 %s의 band는 near/mid/far여야 한다." % id)
-		if float(d.get("seconds", 0)) <= 0.0:
-			e.append("목적지 %s의 seconds가 0 이하다." % id)
+		if float(d.get("days", 0)) <= 0.0:
+			e.append("목적지 %s의 days(게임 시계)가 0 이하다." % id)
+		for g: String in d.get("stock", {}):
+			if not goods.has(g):
+				e.append("목적지 %s의 던전 재고에 없는 상품 '%s'." % [id, g])
 		var pg := str(d.get("primary", {}).get("good", ""))
 		if pg != "" and not goods.has(pg):
 			e.append("목적지 %s의 주력 상품 '%s'가 없다." % [id, pg])
@@ -203,6 +217,14 @@ static func check_b(db: Dictionary) -> Array:
 				if not blds.has(b):
 					e.append("%s %s가 없는 시설 '%s'를 연다." % [f, id, b])
 	return e
+
+
+static func _has_hanja(t: String) -> bool:
+	for i: int in t.length():
+		var c := t.unicode_at(i)
+		if (c >= 0x4E00 and c <= 0x9FFF) or (c >= 0x3400 and c <= 0x4DBF) or (c >= 0xF900 and c <= 0xFAFF):
+			return true
+	return false
 
 
 # ------------------------------------------------------------------ 순환 잠금 정적 검사

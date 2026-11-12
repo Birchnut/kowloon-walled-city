@@ -246,34 +246,48 @@ func _expedition(state: CityState, mem: Dictionary) -> void:
 
 
 # ------------------------------------------------------------------ 자리 찾기
-func _free(state: CityState, p: Vector3i, size: int) -> bool:
-	for dx: int in size:
-		for dy: int in size:
-			var q := Vector3i(p.x + dx, p.y + dy, p.z)
-			if q.x >= sim.W or q.y >= sim.H or state.cells.has(q):
-				return false
-	return p.z < state.floors_unlocked
+func _free(state: CityState, p: Vector3i, k: Vector3i) -> bool:
+	if p.z + k.z - 1 >= state.floors_unlocked:
+		return false
+	for dz: int in k.z:
+		for dx: int in k.x:
+			for dy: int in k.y:
+				var q := Vector3i(p.x + dx, p.y + dy, p.z + dz)
+				if q.x >= sim.W or q.y >= sim.H or state.cells.has(q):
+					return false
+	return true
 
 
-## near 가까운 빈 자리(origin). 낮은 층을 선호. 주거 예약 칸(_reserved)은 시설에 내주되 맨 나중.
-func _spot(state: CityState, size: int, near: Vector3i) -> Variant:
+## 시설 발자국 사각형과 칸 사이 거리(층 차이는 4칸으로 친다) — 봇의 "가까움" 기준.
+func _gap(near: Vector3i, o: Vector3i, k: Vector3i) -> int:
+	var dx := maxi(0, maxi(o.x - near.x, near.x - (o.x + k.x - 1)))
+	var dy := maxi(0, maxi(o.y - near.y, near.y - (o.y + k.y - 1)))
+	return maxi(dx, dy) + 4 * absi(near.z - o.z)
+
+
+## near 가까운 빈 자리 [origin, rot]. 낮은 층을 선호. 주거 예약 칸(_reserved)은 시설에 내주되 맨 나중.
+func _spot(state: CityState, type: String, near: Vector3i) -> Variant:
 	var best: Variant = null
 	var bd := 1 << 30
-	for z: int in state.floors_unlocked:
-		for x: int in sim.W - size + 1:
-			for y: int in sim.H - size + 1:
-				var p := Vector3i(x, y, z)
-				if not _free(state, p, size):
-					continue
-				var d := Cover.dist(sim, near, p, size)
-				if d >= (1 << 19):
-					continue
-				d = d * 4 + z
-				if size == 1 and _reserved(p):
-					d += 1000
-				if d < bd:
-					bd = d
-					best = p
+	var d := sim.bdef(type)
+	var mf := int(d.get("min_floor", 0))
+	var rg := Cover.rng_of(d)
+	for rot: int in (2 if sim.fp(type, 0).x != sim.fp(type, 0).y else 1):
+		var k := sim.fp(type, rot)
+		for z: int in range(mf, state.floors_unlocked):
+			for x: int in sim.W - k.x + 1:
+				for y: int in sim.H - k.y + 1:
+					var p := Vector3i(x, y, z)
+					if not _free(state, p, k):
+						continue
+					if not rg.is_empty() and not Cover.reach(p, k.x, k.y, k.z, rg, near):
+						continue
+					var g := _gap(near, p, k) * 4 + z
+					if k.x * k.y == 1 and _reserved(p):
+						g += 1000
+					if g < bd:
+						bd = g
+						best = [p, rot]
 	return best
 
 
@@ -305,15 +319,13 @@ func _try_build(state: CityState, type: String, near: Vector3i, critical: bool =
 				_buy_extra(state, g)
 			_block("%s 부족으로 %s 보류" % [sim.gname(g), d.get("name", type)])
 			return false
-	var p: Variant = _spot(state, int(d.get("size", 1)), near)
-	if p != null and d.has("range") and Cover.dist(sim, near, p, int(d.get("size", 1))) > int(d["range"]):
-		p = null
+	var p: Variant = _spot(state, type, near)
 	if p == null and critical and bool(c("carve", true)):
-		p = _carve(state, int(d.get("size", 1)), near, int(d.get("range", 99)))
+		p = _carve(state, type, near)
 	if p == null:
 		_block("자리 부족으로 %s 보류" % d.get("name", type))
 		return false
-	var r := cmd(state, "build", {"type": type, "pos": p})
+	var r := cmd(state, "build", {"type": type, "pos": p[0], "rot": p[1]})
 	if not r.get("ok", false):
 		_block(str(r.get("reason", "")))
 		return false
@@ -322,19 +334,20 @@ func _try_build(state: CityState, type: String, near: Vector3i, critical: bool =
 
 ## 자리 내기: 꼭 필요한 시설인데 빈 자리가 없으면, 범위 안에서 판잣집·낮은 계층 주거만 있는 자리를 골라 허문다
 ## (주거 철거는 무료, 주민은 빈집을 찾아 기다린다 — 알려진 약점 "층이 차면 2×2를 못 놓음"의 플레이어식 해결).
-func _carve(state: CityState, size: int, near: Vector3i, rng: int) -> Variant:
+func _carve(state: CityState, type: String, near: Vector3i) -> Variant:
 	var best: Variant = null
 	var bs := 1 << 30
-	for z: int in state.floors_unlocked:
-		for x: int in sim.W - size + 1:
-			for y: int in sim.H - size + 1:
+	var k := sim.fp(type, 0)
+	var rg := Cover.rng_of(sim.bdef(type))
+	for z: int in range(int(sim.bdef(type).get("min_floor", 0)), state.floors_unlocked - k.z + 1):
+		for x: int in sim.W - k.x + 1:
+			for y: int in sim.H - k.y + 1:
 				var o := Vector3i(x, y, z)
-				var dd := Cover.dist(sim, near, o, size)
-				if dd > rng or dd >= (1 << 19):
+				if not rg.is_empty() and not Cover.reach(o, k.x, k.y, k.z, rg, near):
 					continue
 				var score := 0
 				var ok := true
-				for q: Vector3i in Cover.footprint(o, size):
+				for q: Vector3i in Cover.cells_of(o, k.x, k.y, k.z):
 					if not state.cells.has(q):
 						continue
 					var b: Dictionary = state.buildings.get(int(state.cells[q]["bid"]), {})
@@ -342,16 +355,16 @@ func _carve(state: CityState, size: int, near: Vector3i, rng: int) -> Variant:
 						ok = false
 						break
 					score += 10 * int(b["tier"]) + int(b["residents"])
-				if ok and score + dd < bs:
-					bs = score + dd
+				if ok and score + _gap(near, o, k) < bs:
+					bs = score + _gap(near, o, k)
 					best = o
 	if best == null:
 		return null
-	for q: Vector3i in Cover.footprint(best, size):
+	for q: Vector3i in Cover.cells_of(best, k.x, k.y, k.z):
 		if state.cells.has(q):
 			cmd(state, "demolish", {"pos": q})
 	_block("자리 내려고 주거를 허묾")
-	return best
+	return [best, 0]
 
 
 func _count(state: CityState, type: String) -> int:

@@ -1,10 +1,10 @@
 class_name CityState
 extends RefCounted
-## CityState v3 — 저장되는 도시 상태 전부. 데이터만. 규칙은 sim/systems/* 에 있다.
+## CityState v4 — 저장되는 도시 상태 전부. 데이터만. 규칙은 sim/systems/* 에 있다.
 ## 필드 이름은 docs/ARCHITECTURE.md의 계약이다(SIM이 보탠 필드는 docs/SIM_NOTES.md "상태 추가 필드").
 ## 좌표: Vector3i(x, y, z) — x,y = 부지 칸, z = 층(0 = 지상).
 
-const SAVE_VERSION := 3
+const SAVE_VERSION := 4
 
 # ── 시간·RNG ──
 var rng_seed: int = 0
@@ -54,7 +54,7 @@ var clock_offset: int = 0
 var flags: Dictionary = {}
 var logbook: Array = []
 var stats: Dictionary = {}
-var identity: Dictionary = {"title": "대장", "grade_name": "공터"}
+var identity: Dictionary = {"title": "무단 점유 대표", "grade_name": "공터"}
 var last_saved_unix: int = 0
 
 # ── 저장 안 함 ──
@@ -185,7 +185,8 @@ const _FIELDS := [
 const _INT_FIELDS := ["rng_seed", "rng_state", "day", "floors_unlocked", "milestone", "next_id", "clock_offset", "last_saved_unix"]
 ## JSON 왕복 후 float가 된 정수 값을 키 이름으로 되돌린다(재귀). 새 정수 키는 여기에 추가.
 const _INT_KEYS := ["id", "bid", "tier", "residents", "cap", "size", "seed", "count", "day", "visits", "to", "have",
-	"layout_rev", "milestone", "grade", "started_unix", "completes_unix", "built", "floor", "target", "nsig", "sdm", "sdc"]
+	"layout_rev", "milestone", "grade", "started_unix", "completes_unix", "built", "floor", "target", "nsig", "sdm", "sdc",
+	"w", "h", "d", "rot", "team", "seed", "danger", "hz_rev"]
 
 
 func to_dict() -> Dictionary:

@@ -121,13 +121,6 @@ func _finish(state: CityState, id: String) -> void:
 	sim.say(state, "연구 완료: %s — %s%s" % [r.get("name", id), r.get("desc", ""), (" 새 목적지: " + ", ".join(extra)) if not extra.is_empty() else ""], "good")
 
 
-func fast_forward(state: CityState, _econ_days: float, before: Dictionary, lines: Array) -> void:
-	var bs: Dictionary = before.get("stats", {})
-	for id: String in sim.items("research"):
-		var k := "research_%s_day" % id
-		if state.stats.has(k) and not bs.has(k):
-			lines.append("연구가 끝났다: %s." % sim.item("research", id).get("name", id))
-
 
 func query(state: CityState, name: String, _args: Dictionary) -> Variant:
 	if name != "research":

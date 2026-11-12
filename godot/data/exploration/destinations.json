@@ -19,7 +19,6 @@
   "furniture_alley": {
    "name": "철거된 가구 골목",
    "band": "near",
-   "seconds": 300,
    "map": [
     0.36,
     0.62
@@ -45,12 +44,18 @@
    ],
    "cost": {
     "money": 0
-   }
+   },
+   "days": 0.3,
+   "stock": {
+    "wood": 20,
+    "scrap": 20
+   },
+   "regen": 0.5,
+   "danger": 1
   },
   "scrap_yard": {
    "name": "고철 야적장",
    "band": "near",
-   "seconds": 420,
    "map": [
     0.64,
     0.6
@@ -76,12 +81,18 @@
    ],
    "cost": {
     "money": 0
-   }
+   },
+   "days": 0.3,
+   "stock": {
+    "metal": 28,
+    "scrap": 24
+   },
+   "regen": 0.5,
+   "danger": 1
   },
   "demolition_site": {
    "name": "철거 공사장",
    "band": "near",
-   "seconds": 600,
    "map": [
     0.5,
     0.33
@@ -107,12 +118,18 @@
    ],
    "cost": {
     "money": 0
-   }
+   },
+   "days": 0.3,
+   "stock": {
+    "concrete": 40,
+    "scrap": 20
+   },
+   "regen": 0.5,
+   "danger": 1
   },
   "warehouse_district": {
    "name": "외곽 창고 지대",
    "band": "mid",
-   "seconds": 2700,
    "map": [
     0.18,
     0.4
@@ -163,12 +180,21 @@
    ],
    "cost": {
     "money": 30
-   }
+   },
+   "days": 1.0,
+   "stock": {
+    "wood": 112,
+    "metal": 112,
+    "concrete": 112,
+    "flour": 100,
+    "cloth": 56
+   },
+   "regen": 0.5,
+   "danger": 2
   },
   "back_docks": {
    "name": "부두 뒷골목",
    "band": "mid",
-   "seconds": 3600,
    "map": [
     0.84,
     0.36
@@ -208,12 +234,18 @@
    ],
    "cost": {
     "money": 30
-   }
+   },
+   "days": 1.0,
+   "stock": {
+    "scrap": 160,
+    "elec": 40
+   },
+   "regen": 0.5,
+   "danger": 2
   },
   "timber_yard": {
    "name": "산지 목재 야적장",
    "band": "far",
-   "seconds": 14400,
    "map": [
     0.06,
     0.12
@@ -242,12 +274,18 @@
    ],
    "cost": {
     "money": 80
-   }
+   },
+   "days": 3.0,
+   "stock": {
+    "wood": 260,
+    "scrap": 80
+   },
+   "regen": 0.5,
+   "danger": 3
   },
   "industrial_park": {
    "name": "폐산업 단지",
    "band": "far",
-   "seconds": 14400,
    "map": [
     0.92,
     0.1
@@ -276,12 +314,18 @@
    ],
    "cost": {
     "money": 80
-   }
+   },
+   "days": 3.0,
+   "stock": {
+    "metal": 260,
+    "scrap": 80
+   },
+   "regen": 0.5,
+   "danger": 3
   },
   "megasite": {
    "name": "버려진 대형 건설 현장",
    "band": "far",
-   "seconds": 18000,
    "map": [
     0.5,
     0.04
@@ -310,12 +354,18 @@
    ],
    "cost": {
     "money": 80
-   }
+   },
+   "days": 3.0,
+   "stock": {
+    "concrete": 320,
+    "scrap": 80
+   },
+   "regen": 0.5,
+   "danger": 3
   },
   "old_plant": {
    "name": "옛 발전소",
    "band": "far",
-   "seconds": 28800,
    "map": [
     0.9,
     0.86
@@ -351,7 +401,22 @@
    ],
    "cost": {
     "money": 80
-   }
+   },
+   "days": 4.0,
+   "stock": {
+    "parts": 16,
+    "scrap": 200,
+    "metal": 120
+   },
+   "regen": 0.5,
+   "danger": 3
   }
+ },
+ "run": {
+  "carry": 40,
+  "boss": {
+   "parts": 1
+  },
+  "_status": "직접 줍기(약속만): 배낭 칸 수, 두목 덤. 목적지 run{}이 덮어쓴다"
  }
 }

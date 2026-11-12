@@ -132,7 +132,7 @@ func _compute(state: CityState) -> Dictionary:
 	# 층
 	if state.floors_unlocked < sim.F:
 		var z := state.floors_unlocked - 1
-		var need := int(ceilf(float(sim.cfg("floors.threshold", 0.8)) * float(sim.cfg("floors.eligible_cells", 144)) - 1e-6))
+		var need := Cover.floor_need(sim)
 		var used := Cover.used_cells_fast(sim, state, z)
 		var left := need - used
 		if left > 0 and left <= int(sim.cfg("alerts.floor_cells", 12)):

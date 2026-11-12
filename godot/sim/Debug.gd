@@ -1,7 +1,7 @@
 class_name Debug
 extends RefCounted
 ## Debug — 개발용 명령(config debug.enabled). Game.cmd("debug", {op, …}).
-##  add_money{n} · add_stock{good, n} · skip_days{n} · skip_real{seconds}(실제 시계 오프셋, 탐험용) · unlock_all
+##  add_money{n} · add_stock{good, n} · skip_days{n} · skip_real{seconds}(= skip_days, ×1 기준 초) · unlock_all
 ##  reveal_partners · fill_floor{z, tier=1, full=true}(빈 칸을 주민 찬 주거로, 비용 없음) · set{field, value}
 
 
@@ -17,10 +17,8 @@ static func run(sim: Sim, state: CityState, args: Dictionary) -> Dictionary:
 			state.stat_add("debug_stock." + g, float(args.get("n", 10)))
 		"skip_days":
 			sim.tick(state, float(args.get("n", 1)))
-		"skip_real":
-			var sec := maxi(0, int(args.get("seconds", 600)))
-			state.clock_offset += sec
-			sim.now_unix += sec
+		"skip_real":   # v4: skip_days의 별칭(×1 기준 실제 초 → 경제일)
+			sim.tick(state, float(maxi(0, int(args.get("seconds", 600)))) / float(sim.cfg("time.seconds_per_day", 600)))
 		"unlock_all":
 			for id: String in sim.items("buildings"):
 				state.unlocked[id] = state.econ_days
@@ -47,9 +45,11 @@ static func run(sim: Sim, state: CityState, args: Dictionary) -> Dictionary:
 					var bid := state.new_id()
 					state.buildings[bid] = {"id": bid, "kind": "house", "pos": p, "tier": t, "material": "common" if t == 1 else "wood",
 						"residents": cap if args.get("full", true) else 0, "cap": cap, "happiness": 50.0, "needs": {}, "need_state": "warn",
-						"upgradable": false, "upgrading": null, "grow": 0.0, "leave": 0.0, "target": cap, "tax": 0.0, "util_extra": {}}
+						"upgradable": false, "upgrading": null, "grow": 0.0, "leave": 0.0, "target": cap, "tax": 0.0, "util_extra": {},
+						"arriving": 0.0, "burn": "", "sick": false, "repair": null}
 					state.cells[p] = {"kind": "house", "bid": bid, "type": "house", "tier": t, "material": state.buildings[bid]["material"],
-						"seed": sim.rand_seed(state), "origin": p, "size": 1, "scaffold": false}
+						"seed": sim.rand_seed(state), "origin": p, "size": 1, "w": 1, "h": 1, "d": 1, "rot": 0, "scaffold": false,
+						"burn": "", "sick": false, "trash": 0.0}
 					state.emit("cell_changed", {"pos": p})
 			state.layout_changed()
 		"set":

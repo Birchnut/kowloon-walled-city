@@ -1,15 +1,19 @@
 extends SimSystem
-## expeditions — 탐험(GDD §8, 브리프 §13). 실제 시간(sim.now_unix)으로만 흐른다(배속·경제 시계와 무관).
+## expeditions — 탐험(GDD_PC §5). v4: **게임 시계(econ_days)만** 쓴다(배속을 따른다, 실제 시계 없음).
 ##  팀: 완공 탐험 거점 하나당 1팀(최대 destinations.teams.max). 주민 노동력과 분리(확정).
-##  expedition_send {team, dest, provision, pick?}: 팀이 쉬는 중 + 목적지를 앎 + 비용(돈)·보급(끼니 n) 확인 →
-##   보상을 출발 때 결정론 RNG로 굴려 팀에 저장(보장 주력 + 덤 + 발견), started_unix/completes_unix 기록.
-##  now_unix ≥ completes_unix면 done(expedition_done 한 번). 결과는 사라지지 않는다.
-##  expedition_claim {team?}: done인 팀의 보상을 재고에 정확히 한 번 넣는다(멱등). 발견 적용: 거래처·도면·새 목적지.
-##  수정치: exp.yield(주력·덤 배수), exp.time(걸리는 시간 배수), exp.cost(출발 비용 배수).
-##  시계 방어: now가 출발보다 앞서면(시계를 되돌림) 남은 시간은 전체 시간을 넘지 않는다. 앞으로 크게 뛰어도 팀마다 결과는 하나뿐.
+##  던전 재고: 목적지마다 stock{상품: 최대}가 있고, 털면 줄고 게임 시간으로 다시 찬다(regen = 하루에 최대치의 몇 %).
+##  자동 파견 expedition_send {team, dest, provision, pick?}: 팀이 쉬는 중 + 목적지를 앎 + 비용(돈)·보급 확인 →
+##   보상을 출발 때 결정론 RNG로 굴려(던전 재고를 넘지 않게, 재고에서 뺀다) 팀에 저장, started_at/completes_at(econ_days).
+##   econ_days ≥ completes_at이면 done(expedition_done 한 번). 결과는 사라지지 않는다.
+##  expedition_claim {team?}: done인 팀의 보상을 재고에 정확히 한 번(멱등). 발견: 거래처·도면·새 목적지.
+##  직접 줍기(나중에 만들 미니게임과의 약속): run_begin {dest} → 팀 하나를 "run"으로, {stock, danger, seed}.
+##   run_result {dest, loot{상품:n}, outcome:"boss"|"exit"|"down", finds:[String]} → 짐을 던전 재고·배낭 한도로 검사,
+##   재고에서 빼고 창고에 넣는다(down이면 절반, 나머지는 lost), boss면 목적지 run.boss 덤. finds = "partner:id"|"blueprint:id"|"dest:id"
+##   (그 목적지가 줄 수 있는 것만). 팀은 쉬는 중으로 돌아온다.
+##  수정치: exp.yield(주력·덤 배수), exp.time(걸리는 날 배수), exp.cost(출발 비용 배수).
 ## 끄면: 탐험이 없다(질의는 빈 모양).
 
-const STATE_NAME := {"idle": "쉬는 중", "out": "탐험 중", "done": "돌아옴"}
+const STATE_NAME := {"idle": "쉬는 중", "out": "탐험 중", "done": "돌아옴", "run": "직접 줍는 중"}
 
 
 func _d() -> Dictionary:
@@ -24,18 +28,29 @@ func _max_teams() -> int:
 	return int(_d().get("teams", {}).get("max", 3))
 
 
+func _sec_per_day() -> float:
+	return float(sim.cfg("time.seconds_per_day", 600))
+
+
 func on_new_game(state: CityState) -> void:
 	for id: String in sim.items("destinations"):
-		state.dests[id] = {"known": bool(_dest(id).get("known", false)), "visits": 0, "new": false}
-	state.stats["start_unix"] = float(sim.now_unix)
+		state.dests[id] = _fresh(id)
 	_sync(state)
+
+
+func _fresh(id: String) -> Dictionary:
+	var st := {}
+	var mx: Dictionary = _dest(id).get("stock", {})
+	for g: String in mx:
+		st[g] = float(mx[g])
+	return {"known": bool(_dest(id).get("known", false)), "visits": 0, "new": false, "stock": st}
 
 
 # ------------------------------------------------------------------ 팀 수 · 완료 판정
 func _sync(state: CityState) -> void:
 	for id: String in sim.items("destinations"):
 		if not state.dests.has(id):
-			state.dests[id] = {"known": bool(_dest(id).get("known", false)), "visits": 0, "new": false}
+			state.dests[id] = _fresh(id)
 	var want := mini(_max_teams(), int(sim.cover(state).get("teams", 0)))
 	var live := 0
 	for t: Dictionary in state.teams:
@@ -53,8 +68,8 @@ func _sync(state: CityState) -> void:
 			used[int(t["id"])] = true
 		while used.has(nid):
 			nid += 1
-		state.teams.append({"id": nid, "state": "idle", "dest": "", "started_unix": 0, "completes_unix": 0, "provision": false,
-			"reward": {}, "finds": [], "pick": ""})
+		state.teams.append({"id": nid, "state": "idle", "dest": "", "started_at": 0.0, "completes_at": 0.0,
+			"started_unix": 0, "completes_unix": 0, "provision": false, "reward": {}, "finds": [], "pick": ""})
 		live += 1
 	# 줄이기: 쉬는 팀부터 없앤다. 나가 있는 팀은 은퇴 표시 → 수령 뒤 사라진다.
 	var i := state.teams.size() - 1
@@ -71,9 +86,8 @@ func _sync(state: CityState) -> void:
 
 
 func _update(state: CityState) -> void:
-	var now := sim.now_unix
 	for t: Dictionary in state.teams:
-		if t["state"] == "out" and now >= int(t["completes_unix"]):
+		if t["state"] == "out" and state.econ_days + 1e-9 >= float(t["completes_at"]):
 			t["state"] = "done"
 			state.emit("expedition_done", {"team": int(t["id"])})
 			sim.say(state, "탐험대 %d이(가) %s에서 돌아왔다. 짐을 풀어야 한다." % [int(t["id"]), _dname(str(t["dest"]))], "good")
@@ -83,12 +97,24 @@ func _update(state: CityState) -> void:
 var _sync_key := ""
 
 
-func tick(state: CityState, _dt: float) -> void:
+func tick(state: CityState, dt: float) -> void:
 	var k := "%d:%d" % [state.get_instance_id(), state.layout_rev()]
 	if k != _sync_key or sim.no_cache:
 		_sync_key = k
 		_sync(state)
 	_update(state)
+	# 던전 재고가 다시 찬다
+	for id: String in state.dests:
+		var mx: Dictionary = _dest(id).get("stock", {})
+		if mx.is_empty():
+			continue
+		var st: Dictionary = state.dests[id].get("stock", {})
+		var rg := float(_dest(id).get("regen", 0.5)) * dt
+		for g: String in mx:
+			var cur := float(st.get(g, float(mx[g])))
+			if cur < float(mx[g]):
+				st[g] = minf(float(mx[g]), cur + float(mx[g]) * rg)
+		state.dests[id]["stock"] = st
 
 
 func on_command(state: CityState, name: String, _args: Dictionary, _result: Dictionary) -> void:
@@ -99,17 +125,6 @@ func on_command(state: CityState, name: String, _args: Dictionary, _result: Dict
 
 func on_day_start(state: CityState) -> void:
 	_sync(state)
-
-
-func fast_forward(state: CityState, _econ_days: float, _before: Dictionary, lines: Array) -> void:
-	_sync(state)
-	_update(state)
-	var done: Array = []
-	for t: Dictionary in state.teams:
-		if t["state"] == "done":
-			done.append("탐험대 %d(%s)" % [int(t["id"]), _dname(str(t["dest"]))])
-	if not done.is_empty():
-		lines.append("돌아와 짐을 기다리는 탐험대: %s." % ", ".join(done))
 
 
 # ------------------------------------------------------------------ 글
@@ -124,8 +139,17 @@ func _team(state: CityState, id: int) -> Dictionary:
 	return {}
 
 
-func _seconds(state: CityState, d: Dictionary) -> int:
-	return maxi(30, int(roundf(float(d.get("seconds", 300)) * sim.mod(state, "exp.time"))))
+func _idle_team(state: CityState) -> Dictionary:
+	for t: Dictionary in state.teams:
+		if t["state"] == "idle" and not t.get("retired", false):
+			return t
+	return {}
+
+
+## 걸리는 경제일(배속을 따른다).
+func _days(state: CityState, d: Dictionary) -> float:
+	var base := float(d.get("days", float(d.get("seconds", 300)) / _sec_per_day()))
+	return maxf(sim.step_days, base * sim.mod(state, "exp.time"))
 
 
 func _cost(state: CityState, d: Dictionary) -> float:
@@ -153,6 +177,32 @@ func _reward_text(rw: Dictionary) -> String:
 	return " · ".join(parts)
 
 
+## 던전 재고 비율(0..1, 최대치 합 대비).
+func _stock_pct(state: CityState, id: String) -> float:
+	var mx: Dictionary = _dest(id).get("stock", {})
+	if mx.is_empty():
+		return 1.0
+	var a := 0.0
+	var b := 0.0
+	var st: Dictionary = state.dests.get(id, {}).get("stock", {})
+	for g: String in mx:
+		a += float(st.get(g, float(mx[g])))
+		b += float(mx[g])
+	return a / b if b > 0.0 else 1.0
+
+
+## 던전에서 g를 n개 빼 간다(재고가 없는 상품은 무한). 반환 = 실제로 뺀 양(정수).
+func _take(state: CityState, id: String, g: String, n: float) -> float:
+	var mx: Dictionary = _dest(id).get("stock", {})
+	if not mx.has(g):
+		return n
+	var st: Dictionary = state.dests[id]["stock"]
+	var have := floorf(float(st.get(g, float(mx[g]))) + 1e-6)
+	var got := minf(n, maxf(0.0, have))
+	st[g] = float(st.get(g, float(mx[g]))) - got
+	return got
+
+
 # ------------------------------------------------------------------ 명령
 func can(state: CityState, name: String, args: Dictionary) -> Variant:
 	match name:
@@ -161,22 +211,18 @@ func can(state: CityState, name: String, args: Dictionary) -> Variant:
 			_update(state)
 			var t := _team(state, int(args.get("team", -1)))
 			if t.is_empty():
-				return {"ok": false, "reason": "그런 탐험대가 없다(탐험 거점을 지으면 팀이 생긴다).", "code": "team"}
+				return {"ok": false, "reason": "그런 탐험대가 없다(줍줍 본부를 지으면 팀이 생긴다).", "code": "team"}
 			if t.get("retired", false):
 				return {"ok": false, "reason": "거점이 헐린 팀이다.", "code": "team"}
-			if t["state"] == "out":
+			if t["state"] == "out" or t["state"] == "run":
 				return {"ok": false, "reason": "이미 탐험 중이다.", "code": "busy"}
 			if t["state"] == "done":
 				return {"ok": false, "reason": "먼저 짐을 받아야 한다(수령).", "code": "claim"}
 			var id := str(args.get("dest", ""))
+			var c := _can_dest(state, id)
+			if not c["ok"]:
+				return c
 			var d := _dest(id)
-			if d.is_empty():
-				return {"ok": false, "reason": "모르는 목적지다.", "code": "dest"}
-			if not bool(state.dests.get(id, {}).get("known", false)):
-				return {"ok": false, "reason": "아직 모르는 곳이다 — %s." % str(d.get("reveal_hint", "탐험으로 알게 된다")), "code": "unknown"}
-			var cost := _cost(state, d)
-			if state.money + 1e-9 < cost:
-				return {"ok": false, "reason": Sim.kr("출발 비용 %s이(가) 모자란다." % Sim.won(cost)), "code": "money"}
 			if args.get("provision", false):
 				var need := float(_d().get("provision", {}).get("n", 10))
 				if _meal_have(state) + 1e-9 < need:
@@ -185,7 +231,9 @@ func can(state: CityState, name: String, args: Dictionary) -> Variant:
 			var pick := str(args.get("pick", ""))
 			if pick != "" and not picks.is_empty() and not (pick in picks):
 				return {"ok": false, "reason": "그곳에서 고를 수 없는 자재다.", "code": "pick"}
-			return {"ok": true, "reason": "", "code": "ok", "cost": {"money": cost, "goods": {}}, "seconds": _seconds(state, d)}
+			var days := _days(state, d)
+			return {"ok": true, "reason": "", "code": "ok", "cost": {"money": _cost(state, d), "goods": {}}, "days": days,
+				"seconds": int(roundf(days * _sec_per_day()))}
 		"expedition_claim":
 			_update(state)
 			var any := false
@@ -195,7 +243,32 @@ func can(state: CityState, name: String, args: Dictionary) -> Variant:
 			if not any:
 				return {"ok": false, "reason": "받을 짐이 없다.", "code": "nothing", "rewards": [], "finds": []}
 			return {"ok": true, "reason": "", "code": "ok"}
+		"run_begin":
+			_sync(state)
+			_update(state)
+			if not (state.flags.get("run", {}) as Dictionary).is_empty():
+				return {"ok": false, "reason": "이미 직접 줍는 중이다.", "code": "busy"}
+			if _idle_team(state).is_empty():
+				return {"ok": false, "reason": "쉬는 탐험대가 없다(줍줍 본부의 팀이 모두 나가 있다).", "code": "team"}
+			var c := _can_dest(state, str(args.get("dest", "")))
+			if not c["ok"]:
+				return c
+			return {"ok": true, "reason": "", "code": "ok", "cost": {"money": _cost(state, _dest(str(args["dest"]))), "goods": {}}}
+		"run_result":
+			return _check_result(state, args)
 	return null
+
+
+func _can_dest(state: CityState, id: String) -> Dictionary:
+	var d := _dest(id)
+	if d.is_empty():
+		return {"ok": false, "reason": "모르는 목적지다.", "code": "dest"}
+	if not bool(state.dests.get(id, {}).get("known", false)):
+		return {"ok": false, "reason": "아직 모르는 곳이다 — %s." % str(d.get("reveal_hint", "탐험으로 알게 된다")), "code": "unknown"}
+	var cost := _cost(state, d)
+	if state.money + 1e-9 < cost:
+		return {"ok": false, "reason": Sim.kr("출발 비용 %s이(가) 모자란다." % Sim.won(cost)), "code": "money"}
+	return {"ok": true, "reason": "", "code": "ok"}
 
 
 func apply(state: CityState, name: String, args: Dictionary) -> Variant:
@@ -204,6 +277,10 @@ func apply(state: CityState, name: String, args: Dictionary) -> Variant:
 			return _send(state, args)
 		"expedition_claim":
 			return _claim(state, args)
+		"run_begin":
+			return _run_begin(state, args)
+		"run_result":
+			return _run_result(state, args)
 	return null
 
 
@@ -213,15 +290,20 @@ func _roll_n(state: CityState, lo: float, hi: float) -> float:
 	return lo + floorf(sim.roll(state) * (hi - lo + 1.0))
 
 
+func _pay(state: CityState, d: Dictionary) -> void:
+	var cost := _cost(state, d)
+	if cost > 0.0:
+		state.money -= cost
+		state.book("build", -cost)
+		state.stat_add("spent_expedition", cost)
+
+
 func _send(state: CityState, args: Dictionary) -> Dictionary:
 	var t := _team(state, int(args["team"]))
 	var id := str(args["dest"])
 	var d := _dest(id)
 	var dst: Dictionary = state.dests[id]
-	var cost := _cost(state, d)
-	if cost > 0.0:
-		state.money -= cost
-		state.book("build", -cost)
+	_pay(state, d)
 	var prov := bool(args.get("provision", false))
 	if prov:
 		var left := float(_d().get("provision", {}).get("n", 10))
@@ -252,19 +334,24 @@ func _send(state: CityState, args: Dictionary) -> Dictionary:
 	var n0 := _roll_n(state, float(pr.get("min", 0)), float(pr.get("max", 0)))
 	if g0 != "parts":
 		n0 = roundf(n0 * mult)
-	if g0 != "" and n0 > 0.0:
-		rw[g0] = n0
+	if g0 != "":
+		n0 = _take(state, id, g0, n0)
+		if n0 > 0.0:
+			rw[g0] = n0
 	for bo: Dictionary in d.get("bonus", []):
 		if sim.roll(state) < float(bo.get("chance", 1.0)):
 			var g := str(bo["good"])
 			var n := _roll_n(state, float(bo.get("min", 0)), float(bo.get("max", 0)))
 			if g != "parts":
 				n = roundf(n * mult)
+			n = _take(state, id, g, n)
 			if n > 0.0:
 				rw[g] = float(rw.get(g, 0.0)) + n
 	var finds: Array = []
 	for f: Dictionary in d.get("finds", []):
 		if f.get("once", false) and int(dst.get("visits", 0)) > 0:
+			continue
+		if f.get("run_only", false):
 			continue
 		if sim.roll(state) < float(f.get("chance", 1.0)):
 			finds.append({"type": str(f["type"]), "id": str(f["id"])})
@@ -273,32 +360,22 @@ func _send(state: CityState, args: Dictionary) -> Dictionary:
 			finds.append({"type": "dest", "id": r})
 	dst["visits"] = int(dst.get("visits", 0)) + 1
 	dst["new"] = false
-	var now := sim.now_unix
-	var sec := _seconds(state, d)
+	var days := _days(state, d)
 	t["state"] = "out"
 	t["dest"] = id
-	t["started_unix"] = now
-	t["completes_unix"] = now + sec
+	t["started_at"] = state.econ_days
+	t["completes_at"] = state.econ_days + days
 	t["provision"] = prov
 	t["reward"] = rw
 	t["finds"] = finds
 	t["pick"] = pick
-	if not state.stats.has("first_send_unix"):
-		state.stats["first_send_unix"] = float(now)
+	if not state.stats.has("first_send_day"):
 		state.stats["first_send_day"] = state.econ_days
 	state.stat_add("exp_sent", 1.0)
 	state.stat_add("exp_sent_" + str(d.get("band", "near")), 1.0)
-	state.stat_add("exp_team_seconds", float(sec))
-	sim.say(state, "탐험대 %d이(가) %s(으)로 떠났다(%s)." % [int(t["id"]), _dname(id), _dur(sec)])
-	return {"ok": true, "reason": "", "team": int(t["id"]), "completes_unix": now + sec, "seconds": sec}
-
-
-static func _dur(sec: int) -> String:
-	if sec >= 3600:
-		var h := sec / 3600
-		var m := (sec % 3600) / 60
-		return "%d시간 %d분" % [h, m] if m > 0 else "%d시간" % h
-	return "%d분" % maxi(1, sec / 60)
+	state.stat_add("exp_team_days", days)
+	sim.say(state, "탐험대 %d이(가) %s(으)로 떠났다(%s)." % [int(t["id"]), _dname(id), Queries.day_text(days)])
+	return {"ok": true, "reason": "", "team": int(t["id"]), "completes_at": t["completes_at"], "days": days, "seconds": int(roundf(days * _sec_per_day()))}
 
 
 func _claim(state: CityState, args: Dictionary) -> Dictionary:
@@ -310,18 +387,12 @@ func _claim(state: CityState, args: Dictionary) -> Dictionary:
 		if t["state"] != "done" or (args.has("team") and int(t["id"]) != int(args["team"])):
 			continue
 		var rw: Dictionary = t["reward"]
-		for g: String in rw:
-			var n := float(rw[g])
-			state.stock[g] = float(state.stock.get(g, 0.0)) + n
-			sim.flow_add(g, "imp", n)
-			state.stat_add("exp." + g, n)
-			total[g] = float(total.get(g, 0.0)) + n
+		_deposit(state, rw, total)
 		for f: Dictionary in t.get("finds", []):
 			var ft := _apply_find(state, f)
 			if ft != "":
 				find_text.append(ft)
-		var lines := _reward_lines(rw)
-		state.emit("expedition_claimed", {"team": int(t["id"]), "rewards": lines})
+		state.emit("expedition_claimed", {"team": int(t["id"]), "rewards": _reward_lines(rw)})
 		sim.say(state, "탐험대 %d의 짐: %s." % [int(t["id"]), _reward_text(rw) if not rw.is_empty() else "빈손"], "good")
 		t["state"] = "idle"
 		t["reward"] = {}
@@ -330,19 +401,149 @@ func _claim(state: CityState, args: Dictionary) -> Dictionary:
 		t["dest"] = ""
 		claimed += 1
 		state.stat_add("exp_claims", 1.0)
-		if not state.stats.has("first_claim_unix"):
-			state.stats["first_claim_unix"] = float(sim.now_unix)
+		if not state.stats.has("first_claim_day"):
 			state.stats["first_claim_day"] = state.econ_days
-	# 은퇴 표시된 팀은 수령 뒤 없앤다
+	_drop_retired(state)
+	for s: String in find_text:
+		sim.say(state, s, "good")
+	return {"ok": claimed > 0, "reason": "" if claimed > 0 else "받을 짐이 없다.", "rewards": _reward_lines(total), "finds": find_text, "teams": claimed}
+
+
+func _deposit(state: CityState, rw: Dictionary, total: Dictionary) -> void:
+	for g: String in rw:
+		var n := float(rw[g])
+		state.stock[g] = float(state.stock.get(g, 0.0)) + n
+		sim.flow_add(g, "imp", n)
+		state.stat_add("exp." + g, n)
+		total[g] = float(total.get(g, 0.0)) + n
+
+
+func _drop_retired(state: CityState) -> void:
 	var i := state.teams.size() - 1
 	while i >= 0:
 		var t: Dictionary = state.teams[i]
 		if t.get("retired", false) and t["state"] == "idle":
 			state.teams.remove_at(i)
 		i -= 1
-	for s: String in find_text:
+
+
+# ------------------------------------------------------------------ 직접 줍기(약속만 — 미니게임은 나중)
+func _run_conf(d: Dictionary) -> Dictionary:
+	var base: Dictionary = _d().get("run", {})
+	var own: Dictionary = d.get("run", {})
+	var out := base.duplicate()
+	out.merge(own, true)
+	return out
+
+
+func _run_begin(state: CityState, args: Dictionary) -> Dictionary:
+	var id := str(args["dest"])
+	var d := _dest(id)
+	var t := _idle_team(state)
+	_pay(state, d)
+	var seed := sim.rand_seed(state)
+	t["state"] = "run"
+	t["dest"] = id
+	t["started_at"] = state.econ_days
+	t["completes_at"] = state.econ_days
+	state.flags["run"] = {"team": int(t["id"]), "dest": id, "seed": seed, "at": state.econ_days}
+	state.dests[id]["visits"] = int(state.dests[id].get("visits", 0)) + 1
+	state.dests[id]["new"] = false
+	state.stat_add("run_begin", 1.0)
+	var st := {}
+	for g: String in state.dests[id].get("stock", {}):
+		st[g] = int(floorf(float(state.dests[id]["stock"][g]) + 1e-6))
+	sim.say(state, "탐험대 %d이(가) %s에 직접 들어갔다." % [int(t["id"]), _dname(id)])
+	var rc := _run_conf(d)
+	return {"ok": true, "reason": "", "stock": st, "danger": int(rc.get("danger", d.get("danger", 1))), "seed": seed,
+		"carry": int(rc.get("carry", 40)), "team": int(t["id"])}
+
+
+func _check_result(state: CityState, args: Dictionary) -> Dictionary:
+	var run: Dictionary = state.flags.get("run", {})
+	var id := str(args.get("dest", ""))
+	if run.is_empty():
+		return {"ok": false, "reason": "직접 줍기를 시작하지 않았다(run_begin 먼저).", "code": "no_run"}
+	if str(run.get("dest", "")) != id:
+		return {"ok": false, "reason": "다른 목적지에서 시작한 줍기다.", "code": "dest"}
+	var outcome := str(args.get("outcome", ""))
+	if not (outcome in ["boss", "exit", "down"]):
+		return {"ok": false, "reason": "결과는 boss·exit·down 중 하나여야 한다.", "code": "outcome"}
+	var loot: Variant = args.get("loot", {})
+	if not (loot is Dictionary):
+		return {"ok": false, "reason": "짐(loot)은 {상품: 개수}여야 한다.", "code": "loot"}
+	var rc := _run_conf(_dest(id))
+	var carry := int(rc.get("carry", 40))
+	var total := 0
+	var st: Dictionary = state.dests.get(id, {}).get("stock", {})
+	for g: String in loot:
+		var n := int(loot[g])
+		if n < 0 or sim.good(g).is_empty():
+			return {"ok": false, "reason": "모르는 상품이거나 음수: %s" % g, "code": "loot"}
+		if not st.has(g):
+			return {"ok": false, "reason": "%s에는 %s이(가) 없다." % [_dname(id), sim.gname(g)], "code": "stock"}
+		if float(n) > floorf(float(st[g]) + 1e-6):
+			return {"ok": false, "reason": Sim.kr("%s 재고보다 많이 들고 나왔다(%s %d / 재고 %d)." % [_dname(id), sim.gname(g), n, int(st[g])]), "code": "stock"}
+		total += n
+	if total > carry:
+		return {"ok": false, "reason": "배낭 한도 %d칸을 넘는다(%d)." % [carry, total], "code": "carry"}
+	return {"ok": true, "reason": "", "code": "ok"}
+
+
+func _run_result(state: CityState, args: Dictionary) -> Dictionary:
+	var run: Dictionary = state.flags["run"]
+	var id := str(args["dest"])
+	var d := _dest(id)
+	var outcome := str(args["outcome"])
+	var loot: Dictionary = args.get("loot", {})
+	var got := {}
+	var lost: Array = []
+	for g: String in loot:
+		var n := float(int(loot[g]))
+		_take(state, id, g, n)
+		var keep := n if outcome != "down" else floorf(n * 0.5)
+		if keep > 0.0:
+			got[g] = keep
+		if n - keep > 0.0:
+			lost.append({"good": g, "name": sim.gname(g), "n": int(n - keep)})
+	if outcome == "boss":
+		var bonus: Dictionary = _run_conf(d).get("boss", {})
+		for g: String in bonus:
+			got[g] = float(got.get(g, 0.0)) + float(bonus[g])
+	var total := {}
+	_deposit(state, got, total)
+	var allowed := {}
+	for f: Dictionary in d.get("finds", []):
+		allowed["%s:%s" % [f["type"], f["id"]]] = true
+	for r: String in d.get("reveals", []):
+		allowed["dest:" + r] = true
+	var texts: Array = []
+	for s: Variant in args.get("finds", []):
+		var key := str(s)
+		if not allowed.has(key):
+			continue
+		var parts := key.split(":", true, 1)
+		var ft := _apply_find(state, {"type": parts[0], "id": parts[1]})
+		if ft != "":
+			texts.append(ft)
+	if (state.dests[id].get("runs", 0) as int) == 0:
+		for r: String in d.get("reveals", []):
+			var ft := reveal(state, r)
+			if ft != "":
+				texts.append(ft)
+	state.dests[id]["runs"] = int(state.dests[id].get("runs", 0)) + 1
+	var t := _team(state, int(run.get("team", -1)))
+	if not t.is_empty():
+		t["state"] = "idle"
+		t["dest"] = ""
+	state.flags["run"] = {}
+	state.stat_add("run_" + outcome, 1.0)
+	_drop_retired(state)
+	var word: String = {"boss": "두목을 쓰러뜨리고", "exit": "중간에 빠져나와", "down": "쓰러져 실려 나와"}[outcome]
+	sim.say(state, "%s에서 %s 짐을 풀었다: %s." % [_dname(id), word, _reward_text(got) if not got.is_empty() else "빈손"], "good" if outcome != "down" else "warn")
+	for s: String in texts:
 		sim.say(state, s, "good")
-	return {"ok": claimed > 0, "reason": "" if claimed > 0 else "받을 짐이 없다.", "rewards": _reward_lines(total), "finds": find_text, "teams": claimed}
+	return {"ok": true, "reason": "", "rewards": _reward_lines(got), "finds": texts, "lost": lost}
 
 
 func _apply_find(state: CityState, f: Dictionary) -> String:
@@ -385,21 +586,23 @@ func query(state: CityState, name: String, _args: Dictionary) -> Variant:
 		return null
 	_sync(state)
 	_update(state)
-	var now := sim.now_unix
+	var spd := _sec_per_day()
 	var teams: Array = []
 	for t: Dictionary in state.teams:
-		var total := maxi(0, int(t["completes_unix"]) - int(t["started_unix"]))
-		var left := 0
+		var total := maxf(0.0, float(t.get("completes_at", 0.0)) - float(t.get("started_at", 0.0)))
+		var left := 0.0
 		if t["state"] == "out":
-			left = clampi(int(t["completes_unix"]) - now, 0, total)
+			left = clampf(float(t["completes_at"]) - state.econ_days, 0.0, total)
 		teams.append({"id": int(t["id"]), "name": "탐험대 %d" % int(t["id"]), "state": t["state"], "state_name": STATE_NAME.get(t["state"], ""),
 			"dest": t["dest"], "dest_name": _dname(str(t["dest"])) if str(t["dest"]) != "" else "",
-			"seconds_left": left, "total_seconds": total,
-			"reward_text": _reward_text(t["reward"]) if t["state"] == "done" else ("" if t["state"] == "idle" else "돌아오는 중"),
+			"days_left": snappedf(left, 0.001), "total_days": snappedf(total, 0.001),
+			"seconds_left": int(roundf(left * spd)), "total_seconds": int(roundf(total * spd)),
+			"reward_text": _reward_text(t["reward"]) if t["state"] == "done" else ("" if t["state"] == "idle" else ("직접 줍는 중" if t["state"] == "run" else "돌아오는 중")),
 			"rewards": _reward_lines(t["reward"]) if t["state"] == "done" else [], "provision": bool(t.get("provision", false)),
 			"retired": bool(t.get("retired", false))})
 	var dests: Array = []
 	var mats: Array = sim.db.get("upgrade_costs", {}).get("materials", [])
+	var can_run := (state.flags.get("run", {}) as Dictionary).is_empty() and not _idle_team(state).is_empty()
 	for id: String in sim.items("destinations"):
 		var d := _dest(id)
 		var st: Dictionary = state.dests.get(id, {})
@@ -423,15 +626,25 @@ func query(state: CityState, name: String, _args: Dictionary) -> Variant:
 			if f["type"] == "partner":
 				bon.append("거래처 발견")
 			elif f["type"] == "blueprint":
-				bon.append("도면(첫 방문)")
+				bon.append("도면(첫 방문)" if not f.get("run_only", false) else "도면(직접 줍기)")
 		var k := 1.0 if pg == "parts" else mult
+		var days := _days(state, d)
+		var pct := _stock_pct(state, id)
+		var rc := _run_conf(d)
+		var danger := int(rc.get("danger", d.get("danger", 1)))
+		var known := bool(st.get("known", false))
 		dests.append({"id": id, "name": d.get("name", id), "desc": d.get("desc", ""), "map": d.get("map", [0.5, 0.5]), "band": d.get("band", "near"),
-			"seconds": _seconds(state, d),
+			"days": snappedf(days, 0.001), "total_days": snappedf(days, 0.001), "seconds": int(roundf(days * spd)),
 			"primary": {"good": pg, "name": sim.gname(pg) if pg != "" else "고른 자재", "min": int(roundf(float(pr.get("min", 0)) * k)), "max": int(roundf(float(pr.get("max", 0)) * k))},
 			"picks": picks, "bonus_text": "덤: " + ", ".join(bon) if not bon.is_empty() else "", "cost": {"money": _cost(state, d)},
-			"known": bool(st.get("known", false)), "locked_hint": "" if bool(st.get("known", false)) else str(d.get("reveal_hint", "탐험으로 알게 된다")),
+			"known": known, "locked_hint": "" if known else str(d.get("reveal_hint", "탐험으로 알게 된다")),
 			"visits": int(st.get("visits", 0)), "new": bool(st.get("new", false)),
-			"per_hour": snappedf((float(pr.get("min", 0)) + float(pr.get("max", 0))) * 0.5 * k * 3600.0 / float(maxi(1, _seconds(state, d))), 0.1)})
+			"stock_pct": snappedf(pct, 0.01),
+			"stock_text": "털 것이 %d%% 남았다" % int(roundf(pct * 100.0)),
+			"run": {"available": known and can_run, "danger": danger,
+				"text": "위험 %d · 배낭 %d칸 · 두목을 잡으면 덤" % [danger, int(rc.get("carry", 40))] if known else "아직 모르는 곳"},
+			"per_day": snappedf((float(pr.get("min", 0)) + float(pr.get("max", 0))) * 0.5 * k / maxf(days, 1e-6), 0.1),
+			"per_hour": snappedf((float(pr.get("min", 0)) + float(pr.get("max", 0))) * 0.5 * k / maxf(days * spd / 3600.0, 1e-6), 0.1)})
 	var pv: Dictionary = _d().get("provision", {})
 	var gn: Array = []
 	for g: String in pv.get("goods", []):
@@ -446,7 +659,7 @@ func query(state: CityState, name: String, _args: Dictionary) -> Variant:
 	return {"teams": teams, "slots": {"have": live, "max": _max_teams()}, "dests": dests,
 		"provision": {"good_text": "끼니 %d(%s)" % [int(pv.get("n", 10)), "·".join(gn)], "bonus_text": "수확 +%d%%" % int(roundf(float(pv.get("bonus", 0.25)) * 100.0)),
 			"enough": _meal_have(state) + 1e-9 >= float(pv.get("n", 10))},
-		"materials": mat_rows, "now_unix": now}
+		"materials": mat_rows, "now_unix": 0, "econ_days": state.econ_days, "run": state.flags.get("run", {})}
 
 
 func augment(state: CityState, name: String, _args: Dictionary, out: Variant) -> void:

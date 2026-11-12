@@ -136,28 +136,10 @@ func _run(state: CityState, c: Dictionary) -> void:
 	state.stat_add("contract_rounds", 1.0)
 	if not ok:
 		state.stat_add("contract_skips", 1.0)
-		if sim.offline:
-			var fr: Dictionary = sim.offline_log.get("cfail", {})
-			fr["%s %s" % [_pname(c["partner"]), sim.gname(g)]] = reason
-			sim.offline_log["cfail"] = fr
 	state.emit("contract_done", {"id": int(c["id"]), "ok": ok, "reason": reason})
 	if not ok:
 		sim.say(state, "계약(%s %s): %s." % [_pname(c["partner"]), sim.gname(g), reason], "warn")
 
-
-func fast_forward(state: CityState, _econ_days: float, before: Dictionary, lines: Array) -> void:
-	var bs: Dictionary = before.get("stats", {})
-	var rounds := int(float(state.stats.get("contract_rounds", 0.0)) - float(bs.get("contract_rounds", 0.0)))
-	var skips := int(float(state.stats.get("contract_skips", 0.0)) - float(bs.get("contract_skips", 0.0)))
-	if rounds > 0:
-		var t := "계약 %d회 이행" % (rounds - skips)
-		if skips > 0:
-			var why: Array = []
-			var cf: Dictionary = sim.offline_log.get("cfail", {})
-			for k: String in cf:
-				why.append("%s: %s" % [k, cf[k]])
-			t += ", %d회 건너뜀(%s)" % [skips, "; ".join(why.slice(0, 2))]
-		lines.append(t + ".")
 
 
 # ------------------------------------------------------------------ 질의
