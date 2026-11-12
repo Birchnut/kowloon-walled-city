@@ -161,7 +161,7 @@ func _run() -> void:
 	var c_loop := cpu_acc
 	var total_ms := (sfx_us + shot_us + inst_us + loop_us) / 1000.0
 	var total_cpu := c_sfx + c_shot + c_inst + c_loop
-	md.append("\n만들기 시간(데스크톱 빌드, 이 상자 2코어를 다른 작업과 나눠 씀). 벽시계: 효과음 %.0f · 배경 한 번짜리 %.0f · 악기 %.0f · 루프+바탕화음 %.0f · 합 %.0f ms. **CPU 시간(/proc, 10 ms 단위): 효과음 %.0f · 한 번짜리 %.0f · 악기 %.0f · 루프 %.0f · 합 %.0f ms.** 게임에서는 프레임마다 4 ms 씩 나눠 만든다." % [sfx_us / 1000.0, shot_us / 1000.0, inst_us / 1000.0, loop_us / 1000.0, total_ms, c_sfx, c_shot, c_inst, c_loop, total_cpu])
+	md.append("\n만들기 시간(데스크톱 빌드, 이 상자 2코어를 다른 작업과 나눠 씀). 벽시계: 효과음 %.0f · 배경 한 번짜리 %.0f · 악기 %.0f · 루프+바탕화음 %.0f · 합 %.0f ms. **메인 스레드 CPU 시간(/proc schedstat): 효과음 %.0f · 한 번짜리 %.0f · 악기 %.0f · 루프 %.0f · 합 %.0f ms.** 게임에서는 프레임마다 4 ms 씩 나눠 만든다." % [sfx_us / 1000.0, shot_us / 1000.0, inst_us / 1000.0, loop_us / 1000.0, total_ms, c_sfx, c_shot, c_inst, c_loop, total_cpu])
 	print("만들기 합: 벽시계 %.0f ms (효과음 %.0f, 한 번짜리 %.0f, 악기 %.0f, 루프 %.0f) / CPU %.0f ms (효과음 %.0f, 한 번짜리 %.0f, 악기 %.0f, 루프 %.0f)" % [total_ms, sfx_us / 1000.0, shot_us / 1000.0, inst_us / 1000.0, loop_us / 1000.0, total_cpu, c_sfx, c_shot, c_inst, c_loop])
 	# CPU 시간을 못 읽는 곳(리눅스 밖)에서는 벽시계로 본다
 	var judge := total_cpu if cpu0 >= 0.0 else total_ms
