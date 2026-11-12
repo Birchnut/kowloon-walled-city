@@ -14,8 +14,8 @@ const PITCH_X := 30
 const PITCH_Y := 20
 const MARGIN := 2
 
-enum { VOID, FLOOR, WALL, CAR, BOX, TIRE, PRESS, JUNK, WIRE, HALL, GRAVEL, OIL, DOOR, RUBBLE }
-const SOLID := [VOID, WALL, CAR, BOX, TIRE, PRESS, JUNK]
+enum { VOID, FLOOR, WALL, CAR, BOX, TIRE, PRESS, JUNK, WIRE, HALL, GRAVEL, OIL, DOOR, RUBBLE, BUS, BOOTH }
+const SOLID := [VOID, WALL, CAR, BOX, TIRE, PRESS, JUNK, BUS, BOOTH]
 
 var rng := RandomNumberGenerator.new()
 var w := 0
@@ -200,6 +200,8 @@ func _build_tiles() -> void:
 					"K": code = PRESS
 					"j": code = JUNK
 					"w": code = WIRE
+					"U": code = BUS
+					"H": code = BOOTH
 				set_t(c, code)
 				match ch:
 					"P": _obj("pile", c, r)

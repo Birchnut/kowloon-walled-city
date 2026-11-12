@@ -80,7 +80,7 @@ func _draw() -> void:
 	var pad := 6 * s
 	for k in 6:
 		var bw0 := (6 - k) * 14.0 * s
-		var a0 := 0.06
+		var a0 := 0.025
 		draw_rect(Rect2(0, 0, vs.x, bw0), Color(0, 0, 0, a0))
 		draw_rect(Rect2(0, vs.y - bw0, vs.x, bw0), Color(0, 0, 0, a0))
 		draw_rect(Rect2(0, 0, bw0, vs.y), Color(0, 0, 0, a0))

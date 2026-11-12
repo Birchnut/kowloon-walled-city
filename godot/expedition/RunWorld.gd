@@ -72,6 +72,7 @@ var dodges: int = 0
 var hits_taken: int = 0
 var hurt_log: Dictionary = {}
 var hp_at_boss: int = -1
+var floodlights: bool = false
 var time_at_boss: float = -1.0
 
 

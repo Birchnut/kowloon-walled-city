@@ -4,6 +4,7 @@ extends Node2D
 
 const RunCfg = preload("res://expedition/RunCfg.gd")
 const RunArt = preload("res://expedition/RunArt.gd")
+const RunMap = preload("res://expedition/RunMap.gd")
 const DungeonGen = preload("res://expedition/DungeonGen.gd")
 const Actor = preload("res://expedition/RunActor.gd")
 
@@ -59,7 +60,7 @@ func bind(w: RefCounted) -> void:
 	var H: int = world.h
 	for cy in int(ceil(H / float(CHUNK))):
 		for cx in int(ceil(W / float(CHUNK))):
-			var img := RunArt.map_chunk(world.tiles, W, H, cx, cy, CHUNK)
+			var img := RunMap.chunk(world.tiles, W, H, world.rooms, cx, cy, CHUNK)
 			if img == null:
 				continue
 			var s := Sprite2D.new()
@@ -214,6 +215,7 @@ func _draw_ents() -> void:
 					a += Vector2(randf_range(-6, 6), randf_range(-6, 6))
 					pts.append(a)
 				ci.draw_polyline(pts, Color(0.9, 0.97, 1.0), 1.0)
+	_draw_dress_ground(ci, vis)
 	# 소리 고리(던진 깡통)
 	for r in rings:
 		var u: float = 1.0 - r["life"] / 0.6
@@ -241,12 +243,14 @@ func _draw_ents() -> void:
 			tex = RunArt.tex("locker_open" if pl["popped"] > 0 else "locker")
 		ci.draw_texture(tex, (pl["pos"] as Vector2) - Vector2(tex.get_width() / 2.0, tex.get_height() - 5))
 		if not empty:
-			var ph: float = fmod(t * 0.8 + pl["pos"].x * 0.013, 1.6)
-			if ph < 0.25:
-				var gp: Vector2 = pl["pos"] + Vector2(-4 + int(pl["pos"].y) % 9, -9)
-				var s := 2.0 * (1.0 - absf(ph - 0.125) / 0.125)
-				ci.draw_line(gp - Vector2(s, 0), gp + Vector2(s, 0), YEL, 1.0)
-				ci.draw_line(gp - Vector2(0, s), gp + Vector2(0, s), YEL, 1.0)
+			# 안 뒤진 더미는 반짝인다(노랑 십자 + 짧은 빛살)
+			var ph: float = fmod(t * 1.1 + pl["pos"].x * 0.013, 1.3)
+			if ph < 0.32:
+				var gp: Vector2 = pl["pos"] + Vector2(-5 + int(pl["pos"].y) % 11, -10)
+				var s := 3.5 * (1.0 - absf(ph - 0.16) / 0.16)
+				ci.draw_line(gp - Vector2(s, 0), gp + Vector2(s, 0), Color(1, 1, 0.85), 1.0)
+				ci.draw_line(gp - Vector2(0, s), gp + Vector2(0, s), Color(1, 1, 0.85), 1.0)
+				ci.draw_rect(Rect2(gp - Vector2(0.5, 0.5), Vector2(1, 1)), Color.WHITE)
 			var d: float = p.pos.distance_to(pl["pos"])
 			if d < nd:
 				nd = d
@@ -339,7 +343,7 @@ func _draw_ents() -> void:
 			if world.visited.has(r["id"]):
 				continue
 			var rc: Rect2i = r["rect"]
-			ci.draw_rect(Rect2(Vector2(rc.position) * 16.0, Vector2(rc.size) * 16.0), Color(0.04, 0.03, 0.05, 0.72))
+			ci.draw_rect(Rect2(Vector2(rc.position) * 16.0, Vector2(rc.size) * 16.0), Color(0.06, 0.05, 0.1, 0.7))
 
 
 func _ypos(b: Variant) -> float:
@@ -631,6 +635,7 @@ func _draw_air() -> void:
 				var from: Vector2 = m["from"]
 				var cp: Vector2 = from.lerp(m["pos"], v) + Vector2(0, -60.0 * 4 * v * (1 - v))
 				ci.draw_texture(RunArt.tex("cube"), cp - Vector2(8, 10))
+	_draw_dress_air(ci)
 	# 던진 것
 	for th in world.throws:
 		var tp: Vector2 = th["pos"]
@@ -663,6 +668,119 @@ func _draw_air() -> void:
 			_label(ci, tx["p"], tx["text"], Color(tx["col"], a2), 18)
 		else:
 			_label(ci, tx["p"], tx["text"], Color(tx["col"], a2))
+
+
+# ------------------------------------------------------------------ 방 꾸밈(run_rooms.json 의 dress)
+func _dress_pos(r: Dictionary, x: float, y: float) -> Vector2:
+	var lx := (DungeonGen.RW - 1 - x) if r.get("flip_h", false) else x
+	var ly := (DungeonGen.RH - 1 - y) if r.get("flip_v", false) else y
+	var o: Vector2i = r["origin"]
+	return Vector2((o.x + lx) * 16.0 + 8.0, (o.y + ly) * 16.0 + 8.0)
+
+
+func _room_dress(r: Dictionary) -> Array:
+	return RunCfg.rooms().get(r["tmpl"], {}).get("dress", [])
+
+
+func _draw_dress_ground(ci: CanvasItem, vis: Rect2) -> void:
+	for r in world.rooms:
+		var rc: Rect2i = r["rect"]
+		var rr := Rect2(Vector2(rc.position) * 16.0, Vector2(rc.size) * 16.0)
+		if not rr.intersects(vis):
+			continue
+		for d in _room_dress(r):
+			match str(d["k"]):
+				"sign":
+					var p := _dress_pos(r, float(d["x"]), 0)
+					p.y = rr.position.y + 6
+					var txt: String = d["text"]
+					var w := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x + 8
+					var b := Rect2(p.x - w / 2, p.y - 6, w, 12)
+					ci.draw_rect(Rect2(b.position + Vector2(2, 2), b.size), Color(0, 0, 0, 0.35))
+					ci.draw_rect(b.grow(1), OUT_COL)
+					ci.draw_rect(b, Color("f4e8c8"))
+					ci.draw_rect(Rect2(b.position, Vector2(b.size.x, 2)), Color("c0392b"))
+					ci.draw_string(font, Vector2(b.position.x + 4, b.position.y + 10), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("2a1e1a"))
+				"holes":
+					for hp in [Vector2(2, 1), Vector2(20, 1), Vector2(6, 14), Vector2(17, 14), Vector2(24, 6)]:
+						var q := _dress_pos(r, hp.x, hp.y)
+						ci.draw_circle(q + Vector2(0, -3), 4.5, OUT_COL)
+						ci.draw_circle(q + Vector2(0, -2), 3.5, Color("0e0b0c"))
+				"tracks":
+					for k in 2:
+						var pts := PackedVector2Array()
+						for x in range(0, 27):
+							var q := _dress_pos(r, x, 7.5)
+							pts.append(Vector2(rr.position.x + x * 16, q.y - 6 + k * 12 + sin(x * 0.5) * 3))
+						ci.draw_polyline(pts, Color(0.25, 0.2, 0.15, 0.22), 3.0)
+				"rail":
+					for yy in [1.0, 14.0]:
+						var q := _dress_pos(r, 0, yy)
+						ci.draw_rect(Rect2(rr.position.x + 16, q.y - 1, rr.size.x - 32, 3), Color("5d6d7e"))
+						for x in range(int(rr.position.x) + 16, int(rr.end.x) - 16, 8):
+							ci.draw_rect(Rect2(x, q.y - 3, 2, 7), Color("6e4626"))
+				"barrow":
+					var q2 := _dress_pos(r, float(d["x"]), float(d["y"]))
+					ci.draw_rect(Rect2(q2 + Vector2(-7, -5), Vector2(12, 6)), OUT_COL)
+					ci.draw_rect(Rect2(q2 + Vector2(-6, -4), Vector2(10, 4)), Color("c0392b"))
+					ci.draw_circle(q2 + Vector2(-4, 2), 2.5, OUT_COL)
+					ci.draw_line(q2 + Vector2(4, -3), q2 + Vector2(9, 1), OUT_COL, 1.0)
+				"drums":
+					var q3 := _dress_pos(r, float(d["x"]), float(d["y"]))
+					ci.draw_rect(Rect2(q3 + Vector2(-7, -3), Vector2(13, 7)), OUT_COL)
+					ci.draw_rect(Rect2(q3 + Vector2(-6, -2), Vector2(11, 5)), Color("2e6fb5"))
+					ci.draw_rect(Rect2(q3 + Vector2(-2, -2), Vector2(1, 5)), Color("1b4f72"))
+				"lamp":
+					var q4 := _dress_pos(r, float(d["x"]), float(d["y"]))
+					var on: bool = world.floodlights
+					ci.draw_circle(q4 + Vector2(30, 24), 30 if on else 22, Color(1, 0.95, 0.6, 0.18 if on else 0.08))
+
+
+func _draw_dress_air(ci: CanvasItem) -> void:
+	var vis := Rect2(cam.position - view_size / 2 - Vector2(64, 64), view_size + Vector2(128, 128))
+	for r in world.rooms:
+		var rc: Rect2i = r["rect"]
+		var rr := Rect2(Vector2(rc.position) * 16.0, Vector2(rc.size) * 16.0)
+		if not rr.intersects(vis):
+			continue
+		var poles: Array = []
+		for d in _room_dress(r):
+			match str(d["k"]):
+				"claw":
+					var p := _dress_pos(r, float(d["x"]), float(d["y"]))
+					var sway := sin(t * 0.9 + p.x) * 2.0
+					var c := p + Vector2(sway, -26)
+					ci.draw_circle(p + Vector2(10, 6), 9, Color(0, 0, 0, 0.22))
+					ci.draw_line(Vector2(c.x, rr.position.y + 10), c, OUT_COL, 3.0)
+					ci.draw_line(Vector2(c.x, rr.position.y + 10), c, Color("8a8a90"), 1.0)
+					ci.draw_rect(Rect2(c + Vector2(-8, 0), Vector2(16, 7)), OUT_COL)
+					ci.draw_rect(Rect2(c + Vector2(-7, 1), Vector2(14, 5)), Color("f1c40f"))
+					ci.draw_rect(Rect2(c + Vector2(-7, 1), Vector2(14, 1)), Color("f9e79f"))
+					for k in [-6, 0, 6]:
+						ci.draw_line(c + Vector2(k, 7), c + Vector2(k * 1.4, 15), OUT_COL, 3.0)
+						ci.draw_line(c + Vector2(k, 7), c + Vector2(k * 1.4, 15), Color("5d6d7e"), 1.0)
+				"pole":
+					var p2 := _dress_pos(r, float(d["x"]), float(d["y"]))
+					poles.append(p2 + Vector2(0, -30))
+					ci.draw_line(p2 + Vector2(6, 2), p2 + Vector2(22, 8), Color(0, 0, 0, 0.25), 3.0)
+					ci.draw_line(p2, p2 + Vector2(0, -32), OUT_COL, 4.0)
+					ci.draw_line(p2, p2 + Vector2(0, -32), Color("8a5a36"), 2.0)
+					ci.draw_line(p2 + Vector2(-7, -28), p2 + Vector2(7, -28), Color("6e4626"), 2.0)
+				"lamp":
+					var p3 := _dress_pos(r, float(d["x"]), float(d["y"]))
+					ci.draw_line(p3, p3 + Vector2(0, -30), OUT_COL, 4.0)
+					ci.draw_line(p3, p3 + Vector2(0, -30), Color("95a5a6"), 2.0)
+					ci.draw_rect(Rect2(p3 + Vector2(-6, -36), Vector2(12, 6)), OUT_COL)
+					ci.draw_rect(Rect2(p3 + Vector2(-5, -35), Vector2(10, 4)), Color("fdfefe") if world.floodlights else Color("7f8c8d"))
+		if poles.size() >= 2:
+			for k in 3:
+				var a: Vector2 = poles[0] + Vector2(-6 + k * 6, 0)
+				var b: Vector2 = poles[1] + Vector2(-6 + k * 6, 0)
+				var pts := PackedVector2Array()
+				for i in 17:
+					var u := i / 16.0
+					pts.append(a.lerp(b, u) + Vector2(0, sin(u * PI) * 26.0))
+				ci.draw_polyline(pts, Color(0.08, 0.08, 0.1, 0.8), 1.0)
 
 
 # ------------------------------------------------------------------ 작은 도구

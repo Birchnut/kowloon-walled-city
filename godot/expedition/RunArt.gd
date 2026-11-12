@@ -122,6 +122,12 @@ static func _outlined(img: Image) -> Image:
 	img.convert(Image.FORMAT_RGBA8)
 	var w := img.get_width()
 	var h := img.get_height()
+	# 밝고 또렷하게: 채도·명도를 조금 올린다(밝은 바닥 위에서 몸이 튀어 보이게)
+	for y in h:
+		for x in w:
+			var c0 := img.get_pixel(x, y)
+			if c0.a > 0.5:
+				img.set_pixel(x, y, Color.from_hsv(c0.h, minf(1.0, c0.s * 1.25), minf(1.0, c0.v * 1.12 + 0.03), c0.a))
 	var o := img.duplicate() as Image
 	for y in h:
 		for x in w:
@@ -400,7 +406,7 @@ static func _press_cell(img: Image, tiles: PackedByteArray, w: int, h: int, tx: 
 # ------------------------------------------------------------------ 생물
 static func _rat(frame: int) -> Image:
 	var img := _new(12, 8)
-	var body := Color("75685e")
+	var body := Color("958373")
 	_ellipse(img, 6, 4.5, 4.2, 2.6, body)
 	_ellipse(img, 6.5, 3.8, 3.0, 1.4, body.lightened(0.12))
 	_rect(img, 9, 3, 2, 2, body)          # 머리
@@ -419,8 +425,8 @@ static func _rat(frame: int) -> Image:
 
 static func _dog(frame: int) -> Image:
 	var img := _new(20, 13)
-	var fur := Color("9a6a3a")
-	var dark := Color("6a4626")
+	var fur := Color("d08a40")
+	var dark := Color("8a5226")
 	var body_y := 6.0
 	var head := Vector2(16, 4)
 	if frame == 2:   # 으르렁: 몸 낮추고 머리 앞으로
