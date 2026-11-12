@@ -466,6 +466,13 @@ func _build_house(p: Vector3i, c: Dictionary, seed_v: int) -> void:
 		_roof_edges(p, c, look, grp)
 		if not state.cells.has(above):
 			_house_rooftop(p, c, look, seed_v, tier)
+			if str(c.get("material", "")) == "concrete" and tier <= 3 and ViewCfg.h2(seed_v, 88) % 100 < 45:
+				# 다음 층을 기다리는 철근: 지붕 모서리에서 솟은 녹슨 막대
+				var rb := cellv(p) + Vector3(0, fh, 0)
+				for q in [Vector2(0.06, 0.06), Vector2(0.9, 0.06), Vector2(0.06, 0.9), Vector2(0.9, 0.9)]:
+					for k2 in 2:
+						var qx: float = q.x + 0.04 * float(k2)
+						cbox(rb + Vector3(qx, 0, q.y), rb + Vector3(qx + 0.025, 0.3 + 0.06 * float(k2), q.y + 0.025), Color("#8a4a3a"))
 	if bool(c.get("scaffold", false)):
 		_scaffold_wrap(p, seed_v)
 
@@ -668,6 +675,34 @@ func _house_face(p: Vector3i, d: int, c: Dictionary, look: Dictionary, mat: Stri
 		_ac(p, d, 0.06 if hs % 2 == 0 else 0.56, 0.08, w0)
 	if not has_bal and ViewCfg.h2(hs, 43) % 1000 < int(1000.0 * float(look.get("plants_p", 0.0))):
 		_planter(p, d, hs, w0, tier)
+	_family_face(p, d, c, tier, hs, w0, has_bal, bay)
+
+
+## v4: 자재 계열을 한눈에(목재 = 덧문·방수포, 철제 = 리벳 띠·녹물, 콘크리트 = 창 차양판·철근), 높은 계층 = 불 켜진 작은 표찰.
+func _family_face(p: Vector3i, d: int, c: Dictionary, tier: int, hs: int, w0: float, has_bal: bool, bay: bool) -> void:
+	var fam := str(c.get("material", "common"))
+	var h2 := ViewCfg.h2(hs, 77)
+	match fam:
+		"wood":
+			if tier <= 3 and h2 % 100 < 35 and not has_bal:
+				var sc := Color("#8a5a3e") if tier <= 2 else Color("#6a4a3e")
+				fbox(p, d, 0.12, 0.22, 0.32, 0.78, w0, w0 + 0.04, tile("white"), tile("white"), sc, 15, 0.0, 0.0, sc.lightened(0.2))
+				fbox(p, d, 0.78, 0.88, 0.32, 0.78, w0, w0 + 0.04, tile("white"), tile("white"), sc, 15, 0.0, 0.0, sc.lightened(0.2))
+			elif tier <= 2 and h2 % 100 > 82:
+				var tc := Color(["#4f7ab8", "#d8823a", "#5fae7a"][h2 % 3])
+				mb.cloth(fp(p, d, 0.05, 0.98, w0 + 0.05), fp(p, d, 0.55, 0.98, w0 + 0.05), fp(p, d, 0.55, 0.6, w0 + 0.12), fp(p, d, 0.05, 0.55, w0 + 0.12), NRM[d], sub(tile("white"), 0, 0, 2, 2), tc, float(h2 % 100) / 100.0)
+		"metal":
+			if tier <= 3:
+				fbox(p, d, 0.0, 1.0, 0.46, 0.5, 0.0, 0.03, tile("white"), tile("white"), Color("#5a6a86"), 15)
+				if h2 % 100 < 40:
+					fbox(p, d, 0.4, 0.46, 0.0, 0.46, 0.0, 0.02, tile("white"), tile("white"), Color("#a8603a"), 15)
+		"concrete":
+			if tier >= 2 and tier <= 4 and not has_bal and h2 % 100 < 45:
+				fbox(p, d, 0.08, 0.92, 0.8, 0.86, w0, w0 + 0.16, tile("white"), tile("white"), Color("#b8b0a6"), 31, 0.0, 0.0, Color("#d4ccc0"))
+	if tier >= 4 and h2 % 100 < 14 and not bay:
+		var nc: Color = cfg.neon(["yellow", "cyan", "white", "magenta"][h2 % 4])
+		fbox(p, d, 0.68, 0.92, 0.12, 0.28, w0, w0 + 0.05, tile("white"), tile("white"), nc, 15, float(h2 % 97) / 97.0, MeshBuf.K_NEON)
+		light(fp(p, d, 0.8, 0.2, w0 + 0.3), nc, 0.9)
 
 
 func _planter(p: Vector3i, d: int, hs: int, w0: float, tier: int) -> void:
@@ -2082,7 +2117,7 @@ func _cut_cell(p: Vector3i, c: Dictionary) -> void:
 	if kind == "house":
 		var tier := int(c.get("tier", 1))
 		rec = rec.duplicate()
-		rec["interior"] = ["mat", "mat", "bed", "flat", "flat", "flat"][clampi(tier, 0, 5)]
+		rec["interior"] = ["mat", "mat", "bed", "flat", "flat4", "flat5"][clampi(tier, 0, 5)]
 		rec["floor"] = ["dirt", "dirt", "wood", "wood", "carpet", "wood"][clampi(tier, 0, 5)]
 		fname = "f_" + str(rec["floor"])
 		fr = tile(fname)
@@ -2174,6 +2209,25 @@ func _furnish(p: Vector3i, c: Dictionary, rec: Dictionary, seed_v: int) -> void:
 			_stool(p, k, 0.66, 0.78, Color("#5f86c4"))
 			_ib(p, k, 0.62, 0.16, 0.84, 0.3, 0.0, 0.2, "white", "tv", Color("#4a4664"), MeshBuf.WHITE)
 			_ib(p, k, 0.16, 0.76, 0.3, 0.86, 0.0, 0.22, "white", "white", Color("#c0714f"), Color("#6fb85a"))
+		"flat4":
+			# 깡통 귀족: 침대 + 소파 + 큰 TV + 양탄자 + 화분 + 책장
+			_ib(p, k, 0.12, 0.12, 0.48, 0.62, 0.0, 0.15, "white", "bed", Color("#6a5a7a"), MeshBuf.WHITE)
+			_ib(p, k, 0.4, 0.66, 0.86, 0.84, 0.0, 0.14, "white", "white", Color("#4f62a8"), Color("#6f82c8"))
+			_ib(p, k, 0.4, 0.82, 0.86, 0.88, 0.14, 0.3, "white", "white", Color("#3f528a"))
+			_ib(p, k, 0.56, 0.14, 0.86, 0.22, 0.0, 0.34, "white", "tv", Color("#2e2a3a"), MeshBuf.WHITE)
+			_ib(p, k, 0.5, 0.36, 0.84, 0.6, 0.0, 0.006, "white", "white", Color("#b8485a"))
+			_ib(p, k, 0.12, 0.72, 0.24, 0.86, 0.0, 0.34, "white", "white", Color("#c0714f"), Color("#5fae5a"))
+		"flat5":
+			# 옥상 황제: 큰 침대 + 가죽 소파 + 바 + 화분 둘 + 장식장
+			_ib(p, k, 0.1, 0.1, 0.52, 0.56, 0.0, 0.16, "white", "bed_red", Color("#3a2e3a"), MeshBuf.WHITE)
+			_ib(p, k, 0.1, 0.1, 0.52, 0.16, 0.16, 0.36, "white", "white", Color("#3a2e3a"))
+			_ib(p, k, 0.56, 0.62, 0.88, 0.86, 0.0, 0.15, "white", "white", Color("#7a3a2e"), Color("#9a4a3a"))
+			_ib(p, k, 0.6, 0.12, 0.88, 0.22, 0.0, 0.3, "white", "white", Color("#5a3a2e"), Color("#d8b46a"))
+			for i in 3:
+				_ib(p, k, 0.63 + 0.08 * float(i), 0.14, 0.67 + 0.08 * float(i), 0.18, 0.3, 0.4, "white", "white", Color(["#5fae7a", "#c2463c", "#f2d27a"][i]))
+			_ib(p, k, 0.12, 0.7, 0.24, 0.86, 0.0, 0.38, "white", "white", Color("#2e2a3a"), Color("#4f9a5a"))
+			_ib(p, k, 0.28, 0.76, 0.48, 0.88, 0.0, 0.46, "shelf", "white", MeshBuf.WHITE, Color("#3a2e2e"))
+			_ib(p, k, 0.3, 0.4, 0.5, 0.56, 0.0, 0.004, "white", "white", Color("#d8b46a"))
 		"cages":
 			for i in 2:
 				for j in 2:

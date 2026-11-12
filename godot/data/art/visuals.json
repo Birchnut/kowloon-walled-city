@@ -301,6 +301,82 @@
     "a"
    ],
    "cage": 0
+  },
+  "patchwood": {
+   "ramp": [
+    "#e8c08a",
+    "#cf9e6a",
+    "#a67656",
+    "#6e4c5a"
+   ],
+   "pattern": "patchboard",
+   "accent": "#c97a55",
+   "roof": [
+    "#d4a676",
+    "#b8885e"
+   ],
+   "frames": [
+    "c",
+    "a"
+   ],
+   "cage": 0
+  },
+  "rustsheet": {
+   "ramp": [
+    "#b4cfd0",
+    "#8fb2bc",
+    "#6a8aa2",
+    "#465c80"
+   ],
+   "pattern": "rustsheet",
+   "accent": "#b8643a",
+   "roof": [
+    "#a0bfc2",
+    "#7c9cae"
+   ],
+   "frames": [
+    "d",
+    "f"
+   ],
+   "cage": 0
+  },
+  "rivetpanel": {
+   "ramp": [
+    "#a9c0cc",
+    "#88a4b8",
+    "#62809c",
+    "#44587a"
+   ],
+   "pattern": "rivetpanel",
+   "accent": "#b8643a",
+   "roof": [
+    "#9ab4c0",
+    "#7a94a8"
+   ],
+   "frames": [
+    "d",
+    "e"
+   ],
+   "cage": 0
+  },
+  "slab": {
+   "ramp": [
+    "#ddd6ca",
+    "#c4bcb2",
+    "#9e96a2",
+    "#736b88"
+   ],
+   "pattern": "slab",
+   "accent": "#8a8a96",
+   "roof": [
+    "#cbc4ba",
+    "#aaa2a6"
+   ],
+   "frames": [
+    "b",
+    "f"
+   ],
+   "cage": 0
   }
  },
  "neon": {
@@ -419,7 +495,7 @@
    }
   },
   "wood_2": {
-   "wall": "timber",
+   "wall": "patchwood",
    "roof": "timber",
    "win": [
     "std"
@@ -486,8 +562,9 @@
     "laundry": 2,
     "plants": 3,
     "tank": 1,
-    "antenna": 0.5
-   }
+    "antenna": 1.5
+   },
+   "equip_p": 0.35
   },
   "wood_4": {
    "wall": "cedar",
@@ -514,7 +591,8 @@
     "garden": 2,
     "pergola": 3,
     "plants": 2
-   }
+   },
+   "equip_p": 0.2
   },
   "wood_5": {
    "wall": "teak",
@@ -543,7 +621,7 @@
    }
   },
   "metal_2": {
-   "wall": "sheet",
+   "wall": "rustsheet",
    "roof": "sheet",
    "win": [
     "std",
@@ -578,7 +656,7 @@
    }
   },
   "metal_3": {
-   "wall": "panel",
+   "wall": "rivetpanel",
    "roof": "panel",
    "win": [
     "twin",
@@ -592,7 +670,7 @@
    "bay_p": 0.0,
    "clutter": 0.5,
    "equip_p": 0.65,
-   "awning_p": 0.0,
+   "awning_p": 0.15,
    "balcony": "cage",
    "balcony_p": 0.3,
    "plants_p": 0.05,
@@ -605,7 +683,7 @@
    "roofprops": {
     "tank": 3,
     "equipment": 3,
-    "antenna": 1
+    "antenna": 1.5
    }
   },
   "metal_4": {
@@ -665,7 +743,7 @@
    }
   },
   "concrete_2": {
-   "wall": "render",
+   "wall": "slab",
    "roof": "render",
    "win": [
     "std",
@@ -714,7 +792,7 @@
    "win_p": 1.0,
    "bay_p": 0.0,
    "clutter": 0.55,
-   "awning_p": 0.0,
+   "awning_p": 0.3,
    "balcony": "slab",
    "balcony_p": 0.75,
    "plants_p": 0.2,
@@ -726,9 +804,10 @@
    "roofprops": {
     "tank": 1.2,
     "laundry": 3,
-    "antenna": 0.5,
+    "antenna": 1.5,
     "plants": 1
-   }
+   },
+   "equip_p": 0.45
   },
   "concrete_4": {
    "wall": "smooth",
@@ -756,7 +835,8 @@
     "garden": 3,
     "plants": 2,
     "tank": 1
-   }
+   },
+   "equip_p": 0.3
   },
   "concrete_5": {
    "wall": "formed",
