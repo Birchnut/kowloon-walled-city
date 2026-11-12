@@ -264,6 +264,19 @@ func _shell() -> void:
 			m.mb.quad(m.fp(q, dd, 1, 1, -0.012), m.fp(q, dd, 0, 1, -0.012), m.fp(q, dd, 0, 0, -0.012), m.fp(q, dd, 1, 0, -0.012), -CityMesher.NRM[dd], m.tile("white"), paper.darkened(0.06 * float(dd % 2)), 0.0, KI)
 			# 걸레받이
 			m.mb.quad(m.fp(q, dd, 1, 0.08, -0.016), m.fp(q, dd, 0, 0.08, -0.016), m.fp(q, dd, 0, 0, -0.016), m.fp(q, dd, 1, 0, -0.016), -CityMesher.NRM[dd], m.tile("white"), paper.darkened(0.35), 0.0, KI)
+			# 벽 꾸밈: 벽보·달력·시계·선반(안에서 보이는 면, 칸마다 다르게)
+			var dh := ViewCfg.h3(seed_v + q.x * 13, q.y * 7 + q.z, dd) % 100
+			if dh < 55:
+				var pu := 0.18 + 0.5 * float(dh % 7) / 7.0
+				var pc := Color(["#d85f5f", "#e0a23c", "#5f86c4", "#5fae7a", "#f4ecd8", "#b58be0"][dh % 6])
+				m.mb.quad(m.fp(q, dd, pu + 0.22, 0.78, -0.02), m.fp(q, dd, pu, 0.78, -0.02), m.fp(q, dd, pu, 0.5, -0.02), m.fp(q, dd, pu + 0.22, 0.5, -0.02), -CityMesher.NRM[dd], m.tile("white"), pc, 0.0, KI)
+				m.mb.quad(m.fp(q, dd, pu + 0.18, 0.74, -0.022), m.fp(q, dd, pu + 0.04, 0.74, -0.022), m.fp(q, dd, pu + 0.04, 0.64, -0.022), m.fp(q, dd, pu + 0.18, 0.64, -0.022), -CityMesher.NRM[dd], m.tile("white"), pc.lightened(0.45), 0.0, KI)
+			elif dh < 70:
+				m.fbox(q, dd, 0.15, 0.85, 0.62, 0.66, -0.12, 0.0, m.tile("white"), m.tile("white"), WOOD, 31, 0.0, KI, WOOD_T)
+				for k in 4:
+					m.fbox(q, dd, 0.2 + 0.16 * float(k), 0.3 + 0.16 * float(k), 0.66, 0.74 + 0.03 * float(k % 2), -0.1, -0.02, m.tile("white"), m.tile("white"), Color(GOODS[(k + dh) % GOODS.size()]), 31, 0.0, KI)
+			elif dh < 78:
+				m.fbox(q, dd, 0.44, 0.56, 0.7, 0.82, -0.03, 0.0, m.tile("white"), m.tile("white"), Color("#f4f0e6"), 31, 0.0, KI)
 	if not cut and zi == d - 1:
 		m.mb.kind_add = 32.0
 		_roof(mat)

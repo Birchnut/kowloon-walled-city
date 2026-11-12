@@ -65,7 +65,9 @@ func _ready() -> void:
 			fp = Vector3i(int(fv[0]), int(fv[1]), int(fv[2]))
 		else:
 			for p in Game.state.cells:
-				if str(Game.state.cells[p].get("burn", "")) == _args.get("focusfire", "burning") and (fp.z < 0 or p.z > fp.z):
+				var key := str(_args.get("focusfire", "burning"))
+				var hit := str(Game.state.cells[p].get("burn", "")) == key or (key == "sick" and bool(Game.state.cells[p].get("sick", false)))
+				if hit and (fp.z < 0 or p.z > fp.z):
 					fp = p
 		if fp.z >= 0:
 			view.target = Vector3(fp.x + 0.5, (fp.z + 0.5) * view.cfg.floor_h, fp.y + 0.5)
