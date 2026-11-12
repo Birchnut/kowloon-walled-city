@@ -138,8 +138,10 @@ static func busy_frac(busy: String, hr: float) -> float:
 			return 0.04
 		"always":
 			return 0.85 if (hr >= 7.0 and hr < 22.0) else 0.5
+	if hr >= 17.0 and hr < 19.0:
+		return 1.0      # 저녁 장보기 붐빔
 	if hr >= 8.0 and hr < 18.5:
-		return 0.95
+		return 0.85
 	if hr >= 18.5 and hr < 21.0:
 		return 0.35
 	if hr >= 6.5 and hr < 8.0:

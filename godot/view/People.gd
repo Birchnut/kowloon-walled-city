@@ -412,6 +412,46 @@ func _spawn_walker(hr: float) -> void:
 		agents[-1]["pal"] = (hs % 6) + ((hs / 6) % 8) * 8 + ((hs / 48) % 8) * 64 + 512
 
 
+## 작은 장면: 완탕 배달꾼(노점 → 아무 집, 뛰어감), 골목에서 공 쫓는 아이들(지상 빈 칸을 오가며 뜀).
+func _spawn_special(hr: float) -> void:
+	var stalls: Array = (dests.get("food", []) as Array).filter(func(it: Dictionary) -> bool: return str(it["look"]) in ["noodle_stall", "burger"])
+	if not stalls.is_empty() and hr >= 10.0 and hr < 22.5 and _rnd() < 0.6 and not homes.is_empty():
+		var st: Dictionary = stalls[_ri(stalls.size())]
+		var h: Dictionary = homes[_ri(homes.size())]
+		var path := _path((doors.get(int(st["bid"]), [Vector3i(-9, -9, -9)]) as Array)[0], doors.get(int(h["bid"]), []))
+		if path.size() >= 3:
+			var hs := _ri(1 << 20)
+			agents.append({"kind": "walk", "seat": -1, "look": "", "path": path, "i": 0, "pos": _node_pos(path[0], hs), "to": _node_pos(path[1], hs + 1), "hs": hs,
+				"pose": "carry", "tier": 2, "text": "완탕 배달 중(국물 안 흘리게)", "speed": 0.95, "wait": 0.0, "dir": Vector3(1, 0, 0),
+				"shirt": Color("#f4f0e6"), "pal": (hs % 6) + ((hs / 6) % 8) * 8 + 64})
+		return
+	if hr < 8.0 or hr > 19.5:
+		return
+	# 아이들: 지상(또는 옥상) 빈 칸 하나를 골라 그 둘레를 뛰어다닌다
+	var keys: Array = nodes.keys()
+	if keys.is_empty():
+		return
+	var c0: Vector3i = keys[_ri(keys.size())]
+	for k in 2 + _ri(2):
+		var path2: Array = [c0]
+		var nb: Vector3i = c0
+		for i in 10:
+			var opts: Array = []
+			for d in DIRS:
+				if nodes.has(nb + d):
+					opts.append(nb + d)
+			if opts.is_empty():
+				break
+			nb = opts[_ri(opts.size())]
+			path2.append(nb)
+		if path2.size() < 3:
+			return
+		var hs2 := _ri(1 << 20)
+		agents.append({"kind": "walk", "seat": -1, "look": "", "path": path2, "i": 0, "pos": _node_pos(path2[0], hs2), "to": _node_pos(path2[1], hs2 + 1), "hs": hs2,
+			"pose": "run", "tier": 1 + hs2 % 3, "text": "공 쫓아 뛰는 아이", "speed": 0.9 + 0.3 * _rnd(), "wait": 0.0, "dir": Vector3(1, 0, 0),
+			"shirt": Color(["#ff9a4a", "#5fa8e6", "#ffd45a", "#ff6f6f"][hs2 % 4]), "pal": (hs2 % 6) + 3 * 8 + 7 * 64})
+
+
 ## 시설에서 놀다 나온 사람: 그 시설 문에서 같은 계층의 집으로(같은 옷).
 func _spawn_return(lv: Dictionary) -> void:
 	var ed: Array = doors.get(int(lv.get("bid", -1)), [])
@@ -482,7 +522,10 @@ func step(delta: float, t: float) -> void:
 			if n < int(want[kind]) and agents.size() < MAX_INST:
 				for i in mini(int(want[kind]) - n, 3):
 					if kind == "walk":
-						_spawn_walker(hr)
+						if _rnd() < 0.06:
+							_spawn_special(hr)
+						else:
+							_spawn_walker(hr)
 					else:
 						_spawn_ambient(kind)
 	if view.actors != null:
