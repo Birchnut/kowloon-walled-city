@@ -274,3 +274,19 @@ facility: + w,h,d,rot · burn · build_left(days) · repair
 | `ui/**`, `data/ui/**`, `assets/ui/**`, `scenes/Main.tscn`, `project.godot`, `tools/DevHarness.gd`, `tools/fixtures/**`, `docs/UI_NOTES.md` | UI |
 | `expedition/**`(직접 줍기), `docs/EXPEDITION_RUN.md` | 2단계에서 정함 |
 | 이 문서, `docs/GDD_PC.md`, `core/Data.gd`, CityState의 필드 이름 | 디렉터 |
+
+## 시설 외형 이름표 `look` (SIM이 고르고 VIEW가 그린다)
+시설 id는 SIM이 바꾸고 늘린다. 그래서 뷰는 id가 아니라 `buildings.json`의 `look`(아래 목록 중 하나)으로 그린다. 셀과 `build_menu` 항목에 `look`이 실린다. 목록에 없는 값·빈 값은 `cat`별 기본 외형.
+```
+시장:   market_mat · market_alley · market_hall · market_mall
+물·전기: water_catcher · water_tank · water_pipe · water_plant · gen_small · power_tap · power_plant · power_waste
+먹을 것: food_cans · food_pilgrims · noodle_mill · noodle_stall · rat_farm · burger · sushi · roof_garden · brewery
+생활:   oil_collect · candle · soap · rag_collect · tailor · suit · radio · assembly · fake
+놀 것·서비스: mahjong · teahouse · karaoke · bathhouse · shrine · study · roof_park · dentist · pharmacy · salon
+방재:   fire_bucket · fire_station · trash_guild · clinic
+기반:   scrapyard · warehouse · trade_post · expedition_base
+음성:   gambling · casino · callcenter · fireworks
+명소:   landmark_hall · landmark_generic
+기본:   generic_workshop · generic_shop · generic_service
+```
+시설 안 묘사(가까이 볼 때): `look`마다 소품과 일하는 사람 자리가 있고, 보이는 사람 수 = `staff` 비율, 꺼진 시설은 불이 꺼진다.
