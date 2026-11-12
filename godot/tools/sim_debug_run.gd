@@ -26,6 +26,8 @@ func _init() -> void:
 		if int(b["tier"]) != t:
 			continue
 		n += 1
+		if n <= 40:
+			printraw("%d/%d/%d:%s " % [int(b["residents"]), int(b.get("target", 0)), int(b["cap"]), str(b.get("need_state", ""))])
 		for nid: String in b["needs"]:
 			var r: Dictionary = b["needs"][nid]
 			if float(r.get("ratio", 0)) < 0.9:
@@ -33,6 +35,7 @@ func _init() -> void:
 				causes[k] = int(causes.get(k, 0)) + 1
 	print("day %.1f tier %d houses %d unmet %s" % [st.econ_days, t, n, str(causes)])
 	print("labor ", st.labor)
+	print("util ", st.util)
 	print("stock ", st.stock)
 	var bl: Dictionary = bot.blocked
 	var keys: Array = bl.keys()

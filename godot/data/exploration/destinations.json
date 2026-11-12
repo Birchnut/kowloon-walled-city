@@ -28,14 +28,20 @@
    "desc": "녹슨 프레임과 패널이 쌓인 야적장. 들개가 주인 행세를 한다.",
    "primary": {
     "good": "metal",
-    "min": 15,
-    "max": 15
+    "min": 20,
+    "max": 20
    },
    "bonus": [
     {
      "good": "scrap",
      "min": 5,
      "max": 10,
+     "chance": 1.0
+    },
+    {
+     "good": "elec_scrap",
+     "min": 2,
+     "max": 4,
      "chance": 1.0
     }
    ],
@@ -44,10 +50,11 @@
     "back_docks"
    ],
    "stock": {
-    "metal": 75,
-    "scrap": 40
+    "metal": 100,
+    "scrap": 40,
+    "elec_scrap": 30
    },
-   "regen": 0.5,
+   "regen": 0.8,
    "danger": 1,
    "cost": {
     "money": 0
@@ -65,8 +72,8 @@
    "desc": "문짝과 장롱이 묻힌 매립지. 파면 나온다. 냄새도 나온다.",
    "primary": {
     "good": "wood",
-    "min": 15,
-    "max": 15
+    "min": 20,
+    "max": 20
    },
    "bonus": [
     {
@@ -81,10 +88,10 @@
     "back_docks"
    ],
    "stock": {
-    "wood": 75,
+    "wood": 100,
     "scrap": 40
    },
-   "regen": 0.5,
+   "regen": 0.8,
    "danger": 1,
    "cost": {
     "money": 0
@@ -102,8 +109,8 @@
    "desc": "헐다 만 아파트. 쓸 만한 블록을 추린다. 남은 벽이 언제 무너질지는 모른다.",
    "primary": {
     "good": "concrete",
-    "min": 15,
-    "max": 15
+    "min": 20,
+    "max": 20
    },
    "bonus": [
     {
@@ -118,10 +125,10 @@
     "back_docks"
    ],
    "stock": {
-    "concrete": 75,
+    "concrete": 100,
     "scrap": 40
    },
-   "regen": 0.5,
+   "regen": 0.8,
    "danger": 1,
    "cost": {
     "money": 0
@@ -145,14 +152,14 @@
    ],
    "primary": {
     "good": "",
-    "min": 50,
-    "max": 55
+    "min": 65,
+    "max": 70
    },
    "bonus": [
     {
      "good": "elec_scrap",
-     "min": 4,
-     "max": 8,
+     "min": 8,
+     "max": 14,
      "chance": 1.0
     },
     {
@@ -180,13 +187,13 @@
     "ghost_town"
    ],
    "stock": {
-    "wood": 275,
-    "metal": 275,
-    "concrete": 275,
-    "elec_scrap": 40,
+    "wood": 350,
+    "metal": 350,
+    "concrete": 350,
+    "elec_scrap": 80,
     "scrap": 80
    },
-   "regen": 0.5,
+   "regen": 0.8,
    "danger": 2,
    "cost": {
     "money": 30
@@ -205,8 +212,8 @@
    "desc": "밤에만 열리는 부두. 고물과 전자 폐품, 그리고 암시장 사람들.",
    "primary": {
     "good": "elec_scrap",
-    "min": 10,
-    "max": 14
+    "min": 25,
+    "max": 30
    },
    "bonus": [
     {
@@ -233,10 +240,10 @@
     "old_plant"
    ],
    "stock": {
-    "elec_scrap": 80,
+    "elec_scrap": 150,
     "scrap": 120
    },
-   "regen": 0.5,
+   "regen": 0.8,
    "danger": 2,
    "cost": {
     "money": 30
@@ -255,8 +262,8 @@
    "desc": "아무도 처리하지 않는 처리장. 철골을 뜯고 설비 부품을 챙긴다. 두목은 덩치 큰 집게차.",
    "primary": {
     "good": "metal",
-    "min": 140,
-    "max": 150
+    "min": 180,
+    "max": 190
    },
    "bonus": [
     {
@@ -279,12 +286,12 @@
     }
    ],
    "stock": {
-    "metal": 750,
+    "metal": 950,
     "parts": 20,
     "scrap": 100,
     "elec_scrap": 30
    },
-   "regen": 0.5,
+   "regen": 0.8,
    "danger": 3,
    "cost": {
     "money": 80
@@ -308,8 +315,8 @@
    ],
    "primary": {
     "good": "",
-    "min": 140,
-    "max": 150
+    "min": 180,
+    "max": 190
    },
    "bonus": [
     {
@@ -326,13 +333,13 @@
     }
    ],
    "stock": {
-    "wood": 750,
-    "concrete": 750,
-    "metal": 750,
+    "wood": 950,
+    "concrete": 950,
+    "metal": 950,
     "parts": 20,
     "scrap": 100
    },
-   "regen": 0.5,
+   "regen": 0.8,
    "danger": 3,
    "cost": {
     "money": 80
@@ -387,7 +394,7 @@
     "metal": 90,
     "elec_scrap": 30
    },
-   "regen": 0.5,
+   "regen": 0.8,
    "danger": 4,
    "cost": {
     "money": 80

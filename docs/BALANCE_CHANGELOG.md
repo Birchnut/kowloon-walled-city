@@ -1,5 +1,16 @@
 # 밸런스 변경 기록
 
+## v0.4(PC) — 2026-11-13, SIM(`sim4`)
+
+확인: `simulation/reports/<봇>.md`·`SUMMARY.md`(`simulation/run_all.sh 40 1`). 단위 경제일. 봇은 경제 1시간마다 손을 댄다(느긋한 사람형 4시간).
+목표(봇): 첫 승급 ≤ 1.5 · 2층 3–6 · 첫 박힌 돌 6–12 · 첫 옥상 황제 20–32 · 마지막 목표 28–40 · 방재를 하는 봇의 손실 < 3% · 세 자재 ±15%.
+v4 콘텐츠의 첫 값은 `simulation/gen_v4_data.py`(한 번 쓰는 생성기)가 썼고, 그 뒤로는 JSON을 직접 고쳤다.
+
+%TUNING%
+
+---
+
+
 형식: 무엇을 / GDD v0.3 값 → 지금 값 / 왜 / 확인한 곳. 원본은 `godot/data/**`. 확인은 `simulation/reports/core_balanced.md`(균형형 봇 30경제일, seed 1).
 
 ## 2026-11-11 — SIM 파트 A(코어 경제) 첫 튜닝

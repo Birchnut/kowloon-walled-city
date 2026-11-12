@@ -21,25 +21,25 @@
    "money": 300,
    "qty": 30,
    "extra": {},
-   "days": 0.05
+   "days": 0.25
   },
   "3to4": {
    "from": 3,
    "to": 4,
-   "money": 1000,
+   "money": 2000,
    "qty": 40,
    "extra": {},
-   "days": 0.08
+   "days": 0.5
   },
   "4to5": {
    "from": 4,
    "to": 5,
-   "money": 3000,
+   "money": 4000,
    "qty": 80,
    "extra": {
     "parts": 2
    },
-   "days": 0.1
+   "days": 1.0
   }
  },
  "material_names": {

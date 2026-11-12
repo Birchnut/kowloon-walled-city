@@ -139,6 +139,14 @@ func _util_ratio(state: CityState, u: String) -> float:
 	return float(state.util[u].get("res_ratio", 1.0))
 
 
+## 도시 전체 공급/수요(주민 + 시설). "남을 때만 쓰는" prefer 유틸리티는 이것으로 본다 — 주민 몫 비율로 보면 시설(시장·전파사)이 굶는다.
+func _util_all(state: CityState, u: String) -> float:
+	if not state.util.has(u):
+		return 1.0
+	var d := float(state.util[u].get("demand", 0.0))
+	return 1.0 if d <= 1e-9 else float(state.util[u].get("supply", 0.0)) / d
+
+
 ## 옵션 하나를 지금 쓸 수 있나. 반환 cause("" = 된다).
 ## 1단계(고르기) 동안 재고·가동 상태가 안 바뀌므로 "덮임 등급"(cls) × 옵션 단위로 한 스텝 캐시한다.
 var _av: Dictionary = {}       # 지금 계산 중인 접근 등급의 옵션별 결과
@@ -297,7 +305,7 @@ func _pick(state: CityState, n: Dictionary, pick_str: String, idx: int, mask: in
 			var o: Dictionary = by_key[k]
 			var bad := _avail(state, o) != ""
 			# 남을 때만 쓰는 유틸리티(prefer: 등불 대신 전기)는 공급률이 ok 밑이면 내려놓는다 — 그 전기가 박힌 돌의 기본 수요를 굶기지 않게
-			if not bad and o["kind"] == "utility" and o.get("prefer", false) and _util_ratio(state, str(o["utility"])) < _ok:
+			if not bad and o["kind"] == "utility" and o.get("prefer", false) and _util_all(state, str(o["utility"])) < 0.999:
 				bad = true
 			# 재고가 조금씩만 들어와 매 스텝 바닥나는 상품(지난 스텝 공급률 < ok)도 끊긴 것으로 본다 — 넉넉한 대체품이 있으면 갈아탄다
 			if not bad and o["kind"] == "good" and _fillv(fills, o["good"]) < _ok:
@@ -314,7 +322,7 @@ func _pick(state: CityState, n: Dictionary, pick_str: String, idx: int, mask: in
 	for o: Dictionary in opts:
 		if o.get("prefer", false) and not inkeep.has(o["key"]) and _avail(state, o) == "":
 			if o["kind"] == "utility":
-				if _util_ratio(state, str(o["utility"])) < _ok:
+				if _util_all(state, str(o["utility"])) < 0.999:
 					continue
 				_hits.append([idx, str(o["utility"]), float(o.get("amount", 0.0))])
 				if ((mask >> idx) & 1) == 0:
@@ -647,7 +655,7 @@ func tick(state: CityState, dt: float) -> void:
 		_env[gi] = (1 if float(state.stock.get(g, 0.0)) > 1e-9 else 0) + (2 if float(fills.get(g, 1.0)) >= _ok else 0)
 	for u: String in _uidx:
 		var ur := _util_ratio(state, u)
-		_env[_uidx[u]] = (1 if ur >= 0.5 else 0) + (2 if ur >= _ok else 0)
+		_env[_uidx[u]] = (1 if ur >= 0.5 else 0) + (2 if ur >= _ok else 0) + (4 if _util_all(state, u) >= 0.999 else 0)
 	if _pacc != _acc_ver:
 		_pents.clear()
 		_pacc = _acc_ver

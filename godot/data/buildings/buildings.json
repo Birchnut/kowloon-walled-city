@@ -109,7 +109,6 @@
     2,
     2
    ],
-   "floors": 2,
    "cost": {
     "money": 2500,
     "goods": {
@@ -128,7 +127,7 @@
     "down": 1
    },
    "power": 12,
-   "desc": "세금을 안 낸다. 원래 아무도 안 내지만 여긴 간판에 써 붙였다."
+   "desc": "세금을 안 낸다. 원래 아무도 안 내지만 여긴 간판에 써 붙였다. 위로 두 층까지 손님이 온다."
   },
   "rain_catcher": {
    "name": "하늘 수도국",
@@ -806,7 +805,7 @@
    },
    "recipe": {
     "in": {
-     "elec_scrap": 4
+     "elec_scrap": 2
     },
     "out": {
      "radio": 4
@@ -1285,7 +1284,7 @@
     "in": {},
     "out": {
      "scrap": 16,
-     "elec_scrap": 0.5
+     "elec_scrap": 2
     }
    },
    "tags": [
@@ -1430,7 +1429,6 @@
     2,
     2
    ],
-   "floors": 2,
    "cost": {
     "money": 2500,
     "goods": {
