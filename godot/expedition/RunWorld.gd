@@ -648,7 +648,7 @@ func _ai_rat(e: Actor, dt: float) -> void:
 				e.set_state("idle")
 		"tele":
 			e.vel = e.vel.move_toward(Vector2.ZERO, 900 * dt)
-			if e.st < e.timer * 0.5:
+			if e.st < e.timer * RunCfg.f("tele_track", 0.5):
 				e.target = player.pos
 			e.lock_dir = (e.target - e.pos).normalized()
 			e.face = e.lock_dir
@@ -716,7 +716,7 @@ func _ai_dog(e: Actor, dt: float) -> void:
 				e.set_state("idle")
 		"tele":
 			e.vel = e.vel.move_toward(Vector2.ZERO, 700 * dt)
-			if e.st < e.timer * 0.65:
+			if e.st < e.timer * RunCfg.f("tele_track", 0.5):
 				e.lock_dir = to_p.normalized()
 			e.face = e.lock_dir
 			if e.st >= e.timer:
@@ -828,7 +828,7 @@ func _ai_guard(e: Actor, dt: float) -> void:
 				_ev("text", {"pos": e.pos + Vector2(0, -24), "text": "?", "col": "white", "big": true})
 		"tele":
 			e.vel = e.vel.move_toward(Vector2.ZERO, 600 * dt)
-			if e.st < e.timer * 0.5:
+			if e.st < e.timer * RunCfg.f("tele_track", 0.5):
 				e.lock_dir = e.lock_dir.slerp(to_p.normalized(), minf(1.0, dt * 8.0))
 			e.face = e.lock_dir
 			if e.st >= e.timer:

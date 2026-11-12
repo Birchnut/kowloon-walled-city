@@ -40,7 +40,7 @@
  "noise_throw": 3.0,
  "noise_crash": 6.0,
  "noise_level_mult": 0.15,
- "heal_chance": 0.22,
+ "heal_chance": 0.3,
  "rat_hp": 1,
  "rat_speed": 100,
  "rat_aggro": 95,
@@ -136,5 +136,6 @@
  "main_max": 7,
  "locker_chance": 0.25,
  "locker_open": 1.8,
- "locker_noise_mult": 1.6
+ "locker_noise_mult": 1.6,
+ "tele_track": 0.5
 }

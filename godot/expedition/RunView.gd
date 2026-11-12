@@ -270,16 +270,19 @@ func _draw_ents() -> void:
 			continue
 		if e.state == "tele":
 			var u := clampf(e.st / maxf(0.01, e.timer), 0.0, 1.0)
+			# 겨누는 동안은 옅게, 방향이 굳으면(tele_track 이후) 진하게 — 굳은 뒤에 피하면 된다
+			var locked := u >= RunCfg.f("tele_track", 0.5)
 			match e.kind:
 				"dog":
 					var L := RunCfg.f("dog_lunge_speed", 255) * RunCfg.f("dog_lunge_time", 0.3)
-					_lane(ci, e.pos, e.lock_dir, L, 9.0, u)
+					_lane(ci, e.pos, e.lock_dir, L, 9.0, u, locked)
 				"rat":
-					_lane(ci, e.pos, e.lock_dir, RunCfg.f("rat_dash_speed", 210) * RunCfg.f("rat_dash_time", 0.18), 5.0, u)
+					var rd := ((e.target - e.pos) as Vector2).normalized()
+					_lane(ci, e.pos, rd, RunCfg.f("rat_dash_speed", 210) * RunCfg.f("rat_dash_time", 0.18), 5.0, u, locked)
 				"guard":
-					_sector(ci, e.pos, e.lock_dir, RunCfg.f("guard_reach", 26) + 6, deg_to_rad(60), u)
+					_sector(ci, e.pos, e.lock_dir, RunCfg.f("guard_reach", 26) + 6, deg_to_rad(60), u, locked)
 				"rival":
-					_sector(ci, e.pos, e.lock_dir, 28.0, 1.0, u)
+					_sector(ci, e.pos, e.lock_dir, 28.0, 1.0, u, true)
 	for j in world.junks:
 		if j["state"] == "warn":
 			var u: float = clampf(j["t"] / RunCfg.f("junk_tele", 0.95), 0.0, 1.0)
@@ -696,28 +699,30 @@ func _progress_ring(ci: CanvasItem, p: Vector2, r: float, u: float, col: Color) 
 	ci.draw_arc(p, r, -PI / 2, -PI / 2 + TAU * clampf(u, 0.0, 1.0), 24, col, 2.0)
 
 
-func _lane(ci: CanvasItem, from: Vector2, dir: Vector2, length: float, width: float, u: float) -> void:
+func _lane(ci: CanvasItem, from: Vector2, dir: Vector2, length: float, width: float, u: float, locked: bool = true) -> void:
 	var n := Vector2(-dir.y, dir.x) * width / 2.0
 	var end := from + dir * length
 	var poly := PackedVector2Array([from + n, end + n, end - n, from - n])
-	ci.draw_colored_polygon(poly, Color(RED, 0.12 + 0.18 * u))
+	var base_a := 0.1 if not locked else 0.22 + 0.12 * u
+	ci.draw_colored_polygon(poly, Color(RED, base_a))
 	var fill_end := from + dir * length * u
-	ci.draw_colored_polygon(PackedVector2Array([from + n, fill_end + n, fill_end - n, from - n]), Color(RED, 0.3))
-	ci.draw_polyline(PackedVector2Array([from + n, end + n, end - n, from - n, from + n]), Color(RED, 0.7), 1.0)
+	ci.draw_colored_polygon(PackedVector2Array([from + n, fill_end + n, fill_end - n, from - n]), Color(RED, 0.18 if not locked else 0.35))
+	var edge := Color(RED, 0.4) if not locked else Color(1, 0.35, 0.3, 0.75 + 0.25 * sin(t * 40.0))
+	ci.draw_polyline(PackedVector2Array([from + n, end + n, end - n, from - n, from + n]), edge, 1.0)
 
 
-func _sector(ci: CanvasItem, from: Vector2, dir: Vector2, r: float, half: float, u: float) -> void:
+func _sector(ci: CanvasItem, from: Vector2, dir: Vector2, r: float, half: float, u: float, locked: bool = true) -> void:
 	var pts := PackedVector2Array([from])
 	var a0 := dir.angle()
 	for k in 11:
 		pts.append(from + Vector2.from_angle(a0 - half + 2.0 * half * k / 10.0) * r)
-	ci.draw_colored_polygon(pts, Color(RED, 0.15 + 0.2 * u))
+	ci.draw_colored_polygon(pts, Color(RED, 0.1 if not locked else 0.22 + 0.15 * u))
 	var pts2 := PackedVector2Array([from])
 	for k in 11:
 		pts2.append(from + Vector2.from_angle(a0 - half + 2.0 * half * k / 10.0) * r * u)
 	ci.draw_colored_polygon(pts2, Color(RED, 0.3))
 	pts.append(from)
-	ci.draw_polyline(pts, Color(RED, 0.8), 1.0)
+	ci.draw_polyline(pts, Color(RED, 0.4) if not locked else Color(1, 0.35, 0.3, 0.75 + 0.25 * sin(t * 40.0)), 1.0)
 
 
 func _cone(ci: CanvasItem, e: Actor) -> void:
