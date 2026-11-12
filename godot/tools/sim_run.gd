@@ -6,14 +6,25 @@ extends SceneTree
 
 
 func _init() -> void:
-	var args := {"bot": "balanced", "days": "40", "seed": "1", "out": ""}
+	var args := {"bot": "balanced", "days": "40", "seed": "1", "out": "", "set": "", "tag": ""}
 	for a: String in OS.get_cmdline_user_args():
 		var kv := a.split("=", true, 1)
 		args[kv[0]] = kv[1] if kv.size() > 1 else "1"
 	var out := str(args["out"])
 	if out == "":
 		out = ProjectSettings.globalize_path("res://").path_join("../simulation/reports/%s.md" % args["bot"]).simplify_path()
-	var r := run(str(args["bot"]), float(args["days"]), int(args["seed"]), not args.has("quiet"))
+	# set=경로:값;경로:값 — config 덮어쓰기(실험용, 예: set=floors.threshold:0.7). 값은 JSON.
+	var db := {}
+	if str(args["set"]) != "":
+		db = SimIO.load_db()
+		for kv: String in str(args["set"]).split(";", false):
+			var p := kv.split(":", true, 1)
+			var keys := p[0].split(".")
+			var node: Dictionary = db["config"]
+			for i: int in keys.size() - 1:
+				node = node[keys[i]]
+			node[keys[keys.size() - 1]] = JSON.parse_string(p[1])
+	var r := run(str(args["bot"]), float(args["days"]), int(args["seed"]), not args.has("quiet"), db)
 	if r["ok"]:
 		SimIO.write_text(out, report(r))
 		SimIO.write_text(out.get_basename() + ".json", JSON.stringify({"summary": summary(r), "rows": r["rows"]}, " "))
@@ -156,6 +167,8 @@ static func summary(r: Dictionary) -> Dictionary:
 		"tax_total": int(state.stats.get("tax_total", 0.0)), "spent_build": int(state.stats.get("spent_build", 0.0)),
 		"spent_upgrade": int(state.stats.get("spent_upgrade", 0.0)), "spent_repair": int(state.stats.get("spent_repair", 0.0)),
 		"spent_research": int(state.stats.get("spent_research", 0.0)), "spent_total": int(spent), "step_ms": snappedf(float(r["step_ms"]), 0.01),
+		"left_fire": int(state.stats.get("left_fire", 0)), "bot_runs": int(state.stats.get("bot_runs", 0)), "bot_run_units": int(state.stats.get("bot_run_units", 0)),
+		"upkeep_total": int(state.stats.get("upkeep_total", 0.0)),
 		"cmds": bot.cmds}
 
 

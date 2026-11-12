@@ -461,6 +461,74 @@
    "pilot_houses": 3,
    "next_full_ratio": 0.7,
    "carve_max_tier": 3
+  },
+  "direct_runner": {
+   "name": "직접 줍기형(미니게임 평균 성격)",
+   "money_reserve": 40,
+   "labor_margin": 2,
+   "upgrades_per_act": 4,
+   "zone_batch": 12,
+   "zone_when_vacancy_below": 10,
+   "houses_per_floor": 190,
+   "water_order": [
+    "water_plant",
+    "water_tank",
+    "rain_catcher",
+    "water_pipe"
+   ],
+   "power_order": [
+    "power_waste",
+    "power_plant",
+    "gen_small",
+    "power_tap"
+   ],
+   "fire_order": [
+    "fire_station",
+    "fire_bucket"
+   ],
+   "luxury": true,
+   "max_tier": 5,
+   "zone_money": 60,
+   "t1_spare_stop": 60,
+   "teams": 3,
+   "family": "",
+   "provision": true,
+   "parts_value": 14,
+   "research": true,
+   "vice": true,
+   "vice_max": 1,
+   "base_money": 600,
+   "trade": true,
+   "hazards": true,
+   "act_every_h": 1,
+   "builds_per_act": 4,
+   "services_per_act": 3,
+   "cover_per_act": 2,
+   "pilot_houses": 3,
+   "next_full_ratio": 0.7,
+   "carve_max_tier": 3,
+   "direct_runs": true,
+   "run_profile": {
+    "_src": "simulation/reports/run_batch.md average 200판(2026-11-13): 결과 비율, 결과별 들고 나온 양, 한 판에 들고 나온 상품 평균, 한 판 길이 10~90%(게임 분, ×1에서 10분 = 1경제일)",
+    "p_boss": 0.195,
+    "p_exit": 0.555,
+    "p_down": 0.25,
+    "carry_boss": 55.9,
+    "carry_exit": 47.3,
+    "carry_down": 24.0,
+    "mix": {
+     "scrap": 15.9,
+     "metal": 11.7,
+     "wood": 3.7,
+     "concrete": 3.7,
+     "cans": 2.4,
+     "elec_scrap": 4.7,
+     "parts": 1.1
+    },
+    "min_minutes": 2.3,
+    "max_minutes": 3.8,
+    "minutes_per_day": 10.0
+   }
   }
  }
 }

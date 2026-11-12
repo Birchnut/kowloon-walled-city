@@ -19,7 +19,7 @@
    "from": 2,
    "to": 3,
    "money": 300,
-   "qty": 30,
+   "qty": 16,
    "extra": {},
    "days": 0.25
   },
@@ -27,7 +27,7 @@
    "from": 3,
    "to": 4,
    "money": 2000,
-   "qty": 40,
+   "qty": 22,
    "extra": {},
    "days": 0.5
   },
@@ -35,7 +35,7 @@
    "from": 4,
    "to": 5,
    "money": 4000,
-   "qty": 80,
+   "qty": 44,
    "extra": {
     "parts": 2
    },

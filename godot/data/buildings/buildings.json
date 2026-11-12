@@ -1548,9 +1548,9 @@
    "cost": {
     "money": 8000,
     "goods": {
-     "wood": 40,
-     "metal": 40,
-     "concrete": 40,
+     "wood": 22,
+     "metal": 22,
+     "concrete": 22,
      "parts": 5
     }
    },
@@ -1583,9 +1583,9 @@
    "cost": {
     "money": 25000,
     "goods": {
-     "wood": 150,
-     "metal": 150,
-     "concrete": 150,
+     "wood": 80,
+     "metal": 80,
+     "concrete": 80,
      "parts": 12
     }
    },

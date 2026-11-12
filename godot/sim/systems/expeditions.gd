@@ -185,10 +185,26 @@ func _stock_pct(state: CityState, id: String) -> float:
 	var a := 0.0
 	var b := 0.0
 	var st: Dictionary = state.dests.get(id, {}).get("stock", {})
+	var auto := _auto_goods(_dest(id))
 	for g: String in mx:
+		if not auto.is_empty() and not auto.has(g):
+			continue     # 직접 줍기만 꺼내는 것(통조림·부품 등)은 자동 파견 기준 비율에서 뺀다
 		a += float(st.get(g, float(mx[g])))
 		b += float(mx[g])
 	return a / b if b > 0.0 else 1.0
+
+
+## 자동 파견이 꺼내는 상품(주력·고르는 자재·덤).
+func _auto_goods(d: Dictionary) -> Dictionary:
+	var out := {}
+	var g0 := str(d.get("primary", {}).get("good", ""))
+	if g0 != "":
+		out[g0] = true
+	for m: String in d.get("picks", []):
+		out[m] = true
+	for bo: Dictionary in d.get("bonus", []):
+		out[str(bo["good"])] = true
+	return out
 
 
 ## 던전에서 g를 n개 빼 간다(재고가 없는 상품은 무한). 반환 = 실제로 뺀 양(정수).
@@ -244,6 +260,8 @@ func can(state: CityState, name: String, args: Dictionary) -> Variant:
 				return {"ok": false, "reason": "받을 짐이 없다.", "code": "nothing", "rewards": [], "finds": []}
 			return {"ok": true, "reason": "", "code": "ok"}
 		"run_begin":
+			if DEST_ALIAS.has(str(args.get("dest", ""))):
+				args["dest"] = DEST_ALIAS[str(args["dest"])]      # 시제품의 던전 id(같은 사전이 apply로 간다)
 			_sync(state)
 			_update(state)
 			if not (state.flags.get("run", {}) as Dictionary).is_empty():
@@ -255,6 +273,8 @@ func can(state: CityState, name: String, args: Dictionary) -> Variant:
 				return c
 			return {"ok": true, "reason": "", "code": "ok", "cost": {"money": _cost(state, _dest(str(args["dest"]))), "goods": {}}}
 		"run_result":
+			if DEST_ALIAS.has(str(args.get("dest", ""))):
+				args["dest"] = DEST_ALIAS[str(args["dest"])]
 			return _check_result(state, args)
 	return null
 
@@ -436,6 +456,19 @@ func _run_conf(d: Dictionary) -> Dictionary:
 	return out
 
 
+## 미니게임 시제품의 상품 id → 도시 id(canned → cans, elec → elec_scrap). 같은 상품이 두 이름으로 오면 더한다.
+const RUN_ALIAS := {"canned": "cans", "elec": "elec_scrap"}
+const DEST_ALIAS := {"scrap_yard": "junk_yard"}
+
+
+func _alias_loot(loot: Dictionary) -> Dictionary:
+	var out := {}
+	for g: Variant in loot:
+		var k := str(RUN_ALIAS.get(str(g), str(g)))
+		out[k] = int(out.get(k, 0)) + int(loot[g])
+	return out
+
+
 func _run_begin(state: CityState, args: Dictionary) -> Dictionary:
 	var id := str(args["dest"])
 	var d := _dest(id)
@@ -472,6 +505,7 @@ func _check_result(state: CityState, args: Dictionary) -> Dictionary:
 	var loot: Variant = args.get("loot", {})
 	if not (loot is Dictionary):
 		return {"ok": false, "reason": "짐(loot)은 {상품: 개수}여야 한다.", "code": "loot"}
+	loot = _alias_loot(loot)
 	var rc := _run_conf(_dest(id))
 	var carry := int(rc.get("carry", 40))
 	var total := 0
@@ -495,17 +529,22 @@ func _run_result(state: CityState, args: Dictionary) -> Dictionary:
 	var id := str(args["dest"])
 	var d := _dest(id)
 	var outcome := str(args["outcome"])
-	var loot: Dictionary = args.get("loot", {})
+	var loot: Dictionary = _alias_loot(args.get("loot", {}))
 	var got := {}
 	var lost: Array = []
+	# loot = 미니게임 결과 화면의 "들고 나온 것"(쓰러졌을 때의 절반 잃음·두목의 큰 짐은 미니게임이 이미 반영했다 — 도시는 더 깎거나 얹지 않는다).
+	# 잃은 것은 결과의 lost{good:n}(선택)로 받아 알림에만 쓴다.
 	for g: String in loot:
 		var n := float(int(loot[g]))
 		_take(state, id, g, n)
-		var keep := n if outcome != "down" else floorf(n * 0.5)
-		if keep > 0.0:
-			got[g] = keep
-		if n - keep > 0.0:
-			lost.append({"good": g, "name": sim.gname(g), "n": int(n - keep)})
+		if n > 0.0:
+			got[g] = n
+	var lv: Variant = args.get("lost", {})
+	if lv is Dictionary:
+		var la := _alias_loot(lv)
+		for g: String in la:
+			if int(la[g]) > 0 and not sim.good(g).is_empty():
+				lost.append({"good": g, "name": sim.gname(g), "n": int(la[g])})
 	if outcome == "boss":
 		var bonus: Dictionary = _run_conf(d).get("boss", {})
 		for g: String in bonus:

@@ -235,7 +235,13 @@ func _burn_out(state: CityState, b: Dictionary, covered: bool) -> void:
 		var lost := 0
 		if b["kind"] == "house":
 			lost = int(b["residents"])
-			_scatter(state, b, lost)
+			# 집을 잃은 주민 중 burn_leave_frac은 성채를 떠나고 나머지만 빈집을 찾는다(대기 주민)
+			var gone := int(floorf(float(lost) * _f("burn_leave_frac", 0.5) + 0.5))
+			if gone > 0:
+				b["residents"] = int(b["residents"]) - gone
+				state.stat_add("left", float(gone))
+				state.stat_add("left_fire", float(gone))
+			_scatter(state, b, lost - gone)
 			b["grow"] = 0.0
 			b["arriving"] = 0.0
 			b["upgradable"] = false
@@ -301,7 +307,15 @@ func _repair_cost(b: Dictionary) -> Dictionary:
 	else:
 		money = roundf(float(sim.bdef(str(b["type"])).get("cost", {}).get("money", 0)) * float(sim.cfg("hazards.repair.facility_frac", 0.4)))
 	var scrap := float(sim.cfg("hazards.repair.scrap_per_cell", 3)) * float(cells)
-	return {"money": money, "goods": {"scrap": scrap}, "days": float(sim.cfg("hazards.repair.days", 0.25))}
+	var goods := {"scrap": scrap}
+	# 승급한 집은 그 계층으로 올릴 때 쓴 자재의 mat_frac만큼(집의 자재 계열로) 다시 든다
+	if b["kind"] == "house" and int(b["tier"]) >= 2 and str(b.get("material", "")) != "":
+		var up: Dictionary = sim.db.get("upgrade_costs", {}).get("items", {}).get("%dto%d" % [int(b["tier"]) - 1, int(b["tier"])], {})
+		var q := ceilf(float(up.get("qty", 0)) * float(sim.cfg("hazards.repair.mat_frac", 0.5)))
+		if q > 0.0:
+			goods[str(b["material"])] = q
+	var days := float(sim.cfg("hazards.repair.days", 0.25)) if b["kind"] == "house" else float(sim.cfg("hazards.repair.facility_days", sim.cfg("hazards.repair.days", 0.25)))
+	return {"money": money, "goods": goods, "days": days}
 
 
 func can(state: CityState, name: String, args: Dictionary) -> Variant:
@@ -363,6 +377,9 @@ func _disease_tick(state: CityState, cov: Dictionary, dis: Dictionary, dt: float
 	var per := _s("trash_per_day", 0.35)
 	var clear := _s("clear_per_day", 2.0)
 	var at := _s("outbreak_at", 0.7)
+	var cm := _s("covered_mult", 0.1)
+	var ccap := _s("covered_cap", 0.5)
+	var cw := _s("covered_weight", 0.05)
 	var cands: Array = []
 	var weights: Array = []
 	var total := 0.0
@@ -372,10 +389,26 @@ func _disease_tick(state: CityState, cov: Dictionary, dis: Dictionary, dt: float
 		nh += 1
 		var tr := float(b.get("trash", 0.0))
 		var res := int(b["residents"])
-		if _covered(state, cov, "trash", int(b["id"])):
-			tr = maxf(0.0, tr - clear * dt)
-		elif active and res > 0:
-			tr = minf(1.0, tr + per * dt * float(res) / maxf(1.0, float(b["cap"])))
+		var tc := _covered(state, cov, "trash", int(b["id"]))
+		if tc:
+			# 수거 범위 안: 새로 덮이면 먼저 싹 치우고(tclean), 그 뒤로는 넝마주이가 다 못 따라간 몫이 covered_mult만큼 천천히 쌓여 covered_cap에서 멈춘다
+			if not b.get("tcov", false):
+				b["tcov"] = true
+				b["tclean"] = true
+			if b.get("tclean", false):
+				tr = maxf(0.0, tr - clear * dt)
+				if tr <= 0.0:
+					b.erase("tclean")
+			elif tr > ccap:
+				tr = maxf(ccap, tr - clear * dt)
+			elif active and res > 0:
+				tr = minf(ccap, tr + per * cm * dt * float(res) / maxf(1.0, float(b["cap"])))
+		else:
+			if b.get("tcov", false):
+				b.erase("tcov")
+				b.erase("tclean")
+			if active and res > 0:
+				tr = minf(1.0, tr + per * dt * float(res) / maxf(1.0, float(b["cap"])))
 		if tr != float(b.get("trash", 0.0)):
 			b["trash"] = tr
 			var shown := snappedf(tr, 0.1)
@@ -387,11 +420,16 @@ func _disease_tick(state: CityState, cov: Dictionary, dis: Dictionary, dt: float
 			n_sick += 1
 			_sick_tick(state, cov, b, dt)
 			continue
-		if active and tr >= at and res > 0:
-			var w := (tr - at) / maxf(1e-6, 1.0 - at) + 0.1
-			cands.append(b)
-			weights.append(w)
-			total += w
+		if active and res > 0:
+			var w := 0.0
+			if tr >= at:
+				w = (tr - at) / maxf(1e-6, 1.0 - at) + 0.1
+			elif tc and tr >= ccap - 1e-6:
+				w = cw      # 범위 안이어도 오래 쌓이면 가끔 작은 병(의원 범위면 금방 낫고, 나으면 넝마주이가 싹 치운다)
+			if w > 0.0:
+				cands.append(b)
+				weights.append(w)
+				total += w
 	if not active or cands.is_empty():
 		return
 	var cap := maxi(int(_s("max_sick_min", 6)), int(float(nh) * _s("max_sick_frac", 0.08)))
@@ -443,7 +481,7 @@ func _sick_tick(state: CityState, cov: Dictionary, b: Dictionary, dt: float) -> 
 	if _covered(state, cov, "clinic", int(b["id"])):
 		b["sick_until"] = minf(float(b["sick_until"]), state.econ_days + _s("clinic_days", 0.6))
 	if state.econ_days + 1e-9 >= float(b["sick_until"]):
-		_heal(state, b)
+		_heal(state, b, _covered(state, cov, "trash", int(b["id"])))
 		return
 	if state.econ_days - float(b.get("sick_since", state.econ_days)) >= _s("leave_after", 1.0) and int(b["residents"]) > 0:
 		b["sick_leave"] = float(b.get("sick_leave", 0.0)) + _s("leave_per_day", 2.0) * dt
@@ -455,12 +493,12 @@ func _sick_tick(state: CityState, cov: Dictionary, b: Dictionary, dt: float) -> 
 			state.emit("building_changed", {"bid": int(b["id"])})
 
 
-func _heal(state: CityState, b: Dictionary) -> void:
+func _heal(state: CityState, b: Dictionary, cleared: bool = false) -> void:
 	b["sick"] = false
 	b.erase("sick_until")
 	b.erase("sick_since")
 	b.erase("sick_leave")
-	b["trash"] = minf(float(b.get("trash", 0.0)), 0.3)
+	b["trash"] = 0.0 if cleared else minf(float(b.get("trash", 0.0)), 0.3)
 	_cells_set(state, b, "sick", false)
 	_cells_set(state, b, "trash", snappedf(float(b["trash"]), 0.1))
 	_bump(state)
