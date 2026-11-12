@@ -36,6 +36,11 @@ static func begin(dest: String, seed_override: int = -1) -> Dictionary:
 				return r
 			out = r.duplicate()
 			out["source"] = "city"
+	var st: Dictionary = {}
+	for gid in (out.get("stock", {}) as Dictionary):
+		st[gid] = int(out["stock"][gid])
+	out["stock"] = st
+	out["danger"] = int(out.get("danger", 2))
 	if seed_override >= 0:
 		out["seed"] = seed_override
 	elif out["source"] == "sample":

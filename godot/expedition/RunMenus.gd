@@ -154,7 +154,7 @@ func _draw_start(vs: Vector2) -> void:
 		_tl(Vector2(x0 + 14 * s, yy + fs()), RunCfg.good_name(g), Color(0.9, 0.88, 0.82), fs())
 		draw_rect(Rect2(x0 + 68 * s, yy + 3 * s, 90 * s, 5 * s), Color(0.15, 0.12, 0.12))
 		draw_rect(Rect2(x0 + 68 * s, yy + 3 * s, 90 * s * int(stock[g]) / maxv, 5 * s), RunCfg.good_color(g))
-		_tl(Vector2(x0 + 162 * s, yy + fs()), str(stock[g]), Color(0.8, 0.78, 0.72), fs())
+		_tl(Vector2(x0 + 162 * s, yy + fs()), str(int(stock[g])), Color(0.8, 0.78, 0.72), fs())
 		k2 += 1
 	_tl(Vector2(x0 + 200 * s, y + 46 * s), "조작", Color(0.95, 0.8, 0.5), fs(1.1), true)
 	var ctl := ["WASD 이동 · 마우스 조준", "왼쪽 클릭 쇠파이프 · 오른쪽 클릭 던지기", "Space 구르기(무적) · E 꾹 뒤지기/나가기", "Tab 배낭 · Esc 멈춤 · M 소리 · F2 자동"]

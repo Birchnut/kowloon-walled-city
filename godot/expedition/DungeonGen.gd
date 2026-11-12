@@ -439,7 +439,7 @@ func _populate(danger: int) -> void:
 		# 얕은 더미는 자주 비어 있고(앞사람들이 털었다) 깊을수록 묶음이 많다
 		var n := 1
 		var empty_p := RunCfg.f("pile_empty_d0", 0.4) - depth * RunCfg.f("pile_empty_step", 0.1)
-		if rng.randf() < maxf(0.05, empty_p):
+		if depth > 0 and rng.randf() < maxf(0.05, empty_p):
 			n = 0
 		else:
 			if rng.randf() < RunCfg.f("pile_more_per_depth", 0.22) * depth:

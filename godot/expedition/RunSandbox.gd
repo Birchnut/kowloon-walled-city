@@ -250,7 +250,7 @@ func _process(delta: float) -> void:
 	ticker_t += delta
 	if ticker_t > 6.0:
 		ticker_t = 0.0
-		var lines := CityLink.ticker()
+		var lines: Array = CityLink.ticker()
 		ticker_i = (ticker_i + 1) % lines.size()
 		hud.ticker_lines = [lines[ticker_i], lines[(ticker_i + lines.size() - 1) % lines.size()]]
 	if world == null:
