@@ -25,6 +25,7 @@ var _is_hover := false
 func _init() -> void:
 	theme_type_variation = "PanelGold"
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	clip_contents = true
 	custom_minimum_size = Vector2(W, 0)
 	visible = false
 
@@ -217,15 +218,15 @@ func _need_row(n: Dictionary) -> void:
 	var dot := Picto.make("dot", UI.state_col(st))
 	h.add_child(dot)
 	var nm := UI.label(str(n.get("name", "")), "LabelSmall")
-	nm.custom_minimum_size.x = 140
+	nm.custom_minimum_size.x = 118
 	nm.clip_text = true
 	h.add_child(nm)
 	var role := str(n.get("role_name", ""))
 	var rl := UI.label(role, "LabelMute")
-	rl.custom_minimum_size.x = 44
+	rl.custom_minimum_size.x = 80
 	h.add_child(rl)
 	var ratio := float(n.get("ratio", 0.0))
-	h.add_child(PcWindow.bar(ratio, st, 70, 10))
+	h.add_child(PcWindow.bar(ratio, st, 64, 10))
 	h.add_child(UI.label(UI.pct(ratio), "LabelSmall"))
 	var cause := str(n.get("cause_text", ""))
 	if cause != "" and st != "ok":

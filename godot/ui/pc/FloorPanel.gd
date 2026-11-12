@@ -60,7 +60,7 @@ func _ready() -> void:
 		var b := PcButton.make(l[1], l[2], "", "ButtonToggle")
 		b.toggle_mode = true
 		b.min_h = 32
-		b.min_w = 100
+		b.min_w = 94
 		b.center = false
 		var id: String = l[0]
 		b.pressed.connect(func() -> void: lens_pressed.emit("" if lens == id else id))

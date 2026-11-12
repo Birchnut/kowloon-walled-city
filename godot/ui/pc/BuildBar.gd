@@ -22,6 +22,21 @@ var _menu_sig: String = ""
 var cat: String = ""
 var active_tool: String = ""       # house / demolish / pick / <시설 id>
 var _cards: Dictionary = {}        # id -> Button
+var _top: HFlowContainer
+
+
+## 한 줄에 다 놓을 때의 폭(UIRoot 가 max_w 와 비교해 막대 폭을 정한다).
+func desired_width() -> float:
+	var w := 0.0
+	if _top == null:
+		return 300.0
+	for c: Node in _top.get_children():
+		if c is Control and (c as Control).visible:
+			w += (c as Control).get_combined_minimum_size().x + 4.0
+	var sb := get_theme_stylebox("panel")
+	return w + (sb.get_minimum_size().x if sb != null else 0.0)
+
+
 var max_w: float = 1100.0:
 	set(v):
 		if absf(v - max_w) > 1.0:
@@ -38,7 +53,11 @@ func _init() -> void:
 func _ready() -> void:
 	var v := UI.vbox(6)
 	add_child(v)
-	var top := UI.hbox(4)
+	# 좁은 창에서는 분류 탭 묶음이 둘째 줄로 내려간다(HFlow)
+	var top := HFlowContainer.new()
+	top.add_theme_constant_override("h_separation", 4)
+	top.add_theme_constant_override("v_separation", 4)
+	_top = top
 	v.add_child(top)
 	for t: Array in [["house", "주거 칠하기", "house", "H"], ["demolish", "철거", "demolish", "X"], ["pick", "따라 짓기", "pick", "G"]]:
 		var b := PcButton.make(t[1], t[2], t[3], "ButtonToggle")

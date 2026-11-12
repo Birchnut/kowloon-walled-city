@@ -43,6 +43,7 @@ var _names: Dictionary = {}
 var _names_t: float = 0.0
 var _right_down := Vector2(-1, -1)
 var _build_laid := Vector2.ZERO
+var _menu_t := 2.0
 var _left_down := false
 var _hz_seen: Dictionary = {}
 var _alert_ids: Dictionary = {}
@@ -146,9 +147,11 @@ func _layout() -> void:
 	build.max_w = bw
 	build.reset_size()
 	var bsz := build.get_combined_minimum_size()
-	_build_laid = bsz
 	var bx0 := LeftColumn.W + 2.0 * GAP
-	var w := clampf(bsz.x, 300.0, maxf(bw, 300.0))
+	var w := clampf(maxf(bsz.x, build.desired_width()), 300.0, maxf(bw, 300.0))
+	build.size = Vector2(w, 0)
+	bsz = build.get_combined_minimum_size()
+	_build_laid = bsz
 	build.size = Vector2(w, bsz.y)
 	var mid := bx0 + (vs.x - Inspector.W - GAP - bx0) * 0.5
 	build.position = Vector2(floorf(mid - w * 0.5), vs.y - bsz.y - GAP)
@@ -171,6 +174,10 @@ func _process(delta: float) -> void:
 		_poll_t = HUD_POLL
 		_refresh_hud()
 	_names_t -= delta
+	_menu_t -= delta
+	if _menu_t <= 0.0:
+		_menu_t = 2.0
+		build.refresh()      # 해금·비용 가능 여부가 바뀐다(md5 비교라 같으면 그대로)
 	# 짓기 막대 크기가 바뀌면(분류 열기·닫기) 다시 배치. 컨테이너는 스스로 커지므로 마지막으로 배치한 크기와 비교한다.
 	var bs := build.get_combined_minimum_size()
 	if not bs.is_equal_approx(_build_laid):
