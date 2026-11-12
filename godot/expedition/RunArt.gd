@@ -472,31 +472,32 @@ static func _pile(empty: bool) -> Image:
 
 
 static func _junk() -> Image:
-	# 위태롭게 쌓인 고철 탑: 타이어·상자·세탁기·차문·파이프
-	var img := _new(22, 28)
-	# 맨 아래 타이어 두 개
-	_ellipse(img, 6, 24, 5.5, 3.2, Color("2a2628"))
-	_ellipse(img, 6, 23.5, 2, 1.2, Color("141012"))
-	_ellipse(img, 16, 24, 5.5, 3.2, Color("2a2628"))
-	_ellipse(img, 16, 23.5, 2, 1.2, Color("141012"))
-	# 나무 상자
-	_rect(img, 3, 15, 9, 7, Color("8a6038"))
-	_rect(img, 3, 15, 9, 1, Color("a87a48"))
-	_rect(img, 7, 15, 1, 7, Color("5a3c20"))
-	# 세탁기
-	_rect(img, 11, 12, 9, 10, Color("c8c8c0"))
-	_rect(img, 11, 12, 9, 2, Color("a0a098"))
-	_ellipse(img, 15.5, 17.5, 3, 3, Color("4a5058"))
-	_ellipse(img, 15.5, 17.5, 1.6, 1.6, Color("7a8a98"))
-	# 비스듬한 차문(빨강)
-	for k in 9:
-		_rect(img, 4 + k, 10 - k / 2, 2, 4, Color("9a3a32"))
-	_rect(img, 7, 7, 4, 2, Color("26323c"))
-	# 꼭대기 양동이·파이프
-	_rect(img, 9, 2, 5, 4, Color("6a7a84"))
-	_rect(img, 9, 2, 5, 1, Color("8a9aa4"))
-	_rect(img, 15, 1, 1, 9, Color("8a8a8a"))
-	_rect(img, 14, 1, 3, 1, Color("8a8a8a"))
+	# 위태롭게 쌓인 고철 산: 아래가 넓은 둔덕(다리처럼 보이지 않게 바닥까지 꽉 찬 실루엣)
+	var img := _new(24, 26)
+	for y in 26:
+		var half := 3.0 + (float(y) / 25.0) * 9.0
+		for x in range(int(12 - half), int(12 + half) + 1):
+			var r := hash01(x, y, 80)
+			var c := Color("4a3c32")
+			if r < 0.25:
+				c = Color("5a4a3c")
+			elif r > 0.85:
+				c = Color("3a2e28")
+			_px(img, x, y, c)
+	# 박힌 고철 조각들
+	var cols := [Color("8a4a30"), Color("6f7d88"), Color("a58a52"), Color("c8c8c0"), Color("9a3a32"), Color("5f7048")]
+	for k in 16:
+		var y := 4 + int(hash01(k, 1, 81) * 20)
+		var half := 3.0 + (float(y) / 25.0) * 9.0 - 2.0
+		var x := 12 + int((hash01(k, 2, 82) - 0.5) * half * 2.0)
+		_rect(img, x - 1, y, 2 + int(hash01(k, 3, 83) * 3), 1 + int(hash01(k, 4, 84) * 2), cols[k % cols.size()])
+	# 꼭대기에 위태롭게 걸친 냉장고 문짝과 삐죽한 파이프
+	_rect(img, 8, 0, 7, 4, Color("d0d0c8"))
+	_rect(img, 8, 3, 7, 1, Color("a0a098"))
+	_rect(img, 16, 1, 1, 7, Color("8a8a8a"))
+	# 아래 그늘
+	for x in range(1, 23):
+		_px(img, x, 25, Color("2a201c"))
 	return _outline(img)
 
 

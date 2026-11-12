@@ -76,7 +76,7 @@ func setup(n: String, world: RunWorld) -> void:
 			w._room_step()
 			if name == "bosswin":
 				b.hp = 1
-				p.hp = 4
+				p.hp = p.max_hp
 				w.pack[0] = {"good": "metal", "bundles": 2, "units": 4}
 				w.pack[1] = {"good": "elec", "bundles": 2, "units": 4}
 		"exit":
@@ -84,8 +84,8 @@ func setup(n: String, world: RunWorld) -> void:
 			w.pack[1] = {"good": "scrap", "bundles": 2, "units": 6}
 			w.pack[2] = {"good": "elec", "bundles": 1, "units": 2}
 			w.found = {"metal": 6, "scrap": 6, "elec": 2}
-			for ex in w.exits:
-				p.pos = (ex["pos"] as Vector2) + Vector2(20, 0)
+			var ex0: Dictionary = w.exits[0]
+			p.pos = w.cell_center(w._free_cell_near(w.to_cell((ex0["pos"] as Vector2) + Vector2(24, 0))))
 		"down":
 			_teleport_room_center(1)
 			p.hp = 1
@@ -175,7 +175,7 @@ func fill(inp: RunInput, world: RunWorld, dt: float) -> void:
 				return
 			if t > 0.6 and not mem.has("thrown"):
 				mem["thrown"] = true
-				inp.aim = g.pos + Vector2(70, 40)
+				inp.aim = g.pos + Vector2(40, -60)
 				inp.throw = true
 			elif mem.has("thrown") and t > 2.0:
 				# 등 뒤로 돌아 들어가 기습
@@ -186,7 +186,7 @@ func fill(inp: RunInput, world: RunWorld, dt: float) -> void:
 				else:
 					inp.attack = true
 			else:
-				inp.aim = g.pos + Vector2(70, 40)
+				inp.aim = g.pos + Vector2(40, -60)
 		"search", "noise":
 			inp.interact = true
 			inp.aim = p.pos + Vector2(20, 0)
@@ -208,10 +208,10 @@ func fill(inp: RunInput, world: RunWorld, dt: float) -> void:
 		"wire":
 			inp.aim = p.pos + Vector2(30, 0)
 		"exit":
-			for ex in world.exits:
-				if p.pos.distance_to(ex["pos"]) > 6:
-					inp.move = ((ex["pos"] as Vector2) - p.pos).normalized()
-				else:
-					inp.interact = true
+			var ex: Dictionary = world.exits[0]
+			if p.pos.distance_to(ex["pos"]) > 6 and t < 3.0:
+				inp.move = ((ex["pos"] as Vector2) - p.pos).normalized()
+			else:
+				inp.interact = true
 		"down":
 			inp.aim = p.pos + Vector2(40, 0)

@@ -562,13 +562,22 @@ func _draw_boss_ground(ci: CanvasItem) -> void:
 		ci.draw_rect(Rect2(sx - hw - 2, gap.x, hw * 2 + 4, gap.y - gap.x), Color(GRN, 0.35), false, 1.0)
 		if b.state == "sweep_tele":
 			var dir: float = b.data["sweep_dir"]
-			for k in 3:
-				var ax := sx + dir * (12 + k * 10 + fmod(t * 30.0, 10.0))
-				_chevron(ci, Vector2(ax, rr.get_center().y), dir, RED)
-			# 진행 방향 전체에 옅은 띠
-			var from := sx
-			var to := rr.end.x if dir > 0 else rr.position.x
-			ci.draw_rect(Rect2(minf(from, to), rr.position.y + 36, absf(to - from), 2), Color(RED, 0.4))
+			var u := clampf(b.st / maxf(0.01, b.timer), 0.0, 1.0)
+			# 쓸고 갈 방 전체를 옅게 칠하고, 틈(초록)만 비운다 — "저 틈으로 가거나 굴러서 넘어라"
+			var top := rr.position.y + 36
+			ci.draw_rect(Rect2(rr.position.x, top, rr.size.x, gap.x - top), Color(RED, 0.07 + 0.06 * u))
+			ci.draw_rect(Rect2(rr.position.x, gap.y, rr.size.x, rr.end.y - gap.y), Color(RED, 0.07 + 0.06 * u))
+			ci.draw_rect(Rect2(rr.position.x, gap.x, rr.size.x, gap.y - gap.x), Color(GRN, 0.10))
+			ci.draw_line(Vector2(rr.position.x, gap.x), Vector2(rr.end.x, gap.x), Color(GRN, 0.6), 1.0)
+			ci.draw_line(Vector2(rr.position.x, gap.y), Vector2(rr.end.x, gap.y), Color(GRN, 0.6), 1.0)
+			_label(ci, Vector2(rr.get_center().x, (gap.x + gap.y) / 2.0 + 4), "틈", GRN)
+			for row in [top + 20.0, rr.get_center().y, rr.end.y - 20.0]:
+				if row > gap.x - 6 and row < gap.y + 6:
+					continue
+				for k in 4:
+					var ax := sx + dir * (12 + k * 14 + fmod(t * 40.0, 14.0))
+					_chevron(ci, Vector2(ax, row), dir, RED)
+			ci.draw_rect(Rect2(sx - hw - 1, top, hw * 2 + 2, rr.end.y - top), Color(RED, 0.25 + 0.35 * absf(sin(t * 18.0))), false, 1.0)
 		else:
 			ci.draw_rect(Rect2(sx - 3, rr.position.y + 34, 6, rr.size.y - 36), Color("2a2a30"))
 			for y in range(int(rr.position.y + 36), int(rr.end.y), 8):

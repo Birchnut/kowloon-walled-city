@@ -300,9 +300,23 @@ func _read_input() -> void:
 var _frame := 0
 
 
+var _shots_taken := 0
+var _shot_cool := 0
+
+
 ## 화면 확인용: png_dir=<절대경로> png_every=N(기본 1) 또는 png_at=3,10,40 — 실제 창 크기로 저장한다.
+## shot_when=조건 이면 조건이 맞는 프레임만 shot_N.png 로(shot_count=1, shot_gap=프레임 간격).
+##   조건: tele:rat|dog|guard|rival, boss:<상태>, marks, search, wave, pack, result, junk, wire, alert, distract, time:초
 func _capture() -> void:
 	_frame += 1
+	if args.has("shot_when"):
+		_shot_cool -= 1
+		if _shots_taken < int(args.get("shot_count", "1")) and _shot_cool <= 0 and _shot_cond(str(args["shot_when"])):
+			_shots_taken += 1
+			_shot_cool = int(args.get("shot_gap", "8"))
+			get_viewport().get_texture().get_image().save_png(str(args["png_dir"]).path_join("shot_%d.png" % _shots_taken))
+			print("[shot] ", args["shot_when"], " frame ", _frame)
+		return
 	var every := int(args.get("png_every", "1"))
 	var at: PackedStringArray = str(args.get("png_at", "")).split(",", false)
 	if not at.is_empty():
@@ -312,6 +326,51 @@ func _capture() -> void:
 		return
 	var img := get_viewport().get_texture().get_image()
 	img.save_png(str(args["png_dir"]).path_join("f%05d.png" % _frame))
+
+
+func _shot_cond(c: String) -> bool:
+	if c == "result":
+		return mode == "result" and menus.t > 0.0
+	if world == null or mode != "run":
+		return false
+	var kv := c.split(":")
+	match kv[0]:
+		"tele":
+			for e in world.enemies:
+				if not e.dead and e.kind == kv[1] and e.state == "tele" and e.st >= e.timer * 0.62 and e.pos.distance_to(world.player.pos) < 120:
+					return true
+		"boss":
+			var b = world.boss
+			return b != null and not b.dead and b.state == kv[1] and (b.st >= minf(0.5, b.timer * 0.6) if b.timer > 0 else b.st > 0.4)
+		"marks":
+			for m in world.marks:
+				if m["t"] > m["dur"] * 0.6:
+					return true
+		"search":
+			return not world.search_target.is_empty() and world.search_target["progress"] > 0.35
+		"wave":
+			return hud.banner_t > 1.4 and hud.banner.contains("소란")
+		"pack":
+			return world.pack_open
+		"junk":
+			for j in world.junks:
+				if j["state"] == "warn" and j["t"] > 0.5:
+					return true
+		"wire":
+			for wv in world.wires:
+				if wv["state"] == "active" and (wv["box"] as Rect2).grow(40).has_point(world.player.pos):
+					return true
+		"alert":
+			for e in world.enemies:
+				if not e.dead and e.kind == "guard" and not e.aware and e.alert > 0.45:
+					return true
+		"time":
+			return world.time >= float(kv[1])
+		"distract":
+			for e in world.enemies:
+				if not e.dead and e.kind == "guard" and e.state == "investigate" and e.st > 0.4:
+					return true
+	return false
 
 
 func _show_result() -> void:
