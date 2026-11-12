@@ -433,6 +433,14 @@ static func mix_into(dst: PackedFloat32Array, src: PackedFloat32Array, t0: float
 		dst[i0 + i] += src[i] * g
 
 
+## 반 표본율로 만든 src 를 dst 에 두 배로 늘려(선형) 더한다. 낮은 소리를 반값에 만들 때.
+static func mix_up2(dst: PackedFloat32Array, src: PackedFloat32Array, g: float = 1.0) -> void:
+	var n := mini(dst.size(), src.size() * 2 - 1)
+	for i in n:
+		var j := i >> 1
+		dst[i] += g * (src[j] if (i & 1) == 0 else 0.5 * (src[j] + src[j + 1]))
+
+
 # ------------------------------------------------------------------ 크기
 
 static func peak(b: PackedFloat32Array) -> float:

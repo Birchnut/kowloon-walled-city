@@ -57,6 +57,8 @@ var build_total_us := 0
 var build_frames := 0
 var build_max_frame_us := 0     # 만드는 동안 한 프레임에서 가장 오래 쓴 시간
 var build_max_frame_at := ""
+var build_max_cpu_ms := 0.0      # 같은 것을 메인 스레드 CPU 로(KOWLOON_AUDIO_PROBE=1 일 때만)
+var build_max_cpu_at := ""
 var build_done := false
 
 var _rng := RandomNumberGenerator.new()
@@ -285,15 +287,15 @@ func _build_all() -> void:
 	var bud := AB.Budget.new()
 	bud.ms = BUDGET_MS
 	bud.tree = get_tree()
+	bud.cpu_probe = OS.get_environment("KOWLOON_AUDIO_PROBE") == "1"
 	bud.start()
 	await build_everything(bud)
-	var tail := Time.get_ticks_usec() - bud.seg
-	if tail > bud.max_seg_us:
-		bud.max_seg_us = tail
-		bud.max_seg_at = bud.label
+	bud.end_seg()
 	build_frames = bud.frames
 	build_max_frame_us = bud.max_seg_us
 	build_max_frame_at = bud.max_seg_at
+	build_max_cpu_ms = bud.max_cpu_ms
+	build_max_cpu_at = bud.max_cpu_at
 	build_done = true
 
 
@@ -324,7 +326,8 @@ func build_everything(bud: AB.Budget) -> void:
 	for i: String in MB.INSTS:
 		var b0 := bud.busy_now()
 		bud.label = "inst:" + i
-		insts[i] = S.to_wav(MB.build_inst(i))
+		var ib: PackedFloat32Array = await MB.build_inst(i, bud)
+		insts[i] = S.to_wav(ib)
 		_note("inst:" + i, bud.busy_now() - b0)
 		if bud.over():
 			await bud.wait()
@@ -747,5 +750,5 @@ func debug_state() -> Dictionary:
 	var lg := {}
 	for l: String in _layer_g:
 		lg[l] = snappedf(float(_layer_g[l]), 0.01)
-	return {"started": _started, "built": build_done, "build_ms": build_total_us / 1000.0, "max_frame_ms": build_max_frame_us / 1000.0, "max_frame_at": build_max_frame_at, "state": st.duplicate(),
+	return {"started": _started, "built": build_done, "build_ms": build_total_us / 1000.0, "max_frame_ms": build_max_frame_us / 1000.0, "max_frame_at": build_max_frame_at, "max_frame_cpu_ms": build_max_cpu_ms, "max_frame_cpu_at": build_max_cpu_at, "state": st.duplicate(),
 		"weights": w.duplicate(), "layers": lg, "targets": _layer_tgt.duplicate(), "mood": _mood, "duck_db": _duck_db}

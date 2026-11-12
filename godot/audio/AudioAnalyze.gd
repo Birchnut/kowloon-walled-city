@@ -158,19 +158,18 @@ static func row(b: PackedFloat32Array, sr: float) -> Dictionary:
 		"attack_ms": en["attack_ms"], "decay20_ms": en["decay20_ms"], "nan": has_nan(b), "dc": dc(b)}
 
 
-## 이 스레드(메인)가 쓴 CPU 시간(ms). 리눅스만(/proc/thread-self/stat), 아니면 -1. 다른 프로그램과 CPU 를 나눠 써도 흔들리지 않는다.
+## 이 스레드(메인)가 쓴 CPU 시간(ms). 리눅스만(/proc/thread-self/schedstat, ns 단위), 아니면 -1.
+## 다른 프로그램과 CPU 를 나눠 써도(빼앗긴 시간은 빠진다) 흔들리지 않는다.
 static func cpu_ms() -> float:
-	var f := FileAccess.open("/proc/thread-self/stat", FileAccess.READ)
+	var f := FileAccess.open("/proc/thread-self/schedstat", FileAccess.READ)
 	if f == null:
 		return -1.0
 	var line := f.get_line()   # /proc 파일은 크기가 0 이라 get_as_text 가 비어 온다
 	f.close()
-	var rp := line.rfind(")")
-	var parts := line.substr(rp + 2).split(" ")
-	# ')' 뒤 0번째가 3번째 필드(state) → utime = 14번째 필드 = parts[11], stime = parts[12]
-	if parts.size() < 13:
+	var parts := line.split(" ")
+	if parts.is_empty():
 		return -1.0
-	return (float(parts[11]) + float(parts[12])) * 10.0
+	return float(parts[0]) / 1.0e6
 
 
 static func _k_db(b: PackedFloat32Array, sr: float) -> float:

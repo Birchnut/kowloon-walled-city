@@ -88,8 +88,11 @@ static func build(sfx_name: String, v: int, bud: Variant = null) -> PackedFloat3
 	S.set_rate(r)
 	var b: PackedFloat32Array = await render(sfx_name, v, bud, r)
 	await _y(bud, r)
-	S.set_rate(r)
-	var o := finalize(b)
+	S.dc_block(b)
+	await _y(bud, r)
+	var o := S.trim(b)
+	await _y(bud, r)
+	S.normalize(o, TARGET_DB, -1.0, true)
 	S.set_rate(22050.0)
 	return o
 
@@ -311,18 +314,23 @@ static func render(n: String, v: int, bud: Variant = null, r: float = 22050.0) -
 			await _y(bud, r)
 			S.lp1(o, 7000.0)
 		"tier_up":
-			o = S.buf(3.2)
-			S.fm(o, 0.0, 98.0, 1.41, 5.0, 0.5, 0.45, 3.0)
+			o = S.buf(2.8)
+			# 낮은 징은 11025 Hz 로 만들어 두 배로 늘려 더한다(반값)
+			S.set_rate(11025.0)
+			var gong := S.buf(2.8)
+			S.fm(gong, 0.0, 98.0, 1.41, 5.0, 0.5, 0.45, 2.3)
+			await _y(bud, 11025.0)
+			S.modal(gong, 0.0, 98.0, 0.25, [1.0, 1.52, 2.0, 2.68], [1.0, 0.6, 0.4, 0.25], [2.3, 1.7, 1.2, 0.8])
 			await _y(bud, r)
-			S.modal(o, 0.0, 98.0, 0.25, [1.0, 1.52, 2.0, 2.68], [1.0, 0.6, 0.4, 0.25], [3.0, 2.2, 1.6, 1.0])
-			S.noise(o, 0.0, 1.6, 0.06, 2, 4500.0, 4500.0, 0.7, 151, 0.02, 1.2)
+			S.mix_up2(o, gong)
+			S.noise(o, 0.0, 1.2, 0.06, 2, 4500.0, 4500.0, 0.7, 151, 0.02, 1.0)
 			await _y(bud, r)
 			var run := [523.3, 587.3, 659.3, 784.0, 880.0, 1046.5]
 			for j in run.size():
 				tine(o, 0.18 + 0.09 * j, run[j], 0.22, 0.8)
 				await _y(bud, r)
 			for j in 4:
-				tine(o, 0.8 + 0.02 * j, [523.3, 659.3, 784.0, 1046.5][j], 0.2, 1.8)
+				tine(o, 0.8 + 0.02 * j, [523.3, 659.3, 784.0, 1046.5][j], 0.2, 1.5)
 				await _y(bud, r)
 			await _y(bud, r)
 			S.room(o, 0.6, 0.35)

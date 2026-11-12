@@ -111,7 +111,7 @@ func _run() -> void:
 	for i: String in MB.INSTS:
 		var t0 := Time.get_ticks_usec()
 		var c0 := AN.cpu_ms()
-		var b := MB.build_inst(i)
+		var b: PackedFloat32Array = await MB.build_inst(i)
 		cpu_acc += AN.cpu_ms() - c0
 		inst_us += Time.get_ticks_usec() - t0
 		var r := AN.row(b, 22050.0)

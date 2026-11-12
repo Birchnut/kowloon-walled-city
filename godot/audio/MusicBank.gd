@@ -21,12 +21,20 @@ const PADS := ["pad_warm", "pad_night", "pad_tense"]
 const INSTS := ["box", "wood", "pluck"]
 
 
-static func build_inst(inst: String) -> PackedFloat32Array:
+static func _w(bud: AB.Budget) -> void:
+	if bud != null and bud.over():
+		await bud.wait()
+	S.set_rate(22050.0)
+
+
+static func build_inst(inst: String, bud: AB.Budget = null) -> PackedFloat32Array:
 	var o: PackedFloat32Array
 	match inst:
 		"box":
 			o = S.buf(2.6)
-			S.modal(o, 0.0, 523.25, 0.5, [1.0, 2.0, 5.4, 8.9], [1.0, 0.1, 0.18, 0.05], [2.2, 0.6, 0.25, 0.1], 0.0015)
+			S.partial(o, 0.0, 523.25, 0.5, 2.2, 0.0015)
+			await _w(bud)
+			S.modal(o, 0.0, 523.25, 0.5, [2.0, 5.4, 8.9], [0.1, 0.18, 0.05], [0.6, 0.25, 0.1], 0.0015)
 			S.tick(o, 0.0, 0.05, 4000.0, 11, 0.004)
 			S.lp1(o, 7500.0)
 		"wood":
@@ -34,15 +42,17 @@ static func build_inst(inst: String) -> PackedFloat32Array:
 			S.modal(o, 0.0, 261.63, 0.6, [1.0, 3.93, 9.0], [1.0, 0.22, 0.05], [0.9, 0.25, 0.07], 0.002)
 			S.noise(o, 0.0, 0.03, 0.08, 1, 900.0, 800.0, 1.5, 12, 0.001, 0.015)
 		"pluck":
-			o = _ks(261.63, 2.4)
+			o = await _ks(261.63, 2.4, bud)
+	await _w(bud)
 	S.dc_block(o)
 	o = S.trim(o)
+	await _w(bud)
 	S.normalize(o, -20.0, -1.0)
 	return o
 
 
 ## 튕긴 줄(카플러스-스트롱). 실제 음높이를 base_hz 에 적는다.
-static func _ks(f: float, sec: float) -> PackedFloat32Array:
+static func _ks(f: float, sec: float, bud: AB.Budget = null) -> PackedFloat32Array:
 	var N := maxi(2, int(round(SR / f - 0.5)))
 	base_hz["pluck"] = float(SR) / (float(N) + 0.5)
 	var line := PackedFloat32Array()
@@ -55,12 +65,15 @@ static func _ks(f: float, sec: float) -> PackedFloat32Array:
 	var o := S.buf(sec)
 	var p := 0
 	for i in o.size():
+		if (i & 8191) == 0:
+			await _w(bud)
 		var a := line[p]
 		var q := (p + 1) % N
 		line[p] = (a + line[q]) * 0.5 * 0.9965
 		o[i] = a
 		p = q
 	S.fade_in(o, 0.002)
+	await _w(bud)
 	S.lp1(o, 3500.0)
 	return o
 

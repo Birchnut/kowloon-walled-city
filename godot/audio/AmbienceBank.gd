@@ -22,10 +22,36 @@ class Budget:
 	var max_seg_us: int = 0   # 한 프레임에 가장 오래 붙잡은 시간(끊김 크기)
 	var max_seg_at: String = ""
 	var label: String = ""    # 지금 만드는 것(끊김 범인 찾기용)
+	var cpu_probe: bool = false   # 리눅스에서 프레임마다 메인 스레드 CPU 도 잰다(검사용, KOWLOON_AUDIO_PROBE=1)
+	var cpu_seg: float = 0.0
+	var max_cpu_ms: float = 0.0
+	var max_cpu_at: String = ""
 
 	func start() -> void:
 		seg = Time.get_ticks_usec()
 		deadline = seg + int(ms * 1000.0)
+		if cpu_probe:
+			cpu_seg = _cpu()
+
+	static func _cpu() -> float:
+		var f := FileAccess.open("/proc/thread-self/schedstat", FileAccess.READ)
+		if f == null:
+			return 0.0
+		var l := f.get_line()
+		f.close()
+		return float(l.split(" ")[0]) / 1.0e6
+
+	func end_seg() -> void:
+		var d := Time.get_ticks_usec() - seg
+		busy_us += d
+		if d > max_seg_us:
+			max_seg_us = d
+			max_seg_at = label
+		if cpu_probe:
+			var c := _cpu() - cpu_seg
+			if c > max_cpu_ms:
+				max_cpu_ms = c
+				max_cpu_at = label
 
 	func busy_now() -> int:
 		return busy_us + Time.get_ticks_usec() - seg
@@ -35,11 +61,7 @@ class Budget:
 
 	func wait() -> void:
 		frames += 1
-		var d := Time.get_ticks_usec() - seg
-		busy_us += d
-		if d > max_seg_us:
-			max_seg_us = d
-			max_seg_at = label
+		end_seg()
 		await tree.process_frame
 		start()
 
@@ -539,7 +561,9 @@ static func _shot(n: String, v: int, bud: Budget = null) -> PackedFloat32Array:
 		"kettle":   # 주전자 — 낮게, 먼 데서
 			o = S.buf(3.0)
 			S.tone(o, 0.0, 2.6, 1450.0, 1750.0, S.SINE, 0.25, 0.9, 0.5, 6.0, 0.006)
+			await _wait_opt(bud, SHOT_RATE)
 			S.noise(o, 0.0, 2.6, 0.12, 1, 1500.0, 1700.0, 2.0, 313, 0.8, 4.0, 1.2)
+			await _wait_opt(bud, SHOT_RATE)
 			await _wait_opt(bud, SHOT_RATE)
 			_far(o, 2500.0, 0.09)
 		"mahjong":   # 이웃집 마작판 패 섞기
@@ -587,10 +611,15 @@ static func _shot(n: String, v: int, bud: Budget = null) -> PackedFloat32Array:
 		"horn":   # 항구 쪽 뱃고동
 			o = S.buf(3.4)
 			S.tone(o, 0.0, 2.4, 110.0, 108.0, S.SAW, 0.3, 0.35, 0.8)
+			await _wait_opt(bud, SHOT_RATE)
 			S.tone(o, 0.0, 2.4, 110.7, 108.5, S.SAW, 0.3, 0.35, 0.8)
+			await _wait_opt(bud, SHOT_RATE)
 			S.tone(o, 0.0, 2.4, 165.0, 162.0, S.SAW, 0.12, 0.35, 0.8)
+			await _wait_opt(bud, SHOT_RATE)
 			S.lp1(o, 500.0)
+			await _wait_opt(bud, SHOT_RATE)
 			S.lp1(o, 700.0)
+			await _wait_opt(bud, SHOT_RATE)
 			S.echo(o, 0.23, 0.35, 0.45)
 		"drip":   # 실외기 물방울
 			o = S.buf(0.4)
