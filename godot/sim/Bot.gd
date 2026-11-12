@@ -56,6 +56,14 @@ func act(state: CityState, context: Dictionary = {}) -> void:
 		else:
 			_save = maxf(_save, float(want[t][0]))
 	mem["want"] = want
+	# 명소(용탑·구청): 열렸고 자재가 다 모였으면 그 돈을 남겨 둔다(승급이 다 먹지 않게)
+	for lm: String in ["neon_tower", "city_hall"]:
+		if sim.is_unlocked(state, lm) and _count(state, lm) == 0:
+			var ok := true
+			for g: String in sim.bdef(lm).get("cost", {}).get("goods", {}):
+				ok = ok and float(state.stock.get(g, 0.0)) >= float(sim.bdef(lm)["cost"]["goods"][g])
+			if ok:
+				_save = maxf(_save, float(sim.bdef(lm).get("cost", {}).get("money", 0)) + 100.0)
 	_t("explore", func() -> void: _explore(state))
 	_t("repair", func() -> void: _repair(state))
 	_t("utilities", func() -> void: _utilities(state))

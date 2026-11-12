@@ -259,9 +259,14 @@
    ],
    "known": false,
    "reveal_hint": "폐공장을 다녀오거나 연구 '약도 그리기'",
-   "desc": "아무도 처리하지 않는 처리장. 철골을 뜯고 설비 부품을 챙긴다. 두목은 덩치 큰 집게차.",
+   "desc": "아무도 처리하지 않는 처리장. 쓸 만한 자재를 골라 뜯고 설비 부품을 챙긴다. 두목은 덩치 큰 집게차.",
+   "picks": [
+    "metal",
+    "wood",
+    "concrete"
+   ],
    "primary": {
-    "good": "metal",
+    "good": "",
     "min": 180,
     "max": 190
    },
@@ -289,7 +294,9 @@
     "metal": 950,
     "parts": 20,
     "scrap": 100,
-    "elec_scrap": 30
+    "elec_scrap": 30,
+    "wood": 950,
+    "concrete": 950
    },
    "regen": 0.8,
    "danger": 3,
