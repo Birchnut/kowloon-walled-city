@@ -824,6 +824,35 @@ func plant_rows(u0: float, v0: float, u1: float, v1: float) -> void:
 		k += 1
 
 
+const REPEATERS := ["assembly", "power_plant", "power_waste", "water_plant", "scrapyard", "trash_guild", "soap", "brewery", "rag_collect", "fireworks",
+	"callcenter", "gambling", "market_hall", "clinic", "tailor", "food_pilgrims", "fake", "candle", "rat_farm"]
+
+
+## 큰 방의 대표 칸: 반장 책상(장부·전화·주전자)·달력·의자 + 장부 쓰는 반장
+func _foreman_corner(cc: Vector2i) -> void:
+	var u := float(cc.x) + 0.5
+	var v := float(cc.y) + 0.5
+	bx(u - 0.3, v - 0.05, u + 0.25, v + 0.2, 0.0, 0.28, WOOD, MeshBuf.WHITE, "white", "desk")
+	bx(u + 0.1, v, u + 0.2, v + 0.08, 0.28, 0.36, Color("#3a3448"))
+	bx(u - 0.25, v + 0.02, u - 0.15, v + 0.12, 0.28, 0.4, Color("#b9bcc8"), Color("#5a5674"))
+	emit_at(u - 0.2, v + 0.07, 0.45, "steam")
+	chair(u - 0.02, v - 0.22, "b", Color("#7a5a4a"))
+	slot(u - 0.02, v - 0.22, "work", "b", "staff", 0.0, {"anim": "write"})
+	bx(u + 0.3, v - 0.3, u + 0.42, v - 0.18, 0.0, 0.5, Color("#6a7a96"), Color("#8a9ab6"))
+
+
+## 큰 방의 쌓아 둔 칸: 상자·자루·통 더미 + 나르는 사람
+func _storage_corner(cc: Vector2i) -> void:
+	var u := float(cc.x) + 0.5
+	var v := float(cc.y) + 0.5
+	crate(u - 0.25, v - 0.2, 0.26, true)
+	crate(u + 0.05, v - 0.22, 0.22)
+	sack(u + 0.25, v + 0.2)
+	sack(u + 0.05, v + 0.28, Color("#e6dcc4"))
+	drum(u - 0.28, v + 0.25, Color("#5f86c4"))
+	slot(u + 0.1, v + 0.05, "carry", "l", "staff")
+
+
 # ================================================================== 안 모양(look마다)
 ## 칸 순회: 지역 칸 (iu, iv). 앞줄 iv = 0.
 func _interior() -> void:
@@ -835,6 +864,17 @@ func _interior() -> void:
 	var top := zi == d - 1
 	var upper := zi > 0
 	var lk := look
+	# 큰 방(4칸 이상)은 칸마다 같은 배치를 되풀이하지 않게: 대표 칸 하나는 반장 자리(책상·달력·주전자), 하나는 쌓아 둔 곳
+	var special: Array = []
+	if cells.size() >= 4 and lk in REPEATERS:
+		var hsel := ViewCfg.h2(seed_v, z)
+		var fcell: Vector2i = cells[hsel % cells.size()]
+		var scell: Vector2i = cells[(hsel / 7 + 1 + cells.find(fcell)) % cells.size()]
+		if scell == fcell:
+			scell = cells[(cells.find(fcell) + 1) % cells.size()]
+		cells.erase(fcell)
+		cells.erase(scell)
+		special = [fcell, scell]
 	if upper and lk in ["market_mall", "casino", "landmark_generic"]:
 		lk = lk + "_up"
 	match lk:
@@ -848,7 +888,7 @@ func _interior() -> void:
 					umbrella(u + 0.28, v + 0.15, Color(CLOTH[(cc.x + cc.y + seed_v) % CLOTH.size()]))
 				slot(u, v + 0.18, "squat", "f", "staff")
 				slot(u - 0.2, v - 0.5, "stand", "b", "guest")
-		"market_alley", "generic_shop":
+		"market_alley":
 			for cc in cells:
 				var u := float(cc.x) + 0.5
 				var v := float(cc.y)
@@ -1015,16 +1055,25 @@ func _interior() -> void:
 			for k in mini(Wf * 2, 4):
 				slot(0.3 + 0.45 * float(k), -0.12, "sit_eat", "b", "guest")
 		"rat_farm":
+			# 쥐덫 조합: 벽을 따라 쌓은 철망 우리(쥐가 보인다) + 먹이 통 + 덫 고치는 작업대 + 말리는 덫 줄
 			for cc in cells:
 				var u := float(cc.x) + 0.5
-				var v := float(cc.y) + 0.5
-				cage(u - 0.25, v + 0.25, 0.24)
-				cage(u - 0.25, v + 0.25, 0.24, 0.3)
-				cage(u + 0.05, v + 0.25, 0.24)
-				cage(u + 0.3, v + 0.25, 0.22)
-				bx(u - 0.3, v - 0.25, u + 0.1, v - 0.1, 0.0, 0.18, Color("#7a6a5a"), Color("#9a8a7a"))
-			slot(0.5, 0.35, "squat", "b", "staff")
-			slot(float(Wf) - 0.4, 0.3, "carry", "l", "staff")
+				var v := float(cc.y)
+				if cc.y == Df - 1:
+					for k in 3:
+						cage(u - 0.3 + 0.3 * float(k), v + 0.82, 0.24)
+						cage(u - 0.3 + 0.3 * float(k), v + 0.82, 0.22, 0.32)
+						for r in 2:
+							bx(u - 0.33 + 0.3 * float(k) + 0.06 * float(r), v + 0.78, u - 0.29 + 0.3 * float(k) + 0.06 * float(r), v + 0.84, 0.02 + 0.32 * float(r), 0.06 + 0.32 * float(r), Color("#4a3a3a"))
+				else:
+					bx(u - 0.35, v + 0.35, u + 0.05, v + 0.55, 0.0, 0.26, WOOD, WOOD_T)
+					for k in 3:
+						bx(u - 0.3 + 0.1 * float(k), v + 0.4, u - 0.24 + 0.1 * float(k), v + 0.5, 0.26, 0.29, Color("#8a96aa"))
+					bx(u + 0.15, v + 0.3, u + 0.42, v + 0.45, 0.0, 0.08, Color("#7a6a5a"), Color("#c9b48a"))
+			hang_row(0.1, float(Wf) - 0.1, 0.25, 0.85, ["#8a96aa", "#6a7488", "#a0a8b8"], 0.15, 0.12)
+			slot(0.35, 0.72, "swork", "b", "staff", 0.0, {"anim": "hammer"})
+			slot(float(Wf) - 0.35, float(Df) - 0.45, "squat", "b", "staff")
+			slot(float(Wf) * 0.5, 0.15, "carry", "l", "staff", 0.0, {"prop": "sack"})
 		"burger":
 			counter(0.1, 0.2, float(Wf) - 0.1, 0.38, Color("#d85f5f"), Color("#f4ead2"), 0.34)
 			bx(0.15, 0.6, 0.6, 0.85, 0.0, 0.32, Color("#5a5674"), MeshBuf.WHITE, "white", "stove")
@@ -1070,11 +1119,17 @@ func _interior() -> void:
 			slot(float(Wf) - 0.3, float(Df) - 0.3, "carry", "f", "staff")
 		# ── 생활 ──
 		"oil_collect":
-			drum(0.3, 0.4, Color("#3a3448"))
-			drum(0.55, 0.45, Color("#5a4a3a"))
-			drum(0.4, 0.72, Color("#3a3448"))
-			bx(0.7, 0.2, 0.9, 0.4, 0.0, 0.28, Color("#c9a04a"), Color("#e6c06a"))
-			slot(0.75, 0.6, "swork", "l", "staff", 0.0, {"prop": "can"})
+			# 폐식용유 수거: 깔때기 꽂은 드럼 + 기름통 줄 + 바닥 기름 얼룩 + 붓는 사람
+			drum(0.3, 0.45, Color("#3a3448"))
+			bx(0.22, 0.37, 0.38, 0.53, 0.32, 0.4, Color("#8a8a96"), Color("#2a2430"))
+			bx(0.27, 0.42, 0.33, 0.48, 0.4, 0.5, Color("#8a8a96"))
+			for k in 4:
+				bx(0.55 + 0.1 * float(k % 2), 0.15 + 0.12 * float(k), 0.63 + 0.1 * float(k % 2), 0.24 + 0.12 * float(k), 0.0, 0.16, Color(["#e0a23c", "#c9a04a", "#d8823a"][k % 3]), Color("#3a3448"))
+			drum(0.42, 0.78, Color("#5a4a3a"))
+			bx(0.1, 0.6, 0.35, 0.8, 0.0, 0.004, Color("#2e2a24"))
+			emit_at(0.3, 0.45, 0.55, "drip")
+			slot(0.3, 0.2, "swork", "b", "staff", 0.0, {"anim": "pour"})
+			slot(0.75, 0.7, "carry", "l", "staff")
 		"candle":
 			counter(0.1, 0.2, float(Wf) - 0.1, 0.36, WOOD, WOOD_T, 0.32)
 			for k in 6:
@@ -1105,7 +1160,7 @@ func _interior() -> void:
 				sack(u, v - 0.3, Color("#b0a090"))
 			slot(0.5, 0.5, "squat", "f", "staff")
 			slot(0.8, float(Df) - 0.3, "swork", "l", "staff")
-		"tailor", "generic_workshop":
+		"tailor":
 			for cc in cells:
 				var u := float(cc.x) + 0.5
 				var v := float(cc.y)
@@ -1150,16 +1205,32 @@ func _interior() -> void:
 				lamp(u, v, 0.92, Color("#e0f4ff"))
 			emit_at(0.6, 0.5, 0.35, "sparks")
 		"fake":
+			# 거의 명품 공방: 칸마다 다른 일 — 도장대(금박 찍기) / 재봉 / 완성품 진열 + 거울과 손님
+			var ci := 0
 			for cc in cells:
 				var u := float(cc.x) + 0.5
 				var v := float(cc.y) + 0.5
-				table(u, v, 0.6, 0.35, 0.28)
-				for k in 3:
-					var bc := Color(["#8a5a3e", "#c9a04a", "#2e2a3a"][k])
-					bx(u - 0.22 + 0.17 * float(k), v - 0.06, u - 0.1 + 0.17 * float(k), v + 0.06, 0.28, 0.4, bc, bc.lightened(0.2))
-					bx(u - 0.19 + 0.17 * float(k), v - 0.01, u - 0.13 + 0.17 * float(k), v + 0.01, 0.4, 0.44, Color("#f2d27a"))
-				slot(u, v + 0.3, "work", "b", "staff", 0.0, {"anim": "stamp"})
-		# ── 놀 것·서비스 ──
+				match ci % 3:
+					0:
+						table(u, v, 0.6, 0.35, 0.28)
+						for k in 3:
+							var bc := Color(["#8a5a3e", "#c9a04a", "#2e2a3a"][k])
+							bx(u - 0.22 + 0.17 * float(k), v - 0.06, u - 0.1 + 0.17 * float(k), v + 0.06, 0.28, 0.4, bc, bc.lightened(0.2))
+							bx(u - 0.19 + 0.17 * float(k), v - 0.01, u - 0.13 + 0.17 * float(k), v + 0.01, 0.4, 0.44, Color("#f2d27a"))
+						bx(u + 0.2, v + 0.05, u + 0.3, v + 0.15, 0.28, 0.45, Color("#5a5674"))
+						slot(u, v + 0.3, "work", "b", "staff", 0.0, {"anim": "stamp"})
+					1:
+						bx(u - 0.3, v - 0.1, u + 0.1, v + 0.1, 0.0, 0.26, WOOD, MeshBuf.WHITE, "white", "sewing")
+						stool(u + 0.2, v)
+						slot(u + 0.2, v, "work", "l", "staff", 0.0, {"anim": "sew"})
+						hang_row(u - 0.4, u + 0.4, v + 0.4, 0.8, ["#8a5a3e", "#c9a04a", "#2e2a3a"], 0.2, 0.12)
+					_:
+						shelf_back(u - 0.45, u + 0.45, v + 0.48, 0.8)
+						for k in 4:
+							bx(u - 0.4 + 0.2 * float(k), v + 0.36, u - 0.28 + 0.2 * float(k), v + 0.46, 0.3, 0.42, Color(["#c2463c", "#8a5a3e", "#2e2a3a", "#c9a04a"][k]), Color("#f2d27a"))
+						vq(u - 0.42, u - 0.22, v + 0.3, 0.3, 0.75, "white", Color("#cfe8ff"))
+						slot(u, v - 0.1, "look", "b", "guest")
+				ci += 1
 		"mahjong":
 			for cc in cells:
 				var u := float(cc.x) + 0.5
@@ -1318,14 +1389,27 @@ func _interior() -> void:
 			slot(float(Wf) * 0.5, 0.25, "swork", "b", "staff", 0.0, {"anim": "hammer"})
 			slot(0.4, float(Df) - 0.3, "carry", "f", "staff")
 		"warehouse":
+			# 창고: 뒷벽 선반 줄 + 바닥 상자 더미(칸마다 다르게) + 손수레 미는 사람 + 장부 든 관리인
+			var ci2 := 0
 			for cc in cells:
 				var u := float(cc.x) + 0.5
-				var v := float(cc.y) + 0.5
-				crate(u - 0.22, v - 0.1, 0.26, true)
-				crate(u + 0.2, v + 0.15, 0.24, (cc.x + cc.y) % 2 == 0)
-				sack(u - 0.1, v + 0.35)
-			bx(0.6, 0.15, 0.9, 0.35, 0.05, 0.12, Color("#c9a04a"))
-			slot(0.75, 0.45, "carry", "f", "staff")
+				var v := float(cc.y)
+				if cc.y == Df - 1:
+					bx(u - 0.46, v + 0.72, u + 0.46, v + 0.96, 0.0, 0.85, Color("#6a5a4a"), Color("#8a7a6a"))
+					for lv in 3:
+						for k in 3:
+							var cc2 := Color(["#c9a46a", "#b08050", "#d8c08a"][(k + lv + ci2) % 3])
+							bx(u - 0.42 + 0.29 * float(k), v + 0.74, u - 0.17 + 0.29 * float(k), v + 0.94, 0.02 + 0.28 * float(lv), 0.22 + 0.28 * float(lv), cc2, cc2.lightened(0.15))
+				if ci2 % 2 == 0:
+					crate(u - 0.22, v + 0.4, 0.26, true)
+					sack(u + 0.2, v + 0.45)
+				else:
+					bx(u - 0.2, v + 0.3, u + 0.15, v + 0.5, 0.06, 0.12, Color("#c9a04a"))
+					bx(u - 0.22, v + 0.28, u - 0.18, v + 0.52, 0.0, 0.32, Color("#5a5674"))
+					crate(u - 0.03, v + 0.4, 0.18)
+				ci2 += 1
+			slot(0.45, 0.25, "carry", "r", "staff")
+			slot(float(Wf) - 0.3, 0.3, "look", "l", "staff")
 		"trade_post":
 			counter(0.1, 0.25, float(Wf) - 0.1, 0.42, WOOD, WOOD_T, 0.34)
 			bx(0.25, 0.3, 0.45, 0.38, 0.34, 0.5, Color("#c9a04a"), Color("#f2d27a"))
@@ -1334,13 +1418,23 @@ func _interior() -> void:
 			slot(float(Wf) * 0.5, 0.65, "swork", "f", "staff")
 			slot(float(Wf) * 0.5 + 0.2, 0.05, "stand", "b", "guest")
 		"expedition_base":
-			table(float(Wf) * 0.5, 0.55, 0.6, 0.4, 0.28, WOOD, Color("#e6dcc4"))
-			bx(float(Wf) * 0.5 - 0.25, 0.4, float(Wf) * 0.5 + 0.25, 0.7, 0.28, 0.285, Color("#d8c89a"), Color("#e8d8aa"))
+			# 줍줍 본부: 핀 꽂힌 지도 탁자 + 무전기 책상(무전수) + 배낭·밧줄 걸이 + 사물함
+			var mu := float(Wf) * 0.5
+			table(mu, 0.55, 0.7, 0.42, 0.28, WOOD, Color("#e6dcc4"))
+			bx(mu - 0.3, 0.38, mu + 0.3, 0.72, 0.28, 0.285, Color("#d8c89a"), Color("#e8d8aa"))
+			for k in 5:
+				bx(mu - 0.25 + 0.12 * float(k), 0.42 + 0.06 * float(k % 3), mu - 0.23 + 0.12 * float(k), 0.44 + 0.06 * float(k % 3), 0.285, 0.33, Color(["#c2463c", "#5f86c4", "#e0a23c"][k % 3]))
+			bx(0.1, float(Df) - 0.35, 0.45, float(Df) - 0.1, 0.0, 0.26, WOOD, WOOD_T)
+			bx(0.15, float(Df) - 0.3, 0.35, float(Df) - 0.15, 0.26, 0.38, Color("#5a6a5a"), Color("#3a4a3a"))
+			bx(0.3, float(Df) - 0.25, 0.32, float(Df) - 0.23, 0.38, 0.55, DARK)
+			stool(0.28, float(Df) - 0.5)
 			for k in 3:
-				bx(0.15 + 0.2 * float(k), float(Df) - 0.25, 0.3 + 0.2 * float(k), float(Df) - 0.08, 0.0, 0.28, Color(["#5a7a4a", "#8a5a3e", "#4f7aa8"][k]), Color(-1, 0, 0))
-			slot(float(Wf) * 0.5 - 0.35, 0.55, "stand", "r", "staff")
-			slot(float(Wf) * 0.5 + 0.35, 0.55, "stand", "l", "staff")
-		# ── 음성 ──
+				bx(float(Wf) - 0.6 + 0.16 * float(k), float(Df) - 0.18, float(Wf) - 0.48 + 0.16 * float(k), float(Df) - 0.06, 0.3, 0.56, Color(["#5a7a4a", "#8a5a3e", "#4f7aa8"][k]), Color(-1, 0, 0))
+			bx(float(Wf) - 0.7, float(Df) - 0.1, float(Wf) - 0.1, float(Df) - 0.04, 0.6, 0.64, Color("#6a5a4a"))
+			bx(float(Wf) - 0.25, 0.2, float(Wf) - 0.08, 0.4, 0.0, 0.08, Color("#c9b48a"), Color("#a8946a"))
+			slot(mu - 0.4, 0.55, "look", "r", "staff")
+			slot(mu + 0.4, 0.55, "swork", "l", "staff")
+			slot(0.28, float(Df) - 0.5, "work", "b", "staff", 0.0, {"anim": "phone"})
 		"gambling":
 			for cc in cells:
 				var u := float(cc.x) + 0.5
@@ -1406,23 +1500,75 @@ func _interior() -> void:
 			lamp(cu - 1.0, float(Df) * 0.5, 0.9, Color("#ff8a4a"))
 			lamp(cu + 1.0, float(Df) * 0.5, 0.9, Color("#ff8a4a"))
 		"landmark_generic":
+			# 명소(전시관): 가운데 조각상(대표 칸) + 칸마다 다른 진열장·의자, 조명, 안내원·구경꾼
+			var feat: Vector2i = cells[0] if not cells.is_empty() else Vector2i.ZERO
+			for cc in cells:
+				if cc.x + cc.y > feat.x + feat.y:
+					feat = cc
+			var ci3 := 0
 			for cc in cells:
 				var u := float(cc.x) + 0.5
 				var v := float(cc.y) + 0.5
-				bx(u - 0.15, v - 0.15, u + 0.15, v + 0.15, 0.0, 0.25, Color("#eef0ea"), Color("#ffffff"))
-				bx(u - 0.08, v - 0.08, u + 0.08, v + 0.08, 0.25, 0.5, Color("#c9a04a"), Color("#f2d27a"))
-				slot(u + 0.3, v, "stand", "l", "guest")
+				if cc == feat:
+					bx(u - 0.25, v - 0.25, u + 0.25, v + 0.25, 0.0, 0.12, Color("#eef0ea"), Color("#ffffff"))
+					bx(u - 0.08, v - 0.08, u + 0.08, v + 0.08, 0.12, 0.62, Color("#c9a04a"), Color("#f2d27a"))
+					bx(u - 0.14, v - 0.06, u + 0.14, v + 0.06, 0.48, 0.56, Color("#c9a04a"))
+					bx(u - 0.06, v - 0.06, u + 0.06, v + 0.06, 0.62, 0.74, Color("#e0b85a"))
+					light_at(u, v, 0.9, Color("#ffe8a8"), 1.6)
+					slot(u + 0.36, v, "look", "l", "guest")
+					slot(u, v + 0.38, "cheer", "b", "guest")
+				elif ci3 % 2 == 0:
+					bx(u - 0.3, v - 0.12, u + 0.3, v + 0.12, 0.0, 0.3, Color("#5a4a3e"), Color("#a9cbea"))
+					for k in 3:
+						bx(u - 0.22 + 0.17 * float(k), v - 0.04, u - 0.14 + 0.17 * float(k), v + 0.04, 0.3, 0.38, Color(GOODS[(k + ci3) % GOODS.size()]))
+					slot(u, v - 0.3, "look", "f", "guest")
+				else:
+					bx(u - 0.3, v - 0.07, u + 0.3, v + 0.07, 0.0, 0.14, WOOD, WOOD_T)
+					slot(u - 0.1, v, "sit", "f", "guest")
+					vq(u - 0.3, u + 0.3, v + 0.45, 0.35, 0.8, "white", Color(["#c2463c", "#3e4a7a"][ci3 % 2]))
+				ci3 += 1
+				lamp(u, v, 0.92, Color("#fff2c8"))
 			slot(0.3, 0.2, "stand", "f", "staff")
 		"generic_service":
-			table(float(Wf) * 0.5, 0.55, 0.6, 0.3)
+			# 상담소: 책상과 상담원 + 대기 의자 줄 + 번호표 화면
+			table(float(Wf) * 0.5, 0.6, 0.6, 0.3)
 			chair(float(Wf) * 0.5, 0.85, "f")
-			chair(float(Wf) * 0.5, 0.25, "b")
-			slot(float(Wf) * 0.5, 0.85, "sit", "f", "staff")
-			slot(float(Wf) * 0.5, 0.25, "sit", "b", "guest")
+			chair(float(Wf) * 0.5, 0.32, "b")
+			slot(float(Wf) * 0.5, 0.85, "work", "f", "staff", 0.0, {"anim": "write"})
+			slot(float(Wf) * 0.5, 0.32, "sit", "b", "guest")
+			for k in mini(Wf * 2, 3):
+				chair(0.25 + 0.3 * float(k), float(Df) - 0.25, "f", Color("#8fc0b8"))
+				slot(0.25 + 0.3 * float(k), float(Df) - 0.25, "sit", "f", "guest")
+			screen(float(Wf) - 0.45, float(Wf) - 0.15, float(Df) - 0.02, 0.6, 0.78)
+		"generic_shop":
+			counter(0.1, 0.22, float(Wf) - 0.1, 0.4, WOOD, WOOD_T, 0.34)
+			shelf_back(0.1, float(Wf) - 0.1, float(Df) - 0.02, 0.85)
+			for k in 4:
+				bx(0.2 + 0.2 * float(k), 0.26, 0.3 + 0.2 * float(k), 0.36, 0.34, 0.42, Color(GOODS[k % GOODS.size()]))
+			bx(float(Wf) - 0.4, 0.26, float(Wf) - 0.2, 0.36, 0.34, 0.44, Color("#5a5674"), Color("#e0a23c"))
+			slot(float(Wf) * 0.5, 0.62, "swork", "f", "staff")
+			slot(float(Wf) * 0.5 - 0.2, 0.05, "stand", "b", "guest")
+			slot(float(Wf) * 0.5 + 0.25, -0.05, "look", "b", "guest")
+		"generic_workshop":
+			# 공방: 바이스 달린 작업대(망치질) + 공구 벽 + 재료 더미
+			bx(0.1, 0.5, float(Wf) - 0.1, 0.72, 0.0, 0.3, WOOD, WOOD_T)
+			bx(0.25, 0.55, 0.38, 0.65, 0.3, 0.4, Color("#5a5674"))
+			vq(0.15, float(Wf) - 0.15, float(Df) - 0.02, 0.45, 0.8, "white", Color("#8a7a6a"))
+			for k in 5:
+				bx(0.25 + 0.16 * float(k), float(Df) - 0.06, 0.28 + 0.16 * float(k), float(Df) - 0.03, 0.5, 0.72 - 0.04 * float(k % 2), Color(["#8a96aa", "#c2463c", "#5a5674"][k % 3]))
+			crate(float(Wf) - 0.3, 0.25, 0.22, true)
+			junk(0.3, 0.2, 0.26)
+			emit_at(0.32, 0.6, 0.45, "sparks")
+			slot(0.35, 0.35, "hammer", "b", "staff", 0.0, {"anim": "hammer"})
+			slot(float(Wf) - 0.4, 0.45, "carry", "l", "staff")
 		_:
 			table(float(Wf) * 0.5, 0.5, 0.6, 0.3)
 			shelf_back(0.1, float(Wf) - 0.1, float(Df) - 0.02, 0.8)
 			slot(float(Wf) * 0.5, 0.75, "swork", "f", "staff")
+	if special.size() == 2:
+		_foreman_corner(special[0])
+		_storage_corner(special[1])
+		cells.append_array(special)
 	if str(rec.get("form", "box")) == "box" and not lk.begins_with("landmark") and lk not in ["karaoke", "bathhouse", "study", "salon", "mahjong", "power_waste"]:
 		# 천장 등(한 칸에 하나)
 		for cc in cells:
