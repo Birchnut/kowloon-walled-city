@@ -25,6 +25,8 @@ static func tex(key: String) -> Texture2D:
 		"pile": img = _pile(false)
 		"pile_empty": img = _pile(true)
 		"junk": img = _junk()
+		"locker": img = _locker(false)
+		"locker_open": img = _locker(true)
 		"can": img = _can()
 		"brick": img = _brick()
 		"heal": img = _heal()
@@ -484,6 +486,24 @@ static func _junk() -> Image:
 	_rect(img, 9, 2, 5, 1, Color("8a9aa4"))
 	_rect(img, 15, 1, 1, 9, Color("8a8a8a"))
 	_rect(img, 14, 1, 3, 1, Color("8a8a8a"))
+	return _outline(img)
+
+
+static func _locker(open: bool) -> Image:
+	# 넘어진 철제 사물함(자물쇠) — 더미보다 반듯하고 차가운 색
+	var img := _new(20, 15)
+	_rect(img, 1, 3, 18, 11, Color("4f6470"))
+	_rect(img, 1, 3, 18, 3, Color("6d8794"))
+	for x in range(3, 18, 4):
+		_rect(img, x, 7, 2, 1, Color("2e3c44"))
+	_rect(img, 1, 13, 18, 1, Color("2a343a"))
+	if open:
+		_rect(img, 3, 1, 14, 3, Color("6d8794"))
+		_rect(img, 3, 6, 14, 6, Color("1c2226"))
+	else:
+		_rect(img, 8, 8, 4, 4, Color("e0b020"))
+		_rect(img, 9, 6, 2, 2, Color("a08020"))
+		_px(img, 10, 10, Color("3a2a10"))
 	return _outline(img)
 
 

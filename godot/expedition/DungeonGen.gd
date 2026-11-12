@@ -54,7 +54,7 @@ func generate(seed_value: int, stock: Dictionary, danger: int) -> Dictionary:
 # ------------------------------------------------------------------ 배치
 func _layout() -> bool:
 	rooms.clear()
-	var main_len := rng.randi_range(5, 6)
+	var main_len := rng.randi_range(RunCfg.i("main_min", 6), RunCfg.i("main_max", 7))
 	var cells: Array[Vector2i] = [Vector2i.ZERO]
 	var dirs := [Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT]
 	var weights := [3.0, 1.4, 1.4, 0.4]
@@ -77,7 +77,7 @@ func _layout() -> bool:
 		_link(k - 1, k)
 	rooms[0]["kind"] = "entrance"
 	rooms[cells.size() - 1]["kind"] = "boss"
-	var total := rng.randi_range(6, 8)
+	var total := mini(8, main_len + rng.randi_range(1, 2))
 	var tries := 0
 	while rooms.size() < total and tries < 40:
 		tries += 1
@@ -434,6 +434,8 @@ func _populate(danger: int) -> void:
 	piles.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return rooms[a["room"]]["depth"] > rooms[b["room"]]["depth"])
 	for p in piles:
 		var depth: int = rooms[p["room"]]["depth"]
+		# 깊은 방의 더미 일부는 잠긴 사물함: 따는 데 오래 걸리고 시끄럽지만 좋은 것이 든다
+		p["locker"] = depth >= 2 and rng.randf() < RunCfg.f("locker_chance", 0.25)
 		# 얕은 더미는 자주 비어 있고(앞사람들이 털었다) 깊을수록 묶음이 많다
 		var n := 1
 		var empty_p := RunCfg.f("pile_empty_d0", 0.4) - depth * RunCfg.f("pile_empty_step", 0.1)
@@ -445,9 +447,11 @@ func _populate(danger: int) -> void:
 			if rng.randf() < RunCfg.f("pile_more_per_depth", 0.22) * depth * 0.5:
 				n += 1
 		n = mini(n, RunCfg.i("pile_bundles_max", 3))
+		if p["locker"]:
+			n = maxi(n, 2)
 		var bundles: Array = []
 		for k in n:
-			var g := _roll_good(goods, depth, max_depth)
+			var g := _roll_good(goods, depth + (2 if p["locker"] else 0), max_depth)
 			if g == "":
 				break
 			var units: int = mini(int(goods[g]["bundle"]), int(stock_left[g]))

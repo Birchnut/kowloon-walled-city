@@ -237,6 +237,8 @@ func _draw_ents() -> void:
 			continue
 		var empty: bool = pl["bundles"].is_empty() and pl["rummaged"]
 		var tex := RunArt.tex("pile_empty" if empty else "pile")
+		if pl.get("locker", false):
+			tex = RunArt.tex("locker_open" if pl["popped"] > 0 else "locker")
 		ci.draw_texture(tex, (pl["pos"] as Vector2) - Vector2(tex.get_width() / 2.0, tex.get_height() - 5))
 		if not empty:
 			var ph: float = fmod(t * 0.8 + pl["pos"].x * 0.013, 1.6)
@@ -251,8 +253,7 @@ func _draw_ents() -> void:
 				near_pile = pl
 	if not near_pile.is_empty() and p.state != "down":
 		if is_same(world.search_target, near_pile):
-			var depth: int = world.rooms[near_pile["room"]]["depth"]
-			var per := RunCfg.f("search_per_bundle", 0.5) + depth * RunCfg.f("search_depth_extra", 0.04) + (RunCfg.f("search_first_extra", 0.15) if near_pile["popped"] == 0 else 0.0)
+			var per: float = world.search_need(near_pile)
 			_progress_ring(ci, (near_pile["pos"] as Vector2) + Vector2(0, -14), 6.0, near_pile["progress"] / per, YEL)
 			for k in 2:
 				parts.append({"p": (near_pile["pos"] as Vector2) + Vector2(randf_range(-8, 8), -4), "v": Vector2(randf_range(-30, 30), randf_range(-50, -20)), "life": 0.25, "max": 0.25, "col": Color("8a7860"), "size": 1.0})

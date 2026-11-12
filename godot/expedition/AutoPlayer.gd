@@ -307,7 +307,7 @@ func _goal(inp: RunInput, w: RunWorld) -> Vector2:
 	if full and not should_leave:
 		# 배낭이 찼다: 두목에 덤빌 체력이면 두목 방으로 곧장, 아니면 나간다
 		var b0: Actor = w.boss
-		if b0 == null or b0.dead or p.hp < int(P.get("boss_hp", 3)):
+		if b0 == null or b0.dead or p.hp < int(P.get("full_boss_hp", P.get("boss_hp", 3))):
 			should_leave = true
 			leave_reason = "full"
 	leaving = should_leave

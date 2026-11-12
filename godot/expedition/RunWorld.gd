@@ -116,7 +116,7 @@ func setup(p_dest: String, begin: Dictionary) -> void:
 				player.pos = p
 				player.room = o["room"]
 			"pile":
-				piles.append({"pos": p, "cell": c, "room": o["room"], "bundles": o.get("bundles", []), "heal": o.get("heal", false), "progress": 0.0, "popped": 0, "rummaged": false})
+				piles.append({"pos": p, "cell": c, "room": o["room"], "bundles": o.get("bundles", []), "heal": o.get("heal", false), "progress": 0.0, "popped": 0, "rummaged": false, "locker": o.get("locker", false)})
 			"throwable":
 				items.append(_mk_item("throw", p, {"tk": o.get("kind", "can")}))
 			"rat":
@@ -363,11 +363,12 @@ func _interact(dt: float, mv: Vector2) -> void:
 	if not is_same(search_target, best):
 		search_target = best
 		_ev("search_start", {"pos": best["pos"]})
-	var depth: int = rooms[best["room"]]["depth"]
-	var per := RunCfg.f("search_per_bundle", 0.5) + depth * RunCfg.f("search_depth_extra", 0.04)
-	var need := per + (RunCfg.f("search_first_extra", 0.15) if best["popped"] == 0 else 0.0)
+	var need := search_need(best)
 	best["progress"] += dt
-	_add_noise(RunCfg.f("noise_search", 6.0) * dt)
+	_add_noise(RunCfg.f("noise_search", 6.0) * dt * (RunCfg.f("locker_noise_mult", 1.6) if best.get("locker", false) and best["popped"] == 0 else 1.0))
+	if best.get("locker", false) and best["popped"] == 0 and fmod(best["progress"], 0.35) < dt:
+		_ev("sfx", {"id": "clank"})
+		_ev("dust", {"pos": best["pos"], "n": 2, "dir": Vector2.UP})
 	_hear(p.pos, 46.0, dt)
 	if best["progress"] >= need:
 		best["progress"] = 0.0
@@ -395,6 +396,17 @@ func _interact(dt: float, mv: Vector2) -> void:
 			best["rummaged"] = true
 			search_target = {}
 			_ev("search_stop", {})
+
+
+## 이 더미에서 다음 묶음이 나오기까지 E를 누르고 있어야 하는 초.
+func search_need(pl: Dictionary) -> float:
+	var depth: int = rooms[pl["room"]]["depth"]
+	var per := RunCfg.f("search_per_bundle", 0.5) + depth * RunCfg.f("search_depth_extra", 0.04)
+	if pl["popped"] == 0:
+		per += RunCfg.f("search_first_extra", 0.15)
+		if pl.get("locker", false):
+			per += RunCfg.f("locker_open", 1.8)
+	return per
 
 
 func _pop_item(it: Dictionary) -> void:
@@ -1423,7 +1435,7 @@ func _prompt_step() -> void:
 		return
 	for pl in piles:
 		if not (pl["bundles"].is_empty() and pl["rummaged"]) and player.pos.distance_to(pl["pos"]) < 24:
-			prompt = "E 꾹: 뒤지기"
+			prompt = "E 꾹: 따기(시끄럽다)" if pl.get("locker", false) and pl["popped"] == 0 else "E 꾹: 뒤지기"
 			return
 
 
