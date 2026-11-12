@@ -2110,14 +2110,15 @@ func _update_hazards() -> void:
 	_push_emitters()
 
 
-## 양동이 줄: 불난 건물마다 가장 가까운 소방 시설 앞에서 불 아래까지 사람이 늘어서 물통을 건넨다.
-## 소방 시설이 없으면 이웃 몇이 양동이를 들고 뛴다.
+## 양동이 줄: 불난 건물마다 가장 가까운 소방 시설 문에서 불난 집 문까지 주민 길(BFS)을 따라 사람이 늘어서 물통을 건넨다.
+## 길이 없거나 소방 시설이 없으면 불난 집 문 앞에서 이웃 몇이 양동이를 들고 선다.
 func _bucket_lines(burning: Array) -> Array:
 	var out: Array = []
-	if burning.is_empty():
+	if burning.is_empty() or people == null:
 		return out
 	var st: CityState = Game.state
-	var stations: Array = []
+	people.rebuild(st)
+	var station_doors: Array = []
 	for bid in _buildings():
 		var b: Dictionary = _buildings()[bid]
 		if str(b.get("kind", "")) != "facility" or not bool(b.get("active", true)):
@@ -2125,43 +2126,45 @@ func _bucket_lines(burning: Array) -> Array:
 		var c: Dictionary = st.cells.get(b.get("pos", Vector3i(-9, -9, -9)), {})
 		var lk := mesher.look_name(c) if not c.is_empty() else str(b.get("look", ""))
 		if lk == "fire_bucket" or lk == "fire_station":
-			var o: Vector3i = b["pos"]
-			stations.append(Vector3(o.x + 0.5 * float(int(b.get("w", 1))), 0.0, o.y + 0.5 * float(int(b.get("h", 1)))))
+			station_doors.append_array(people.doors.get(int(bid), []))
 	var done: Dictionary = {}
 	var k := 0
+	var fh := cfg.floor_h
 	for p in burning:
 		var bid := int(st.cells[p].get("bid", -1))
 		if done.has(bid):
 			continue
 		done[bid] = true
-		var target := Vector3(p.x + 0.5, 0.0, p.y + 0.5)
-		# 불 아래 지면에서 가장 가까운 빈 바닥
-		var best := target
-		var bd := 99.0
-		for dx in range(-2, 3):
-			for dy in range(-2, 3):
-				var q := Vector3i(p.x + dx, p.y + dy, 0)
-				if q.x < -1 or q.y < -1 or q.x > cfg.grid.x or q.y > cfg.grid.y or st.cells.has(q):
-					continue
-				var dd := Vector2(dx, dy).length()
-				if dd < bd:
-					bd = dd
-					best = Vector3(q.x + 0.5, 0.0, q.y + 0.5)
-		if stations.is_empty():
+		var goal: Array = people.doors.get(bid, [])
+		if goal.is_empty():
+			continue
+		var path: Array = []
+		for sd in station_doors:
+			var pth: Array = people._path(sd, goal, 3000)
+			if not pth.is_empty() and (path.is_empty() or pth.size() < path.size()):
+				path = pth
+		if path.size() < 2:
+			var g0: Vector3i = goal[0]
 			for i in 3:
-				out.append({"bid": -100 - k, "i": i, "pos": best + Vector3(0.25 * float(i) - 0.25, 0, 0.2 * float(i % 2)), "dir": Vector3(0, 0, -1), "pose": "bucket", "role": "idle", "out": true, "z": 0, "t0": 1, "look": "fire"})
+				out.append({"bid": -100 - k, "i": i, "pos": Vector3(g0.x + 0.3 + 0.2 * float(i), g0.z * fh, g0.y + 0.3 + 0.15 * float(i % 2)), "dir": Vector3(0, 0, -1), "pose": "bucket", "role": "idle", "out": true, "z": g0.z, "t0": 1, "look": "fire", "tier": 1})
 			k += 1
 			continue
-		var src: Vector3 = stations[0]
-		for sp in stations:
-			if (sp as Vector3).distance_to(best) < src.distance_to(best):
-				src = sp
-		var dist := src.distance_to(best)
-		var n := clampi(int(dist / 0.42), 2, 22)
-		var dv := (best - src).normalized()
-		for i in n + 1:
-			var pos := src.lerp(best, float(i) / float(n)) + Vector3(-dv.z, 0, dv.x) * (0.06 if i % 2 == 0 else -0.06)
-			out.append({"bid": -100 - k, "i": i, "pos": pos, "dir": dv if i % 2 == 0 else -dv, "pose": "pass" if i < n else "bucket", "role": "idle", "out": true, "z": 0, "t0": 1, "look": "fire_bucket", "tier": 2})
+		var pts: Array = []
+		for n in path:
+			pts.append(Vector3(n.x + 0.5, n.z * fh, n.y + 0.5))
+		var acc := 0.0
+		var idx := 0
+		for i in pts.size() - 1:
+			var a0: Vector3 = pts[i]
+			var a1: Vector3 = pts[i + 1]
+			var seg := a0.distance_to(a1)
+			var dv := (a1 - a0) / maxf(seg, 0.001)
+			while acc <= seg and idx < 40:
+				var pos := a0 + dv * acc + Vector3(-dv.z, 0, dv.x) * (0.08 if idx % 2 == 0 else -0.08)
+				out.append({"bid": -100 - k, "i": idx, "pos": pos, "dir": dv if idx % 2 == 0 else -dv, "pose": "pass", "role": "idle", "out": true, "z": int(pos.y / fh + 0.1), "t0": 1, "look": "fire_bucket", "tier": 2})
+				idx += 1
+				acc += 0.45
+			acc -= seg
 		k += 1
 	return out
 

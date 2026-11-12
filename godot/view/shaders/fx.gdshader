@@ -105,8 +105,8 @@ void vertex() {
 		life = fract(time_s / dur + seed * 7.0);
 		p.x += (h1(seed * 17.0) - 0.5) * 0.7 + sin(time_s * 9.0 + seed * 30.0) * 0.04;
 		p.z += (h1(seed * 29.0) - 0.5) * 0.7;
-		p.y += life * (0.55 + 0.35 * h1(seed * 3.0));
-		sz = floor(3.0 - life * 2.0 + 0.5) * zoom;
+		p.y += life * (0.7 + 0.45 * h1(seed * 3.0));
+		sz = floor(5.0 - life * 3.5 + 0.5) * zoom;
 	} else if (kind > 8.5 && kind < 9.5) {   // 검은 연기(불)
 		float dur = 3.0 + seed * 1.5;
 		life = fract(time_s / dur + seed * 7.0);

@@ -257,6 +257,7 @@ func _process(_dt: float) -> void:
 		print("PROF ", view.prof)
 		print("PERF fps=%.1f frame_ms=%.1f draw_calls=%d" % [Engine.get_frames_per_second(), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME)])
 	if _args.has("dbgact") and _frame == int(_args["dbgact"]):
+		print("EXTRA ", view.actors.extra.size(), " ", view.actors.extra.slice(0, 2))
 		print("ACT slots=%d vis=%d zoom=%d inner=%s cut=%d" % [view.actors.slots.size(), view.actors.count(), view.zoom_i, str(view.interior_zoom()), view.floor_cut])
 		if view.actors.slots.size() > 0:
 			print("  first ", view.actors.slots[0])

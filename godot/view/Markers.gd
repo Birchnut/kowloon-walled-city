@@ -108,7 +108,7 @@ func refresh(st: CityState) -> void:
 			kind = KINDS["fire"]
 		elif burn == "burnt":
 			kind = KINDS["repair"] if b.get("repair", null) is Dictionary else KINDS["burnt"]
-		elif bool(b.get("sick", false)) and (zi >= 2 or show_warn or ViewCfg.h2(int(bid), 3) % 4 == 0):
+		elif bool(b.get("sick", false)) and (zi >= 3 or show_warn or ViewCfg.h2(int(bid), 3) % 5 == 0):
 			kind = KINDS["sick"]   # 멀리선 병든 집 넷 중 하나만(구역이 보이면 충분), 가까이선 전부
 		elif bk == "house":
 			var ns: String = str(b.get("need_state", "ok"))
