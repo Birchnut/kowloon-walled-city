@@ -272,6 +272,17 @@ static func _hud(v: Variant) -> Variant:
 			"disease": {"on": dis["on"], "sick_houses": (dis["sick"] as Array).size(), "covered_pct": dis["covered_pct"]}}
 	if not d.has("signals"):
 		d["signals"] = _signals(d)
+	if sample_hazards:
+		# 견본 알림(시뮬 alerts 모양): 불난 집 → focus, 아픈 집 → 수거 렌즈
+		var hz2 := _hazards()
+		var al: Array = UI.to_array(d.get("alerts", [])).duplicate()
+		for b: Variant in hz2["fire"]["burning"]:
+			var p: Vector3i = UI.to_dict(b).get("pos")
+			al.insert(0, {"id": "fire_%d" % int(UI.to_dict(b).get("bid", 0)), "text": "불이 났다! %d층 %d,%d — 소방 범위 밖" % [p.z + 1, p.x, p.y], "tone": "bad", "jump": {"screen": "focus", "arg": "%d,%d,%d" % [p.x, p.y, p.z]}})
+		if not (hz2["disease"]["sick"] as Array).is_empty():
+			al.insert(1, {"id": "sick", "text": "병이 돈다 — 아픈 집 %d채. 쓰레기 수거 범위를 넓힌다." % (hz2["disease"]["sick"] as Array).size(), "tone": "bad", "jump": {"screen": "lens", "arg": "trash"}})
+		d["alerts"] = al
+		d["alerts_total"] = al.size()
 	return d
 
 
