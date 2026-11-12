@@ -1,5 +1,5 @@
 {
- "_comment": "탐험 목적지(GDD §8, 브리프 §13). seconds = 실제 초(왕복 포함, 배속과 무관). primary = 보장 주력(min~max, 출발 때 굴림), picks가 있으면 그중 고른 자재가 주력. bonus = 덤(chance 확률로 min~max). finds = 발견(첫 방문 once 또는 확률): partner(거래처), dest(목적지), blueprint(도면), parts는 bonus로. reveals = 처음 수령할 때 알게 되는 목적지. cost = 출발 비용. map = 지도 위치(0..1, 성채 = 0.5,0.5). 수치는 실험값 — simulation/reports/SUMMARY.md.",
+ "_comment": "탐험 목적지(던전, v0.4 PC). days = 게임 시계 경제일(왕복, 배속을 따른다). primary = 보장 주력(min~max, 출발 때 굴림), picks가 있으면 그중 고른 자재가 주력. bonus = 덤(chance 확률). finds = 발견(partner/blueprint, once = 첫 방문만). reveals = 처음 다녀오면 알게 되는 목적지. stock = 던전 재고(털면 줄고 하루에 최대치 × regen만큼 다시 찬다 — 자동 파견도 직접 줍기도 여기서 뺀다). danger = 직접 줍기 위험. run = 직접 줍기 설정(carry 배낭 칸, boss 두목 덤) — 전역 run을 덮어쓴다. cost = 출발 비용.",
  "status": "실험값",
  "teams": {
   "max": 3,
@@ -7,119 +7,144 @@
  },
  "provision": {
   "goods": [
-   "veg",
-   "noodles",
-   "fishball"
+   "cans",
+   "wonton",
+   "burger"
   ],
   "n": 10,
   "bonus": 0.25,
-  "_status": "실험값(가정 A10): 끼니 10(채소·국수·어묵 중 재고 많은 것부터)을 실으면 주력·덤 +25%"
+  "_status": "실험값: 끼니 10(통조림·완탕면·버거 중 재고 많은 것부터)을 실으면 주력·덤 +25%"
  },
  "items": {
-  "furniture_alley": {
-   "name": "철거된 가구 골목",
+  "junk_yard": {
+   "name": "고물 야적장",
    "band": "near",
-   "seconds": 300,
-   "map": [
-    0.36,
-    0.62
-   ],
-   "known": true,
-   "desc": "문짝·장롱·판재가 쌓인 골목. 손수레 두어 번이면 끝난다.",
-   "primary": {
-    "good": "wood",
-    "min": 5,
-    "max": 5
-   },
-   "bonus": [
-    {
-     "good": "scrap",
-     "min": 2,
-     "max": 5,
-     "chance": 1.0
-    }
-   ],
-   "reveals": [
-    "warehouse_district",
-    "back_docks"
-   ],
-   "cost": {
-    "money": 0
-   }
-  },
-  "scrap_yard": {
-   "name": "고철 야적장",
-   "band": "near",
-   "seconds": 420,
+   "days": 0.3,
    "map": [
     0.64,
     0.6
    ],
    "known": true,
-   "desc": "폐정비소 뒤 고철 더미. 프레임과 패널을 골라 온다.",
+   "desc": "녹슨 프레임과 패널이 쌓인 야적장. 들개가 주인 행세를 한다.",
    "primary": {
     "good": "metal",
-    "min": 7,
-    "max": 7
+    "min": 20,
+    "max": 20
    },
    "bonus": [
     {
      "good": "scrap",
-     "min": 3,
-     "max": 6,
+     "min": 5,
+     "max": 10,
+     "chance": 1.0
+    },
+    {
+     "good": "elec_scrap",
+     "min": 2,
+     "max": 4,
      "chance": 1.0
     }
    ],
    "reveals": [
-    "warehouse_district",
+    "old_factory",
     "back_docks"
    ],
+   "stock": {
+    "metal": 100,
+    "scrap": 40,
+    "elec_scrap": 30
+   },
+   "regen": 0.8,
+   "danger": 1,
    "cost": {
     "money": 0
    }
   },
-  "demolition_site": {
-   "name": "철거 공사장",
+  "landfill": {
+   "name": "쓰레기 매립지",
    "band": "near",
-   "seconds": 600,
+   "days": 0.3,
+   "map": [
+    0.36,
+    0.62
+   ],
+   "known": true,
+   "desc": "문짝과 장롱이 묻힌 매립지. 파면 나온다. 냄새도 나온다.",
+   "primary": {
+    "good": "wood",
+    "min": 20,
+    "max": 20
+   },
+   "bonus": [
+    {
+     "good": "scrap",
+     "min": 5,
+     "max": 10,
+     "chance": 1.0
+    }
+   ],
+   "reveals": [
+    "old_factory",
+    "back_docks"
+   ],
+   "stock": {
+    "wood": 100,
+    "scrap": 40
+   },
+   "regen": 0.8,
+   "danger": 1,
+   "cost": {
+    "money": 0
+   }
+  },
+  "demo_site": {
+   "name": "철거 현장",
+   "band": "near",
+   "days": 0.3,
    "map": [
     0.5,
     0.33
    ],
    "known": true,
-   "desc": "헐린 아파트. 쓸 만한 블록과 프리캐스트 부재를 추린다.",
+   "desc": "헐다 만 아파트. 쓸 만한 블록을 추린다. 남은 벽이 언제 무너질지는 모른다.",
    "primary": {
     "good": "concrete",
-    "min": 10,
-    "max": 10
+    "min": 20,
+    "max": 20
    },
    "bonus": [
     {
      "good": "scrap",
-     "min": 2,
-     "max": 5,
+     "min": 5,
+     "max": 10,
      "chance": 1.0
     }
    ],
    "reveals": [
-    "warehouse_district",
+    "old_factory",
     "back_docks"
    ],
+   "stock": {
+    "concrete": 100,
+    "scrap": 40
+   },
+   "regen": 0.8,
+   "danger": 1,
    "cost": {
     "money": 0
    }
   },
-  "warehouse_district": {
-   "name": "외곽 창고 지대",
+  "old_factory": {
+   "name": "폐공장",
    "band": "mid",
-   "seconds": 2700,
+   "days": 1.0,
    "map": [
     0.18,
     0.4
    ],
    "known": false,
    "reveal_hint": "근거리 탐험에서 처음 돌아오면 알게 된다",
-   "desc": "버려진 창고들. 자재를 골라 실어 오고, 본토 보따리상과 줄이 닿는다.",
+   "desc": "문 닫은 공장. 자재를 골라 실어 오고, 본토 보따리상과 줄이 닿는다.",
    "picks": [
     "wood",
     "metal",
@@ -127,27 +152,27 @@
    ],
    "primary": {
     "good": "",
-    "min": 25,
-    "max": 28
+    "min": 65,
+    "max": 70
    },
    "bonus": [
     {
-     "good": "flour",
-     "min": 15,
-     "max": 25,
+     "good": "elec_scrap",
+     "min": 8,
+     "max": 14,
      "chance": 1.0
     },
     {
-     "good": "cloth",
-     "min": 8,
-     "max": 14,
+     "good": "scrap",
+     "min": 10,
+     "max": 20,
      "chance": 1.0
     },
     {
      "good": "parts",
      "min": 1,
      "max": 1,
-     "chance": 0.05
+     "chance": 0.2
     }
    ],
    "finds": [
@@ -158,9 +183,18 @@
     }
    ],
    "reveals": [
-    "timber_yard",
-    "industrial_park"
+    "waste_plant",
+    "ghost_town"
    ],
+   "stock": {
+    "wood": 350,
+    "metal": 350,
+    "concrete": 350,
+    "elec_scrap": 80,
+    "scrap": 80
+   },
+   "regen": 0.8,
+   "danger": 2,
    "cost": {
     "money": 30
    }
@@ -168,31 +202,31 @@
   "back_docks": {
    "name": "부두 뒷골목",
    "band": "mid",
-   "seconds": 3600,
+   "days": 1.0,
    "map": [
     0.84,
     0.36
    ],
    "known": false,
    "reveal_hint": "근거리 탐험에서 처음 돌아오면 알게 된다",
-   "desc": "밤에만 열리는 부두. 고물과 전자 부품, 그리고 암시장 사람들.",
+   "desc": "밤에만 열리는 부두. 고물과 전자 폐품, 그리고 암시장 사람들.",
    "primary": {
-    "good": "scrap",
-    "min": 30,
-    "max": 40
+    "good": "elec_scrap",
+    "min": 25,
+    "max": 30
    },
    "bonus": [
     {
-     "good": "elec",
-     "min": 6,
-     "max": 10,
+     "good": "scrap",
+     "min": 20,
+     "max": 30,
      "chance": 1.0
     },
     {
      "good": "parts",
      "min": 1,
      "max": 1,
-     "chance": 0.1
+     "chance": 0.3
     }
    ],
    "finds": [
@@ -203,111 +237,117 @@
     }
    ],
    "reveals": [
-    "megasite",
     "old_plant"
    ],
+   "stock": {
+    "elec_scrap": 150,
+    "scrap": 120
+   },
+   "regen": 0.8,
+   "danger": 2,
    "cost": {
     "money": 30
    }
   },
-  "timber_yard": {
-   "name": "산지 목재 야적장",
+  "waste_plant": {
+   "name": "폐기물 처리장",
    "band": "far",
-   "seconds": 14400,
-   "map": [
-    0.06,
-    0.12
-   ],
-   "known": false,
-   "reveal_hint": "외곽 창고 지대를 다녀오거나 연구 '지도 제작'",
-   "desc": "산 너머 제재소 터. 다녀오는 데 반나절, 목재가 산더미다.",
-   "primary": {
-    "good": "wood",
-    "min": 60,
-    "max": 65
-   },
-   "bonus": [
-    {
-     "good": "parts",
-     "min": 1,
-     "max": 1,
-     "chance": 1.0
-    },
-    {
-     "good": "scrap",
-     "min": 10,
-     "max": 20,
-     "chance": 1.0
-    }
-   ],
-   "cost": {
-    "money": 80
-   }
-  },
-  "industrial_park": {
-   "name": "폐산업 단지",
-   "band": "far",
-   "seconds": 14400,
+   "days": 3.0,
    "map": [
     0.92,
     0.1
    ],
    "known": false,
-   "reveal_hint": "외곽 창고 지대를 다녀오거나 연구 '지도 제작'",
-   "desc": "문 닫은 공단. 철골을 뜯고 설비 부품을 챙긴다.",
+   "reveal_hint": "폐공장을 다녀오거나 연구 '약도 그리기'",
+   "desc": "아무도 처리하지 않는 처리장. 쓸 만한 자재를 골라 뜯고 설비 부품을 챙긴다. 두목은 덩치 큰 집게차.",
+   "picks": [
+    "metal",
+    "wood",
+    "concrete"
+   ],
    "primary": {
-    "good": "metal",
-    "min": 60,
-    "max": 65
+    "good": "",
+    "min": 180,
+    "max": 190
    },
    "bonus": [
     {
      "good": "parts",
-     "min": 1,
-     "max": 1,
+     "min": 2,
+     "max": 3,
      "chance": 1.0
     },
     {
      "good": "scrap",
-     "min": 10,
-     "max": 20,
+     "min": 20,
+     "max": 30,
+     "chance": 1.0
+    },
+    {
+     "good": "elec_scrap",
+     "min": 4,
+     "max": 8,
      "chance": 1.0
     }
    ],
+   "stock": {
+    "metal": 950,
+    "parts": 20,
+    "scrap": 100,
+    "elec_scrap": 30,
+    "wood": 950,
+    "concrete": 950
+   },
+   "regen": 0.8,
+   "danger": 3,
    "cost": {
     "money": 80
    }
   },
-  "megasite": {
-   "name": "버려진 대형 건설 현장",
+  "ghost_town": {
+   "name": "버려진 신도시",
    "band": "far",
-   "seconds": 18000,
+   "days": 3.0,
    "map": [
-    0.5,
-    0.04
+    0.06,
+    0.12
    ],
    "known": false,
-   "reveal_hint": "부두 뒷골목을 다녀오거나 연구 '지도 제작'",
-   "desc": "짓다 만 고층 단지. 프리캐스트 부재가 줄지어 누워 있다.",
+   "reveal_hint": "폐공장을 다녀오거나 연구 '약도 그리기'",
+   "desc": "짓다 만 고층 단지. 목재·콘크리트를 골라 온다.",
+   "picks": [
+    "wood",
+    "concrete",
+    "metal"
+   ],
    "primary": {
-    "good": "concrete",
-    "min": 75,
-    "max": 80
+    "good": "",
+    "min": 180,
+    "max": 190
    },
    "bonus": [
     {
      "good": "parts",
-     "min": 1,
-     "max": 1,
+     "min": 2,
+     "max": 3,
      "chance": 1.0
     },
     {
      "good": "scrap",
-     "min": 10,
-     "max": 20,
+     "min": 20,
+     "max": 30,
      "chance": 1.0
     }
    ],
+   "stock": {
+    "wood": 950,
+    "concrete": 950,
+    "metal": 950,
+    "parts": 20,
+    "scrap": 100
+   },
+   "regen": 0.8,
+   "danger": 3,
    "cost": {
     "money": 80
    }
@@ -315,18 +355,18 @@
   "old_plant": {
    "name": "옛 발전소",
    "band": "far",
-   "seconds": 28800,
+   "days": 4.0,
    "map": [
     0.9,
     0.86
    ],
    "known": false,
-   "reveal_hint": "부두 뒷골목을 다녀오거나 연구 '지도 제작'",
-   "desc": "녹슨 터빈이 서 있는 발전소. 처음 가면 열병합 도면을 찾는다.",
+   "reveal_hint": "부두 뒷골목을 다녀오거나 연구 '약도 그리기'",
+   "desc": "녹슨 터빈이 서 있는 발전소. 처음 가면 쓰레기 화력 발전 도면을 찾는다.",
    "primary": {
     "good": "parts",
-    "min": 3,
-    "max": 4
+    "min": 6,
+    "max": 8
    },
    "bonus": [
     {
@@ -340,18 +380,44 @@
      "min": 20,
      "max": 30,
      "chance": 1.0
+    },
+    {
+     "good": "elec_scrap",
+     "min": 6,
+     "max": 10,
+     "chance": 1.0
     }
    ],
    "finds": [
     {
      "type": "blueprint",
-     "id": "chp",
+     "id": "power_waste",
      "once": true
     }
    ],
+   "stock": {
+    "parts": 20,
+    "scrap": 150,
+    "metal": 90,
+    "elec_scrap": 30
+   },
+   "regen": 0.8,
+   "danger": 4,
    "cost": {
     "money": 80
+   },
+   "run": {
+    "boss": {
+     "parts": 2
+    }
    }
   }
+ },
+ "run": {
+  "carry": 40,
+  "boss": {
+   "parts": 1
+  },
+  "_status": "직접 줍기(약속만): 배낭 칸 수, 두목 덤. 목적지 run{}이 덮어쓴다"
  }
 }

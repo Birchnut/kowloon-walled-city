@@ -86,6 +86,37 @@ func bdef(type: String) -> Dictionary:
 	return d if d is Dictionary else {}
 
 
+## 시설 발자국 (w, h, d) — 데이터 footprint:[w,h](없으면 size), floors(층 수), rot 1이면 w·h가 바뀐다.
+func fp(type: String, rot: int = 0) -> Vector3i:
+	var d := bdef(type)
+	var w := int(d.get("size", 1))
+	var h := w
+	var f: Variant = d.get("footprint", null)
+	if f is Array and (f as Array).size() == 2:
+		w = int(f[0])
+		h = int(f[1])
+	if rot % 2 == 1:
+		var t := w
+		w = h
+		h = t
+	return Vector3i(w, h, maxi(1, int(d.get("floors", 1))))
+
+
+## 공사 날짜(경제일): 데이터 build_days, 없으면 크기별 기본값(config build.days_by_cells).
+func build_days(type: String) -> float:
+	var d := bdef(type)
+	if d.has("build_days"):
+		return float(d["build_days"])
+	var k := fp(type)
+	var n := k.x * k.y * k.z
+	var tab: Dictionary = cfg("build.days_by_cells", {})
+	var best := 0.1
+	for key: String in tab:
+		if n >= int(key):
+			best = float(tab[key])
+	return best
+
+
 func good(id: String) -> Dictionary:
 	var d: Variant = _goods.get(id)
 	return d if d is Dictionary else {}
@@ -131,9 +162,27 @@ func cap_of(state: CityState, g: String) -> float:
 
 ## 시설의 인력 비율. workforce 시스템이 꺼져 있으면 1(노동 제약 없음). 일시정지·파산 정지면 0.
 func staff_of(b: Dictionary) -> float:
-	if b.get("paused", false) or b.get("money_stop", false) or b.get("raided", false):
+	if off_reason(b) != "":
 		return 0.0
 	return float(b.get("staff", 0.0)) if enabled.has("workforce") else 1.0
+
+
+## 시설이 사람을 받지 않고 멈춘 이유(""이면 돌 수 있다): paused · money · raid · sky(위가 막힘) · fire(불타는 중) · burnt(탐) · repair(수리 중).
+static func off_reason(b: Dictionary) -> String:
+	if b.get("paused", false):
+		return "paused"
+	if b.get("money_stop", false):
+		return "money"
+	if b.get("raided", false):
+		return "raid"
+	var bn := str(b.get("burn", ""))
+	if bn == "burning":
+		return "fire"
+	if bn == "burnt":
+		return "repair" if b.get("repair") != null else "burnt"
+	if b.get("shade", false):
+		return "sky"
+	return ""
 
 
 func is_unlocked(state: CityState, id: String) -> bool:
@@ -356,83 +405,8 @@ func _fold_flow(state: CityState, dt: float = -1.0) -> void:
 			state.flow[g][key] = float(state.flow[g][key]) + float(_fa[g][key])
 
 
-## 미접속 빨리감기(GDD §1, 확정: 느리게 + 보호). 같은 규칙을 offline 표시를 켜고 큰 스텝으로 돈다:
-##  - needs: 부족 일수(유예 시계)가 늘지 않고 아무도 떠나지 않는다. upgrades: 대기 주민의 남은 날도 멈춘다.
-##  - 재고가 0이 된 상품은 그 소비·생산만 멈춘다(원래 규칙). 계약·연구는 경제 시계로 계속, 탐험은 실제 시계(now_unix)로 끝난다.
-## 반환 {econ_days, lines[]}. 요약 줄: 돈 흐름, 많이 만든·쓴 것, 계약, 부족이 시작된 때, 돌아온 탐험대.
-var offline_log: Dictionary = {}    # 빨리감기 중 시스템이 남기는 표시용 기록(short: {상품: 처음 모자란 econ_days})
-
-
-func fast_forward(state: CityState, econ_days: float, real_seconds: float = -1.0) -> Dictionary:
-	var before := {"money": state.money, "pop": state.population(), "stock": state.stock.duplicate(), "stats": state.stats.duplicate(),
-		"econ": state.econ_days, "ledger_today": (state.ledger.get("today", {}) as Dictionary).duplicate(), "days": (state.ledger.get("days", []) as Array).size()}
-	offline_log = {"short": {}, "start": state.econ_days}
-	offline = true
-	tick(state, econ_days)
-	offline = false
-	state.settle()
-	var lines: Array = []
-	var rh := real_seconds / 3600.0 if real_seconds >= 0.0 else econ_days * float(cfg("time.seconds_per_day", 600)) / maxf(0.01, float(cfg("time.offline_speed", 0.25))) / 3600.0
-	lines.append("자리를 비운 %s 동안 성채의 시간은 %.1f일 흘렀다(미접속 중에는 %s배로 느리게)." % [_hours(rh), econ_days, str(cfg("time.offline_speed", 0.25))])
-	var dm := state.money - float(before["money"])
-	lines.append("금고 %s → %s (%s%s)." % [won(float(before["money"])), won(state.money), "+" if dm >= 0.0 else "−", won(absf(dm))])
-	var made: Array = []
-	var used: Array = []
-	var bs: Dictionary = before["stats"]
-	for k: String in state.stats:
-		if k.begins_with("prod.") or k.begins_with("cons."):
-			var d := float(state.stats[k]) - float(bs.get(k, 0.0))
-			if d >= 1.0:
-				(made if k.begins_with("prod.") else used).append([d, k.substr(5)])
-	for arr: Array in [made, used]:
-		arr.sort_custom(func(x: Array, y: Array) -> bool: return x[0] > y[0])
-	if not made.is_empty():
-		lines.append("만든 것: " + " · ".join(made.slice(0, 4).map(func(x: Array) -> String: return "%s %d" % [gname(x[1]), int(x[0])])))
-	if not used.is_empty():
-		lines.append("쓴 것: " + " · ".join(used.slice(0, 4).map(func(x: Array) -> String: return "%s %d" % [gname(x[1]), int(x[0])])))
-	var sh: Dictionary = offline_log.get("short", {})
-	if not sh.is_empty():
-		var parts: Array = []
-		for g: String in sh:
-			var at_real := (float(sh[g]) - float(before["econ"])) * float(cfg("time.seconds_per_day", 600)) / maxf(0.01, float(cfg("time.offline_speed", 0.25)))
-			parts.append("%s(떠난 지 %s부터)" % [gname(g), _hours(at_real / 3600.0)])
-		lines.append("모자랐던 것: " + ", ".join(parts.slice(0, 4)) + ". 미접속 중이라 아무도 떠나지 않았다.")
-	var pd := state.population() - int(before["pop"])
-	if pd != 0:
-		lines.append("인구 %d → %d명." % [int(before["pop"]), state.population()])
-	for s: SimSystem in systems:
-		s.fast_forward(state, econ_days, before, lines)
-	return {"econ_days": econ_days, "lines": lines}
-
-
-## 미접속 정산 한 번: 저장 시각(state.last_saved_unix) → now_unix 실제 경과를 경제일로 바꿔 fast_forward.
-## 방어: 시계가 거꾸로 가 있으면 0으로(요약에 한 줄), config time.offline_max_real_hours보다 길면 거기까지만.
-## 끝나면 state.last_saved_unix = now_unix(다시 불러도 두 번 세지 않는다). 보여 줄 게 없으면 null.
-func catch_up(state: CityState, now: int) -> Variant:
-	if state.last_saved_unix <= 0:
-		state.last_saved_unix = now
-		return null
-	var raw := float(now - state.last_saved_unix)
-	var note := ""
-	if raw < 0.0:
-		note = "기기 시계가 마지막 저장보다 %s 뒤로 가 있어 흐른 시간을 0으로 쳤다." % _hours(-raw / 3600.0)
-		raw = 0.0
-	var cap_s := float(cfg("time.offline_max_real_hours", 8)) * 3600.0
-	var clamped := raw > cap_s
-	var real_s := minf(raw, cap_s)
-	state.last_saved_unix = now
-	var econ := real_s * float(cfg("time.offline_speed", 0.25)) / maxf(float(cfg("time.seconds_per_day", 600)), 1.0)
-	if econ < step_days:
-		if note != "":
-			return {"real_hours": 0.0, "econ_days": 0.0, "lines": [note]}
-		return null
-	var r := fast_forward(state, econ, real_s)
-	var lines: Array = r["lines"]
-	if clamped:
-		lines.insert(1, "%s 넘게 비웠지만 미접속 계산은 최대 %s까지만 한다." % [_hours(raw / 3600.0), _hours(cap_s / 3600.0)])
-	if note != "":
-		lines.insert(0, note)
-	return {"real_hours": snappedf(real_s / 3600.0, 0.01), "econ_days": snappedf(econ, 0.01), "lines": lines, "clamped": clamped}
+## v4(PC): 미접속 정산은 없다(time.offline_speed = 0, 게임 시계만). offline은 늘 false — 옛 규칙의 분기만 남아 있다.
+var offline_log: Dictionary = {}
 
 
 static func _hours(h: float) -> String:

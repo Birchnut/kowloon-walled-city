@@ -132,12 +132,8 @@ func run_seed(seed_v: int, days: float, every: int) -> String:
 	B.no_cache = true
 	var sa := CityState.new()
 	var sb := CityState.new()
-	A.now_unix = 5_000_000
-	B.now_unix = 5_000_000
 	A.new_game(sa, seed_v)
 	B.new_game(sb, seed_v)
-	sa.last_saved_unix = A.now_unix
-	sb.last_saved_unix = B.now_unix
 	var bot: Bot = Bot.new(A, "balanced") if seed_v % 2 == 0 else null
 	var sims := [A, B]
 	var sts := [sa, sb]
@@ -184,22 +180,18 @@ func run_seed(seed_v: int, days: float, every: int) -> String:
 			trail.append("저장→불러오기")
 			counts["~reload"] = int(counts.get("~reload", 0)) + 1
 		elif roll < 5:
-			var sec := 600 + ri(20000)
+			var dd := float(1 + ri(24)) / 24.0
 			for i: int in 2:
-				(sims[i] as Sim).now_unix += sec
-				(sims[i] as Sim).catch_up(sts[i], (sims[i] as Sim).now_unix)
-			trail.append("catch_up %d초" % sec)
-			counts["~catch_up"] = int(counts.get("~catch_up", 0)) + 1
+				(sims[i] as Sim).apply(sts[i], "debug", {"op": "skip_days", "n": dd})
+				(sts[i] as CityState).events.clear()
+			trail.append("skip_days %.2f" % dd)
+			counts["~skip_days"] = int(counts.get("~skip_days", 0)) + 1
 		# 스텝 진행
 		var k := 1 + ri(8)
-		var secs: Array = []
-		for _s: int in k:
-			secs.append(12 + ri(2))
 		for i: int in 2:
 			var sm: Sim = sims[i]
 			var st: CityState = sts[i]
 			for s: int in k:
-				sm.now_unix += int(secs[s])
 				sm.tick(st, sm.step_days)
 				st.events.clear()
 		step_n += k
@@ -254,6 +246,8 @@ func _gen(sim: Sim, st: CityState, step_n: int, unlocked_all: bool) -> Dictionar
 		return {"name": "debug", "args": {"op": "add_money", "n": float(200 + ri(800))}}
 	if not unlocked_all and step_n > 30 and ri(40) == 0:
 		return {"name": "debug", "args": {"op": "unlock_all"}}
+	if ri(10) == 0:
+		return _hazard_cmd(st)
 	if w < 22:
 		return _zone(sim, st)
 	if w < 42:
@@ -293,6 +287,31 @@ func _gen(sim: Sim, st: CityState, step_n: int, unlocked_all: bool) -> Dictionar
 	if w < 98:
 		return {"name": "debug", "args": {"op": "reveal_partners"}}
 	return _demolish(st, true)
+
+
+## 불·병(hazards): 켜기, 불·발병 일으키기, 탄 건물 수리.
+func _hazard_cmd(st: CityState) -> Dictionary:
+	var k := ri(6)
+	if k == 0:
+		return {"name": "debug", "args": {"op": "set_hazard", "kind": pick(["fire", "disease"]), "on": ri(5) != 0}}
+	var all: Array = []
+	var burnt: Array = []
+	var houses: Array = []
+	for b: Dictionary in st.buildings.values():
+		if b["kind"] == "site":
+			continue
+		all.append(b)
+		if str(b.get("burn", "")) == "burnt" and b.get("repair") == null:
+			burnt.append(b)
+		if b["kind"] == "house":
+			houses.append(b)
+	if k <= 2 and not burnt.is_empty():
+		return {"name": "repair", "args": {"bid": int((pick(burnt) as Dictionary)["id"])}}
+	if k == 3 and not houses.is_empty():
+		return {"name": "debug", "args": {"op": "start_outbreak", "pos": (pick(houses) as Dictionary)["pos"]}}
+	if all.is_empty():
+		return {}
+	return {"name": "debug", "args": {"op": "start_fire", "pos": (pick(all) as Dictionary)["pos"]}}
 
 
 func _facs(st: CityState) -> Array:
@@ -341,9 +360,10 @@ func _build(sim: Sim, st: CityState) -> Dictionary:
 	var type: String = pick(types)
 	for _i: int in 12:
 		var p := Vector3i(ri(sim.W), ri(sim.H), ri(st.floors_unlocked))
-		if bool(sim.can(st, "build", {"type": type, "pos": p}).get("ok", false)):
-			return {"name": "build", "args": {"type": type, "pos": p}}
-	return {"name": "build", "args": {"type": type, "pos": Vector3i(ri(sim.W), ri(sim.H), 0)}}
+		var rot := ri(2)
+		if bool(sim.can(st, "build", {"type": type, "pos": p, "rot": rot}).get("ok", false)):
+			return {"name": "build", "args": {"type": type, "pos": p, "rot": rot}}
+	return {"name": "build", "args": {"type": type, "pos": Vector3i(ri(sim.W), ri(sim.H), 0), "rot": ri(2)}}
 
 
 func _demolish(st: CityState, fac: bool) -> Dictionary:
@@ -403,4 +423,15 @@ func _expedition(sim: Sim, st: CityState) -> Dictionary:
 			known.append(d)
 	if known.is_empty():
 		return {}
+	if ri(5) == 0:
+		if (st.flags.get("run", {}) as Dictionary).is_empty():
+			return {"name": "run_begin", "args": {"dest": pick(known)}}
+	if not (st.flags.get("run", {}) as Dictionary).is_empty():
+		var rd := str(st.flags["run"]["dest"])
+		var stk: Dictionary = st.dests[rd].get("stock", {})
+		var loot := {}
+		for g: String in stk:
+			if ri(2) == 0:
+				loot[g] = ri(int(float(stk[g])) + 3)
+		return {"name": "run_result", "args": {"dest": rd, "loot": loot, "outcome": pick(["boss", "exit", "down"]), "finds": ["partner:docks", "blueprint:chp"] if ri(2) == 0 else []}}
 	return {"name": "expedition_send", "args": {"team": int((pick(idle) as Dictionary)["id"]), "dest": pick(known), "provision": ri(2) == 0}}

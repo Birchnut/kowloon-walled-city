@@ -108,5 +108,5 @@ func query(state: CityState, name: String, _args: Dictionary) -> Variant:
 		var locked := max_s == 0
 		var cost := _cost_per_day(state, p)
 		items.append({"id": id, "name": p.get("name", id), "desc": desc(p), "on": on, "locked": locked,
-			"lock_hint": "세입자 60명이 되면 정책 칸이 열린다" if locked else "", "upkeep": snappedf(cost, 0.1), "group": p.get("group", "")})
+			"lock_hint": "월세 전사 40명이 되면 정책 칸이 열린다" if locked else "", "upkeep": snappedf(cost, 0.1), "group": p.get("group", "")})
 	return {"slots": {"used": _on_count(state), "max": max_s}, "items": items}

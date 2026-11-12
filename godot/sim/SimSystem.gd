@@ -15,7 +15,7 @@ func on_new_game(_state: CityState) -> void:
 	pass
 
 
-## 매 고정 스텝(dt = 경제일). 접속 중에도, 미접속 빨리감기 중에도(sim.offline) 불린다.
+## 매 고정 스텝(dt = 경제일).
 func tick(_state: CityState, _dt: float) -> void:
 	pass
 
@@ -26,11 +26,6 @@ func on_day_end(_state: CityState, _ended_day: int) -> void:
 
 
 func on_day_start(_state: CityState) -> void:
-	pass
-
-
-## 빨리감기 뒤 요약 줄을 lines에 덧붙인다. before = {money, pop, stock}.
-func fast_forward(_state: CityState, _econ_days: float, _before: Dictionary, _lines: Array) -> void:
 	pass
 
 

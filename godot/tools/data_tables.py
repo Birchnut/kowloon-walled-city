@@ -28,6 +28,7 @@ def header(title, src, status):
 
 def main():
     os.makedirs(OUT, exist_ok=True)
+    cfg = load("rules/config.json")
     tiers = load("population/tiers.json")
     needs = load("population/needs.json")
     goods = load("economy/goods.json")
@@ -74,7 +75,7 @@ def main():
     files["goods.md"] = L
 
     L = header("시설", "buildings/buildings.json", blds.get("status", ""))
-    L += ["| id | 이름(간판) | 분류 | 크기 | 비용 | 유지비/일 | 인력 | 생산/공급/서비스 | 물·전기 | 순위 |", "|---|---|---|---|---|---|---|---|---|---|"]
+    L += ["| id | 이름(간판) | 외형(look) | 분류 | 모양(w×h×층) | 공사(일) | 비용 | 유지비/일 | 인력 | 생산/공급/서비스 | 물·전기 | 순위 |", "|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for bid, b in B.items():
         cost = f"₩{n(b['cost']['money'])}" + "".join(f" + {gname(g)} {n(q)}" for g, q in b["cost"].get("goods", {}).items())
         wf = ", ".join(f"{tname(t)} {q}" for t, q in b.get("workforce", {}).items()) or "–"
@@ -86,10 +87,18 @@ def main():
             eff.append(f"{ins} → {outs}" if ins else outs)
         for u, q in b.get("supply", {}).items():
             eff.append(("물" if u == "water" else "전기") + f" +{n(q)}")
+        rg = b.get("range")
+        rgt = f"범위 {rg['r']}칸·위{rg['up']}/아래{rg['down']}층" if isinstance(rg, dict) else ""
         if "market" in b:
-            eff.append(f"시장 {b['market']}등급 범위 {b['range']}")
+            eff.append(f"시장 {b['market']}등급 {rgt}")
         elif b.get("services"):
-            eff.append(", ".join(b["services"]) + f" 범위 {b['range']}")
+            eff.append(", ".join(b["services"]) + f" {rgt}")
+        if b.get("needs_sky"):
+            eff.append("위가 뚫린 자리")
+        if b.get("min_floor"):
+            eff.append(f"{b['min_floor'] + 1}층 이상")
+        if b.get("luxury"):
+            eff.append("사치(행복 유지 해금)")
         if b.get("storage"):
             eff.append("창고")
         if b.get("contract_slots"):
@@ -97,7 +106,10 @@ def main():
         if b.get("vice"):
             eff.append(f"음성 ₩{b['vice']['income']}/일")
         ut = " ".join(x for x in [f"물 {n(b['water'])}" if b.get("water") else "", f"전기 {n(b['power'])}" if b.get("power") else ""] if x) or "–"
-        L.append(f"| {bid} | {b['name']}({b.get('sign', '')}) | {blds['cats'].get(b['cat'], b['cat'])} | {b['size']} | {cost} | {n(b['upkeep'])} | {wf} | {'; '.join(eff)} | {ut} | {b['priority']} |")
+        fp = b.get("footprint", [b.get("size", 1), b.get("size", 1)])
+        cells = fp[0] * fp[1] * b.get("floors", 1)
+        days = b.get("build_days") or max([v for k, v in cfg.get("build", {}).get("days_by_cells", {"1": 0.1}).items() if cells >= int(k)] or [0.1])
+        L.append(f"| {bid} | {b['name']}({b.get('sign', '')}) | {b.get('look', '')} | {blds['cats'].get(b['cat'], b['cat'])} | {fp[0]}×{fp[1]}×{b.get('floors', 1)} | {n(days)} | {cost} | {n(b['upkeep'])} | {wf} | {'; '.join(eff)} | {ut} | {b['priority']} |")
     files["buildings.md"] = L
 
     L = header("승급 비용", "buildings/upgrade_costs.json", upg.get("status", ""))
@@ -136,17 +148,18 @@ def main():
     L = header("탐험 목적지", "exploration/destinations.json", dest.get("status", ""))
     pv = dest.get("provision", {})
     L += [f"팀: 탐험 거점 하나당 1팀, 최대 {dest.get('teams', {}).get('max', 3)}. 보급: 끼니 {pv.get('n', 10)}({'·'.join(gname(g) for g in pv.get('goods', []))}) → 수확 +{int(pv.get('bonus', 0.25) * 100)}%.", ""]
-    L += ["| id | 이름 | 거리 | 실제 시간 | 비용 ₩ | 보장 주력 | 주력/시간 | 덤 | 발견 | 처음부터 앎 |", "|---|---|---|---|---|---|---|---|---|---|"]
+    L += ["| id | 이름 | 거리 | 경제일(×1 실제) | 비용 ₩ | 보장 주력 | 주력/경제일 | 덤 | 던전 재고(최대, 하루 회복) | 위험 | 발견 | 처음부터 앎 |", "|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for did, d in dest["items"].items():
         pr = d.get("primary", {})
         pg = pr.get("good", "")
         pname = gname(pg) if pg else "고른 자재(" + "·".join(gname(g) for g in d.get("picks", [])) + ")"
-        sec = d.get("seconds", 0)
-        tm = f"{sec // 3600}시간 {sec % 3600 // 60}분" if sec >= 3600 else f"{sec // 60}분"
-        per_h = (pr.get("min", 0) + pr.get("max", 0)) / 2 * 3600 / max(1, sec)
+        days = d.get("days", 1)
+        tm = f"{n(days)}일({int(days * 10)}분)"
+        per_h = (pr.get("min", 0) + pr.get("max", 0)) / 2 / max(0.01, days)
+        stk = ", ".join(f"{gname(g)} {q}" for g, q in d.get("stock", {}).items()) + f" ({int(d.get('regen', 0.5) * 100)}%/일)"
         bon = ", ".join(f"{gname(b['good'])} {b['min']}~{b['max']}" + (f"({int(b.get('chance', 1) * 100)}%)" if b.get("chance", 1) < 1 else "") for b in d.get("bonus", []))
         finds = ", ".join(f"{f['type']}:{f['id']}" for f in d.get("finds", [])) + ((" / 공개: " + ", ".join(dest["items"][r]["name"] for r in d.get("reveals", []))) if d.get("reveals") else "")
-        L.append(f"| {did} | {d['name']} | {band.get(d.get('band'), d.get('band'))} | {tm} | {n(d.get('cost', {}).get('money', 0))} | {pname} {pr.get('min', 0)}~{pr.get('max', 0)} | {per_h:.1f} | {bon} | {finds} | {'예' if d.get('known') else '아니오 — ' + d.get('reveal_hint', '')} |")
+        L.append(f"| {did} | {d['name']} | {band.get(d.get('band'), d.get('band'))} | {tm} | {n(d.get('cost', {}).get('money', 0))} | {pname} {pr.get('min', 0)}~{pr.get('max', 0)} | {per_h:.1f} | {bon} | {stk} | {d.get('danger', 1)} | {finds} | {'예' if d.get('known') else '아니오 — ' + d.get('reveal_hint', '')} |")
     files["destinations.md"] = L
 
     goals = load("progression/goals.json")

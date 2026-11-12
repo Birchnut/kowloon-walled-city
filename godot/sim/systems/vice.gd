@@ -69,11 +69,6 @@ func _raid(state: CityState, contrib: Array) -> void:
 	sim.say(state, "%s 벌금 %s. %d일 뒤 다시 연다." % [str(d.get("vice", {}).get("raid_line", "단속이 있었다.")), Sim.won(fine), int(roundf(_c("close_days", 2.0)))], "bad")
 
 
-func fast_forward(state: CityState, _econ_days: float, before: Dictionary, lines: Array) -> void:
-	var n := int(float(state.stats.get("raids", 0.0)) - float(before.get("stats", {}).get("raids", 0.0)))
-	if n > 0:
-		lines.append("자리를 비운 사이 단속 %d번(벌금 %s)." % [n, Sim.won(float(state.stats.get("fines", 0.0)) - float(before.get("stats", {}).get("fines", 0.0)))])
-
 
 func query(state: CityState, name: String, _args: Dictionary) -> Variant:
 	if name != "vice":

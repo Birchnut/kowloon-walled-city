@@ -1,21 +1,20 @@
 {
- "_comment": "해금 단계. cond = Expr 조건(지표: pop.t1..t5 = 계층 인구(대기 포함), count.<시설 id> = 완공 수, money, day). 한 번 열리면 닫히지 않는다(제안 A8). grade_name/title이 있으면 그 단계에서 성채 등급·호칭이 바뀐다(milestone = order). features = B 파트가 읽는 기능 해금(정책 칸 등).",
- "status": "제안(GDD §9)",
+ "_comment": "해금 단계(v0.4). cond = Expr 조건(지표: pop.tN = 계층 인구(대기 포함), count.<시설>, floors, happy_held.<n> = 도시 행복도가 n 이상으로 이어진 경제일, money, day). 한 번 열리면 닫히지 않는다. grade_name/title = 성채 등급·호칭(§8). features = 정책 칸 등. 사치 시설(luxury)은 '행복도 n을 m일 유지' 조건을 함께 쓴다.",
+ "status": "실험값",
  "items": {
   "start": {
    "order": 0,
    "cond": [],
    "unlocks": [
     "house",
-    "stall",
+    "market_mat",
+    "food_cans",
     "rain_catcher",
-    "garden",
-    "expedition_base",
-    "shrine",
-    "warehouse"
+    "mahjong",
+    "expedition_base"
    ],
    "grade_name": "공터",
-   "title": "대장"
+   "title": "무단 점유 대표"
   },
   "t1_20": {
    "order": 1,
@@ -27,27 +26,30 @@
     ]
    ],
    "unlocks": [
-    "noodle_mill",
+    "food_pilgrims",
+    "clothes_bin",
+    "oil_collect",
     "candle_shop",
-    "trade_post",
+    "shrine",
+    "warehouse",
     "scrapyard"
    ],
-   "grade_name": "판자촌"
+   "grade_name": "판자촌",
+   "title": "자칭 반장"
   },
-  "t1_50": {
+  "t1_60": {
    "order": 2,
    "cond": [
     [
      "pop.t1",
      ">=",
-     50
+     60
     ]
    ],
    "unlocks": [
-    "tailor",
-    "distillery",
-    "teahouse",
-    "water_tower"
+    "brewery",
+    "water_tank",
+    "noodle_mill"
    ]
   },
   "t2_1": {
@@ -60,36 +62,83 @@
     ]
    ],
    "unlocks": [
-    "market2",
+    "market_alley",
+    "noodle_stall",
+    "rag_collect",
+    "tailor",
     "soap_shop",
-    "dentist",
-    "mahjong"
+    "teahouse",
+    "gambling_den"
    ],
    "grade_name": "골목",
-   "title": "통장"
+   "title": "비공식 통장"
   },
-  "t2_60": {
+  "floor2": {
    "order": 4,
+   "cond": [
+    [
+     "floors",
+     ">=",
+     2
+    ]
+   ],
+   "unlocks": [
+    "fire_bucket"
+   ]
+  },
+  "t2_40": {
+   "order": 5,
    "cond": [
     [
      "pop.t2",
      ">=",
-     60
+     40
     ]
    ],
    "unlocks": [
-    "fishball_factory",
-    "bathhouse",
-    "generator",
-    "gambling_den",
+    "trade_post",
+    "rat_farm",
     "study"
    ],
    "features": [
     "policy_slot_1"
    ]
   },
+  "power": {
+   "order": 6,
+   "cond": [
+    [
+     "floors",
+     ">=",
+     2
+    ],
+    [
+     "pop.t2",
+     ">=",
+     40
+    ]
+   ],
+   "unlocks": [
+    "gen_small",
+    "power_tap"
+   ]
+  },
+  "floor3": {
+   "order": 7,
+   "cond": [
+    [
+     "floors",
+     ">=",
+     3
+    ]
+   ],
+   "unlocks": [
+    "trash_guild",
+    "clinic"
+   ]
+  },
   "t3_1": {
-   "order": 5,
+   "order": 8,
    "cond": [
     [
      "pop.t3",
@@ -98,37 +147,76 @@
     ]
    ],
    "unlocks": [
-    "market3",
+    "market_hall",
+    "burger",
     "karaoke",
-    "water_ext",
-    "power_ext"
+    "radio_shop",
+    "suit_shop",
+    "water_pipe"
    ],
    "grade_name": "성채",
-   "title": "성주"
+   "title": "무허가 구청장"
   },
-  "t3_100": {
-   "order": 6,
+  "lux_bath": {
+   "order": 9,
+   "cond": [
+    [
+     "pop.t2",
+     ">=",
+     80
+    ],
+    [
+     "happy_held.60",
+     ">=",
+     1.0
+    ]
+   ],
+   "unlocks": [
+    "bathhouse"
+   ]
+  },
+  "t3_80": {
+   "order": 10,
    "cond": [
     [
      "pop.t3",
      ">=",
-     300
+     80
     ]
    ],
    "unlocks": [
     "power_plant",
     "water_plant",
-    "suit_shop",
+    "fire_station",
     "fake_shop",
     "callcenter",
-    "radio_shop"
+    "fireworks"
    ],
    "features": [
     "policy_slot_2"
    ]
   },
+  "lux_health": {
+   "order": 11,
+   "cond": [
+    [
+     "pop.t3",
+     ">=",
+     60
+    ],
+    [
+     "happy_held.60",
+     ">=",
+     1.5
+    ]
+   ],
+   "unlocks": [
+    "dentist",
+    "pharmacy"
+   ]
+  },
   "t4_1": {
-   "order": 7,
+   "order": 12,
    "cond": [
     [
      "pop.t4",
@@ -137,39 +225,71 @@
     ]
    ],
    "unlocks": [
-    "market4",
+    "market_mall",
+    "sushi",
     "assembly",
     "casino",
-    "fireworks",
     "roof_garden"
    ],
    "grade_name": "구룡",
-   "title": "회장"
+   "title": "세금 안 내는 시장님"
   },
-  "t4_60": {
-   "order": 8,
+  "lux_top": {
+   "order": 13,
    "cond": [
     [
      "pop.t4",
      ">=",
-     120
+     40
+    ],
+    [
+     "happy_held.65",
+     ">=",
+     2.0
     ]
    ],
    "unlocks": [
-    "city_hall",
-    "chp"
+    "salon",
+    "roof_park"
+   ]
+  },
+  "t4_60": {
+   "order": 14,
+   "cond": [
+    [
+     "pop.t4",
+     ">=",
+     60
+    ]
+   ],
+   "unlocks": [
+    "neon_tower",
+    "power_waste"
    ],
    "features": [
     "policy_slot_3"
    ]
   },
-  "t5_40": {
-   "order": 9,
+  "t4_100": {
+   "order": 15,
+   "cond": [
+    [
+     "pop.t4",
+     ">=",
+     100
+    ]
+   ],
+   "unlocks": [
+    "city_hall"
+   ]
+  },
+  "final": {
+   "order": 16,
    "cond": [
     [
      "pop.t5",
      ">=",
-     150
+     60
     ],
     [
      "count.city_hall",
@@ -179,7 +299,7 @@
    ],
    "unlocks": [],
    "grade_name": "구룡성채",
-   "title": "따거",
+   "title": "지도에 없는 곳의 따거",
    "final": true
   }
  }

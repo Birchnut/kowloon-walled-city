@@ -3,7 +3,8 @@ extends RefCounted
 ## Metrics — 상태에서 이름 붙은 숫자를 뽑는다(해금 조건식·봇·리포트 공용). 규칙 없음, 읽기만.
 ## 이름: day, money, pop, pop.t1..t5(대기 주민 포함), houses.t1..t5, full.t1..t5, count.<시설 id>(완공),
 ##       sites, stock.<상품>, floors, happiness, power.supply, water.supply, contracts, research.done, policies.on, heat,
-##       stat.<state.stats 키>(예: stat.exp_sent, stat.exp_claims, stat.exp_claims_mid/far)
+##       stat.<state.stats 키>(예: stat.exp_sent, stat.exp_claims, stat.exp_claims_mid/far), lux_built(사치 시설 완공 수),
+##       happy_held.<n>(도시 행복도가 n 이상으로 이어진 경제일)
 
 
 static func compute(sim: Sim, state: CityState) -> Dictionary:
@@ -32,9 +33,17 @@ static func compute(sim: Sim, state: CityState) -> Dictionary:
 		m["full.t%d" % t] = full[t]
 		total += pop[t]
 	m["pop"] = total
+	var lux := 0.0
 	for b: Dictionary in cov["facs"]:
 		var k := "count." + str(b["type"])
 		m[k] = float(m.get(k, 0.0)) + 1.0
+		if sim.bdef(str(b["type"])).get("luxury", false):
+			lux += 1.0
+	m["lux_built"] = lux
+	# 도시 행복도가 n 이상으로 이어진 경제일(progression이 state.flags.happy_since에 기록) — 사치 시설 해금 조건
+	var hsn: Dictionary = state.flags.get("happy_since", {})
+	for k: String in hsn:
+		m["happy_held." + k] = maxf(0.0, state.econ_days - float(hsn[k])) if float(hsn[k]) >= 0.0 else 0.0
 	m["sites"] = float((cov["sites"] as Array).size())
 	for t: Variant in state.waiting:
 		var n := float(state.waiting[t].get("count", 0))

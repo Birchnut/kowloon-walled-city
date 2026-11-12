@@ -22,6 +22,8 @@ var _spare: Dictionary = {}    # 이번 스텝에 prefer 유틸리티로 갈아�
 func setup(s: Sim) -> void:
 	super.setup(s)
 	_ok = float(sim.cfg("population.ok_ratio", 0.9))
+	_sick_pen = float(sim.cfg("hazards.disease.sick_happy", 15))
+	_sick_tax = float(sim.cfg("hazards.disease.sick_tax", 0.8))
 	var P := "population."
 	for k: String in ["grace_days", "short_recover_mult", "move_in_per_day", "move_out_per_day", "happiness_base", "happiness_per_luxury",
 			"happiness_basic_short", "noise_penalty", "tax_mult_min", "tax_mult_max", "advance_tax_bonus", "luxury_tax_bonus"]:
@@ -55,7 +57,7 @@ func setup(s: Sim) -> void:
 	_uidx = {"water": _ngoods.size(), "power": _ngoods.size() + 1}
 	_food.clear()
 	for id: String in sim.items("needs"):
-		if id.ends_with("_meal"):
+		if sim.item("needs", id).get("food", false) or id.ends_with("_meal"):
 			for o: Dictionary in sim.item("needs", id).get("options", []):
 				if o.has("good"):
 					_food[str(o["good"])] = true
@@ -137,6 +139,14 @@ func _util_ratio(state: CityState, u: String) -> float:
 	return float(state.util[u].get("res_ratio", 1.0))
 
 
+## 도시 전체 공급/수요(주민 + 시설). "남을 때만 쓰는" prefer 유틸리티는 이것으로 본다 — 주민 몫 비율로 보면 시설(시장·전파사)이 굶는다.
+func _util_all(state: CityState, u: String) -> float:
+	if not state.util.has(u):
+		return 1.0
+	var d := float(state.util[u].get("demand", 0.0))
+	return 1.0 if d <= 1e-9 else float(state.util[u].get("supply", 0.0)) / d
+
+
 ## 옵션 하나를 지금 쓸 수 있나. 반환 cause("" = 된다).
 ## 1단계(고르기) 동안 재고·가동 상태가 안 바뀌므로 "덮임 등급"(cls) × 옵션 단위로 한 스텝 캐시한다.
 var _av: Dictionary = {}       # 지금 계산 중인 접근 등급의 옵션별 결과
@@ -209,6 +219,10 @@ var _hset: PackedByteArray = PackedByteArray()
 var _aff_last: Array = []
 var _off_last := false
 var _settle_seen := -1
+var _hz_seen := -1
+var _sid := -1
+var _sick_pen := 15.0
+var _sick_tax := 0.8
 var _acls_of: PackedInt32Array = PackedInt32Array()   # cls → acls
 var _acls_tab: Array = []                              # acls → {"mkt:g"/"svc:tag": cause}
 var _acls_noise: PackedInt32Array = PackedInt32Array()
@@ -291,6 +305,9 @@ func _pick(state: CityState, n: Dictionary, pick_str: String, idx: int, mask: in
 		if by_key.has(k) and not inkeep.has(k) and not infail.has(k):
 			var o: Dictionary = by_key[k]
 			var bad := _avail(state, o) != ""
+			# 남을 때만 쓰는 유틸리티(prefer: 등불 대신 전기)는 공급률이 ok 밑이면 내려놓는다 — 그 전기가 박힌 돌의 기본 수요를 굶기지 않게
+			if not bad and o["kind"] == "utility" and o.get("prefer", false) and _util_all(state, str(o["utility"])) < 0.999:
+				bad = true
 			# 재고가 조금씩만 들어와 매 스텝 바닥나는 상품(지난 스텝 공급률 < ok)도 끊긴 것으로 본다 — 넉넉한 대체품이 있으면 갈아탄다
 			if not bad and o["kind"] == "good" and _fillv(fills, o["good"]) < _ok:
 				bad = _has_better(state, opts, o, fills)
@@ -306,7 +323,7 @@ func _pick(state: CityState, n: Dictionary, pick_str: String, idx: int, mask: in
 	for o: Dictionary in opts:
 		if o.get("prefer", false) and not inkeep.has(o["key"]) and _avail(state, o) == "":
 			if o["kind"] == "utility":
-				if _util_ratio(state, str(o["utility"])) < _ok:
+				if _util_all(state, str(o["utility"])) < 0.999:
 					continue
 				_hits.append([idx, str(o["utility"]), float(o.get("amount", 0.0))])
 				if ((mask >> idx) & 1) == 0:
@@ -606,6 +623,19 @@ func tick(state: CityState, dt: float) -> void:
 	var clsmap: Dictionary = cov["cls"]
 	if sim.no_cache:
 		_forget(cov)
+	elif state.get_instance_id() != _sid:
+		# 다른 상태(불러오기·새 게임): 스텝을 넘는 묶음 기억을 버린다 — 불러온 값은 JSON 자릿수로 반올림돼 있어
+		# 옛 묶음 결과를 다시 쓰면 캐시 없는 계산과 끝자리가 갈린다(긴 퍼즈 씨앗 8에서 찾음).
+		_sid = state.get_instance_id()
+		_pents.clear()
+		_pacc = -1
+		_acc_key = ""
+		_mrev = ""
+		_last_used.clear()
+		_dems.clear()
+		_dem_of.clear()
+		_cov_ref = null
+		_settle_seen = -1      # 이번 스텝은 모든 주거를 다시 쓴다(불러온 반올림 값을 덮는다)
 	_access(state, cov)
 	var houses: Array = cov["houses"]
 	_spare.clear()
@@ -639,7 +669,7 @@ func tick(state: CityState, dt: float) -> void:
 		_env[gi] = (1 if float(state.stock.get(g, 0.0)) > 1e-9 else 0) + (2 if float(fills.get(g, 1.0)) >= _ok else 0)
 	for u: String in _uidx:
 		var ur := _util_ratio(state, u)
-		_env[_uidx[u]] = (1 if ur >= 0.5 else 0) + (2 if ur >= _ok else 0)
+		_env[_uidx[u]] = (1 if ur >= 0.5 else 0) + (2 if ur >= _ok else 0) + (4 if _util_all(state, u) >= 0.999 else 0)
 	if _pacc != _acc_ver:
 		_pents.clear()
 		_pacc = _acc_ver
@@ -665,6 +695,7 @@ func tick(state: CityState, dt: float) -> void:
 	if resettled:
 		_settle_seen = state.settle_n
 		fast2 = false
+
 	_aff_last = aff
 	_off_last = offline
 	var todo2 := PackedInt32Array()   # 2단계를 돌릴 주거 순번(주거 순서 유지)
@@ -685,7 +716,8 @@ func tick(state: CityState, dt: float) -> void:
 				used.append(le)
 			le.rsum += r
 			went[hi] = le
-			if fast2 and ri > 0 and _hset[hi] == 1 and _hres[hi] == ri:
+			# 불·병이 닿은 집은 건너뛰지 않는다(앓기 시작한 스텝부터 다시 쓴다 — 나은 집은 _hset이 0이라 한 번 더 쓴다)
+			if fast2 and ri > 0 and _hset[hi] == 1 and _hres[hi] == ri and not b.get("sick", false) and str(b.get("burn", "")) == "":
 				le.skip.append(hi)
 				le.skip_r += r
 			else:
@@ -783,8 +815,6 @@ func tick(state: CityState, dt: float) -> void:
 		fill[g] = f
 		fills_saved[g] = snappedf(f, 0.0001)
 		var use := dmd * f
-		if sim.offline and f < _ok and not (sim.offline_log.get("short", {}) as Dictionary).has(g):
-			sim.offline_log["short"][g] = state.econ_days
 		state.stock[g] = maxf(0.0, have - use)
 		sim.flow_add(g, "cons", use)
 		state.stat_add("cons." + g, use)
@@ -797,6 +827,7 @@ func tick(state: CityState, dt: float) -> void:
 	var mo: float = _c["move_out_per_day"]
 	var hap_sum := 0.0
 	var hap_w := 0.0
+	var sick_adj := 0.0
 	# 지난 스텝과 같은 묶음·같은 2단계 결과·같은 주민 수이고 "가라앉은"(아무것도 안 변하는) 주거는 건너뛴다.
 	var extra2 := false
 	for e: Ent in used:
@@ -857,13 +888,15 @@ func tick(state: CityState, dt: float) -> void:
 			sdc = nc
 		var bad := (p.unmet_mask & p.basic_mask & sdc) != 0
 		var cap: int = b["cap"]
-		var target := mini(cap, p.target)
+		var hz_burn := str(b.get("burn", "")) != ""
+		var hz_sick: bool = b.get("sick", false)
+		var target := mini(cap, p.target) if not hz_burn else 0
 		b["target"] = target
-		var hp := p.hp
+		var hp := p.hp if not hz_sick else maxf(0.0, p.hp - _sick_pen)
 		b["happiness"] = hp
 		# 입주·퇴거
 		var res := old_res
-		if res < target:
+		if res < target and not hz_sick:
 			b["leave"] = 0.0
 			b["grow"] = float(b.get("grow", 0.0)) + mi * _movein_k * (0.5 + hp / 100.0) * dt
 			while float(b["grow"]) >= 1.0 and res < target:
@@ -871,7 +904,7 @@ func tick(state: CityState, dt: float) -> void:
 				b["grow"] = float(b["grow"]) - 1.0
 			if res >= target:
 				b["grow"] = 0.0
-		elif res > target and bad and not offline:
+		elif res > target and (bad or hz_burn) and not offline:
 			b["grow"] = 0.0
 			b["leave"] = float(b.get("leave", 0.0)) + mo * dt
 			while float(b["leave"]) >= 1.0 and res > target:
@@ -880,6 +913,7 @@ func tick(state: CityState, dt: float) -> void:
 		else:
 			b["grow"] = 0.0
 			b["leave"] = 0.0
+		b["arriving"] = float(b["grow"]) if res < target else 0.0
 		if res != old_res:
 			b["residents"] = res
 			if res > old_res:
@@ -892,19 +926,21 @@ func tick(state: CityState, dt: float) -> void:
 				lt[str(t)] = int(lt.get(str(t), 0)) + (old_res - res)
 				state.flags["left_today"] = lt
 		# 세수(₩/경제일)
-		b["tax"] = float(res) * p.taxk
+		b["tax"] = float(res) * p.taxk * (_sick_tax if hz_sick else 1.0)
+		if hz_sick:
+			sick_adj += (p.hp - hp) * float(res)
 		if rpos:
 			e.hr1 += float(res)
 		else:
 			e.hr0 += float(res)
 		var ns := "bad" if bad else ("warn" if p.any_unmet else "ok")
 		var upg: Variant = b.get("upgrading")
-		var ready: bool = res >= cap and p.basic_all and p.adv_all and upg == null and bool(_has_up.get(t, false))
+		var ready: bool = res >= cap and p.basic_all and p.adv_all and upg == null and bool(_has_up.get(t, false)) and not hz_burn and not hz_sick
 		var up: bool = ready and bool(aff[t])
 		_hp2[hix] = p
 		_hres[hix] = res
 		_hset[hix] = 1 if ((p.unmet_mask & ~int(b.get("sdc", 0))) == 0 and (int(b.get("sdm", 0)) & p.met_mask) == 0 and res >= target and float(b["grow"]) == 0.0 \
-			and float(b["leave"]) == 0.0 and upg == null) else 0
+			and float(b["leave"]) == 0.0 and upg == null and not hz_burn and not hz_sick) else 0
 		if res != old_res or ns != str(b["need_state"]) or up != bool(b["upgradable"]) or ready != bool(b.get("ready", false)):
 			b["need_state"] = ns
 			b["upgradable"] = up
@@ -917,7 +953,7 @@ func tick(state: CityState, dt: float) -> void:
 			if w > 0.0:
 				hap_sum += (e.p2[k] as P2).hp * w
 				hap_w += w
-	state.happiness = hap_sum / hap_w if hap_w > 0.0 else 50.0
+	state.happiness = (hap_sum - sick_adj) / hap_w if hap_w > 0.0 else 50.0
 
 
 ## sim.no_cache(시험): 스텝을 넘는 기억을 모두 버린다 — 묶음·2단계 결과·주거별 빠른 길·접근표·수정치·소비 묶음 목록,

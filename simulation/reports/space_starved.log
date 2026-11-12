@@ -1,0 +1,2698 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+ERROR: The calculated index 2 is out of bounds (the array has 1 elements). Leaving the array untouched.
+   at: insert (core/variant/array.cpp:335)
+   GDScript backtrace (most recent call first):
+       [0] _utilities (res://sim/Bot.gd:588)
+       [1] <anonymous lambda> (res://sim/Bot.gd:69)
+       [2] _t (res://sim/Bot.gd:86)
+       [3] act (res://sim/Bot.gd:69)
+       [4] run (res://tools/sim_run.gd:50)
+       [5] _init (res://tools/sim_run.gd:16)
+report: /home/claude/kowloon/work/sim4/simulation/reports/space_starved.md
+WARNING: 36 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)
+ERROR: 18 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:822)

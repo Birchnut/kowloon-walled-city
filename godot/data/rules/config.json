@@ -14,15 +14,16 @@
   "production",
   "needs",
   "upgrades",
+  "hazards",
   "vice",
   "finance",
   "alerts"
  ],
  "grid": {
-  "width": 12,
-  "height": 12,
+  "width": 16,
+  "height": 16,
   "max_floors": 10,
-  "_status": "확정(12×12, 최대 10층)"
+  "_status": "디렉터(v4): 16×16, 최대 10층. 어느 코드도 12를 가정하지 않는다"
  },
  "time": {
   "seconds_per_day": 600,
@@ -30,38 +31,30 @@
   "step_days": 0.020833333333333332,
   "_step_days": "고정 스텝 = 1/48 경제일(실제 12.5초). 제안",
   "start_hour": 6,
-  "offline_speed": 0.25,
-  "offline_max_real_hours": 8,
-  "_offline": "확정: 느리게 + 보호(최대 8시간). 0.25배속은 실험값. 미접속 중 유예 시계·대기 주민 시계 정지, 아무도 떠나지 않음. 앱이 60초 넘게 멈췄다 돌아와도 같은 규칙",
-  "offline_step_mult": 12,
-  "_offline_step_mult": "미접속 빨리감기는 이 배수의 큰 스텝(6 × 1/48 = 1/8경제일)으로 돈다 — 8시간 정산이 1,000채에서 1초 안팎. 실험값",
-  "offline_min_gap_seconds": 60
+  "offline_speed": 0,
+  "_offline_speed": "v4(PC): 0 = 미접속 정산 없음. 모든 시간은 게임 시계(배속 1·2·4, 멈춤)"
  },
  "start": {
-  "_status": "실험값. 세 계열 자재 12씩(GDD §8) + 헌 옷 8·초 10(첫 승급을 교역·초 공방 없이 맛보게 — 약 한 시간치, 떨어지면 교역으로 이어진다)",
+  "_status": "실험값(v0.4): 세 자재 12씩 + 고물 30 + 통조림 40 + 헌 옷 8·초 10(첫 승급을 맛보게 — 떨어지면 수거함 정리단·초 공방으로 이어진다)",
   "money": 1200,
   "stock": {
    "wood": 12,
    "metal": 12,
    "concrete": 12,
    "scrap": 30,
-   "veg": 30,
+   "cans": 40,
    "oldclothes": 8,
    "candle": 10
   }
  },
- "distance": {
-  "vertical_weight": 2,
-  "max_floor_delta": 2,
-  "_status": "실험값: |dx|+|dy|+2|dz|, 층 차 최대 2. 2×2는 가장 가까운 칸"
- },
  "floors": {
   "threshold": 0.8,
   "_threshold": "확정 80%",
-  "eligible_cells": 144,
+  "eligible_cells": 0,
   "support_cost": 0,
   "_support_cost": "실험값: 골조 공짜",
-  "_used": "쓰이는 칸 = 주민 1명 이상인 주거 + 완공 시설(2×2는 4칸). 빈 판잣집·공사장·골조만 있는 칸은 0. 제안"
+  "_used": "쓰이는 칸 = 주민 1명 이상인 주거 + 완공 시설(2×2는 4칸). 빈 판잣집·공사장·골조만 있는 칸은 0. 제안",
+  "_eligible": "0이면 부지 칸 수(W×H = 256) — 80%면 205칸"
  },
  "zone": {
   "shack_cost": 5,
@@ -114,10 +107,10 @@
   "_broke": "파산(돈 0)으로 멈춘 시설은 유지비 1일치가 모이면 다시 켠다"
  },
  "contracts": {
-  "base_slots": 2,
+  "base_slots": 0,
   "slots_per_post": 2,
   "first_delay_h": 1,
-  "_status": "실험값"
+  "_status": "실험값(v0.4): 뒷문 무역관이 있어야 계약(중반 시스템). 무역관 하나당 2자리"
  },
  "upgrade": {
   "waiting_days": 3,
@@ -151,5 +144,71 @@
   "fine_min": 100,
   "fine_days_income": 2.0,
   "after_raid_drop": 40.0
+ },
+ "build": {
+  "_status": "실험값(v4): 공사 날짜 기본값 — 발자국 칸 수(w×h×층) 이상이면 그 값. 시설 build_days가 있으면 그것",
+  "days_by_cells": {
+   "1": 0.1,
+   "2": 0.15,
+   "4": 0.3,
+   "8": 0.5,
+   "9": 2.5
+  }
+ },
+ "hazards": {
+  "tags": [
+   "fire",
+   "trash",
+   "clinic"
+  ],
+  "_tags": "방재 서비스 태그 — 주거 수요가 아니라 hazards 시스템이 읽는다(Cover가 주거·시설 모두에 대해 범위를 계산)",
+  "_status": "실험값(v0.4): 불 = 2층이 열리면, 병 = 3층이 열리면. 세 자재 계열의 차이는 없다(확정). 수치는 봇 시뮬레이션으로 맞춘다(BALANCE_CHANGELOG).",
+  "fire": {
+   "floor": 2,
+   "grace_days": 2.0,
+   "risk_per_day": 0.35,
+   "covered_mult": 0.1,
+   "ignite_per_day": 0.05,
+   "out_days": 0.04,
+   "burn_days": 0.3,
+   "spread_per_day": 2.0,
+   "max_burning": 2,
+   "burning_per": 150,
+   "min_gap_days": 0.15,
+   "_doc": "위험 0..1이 범위 밖이면 하루 risk_per_day씩(안이면 × covered_mult) 쌓이고, 매시간 위험 합 × ignite_per_day × dt 확률로 한 곳에 불. 범위 안은 out_days에 꺼짐(주민 1명 흩어짐), 밖은 burn_days 동안 타며 옆·위로 번지다 탐. 동시에 max_burning + 쓰이는 건물/burning_per곳까지, 불 사이 min_gap_days."
+  },
+  "disease": {
+   "floor": 3,
+   "grace_days": 2.0,
+   "trash_per_day": 0.35,
+   "clear_per_day": 2.0,
+   "outbreak_at": 0.7,
+   "outbreak_per_day": 0.08,
+   "cluster_trash": 0.4,
+   "cluster_max": 6,
+   "sick_days": 2.5,
+   "clinic_days": 0.6,
+   "leave_after": 1.0,
+   "leave_per_day": 2.0,
+   "sick_happy": 15,
+   "sick_tax": 0.8,
+   "max_sick_frac": 0.08,
+   "max_sick_min": 6,
+   "min_gap_days": 0.2,
+   "_doc": "쓰레기 0..1이 수거 범위 밖에서 하루 trash_per_day × 주민/정원씩 쌓이고(안이면 clear_per_day씩 줄고), outbreak_at 넘은 집들에서 매시간 확률로 발병(이웃 cluster_max채까지). 앓는 집: 일손 절반, 행복 −sick_happy, 세수 × sick_tax, 입주 없음, leave_after일 뒤 leave_per_day씩 떠남. sick_days 뒤 낫고 의원 범위면 clinic_days."
+  },
+  "repair": {
+   "house_money": [
+    20,
+    60,
+    150,
+    400,
+    900
+   ],
+   "facility_frac": 0.4,
+   "scrap_per_cell": 3,
+   "days": 0.25,
+   "_doc": "수리비: 주거는 계층별 ₩, 시설은 건설비 × facility_frac. + 고물(칸당). 날짜."
+  }
  }
 }

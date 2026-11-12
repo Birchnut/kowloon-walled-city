@@ -78,6 +78,7 @@ func apply(state: CityState, name: String, args: Dictionary) -> Variant:
 	var mat: String = p["material"]
 	state.money -= float(p["money"])
 	state.book("build", -float(p["money"]))
+	state.stat_add("spent_upgrade", float(p["money"]))
 	state.stock[mat] = float(state.stock.get(mat, 0.0)) - float(p["qty"])
 	state.stat_add("used." + mat, float(p["qty"]))
 	for g: String in p["extra"]:
@@ -103,7 +104,7 @@ func tick(state: CityState, dt: float) -> void:
 		if up != null and state.econ_days + 1e-9 >= float(up["done_at"]):
 			_finish(state, b)
 	if not state.waiting.is_empty():
-		_place_waiting(state, dt)
+		_place_waiting(state, dt, sim.every(state, 4, dt))
 
 
 func _finish(state: CityState, b: Dictionary) -> void:
@@ -153,10 +154,10 @@ func _finish(state: CityState, b: Dictionary) -> void:
 func _move_into(state: CityState, t: int, n: int, skip: int) -> int:
 	var moved := 0
 	for pass_i: int in 2:
-		for b: Dictionary in state.buildings.values():
+		for b: Dictionary in sim.cover(state)["houses"]:
 			if moved >= n:
 				return moved
-			if b["kind"] != "house" or int(b["tier"]) != t or int(b["id"]) == skip:
+			if b["kind"] != "house" or int(b["tier"]) != t or int(b["id"]) == skip or str(b.get("burn", "")) != "" or b.get("sick", false):
 				continue
 			var lim := int(b.get("target", 0)) if pass_i == 0 else int(b["cap"])
 			var room := mini(lim, int(b["cap"])) - int(b["residents"])
@@ -169,10 +170,10 @@ func _move_into(state: CityState, t: int, n: int, skip: int) -> int:
 	return moved
 
 
-func _place_waiting(state: CityState, dt: float) -> void:
+func _place_waiting(state: CityState, dt: float, place: bool) -> void:
 	for t: Variant in state.waiting.keys():
 		var w: Dictionary = state.waiting[t]
-		if int(w["count"]) > 0:
+		if int(w["count"]) > 0 and place:     # 빈집 찾기는 2경제시간마다(큰 도시 성능), 남은 날은 매 스텝
 			var m := _move_into(state, int(t), int(w["count"]), -1)
 			w["count"] = int(w["count"]) - m
 		if not sim.offline:     # 미접속 중에는 대기 주민의 남은 날도 멈춘다(보호)

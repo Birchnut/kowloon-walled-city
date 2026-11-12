@@ -1,48 +1,28 @@
 extends SceneTree
-## sim_run — 봇 하나에게 N경제일을 맡겨 헤드리스로 돌리고 리포트를 쓴다.
-##   godot --headless --path godot -s res://tools/sim_run.gd -- bot=balanced days=30 seed=1 [out=<md 경로>] [quiet]
-## 기본 출력: ../simulation/reports/core_<bot>.md (+ 같은 이름 .json: 일별 지표)
-## 봇은 경제 1시간마다 한 번 손을 댄다(접속 중 계속 플레이 가정).
+## sim_run — v4(PC) 시나리오: 봇 하나가 게임 시계로 N경제일을 계속 플레이한다(헤드리스, 결정론).
+##   godot --headless --path godot -s res://tools/sim_run.gd -- bot=balanced days=40 seed=1 [out=<md 경로>] [quiet]
+## 봇은 경제 act_every_h시간마다 손을 댄다(bots.json). 사람은 ×1~×2로 시간당 약 6경제일을 플레이한다(봇보다 약 2배 느리다).
+## 출력: ../simulation/reports/<bot>.md + .json(요약 행 + 일별 행). 요약은 python3 simulation/make_summary.py.
 
 
-const Pattern := preload("res://tools/sim_pattern.gd")
-
-
-## 기본: 접속 패턴 시뮬(실제 일수). mode=econ이면 옛 방식(계속 접속, 경제일 수 = days).
-##   godot --headless --path godot -s res://tools/sim_run.gd -- bot=balanced real_days=7 seed=1 [out=<md>] [quiet]
-##   godot --headless --path godot -s res://tools/sim_run.gd -- mode=econ bot=balanced days=30
-## 출력: ../simulation/reports/<bot>.md + .json(요약 행·일별 행)
 func _init() -> void:
-	var args := {"bot": "balanced", "days": "30", "real_days": "7", "seed": "1", "out": "", "mode": "pattern"}
+	var args := {"bot": "balanced", "days": "40", "seed": "1", "out": ""}
 	for a: String in OS.get_cmdline_user_args():
 		var kv := a.split("=", true, 1)
 		args[kv[0]] = kv[1] if kv.size() > 1 else "1"
 	var out := str(args["out"])
-	var ok := false
-	if args["mode"] == "econ":
-		if out == "":
-			out = ProjectSettings.globalize_path("res://").path_join("../simulation/reports/core_%s.md" % args["bot"]).simplify_path()
-		var r := run(str(args["bot"]), int(args["days"]), int(args["seed"]), not args.has("quiet"))
-		ok = r["ok"]
-		if ok:
-			SimIO.write_text(out, report(r))
-			SimIO.write_text(out.get_basename() + ".json", JSON.stringify({"rows": r["rows"], "timeline": r["timeline"], "blocked": r["bot"].blocked}, " "))
-		(r["sim"] as Sim).systems.clear()
-	else:
-		if out == "":
-			out = ProjectSettings.globalize_path("res://").path_join("../simulation/reports/%s.md" % args["bot"]).simplify_path()
-		var r := Pattern.run(str(args["bot"]), int(args["real_days"]), int(args["seed"]), not args.has("quiet"))
-		ok = r["ok"]
-		if ok:
-			SimIO.write_text(out, Pattern.report_md(r, per_cell(r["sim"], r["state"])))
-			SimIO.write_text(out.get_basename() + ".json", JSON.stringify(Pattern.summary_row(r), " "))
-		(r["sim"] as Sim).systems.clear()
-	if ok:
+	if out == "":
+		out = ProjectSettings.globalize_path("res://").path_join("../simulation/reports/%s.md" % args["bot"]).simplify_path()
+	var r := run(str(args["bot"]), float(args["days"]), int(args["seed"]), not args.has("quiet"))
+	if r["ok"]:
+		SimIO.write_text(out, report(r))
+		SimIO.write_text(out.get_basename() + ".json", JSON.stringify({"summary": summary(r), "rows": r["rows"]}, " "))
 		print("report: ", out)
-	quit(0 if ok else 1)
+	(r["sim"] as Sim).systems.clear()
+	quit(0 if r["ok"] else 1)
 
 
-static func run(bot_id: String, days: int, seed_value: int, verbose: bool = true, db_override: Dictionary = {}) -> Dictionary:
+static func run(bot_id: String, days: float, seed_value: int, verbose: bool = true, db_override: Dictionary = {}) -> Dictionary:
 	var db := db_override if not db_override.is_empty() else SimIO.load_db()
 	var sim := Sim.new()
 	sim.setup(db)
@@ -56,22 +36,38 @@ static func run(bot_id: String, days: int, seed_value: int, verbose: bool = true
 	var rows: Array = []
 	var min_money := state.money
 	var t0 := Time.get_ticks_msec()
-	var hour := 1.0 / 24.0
+	var every := maxf(1.0, float(bot.c("act_every_h", 1))) / 24.0
 	var day := state.day
-	while state.econ_days < float(days) + 0.25 - 1e-9:
-		bot.act(state)
-		sim.tick(state, hour)
+	var errors := 0
+	var next_act := state.econ_days
+	var end := state.econ_days + days
+	var step_ms := 0.0
+	var bot_ms := 0.0
+	var steps := 0
+	while state.econ_days < end - 1e-9:
+		if state.econ_days + 1e-9 >= next_act:
+			var tb := Time.get_ticks_usec()
+			bot.act(state)
+			bot_ms += float(Time.get_ticks_usec() - tb) / 1000.0
+			next_act += every
+		var ts := Time.get_ticks_usec()
+		sim.step(state)
+		step_ms += float(Time.get_ticks_usec() - ts) / 1000.0
+		steps += 1
 		state.events.clear()
 		min_money = minf(min_money, state.money)
 		if state.day != day:
 			var row := daily(sim, state, day)
 			rows.append(row)
 			if verbose:
-				print("%s d%02d pop %s money %d net %.0f hap %.0f floors %d" % [bot_id, day, row["pop"], int(state.money), float(row["net"]), state.happiness, state.floors_unlocked])
+				var p: Array = row["pop"]
+				print("%s d%02d pop %s money %d net %.0f hap %.0f fl %d houses %d burnt %d sick %d" % [bot_id, day, str(p), int(state.money), float(row["net"]),
+					state.happiness, state.floors_unlocked, int(row["houses"]), int(row["burnt"]), int(row["sick"])])
 			day = state.day
 	if verbose:
-		print("ran %d days in %.1fs" % [days, float(Time.get_ticks_msec() - t0) / 1000.0])
-	return {"ok": true, "sim": sim, "state": state, "bot": bot, "rows": rows, "timeline": timeline(state), "min_money": min_money, "days": days, "seed": seed_value}
+		print("ran %.0f days in %.1fs (step avg %.2fms, bot total %.1fs) bot parts %s" % [days, float(Time.get_ticks_msec() - t0) / 1000.0, step_ms / maxf(1.0, float(steps)), bot_ms / 1000.0, str(bot.prof)])
+	return {"ok": true, "sim": sim, "state": state, "bot": bot, "rows": rows, "min_money": min_money, "days": days, "seed": seed_value,
+		"step_ms": step_ms / maxf(1.0, float(steps)), "errors": errors}
 
 
 static func daily(sim: Sim, state: CityState, d: int) -> Dictionary:
@@ -84,66 +80,131 @@ static func daily(sim: Sim, state: CityState, d: int) -> Dictionary:
 	for t: int in range(1, 6):
 		var l: Dictionary = state.labor.get(t, {"have": 0, "need": 0.0})
 		lab.append(int(l["have"]) - int(ceilf(float(l["need"]))))
-	var basic_ok := 0
+	var ok := 0
 	var houses := 0
-	for b: Dictionary in state.buildings.values():
+	var burnt := 0
+	var sick := 0
+	for b: Dictionary in sim.cover(state)["all"]:
+		if str(b.get("burn", "")) != "":
+			burnt += 1
 		if b["kind"] == "house":
 			houses += 1
 			if b["need_state"] == "ok":
-				basic_ok += 1
-	return {"day": d, "pop": pop, "money": int(state.money), "net": float(led.get("net", 0.0)), "tax": float(led.get("tax", 0.0)), "ledger": led,
-		"labor_spare": lab, "houses": houses, "houses_ok": basic_ok, "happiness": snappedf(state.happiness, 0.1),
-		"floors": state.floors_unlocked, "facilities": int(m.get("sites", 0)), "water": [snappedf(float(state.util.get("water", {}).get("supply", 0)), 1), snappedf(float(state.util.get("water", {}).get("demand", 0)), 1)],
-		"power": [snappedf(float(state.util.get("power", {}).get("supply", 0)), 1), snappedf(float(state.util.get("power", {}).get("demand", 0)), 1)]}
+				ok += 1
+			if b.get("sick", false):
+				sick += 1
+	return {"day": d, "pop": pop, "money": int(state.money), "net": float(led.get("net", 0.0)), "tax": float(led.get("tax", 0.0)),
+		"upkeep": float(led.get("upkeep", 0.0)), "build": float(led.get("build", 0.0)), "ledger": led,
+		"labor_spare": lab, "houses": houses, "houses_ok": ok, "happiness": snappedf(state.happiness, 0.1), "burnt": burnt, "sick": sick,
+		"floors": state.floors_unlocked, "facilities": int((sim.cover(state)["facs"] as Array).size()),
+		"water": [snappedf(float(state.util.get("water", {}).get("supply", 0)), 1), snappedf(float(state.util.get("water", {}).get("demand", 0)), 1)],
+		"power": [snappedf(float(state.util.get("power", {}).get("supply", 0)), 1), snappedf(float(state.util.get("power", {}).get("demand", 0)), 1)],
+		"goals": int((state.flags.get("goals", {}) as Dictionary).size()),
+		"mats": [int(state.stock.get("wood", 0)), int(state.stock.get("metal", 0)), int(state.stock.get("concrete", 0)), int(state.stock.get("parts", 0))]}
 
 
-static func timeline(state: CityState) -> Dictionary:
-	var t := {}
-	for k: String in ["first_resident_day", "first_upgrade_t2_day", "first_upgrade_t3_day", "first_upgrade_t4_day", "first_upgrade_t5_day",
-			"floor_2_day", "floor_3_day", "first_power_day"]:
-		t[k] = state.stats.get(k, -1.0)
-	return t
+const MILESTONES := [["first_upgrade_t2_day", "첫 승급(월세 전사)"], ["floor_2_day", "2층"], ["first_fire_day", "첫 불"], ["first_upgrade_t3_day", "첫 박힌 돌"],
+	["floor_3_day", "3층"], ["first_outbreak_day", "첫 병"], ["first_upgrade_t4_day", "첫 깡통 귀족"], ["goal_g_tower_day", "네온 용탑"],
+	["first_upgrade_t5_day", "첫 옥상 황제"], ["goal_g_hall_day", "무허가 구청"], ["goal_g_final_day", "마지막 목표"]]
+
+
+## 요약 행(make_summary.py가 읽는다).
+static func summary(r: Dictionary) -> Dictionary:
+	var state: CityState = r["state"]
+	var bot: Bot = r["bot"]
+	var tl := {}
+	for m: Array in MILESTONES:
+		tl[m[0]] = snappedf(float(state.stats.get(m[0], -1.0)), 0.01)
+	# 빈 구간: 진전 명령(짓기·승급·칠하기·수령·수리·연구·계약) 사이 가장 긴 간격(경제일)
+	var gaps: Array = []
+	var last := float(sim_start(state))
+	var longest := 0.0
+	var longest_at := 0.0
+	for a: Array in bot.acts:
+		var g := float(a[0]) - last
+		if g > longest:
+			longest = g
+			longest_at = last
+		last = float(a[0])
+	# 목표 사이 가장 긴 간격(정보용 — 자연스러운 성장 기다림도 포함)
+	var gd: Array = []
+	for k: String in (state.flags.get("goals", {}) as Dictionary):
+		gd.append(float(state.flags["goals"][k]))
+	gd.sort()
+	var ggap := 0.0
+	var ggap_at := 0.0
+	for i: int in range(1, gd.size()):
+		if float(gd[i]) - float(gd[i - 1]) > ggap:
+			ggap = float(gd[i]) - float(gd[i - 1])
+			ggap_at = float(gd[i - 1])
+	var hd := maxf(1e-6, float(state.stats.get("house_days", 0.0)))
+	var rows: Array = r["rows"]
+	var money_curve: Array = []
+	for row: Dictionary in rows:
+		money_curve.append(int(row["money"]))
+	var spent := float(state.stats.get("spent_build", 0.0)) + float(state.stats.get("spent_repair", 0.0)) + float(state.stats.get("spent_upgrade", 0.0))
+	return {"bot": bot.id, "name": bot.c("name", bot.id), "seed": int(r["seed"]), "days": float(r["days"]), "timeline": tl,
+		"pop_end": rows.back()["pop"] if not rows.is_empty() else [], "money_end": int(state.money), "min_money": int(r["min_money"]),
+		"floors": state.floors_unlocked, "goals_done": int((state.flags.get("goals", {}) as Dictionary).size()),
+		"house_days": snappedf(hd, 0.1), "fire_house_days": snappedf(float(state.stats.get("hz_fire_house_days", 0.0)), 0.1),
+		"sick_house_days": snappedf(float(state.stats.get("hz_sick_house_days", 0.0)), 0.1),
+		"hazard_loss_pct": snappedf(100.0 * (float(state.stats.get("hz_fire_house_days", 0.0)) + float(state.stats.get("hz_sick_house_days", 0.0))) / hd, 0.01),
+		"fires": int(state.stats.get("fires", 0)), "burnt": int(state.stats.get("burnt", 0)), "outbreaks": int(state.stats.get("outbreaks", 0)),
+		"left_sick": int(state.stats.get("left_sick", 0)), "scattered": int(state.stats.get("scattered", 0)),
+		"longest_gap": snappedf(longest, 0.01), "longest_gap_at": snappedf(longest_at, 0.01), "money_curve": money_curve,
+		"goal_gap": snappedf(ggap, 0.01), "goal_gap_at": snappedf(ggap_at, 0.01),
+		"tax_total": int(state.stats.get("tax_total", 0.0)), "spent_build": int(state.stats.get("spent_build", 0.0)),
+		"spent_upgrade": int(state.stats.get("spent_upgrade", 0.0)), "spent_repair": int(state.stats.get("spent_repair", 0.0)),
+		"spent_research": int(state.stats.get("spent_research", 0.0)), "spent_total": int(spent), "step_ms": snappedf(float(r["step_ms"]), 0.01),
+		"cmds": bot.cmds}
+
+
+static func sim_start(state: CityState) -> float:
+	return float(state.stats.get("start_day", 0.25))
 
 
 static func _d(x: Variant) -> String:
-	return "—" if float(x) < 0.0 else "%.2f일 (실제 %d분)" % [float(x), int(float(x) * 10.0)]
+	return "—" if float(x) < 0.0 else "%.2f일" % float(x)
 
 
 static func report(r: Dictionary) -> String:
 	var sim: Sim = r["sim"]
 	var state: CityState = r["state"]
 	var rows: Array = r["rows"]
+	var s := summary(r)
 	var L: Array = []
-	L.append("# 코어 경제 시뮬 — %s 봇 (%d경제일, seed %d)" % [sim.item("bots", r["bot"].id).get("name", r["bot"].id), int(r["days"]), int(r["seed"])])
+	L.append("# v0.4 시나리오 — %s (%.0f경제일, seed %d)" % [s["name"], float(r["days"]), int(r["seed"])])
 	L.append("")
-	L.append("자동 생성: `godot/tools/sim_run.gd`. 1경제일 = 접속 중 실제 10분. 봇은 경제 1시간마다 손을 댄다(계속 접속 가정).")
-	L.append("탐험(B 파트)이 없으므로 세 계열 자재는 봇이 `debug add_stock`으로 하루 %d개씩 넣는다(근거리 2팀 상시 가동 흉내). 그 밖의 자원은 전부 규칙대로 얻었다." % int(sim.item("bots", r["bot"].id).get("expedition_per_day", 0)))
+	L.append("자동 생성: `godot/tools/sim_run.gd`. 1경제일 = ×1에서 실제 10분. 봇은 경제 %s시간마다 손을 댄다(계속 플레이). 사람은 약 2배 느리다고 본다." % str(sim.item("bots", r["bot"].id).get("act_every_h", 1)))
 	L.append("")
-	L.append("## 타임라인")
-	var tl: Dictionary = r["timeline"]
-	L.append("| 사건 | 경제일 |")
-	L.append("|---|---|")
-	var names := {"first_resident_day": "첫 주민", "first_upgrade_t2_day": "첫 승급 → 세입자", "first_upgrade_t3_day": "첫 승급 → 토박이",
-		"first_upgrade_t4_day": "첫 승급 → 유지", "first_upgrade_t5_day": "첫 승급 → 거물", "floor_2_day": "2층 열림", "floor_3_day": "3층 열림", "first_power_day": "첫 전기"}
-	for k: String in names:
-		L.append("| %s | %s |" % [names[k], _d(tl.get(k, -1.0))])
+	L.append("## 이정표")
+	L.append("| 사건 | 경제일 | 사람(약 2배, ×1~×2로 시간당 6일) |")
+	L.append("|---|---|---|")
+	for m: Array in MILESTONES:
+		var v := float(s["timeline"][m[0]])
+		L.append("| %s | %s | %s |" % [m[1], _d(v), "—" if v < 0.0 else "약 %.1f시간" % (v * 2.0 / 6.0)])
 	L.append("")
-	L.append("최저 금고: ₩%d (음수 불가 규칙 — 0이면 파산 정지가 있었다는 뜻)." % int(r["min_money"]))
+	L.append("- 목표 %d/%d · 층 %d · 마지막 금고 %s · 최저 금고 %s" % [int(s["goals_done"]), sim.items("goals").size(), int(s["floors"]), Sim.won(float(s["money_end"])), Sim.won(float(s["min_money"]))])
+	L.append("- 불·병 손실: 주거-일 %.1f 중 불 %.1f · 병 %.1f = **%.2f%%** (불 %d번, 탐 %d, 병 %d번, 병으로 떠남 %d, 불로 흩어짐 %d)" % [float(s["house_days"]),
+		float(s["fire_house_days"]), float(s["sick_house_days"]), float(s["hazard_loss_pct"]), int(s["fires"]), int(s["burnt"]), int(s["outbreaks"]), int(s["left_sick"]), int(s["scattered"])])
+	L.append("- 가장 긴 빈 구간(진전 명령 사이): %.2f경제일(%.2f일째부터) · 목표 사이 가장 긴 간격 %.2f일(%.2f일째부터)" % [float(s["longest_gap"]), float(s["longest_gap_at"]), float(s["goal_gap"]), float(s["goal_gap_at"])])
+	L.append("- 돈: 세수 합 %s · 건설 %s · 승급 %s · 수리 %s · 연구 %s · 스텝 평균 %.2fms" % [Sim.won(float(s["tax_total"])), Sim.won(float(s["spent_build"])),
+		Sim.won(float(s["spent_upgrade"])), Sim.won(float(s["spent_repair"])), Sim.won(float(s["spent_research"])), float(s["step_ms"])])
 	L.append("")
-	L.append("## 일별 계층 인구 · 노동 여유(배정 가능 − 필요) · 금고")
-	L.append("| 일 | 떠돌이 | 세입자 | 토박이 | 유지 | 거물 | 노동 여유 T1/T2/T3/T4/T5 | 주거(충족/전체) | 행복 | 금고 | 순수지/일 | 물 공급/수요 | 전기 공급/수요 | 층 |")
-	L.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+	L.append("## 일별")
+	L.append("| 일 | 굴러온 돌 | 월세 전사 | 박힌 돌 | 깡통 귀족 | 옥상 황제 | 일손 여유 T1..T5 | 주거(충족/전체) | 탐/병 | 행복 | 금고 | 순/일 | 물 | 전기 | 층 | 목표 | 목·철·콘·부품 |")
+	L.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
 	for row: Dictionary in rows:
 		var p: Array = row["pop"]
-		L.append("| %d | %d | %d | %d | %d | %d | %s | %d/%d | %.0f | %d | %.0f | %d/%d | %d/%d | %d |" % [row["day"], p[0], p[1], p[2], p[3], p[4],
-			"/".join(PackedStringArray(row["labor_spare"].map(func(x: int) -> String: return str(x)))), row["houses_ok"], row["houses"], row["happiness"],
-			row["money"], row["net"], row["water"][0], row["water"][1], row["power"][0], row["power"][1], row["floors"]])
+		L.append("| %d | %d | %d | %d | %d | %d | %s | %d/%d | %d/%d | %.0f | %d | %.0f | %d/%d | %d/%d | %d | %d | %s |" % [row["day"], p[0], p[1], p[2], p[3], p[4],
+			"/".join(PackedStringArray(row["labor_spare"].map(func(x: int) -> String: return str(x)))), row["houses_ok"], row["houses"], row["burnt"], row["sick"],
+			row["happiness"], row["money"], row["net"], row["water"][0], row["water"][1], row["power"][0], row["power"][1], row["floors"], row["goals"],
+			"/".join(PackedStringArray(row["mats"].map(func(x: int) -> String: return str(x))))])
 	L.append("")
-	# 수요 충족
-	L.append("## 마지막 날 수요 충족(계층별 평균 충족률, 주민 가중)")
+	L.append("## 마지막 날 수요 충족(계층별 평균, 주민 가중)")
 	var acc := {}
-	for b: Dictionary in state.buildings.values():
-		if b["kind"] != "house" or int(b["residents"]) == 0:
+	for b: Dictionary in sim.cover(state)["houses"]:
+		if int(b["residents"]) == 0:
 			continue
 		for nid: String in b["needs"]:
 			var a: Array = acc.get(nid, [0.0, 0.0])
@@ -157,159 +218,43 @@ static func report(r: Dictionary) -> String:
 			var n := sim.item("needs", nid)
 			L.append("| %s %s | %s | %.0f%% |" % [sim.tname(int(n["tier"])), n["name"], n["role"], 100.0 * float(acc[nid][0]) / maxf(1.0, float(acc[nid][1]))])
 	L.append("")
-	# 재고 버팀
-	L.append("## 마지막 날 재고와 버팀(경제일)")
+	L.append("## 마지막 날 재고")
 	var eco: Dictionary = sim.query(state, "economy")
-	L.append("| 상품 | 재고 | 한도 | 생산/일 | 소비/일 | 수입/일 | 수출/일 | 순 | 버팀 |")
-	L.append("|---|---|---|---|---|---|---|---|---|")
+	L.append("| 상품 | 재고 | 한도 | 생산/일 | 소비/일 | 수입/일 | 수출/일 |")
+	L.append("|---|---|---|---|---|---|---|")
 	for g: Dictionary in eco["goods"]:
 		if float(g["stock"]) > 0.0 or float(g["cons"]) > 0.0 or float(g["prod"]) > 0.0:
-			L.append("| %s | %.0f | %.0f | %.1f | %.1f | %.1f | %.1f | %.1f | %s |" % [g["name"], g["stock"], g["cap"], g["prod"], g["cons"], g["imp"], g["exp"], g["net"],
-				"늘어남" if float(g["days_left"]) < 0.0 else str(g["days_left"])])
+			L.append("| %s | %.0f | %.0f | %.1f | %.1f | %.1f | %.1f |" % [g["name"], g["stock"], g["cap"], g["prod"], g["cons"], g["imp"], g["exp"]])
 	L.append("")
-	L.append("## 장부(최근 %d일 평균, ₩/경제일)" % (state.ledger["days"] as Array).size())
-	L.append("| 줄 | 금액 |")
-	L.append("|---|---|")
+	L.append("## 장부(최근 평균, ₩/경제일)")
 	for l: Dictionary in eco["finance"]["lines"]:
-		L.append("| %s | %.1f |" % [l["name"], l["amount"]])
-	L.append("| **순** | **%.1f** |" % float(eco["finance"]["net"]))
+		L.append("- %s %.1f" % [l["name"], l["amount"]])
 	L.append("")
-	L.append("## 마지막 날 시설(완공·공사 중)")
+	L.append("## 마지막 날 시설")
 	var fc := {}
-	var upk := 0.0
 	for b: Dictionary in state.buildings.values():
 		if b["kind"] == "facility" or b["kind"] == "site":
 			var k := str(b["type"])
-			var a: Array = fc.get(k, [0, 0, 0.0, {}])
+			var a: Array = fc.get(k, [0, 0, {}])
 			a[0] += 1
 			if b.get("active", false):
 				a[1] += 1
 			var cz := str(b.get("cause", "site" if b["kind"] == "site" else ""))
-			a[3][cz] = int(a[3].get(cz, 0)) + 1
-			a[2] += float(sim.bdef(k).get("upkeep", 0))
+			a[2][cz] = int(a[2].get(cz, 0)) + 1
 			fc[k] = a
-			upk += float(sim.bdef(k).get("upkeep", 0))
-	L.append("| 시설 | 수 | 가동 | 유지비/일 | 상태(원인별 수) |")
-	L.append("|---|---|---|---|---|")
+	L.append("| 시설 | 수 | 가동 | 상태 |")
+	L.append("|---|---|---|---|")
 	for k: String in fc:
-		L.append("| %s | %d | %d | %.0f | %s |" % [sim.bdef(k).get("name", k), fc[k][0], fc[k][1], fc[k][2], JSON.stringify(fc[k][3])])
-	L.append("| 합계 | | | %.0f | |" % upk)
-	L.append("")
-	L.append("## 마지막 날 계약")
-	var cq: Dictionary = sim.query(state, "contracts")
-	L.append("자리 %d/%d" % [int(cq["slots"]["used"]), int(cq["slots"]["max"])])
-	for k: Dictionary in cq["active"]:
-		L.append("- %s %s %s %d개/%d시간 @₩%s — 지난 회차: %s" % [k["partner_name"], k["good_name"], "수입" if k["dir"] == "import" else "수출", k["qty"], k["interval_h"], str(k["price"]), k["last_text"]])
-	L.append("")
-	L.append_array(per_cell(sim, state))
-	L.append("")
-	L.append("## 세 계열 자재(디렉터 수정 4 — 구역 단위 총량)")
-	var acc_q := 0
-	var row := "누적(떠돌이 판잣집 한 채를 그 계층까지): "
-	var parts_q: Array = []
-	var district: Array = []
-	for t: int in range(1, sim.max_tier()):
-		acc_q += int(sim.item("upgrade_costs", "%dto%d" % [t, t + 1])["qty"])
-		parts_q.append("%s %d" % [sim.tname(t + 1), acc_q])
-		district.append("%s 100채 = %d" % [sim.tname(t + 1), acc_q * 100])
-	L.append(row + ", ".join(parts_q) + ".")
-	L.append("한 층(약 100채)을 전부 그 계층으로: " + ", ".join(district) + ".")
-	var got := 0.0
-	var used := 0.0
-	for m: String in sim.db["upgrade_costs"]["materials"]:
-		got += float(state.stats.get("debug_stock." + m, 0.0))
-		used += float(state.stats.get("used." + m, 0.0))
-	L.append("이번 실행: 탐험 흉내로 받은 자재 %d, 승급·건설에 쓴 자재 %d, 남은 자재 %d (시작 36)." % [int(got), int(used), int(float(state.stock.get("wood", 0)) + float(state.stock.get("metal", 0)) + float(state.stock.get("concrete", 0)))])
+		L.append("| %s | %d | %d | %s |" % [sim.bdef(k).get("name", k), fc[k][0], fc[k][1], JSON.stringify(fc[k][2])])
 	L.append("")
 	L.append("## 막힌 것(봇이 하려다 못 한 일, 횟수)")
 	var bl: Dictionary = r["bot"].blocked
 	var keys: Array = bl.keys()
 	keys.sort_custom(func(a: String, b: String) -> bool: return int(bl[a]) > int(bl[b]))
-	for k: String in keys.slice(0, 25):
+	for k: String in keys.slice(0, 20):
 		L.append("- %s — %d" % [k, int(bl[k])])
 	L.append("")
-	L.append("## 기록(마지막 40줄)")
-	for e: Dictionary in state.logbook.slice(maxi(0, state.logbook.size() - 40)):
+	L.append("## 기록(마지막 30줄)")
+	for e: Dictionary in state.logbook.slice(maxi(0, state.logbook.size() - 30)):
 		L.append("- %d일 %02d시 %s" % [int(e["day"]), int(e["hour"]), e["text"]])
 	return "\n".join(L) + "\n"
-
-
-## 브리프 §20.2: 꽉 찬 한 칸(주거 1채)의 세수와 비용(계층별). 상품 비용 = 기준가 × 소비량(가장 싼 대체품), 물·전기 = 자체 설비의 공급 1당 유지비.
-static func per_cell(sim: Sim, state: CityState) -> Array:
-	var L: Array = []
-	L.append("## 계층별 한 칸(만실 주거) 수지 — 브리프 §20.2")
-	var wcost := 6.0 / 120.0
-	var pcost := 25.0 / 40.0
-	if sim.bdef("power_plant").size() > 0:
-		pcost = float(sim.bdef("power_plant")["upkeep"]) / float(sim.bdef("power_plant")["supply"]["power"])
-	L.append("가정: 물 ₩%.3f/단위(급수탑 유지비), 전기 ₩%.3f/부하(발전소 유지비), 상품 = goods.json 기준가 × 1인 소비량(대체 묶음은 가장 싼 것). 시장·서비스 유지비는 빠짐." % [wcost, pcost])
-	L.append("세수(승급 충족) = 정원 × 세율 × (1 + 0.10 × 승급 수요 수), 행복 배수 1.0 기준. 여유 수요 보너스는 따로 표시.")
-	L.append("")
-	L.append("| 계층 | 정원 | 기본 세수/칸 | 승급 충족 세수/칸 | +여유 전부 | 상품 비용/칸 | 물·전기 비용/칸 | **순/칸(승급 충족)** | 노동력/칸 |")
-	L.append("|---|---|---|---|---|---|---|---|---|")
-	for t: int in range(1, sim.max_tier() + 1):
-		var td := sim.tier(t)
-		var cap := float(td["cap"])
-		var adv := 0
-		var lux := 0
-		var goods := 0.0
-		for nid: String in sim.items("needs"):
-			var n := sim.item("needs", nid)
-			if int(n["tier"]) != t:
-				continue
-			if n["role"] == "advance":
-				adv += 1
-			elif n["role"] == "luxury":
-				lux += 1
-			if n["role"] == "luxury" or not n.has("amount"):
-				continue
-			var cheapest := 1e9
-			for o: Dictionary in n["options"]:
-				if o.has("good"):
-					cheapest = minf(cheapest, float(sim.good(o["good"]).get("price", 0)))
-				elif o.has("utility"):
-					cheapest = 0.0
-			goods += cap * float(n["amount"]) * cheapest
-		var base := cap * float(td["tax"])
-		var adv_tax := base * (1.0 + 0.10 * float(adv if t < sim.max_tier() else 0))
-		var all_tax := adv_tax + base * 0.15 * float(lux)
-		var util := cap * (float(td["water"]) * wcost + float(td["power"]) * pcost)
-		L.append("| %s | %d | %.1f | %.1f | %.1f | %.1f | %.1f | **%.1f** | %.1f |" % [sim.tname(t), int(cap), base, adv_tax, all_tax, goods, util, adv_tax - goods - util, cap * float(td["labor"])])
-	L.append("")
-	L.append("승급 회수(만실·승급 충족 기준 순/칸 증가로 승급 돈 비용을 갚는 데 걸리는 경제일; 실제 시간 = ×10분):")
-	for t: int in range(1, sim.max_tier()):
-		var c := sim.item("upgrade_costs", "%dto%d" % [t, t + 1])
-		var net := func(k: int) -> float:
-			var td2 := sim.tier(k)
-			var cap2 := float(td2["cap"])
-			var a := 0
-			var g := 0.0
-			for nid: String in sim.items("needs"):
-				var n := sim.item("needs", nid)
-				if int(n["tier"]) != k:
-					continue
-				if n["role"] == "advance":
-					a += 1
-				if n["role"] != "luxury" and n.has("amount"):
-					var ch := 1e9
-					for o: Dictionary in n["options"]:
-						ch = minf(ch, float(sim.good(o["good"]).get("price", 0)) if o.has("good") else 0.0)
-					g += cap2 * float(n["amount"]) * ch
-			return cap2 * float(td2["tax"]) * (1.0 + 0.10 * float(a if k < sim.max_tier() else 0)) - g - cap2 * (float(td2["water"]) * wcost + float(td2["power"]) * pcost)
-		var gain: float = net.call(t + 1) - net.call(t)
-		var mat_val := float(c["qty"]) * 12.0
-		L.append("- %s→%s: 돈 ₩%d + 자재 %d(기준가 ₩%d) / 순 증가 ₩%.1f/일 → %s" % [sim.tname(t), sim.tname(t + 1), int(c["money"]), int(c["qty"]), int(mat_val), gain,
-			("%.1f경제일(실제 %.0f분)" % [(float(c["money"]) + mat_val) / gain, (float(c["money"]) + mat_val) / gain * 10.0]) if gain > 0.0 else "회수 불가(순 감소)"])
-	L.append("")
-	L.append("측정값(마지막 날): 계층별 실제 평균 세수/주거")
-	var sum := {}
-	for b: Dictionary in state.buildings.values():
-		if b["kind"] == "house":
-			var a: Array = sum.get(int(b["tier"]), [0.0, 0])
-			a[0] += float(b["tax"])
-			a[1] += 1
-			sum[int(b["tier"])] = a
-	for t: int in range(1, 6):
-		if sum.has(t):
-			L.append("- %s: 주거 %d채, 평균 세수 ₩%.1f/일" % [sim.tname(t), int(sum[t][1]), float(sum[t][0]) / float(sum[t][1])])
-	return L

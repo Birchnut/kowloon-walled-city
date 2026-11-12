@@ -11,7 +11,12 @@ static func run(sim: Sim, state: CityState, name: String, args: Dictionary) -> V
 		"info": return _info(sim, state, args)
 		"economy": return _economy(sim, state)
 		"log": return state.logbook.slice(maxi(0, state.logbook.size() - int(args.get("n", 20))))
-		"metrics": return Metrics.compute(sim, state)
+		"metrics": return Board.metrics(sim, state)
+		"metrics_raw": return Metrics.compute(sim, state)
+		"hazards":
+			return {"fire": {"on": false, "since_day": -1.0, "grace_left": 0.0, "covered_pct": 0.0, "burning": [], "burnt": [], "text": "불은 꺼져 있다."},
+				"disease": {"on": false, "since_day": -1.0, "grace_left": 0.0, "covered_pct": 0.0, "trash_covered_pct": 0.0, "sick": [], "trash_pct": 0.0, "text": "병은 꺼져 있다."}}
+		"coverage": return {"covered": [], "uncovered": [], "pct": 0.0, "text": ""}
 		"range_preview": return {"cells": [], "houses": 0, "text": ""}
 		"contracts": return {"slots": {"used": 0, "max": 0}, "active": [], "offers": [], "no_post": true}
 		"expeditions":   # [B 파트]
@@ -46,6 +51,10 @@ static func cond_text(sim: Sim, cond: Variant) -> String:
 					parts.append("%s %d명" % [sim.tname(int(k.substr(5))), int(c[2])])
 				elif k.begins_with("count."):
 					parts.append("%s 완공" % sim.bdef(k.substr(6)).get("name", k))
+				elif k.begins_with("happy_held."):
+					parts.append("행복도 %s 이상을 %s일 유지" % [k.substr(11), _n(c[2])])
+				elif k == "floors":
+					parts.append("%d층이 열림" % int(c[2]))
 				else:
 					parts.append("%s %s %s" % [k, c[1], c[2]])
 	return " + ".join(parts) if not parts.is_empty() else "처음부터"
@@ -79,7 +88,7 @@ static func _hud(sim: Sim, state: CityState) -> Dictionary:
 	for t: int in range(1, sim.max_tier() + 1):
 		pop["t%d" % t] = int(m.get("pop.t%d" % t, 0))
 	var z := state.floors_unlocked - 1
-	var need := int(ceilf(float(sim.cfg("floors.threshold", 0.8)) * float(sim.cfg("floors.eligible_cells", 144)) - 1e-6))
+	var need := Cover.floor_need(sim)
 	var nx := _next_step(sim, state)
 	var goal := {"text": "", "progress": 1.0}
 	if not nx.is_empty():
@@ -89,12 +98,22 @@ static func _hud(sim: Sim, state: CityState) -> Dictionary:
 		goal = {"text": "%s → %s" % [cond_text(sim, nx.get("cond", [])), ", ".join(names) if not names.is_empty() else str(nx.get("grade_name", ""))],
 			"progress": snappedf(_progress(sim, state, nx), 0.01)}
 	var h := {"day": state.day, "hour": state.hour, "money": state.money, "net_per_day": 0.0, "pop_total": state.population(), "pop": pop,
-		"happiness": snappedf(state.happiness, 0.1), "title": state.identity.get("title", "대장"), "grade_name": state.identity.get("grade_name", "공터"),
+		"happiness": snappedf(state.happiness, 0.1), "title": state.identity.get("title", "무단 점유 대표"), "grade_name": state.identity.get("grade_name", "공터"),
 		"floors_unlocked": state.floors_unlocked,
 		"floor_progress": _floor_progress(sim, state, z, need),
 		"water": {"supply": 0.0, "demand": 0.0}, "power": {"supply": 0.0, "demand": 0.0}, "labor": [], "alerts": [],
 		"teams_done": 0, "teams_idle": 0, "contracts_failed": 0, "next_goal": goal, "tutorial": int(state.flags.get("tutorial", 0)),
-		"heat": snappedf(state.heat, 0.1)}
+		"heat": snappedf(state.heat, 0.1), "grid": {"w": sim.W, "h": sim.H, "floors": sim.F}, "speed": 1, "paused": false,
+		"signals": [], "hazards": {"fire": {"on": false, "burning": 0, "burnt": 0, "covered_pct": 0.0}, "disease": {"on": false, "sick_houses": 0, "covered_pct": 0.0}}}
+	var sk := "%d:%d:%d:%d" % [state.get_instance_id(), roundi(state.econ_days / sim.step_days), state.layout_rev(), state.next_id]
+	if sk != str(sim.cover_cache.get("_sig_key", "")):
+		sim.cover_cache["_sig"] = Board.signals(sim, state)
+		sim.cover_cache["_sig_key"] = sk
+	h["signals"] = sim.cover_cache["_sig"]
+	var tl: Array = []
+	for t: int in range(1, sim.max_tier() + 1):
+		tl.append({"tier": t, "name": sim.tname(t), "pop": int(pop["t%d" % t])})
+	h["tiers"] = tl
 	var wait := 0
 	for t: Variant in state.waiting:
 		wait += int(state.waiting[t].get("count", 0))
@@ -110,6 +129,18 @@ static func _hud(sim: Sim, state: CityState) -> Dictionary:
 
 
 ## G2: 층 진행 + 문장.
+static func _arriving_text(b: Dictionary) -> String:
+	var res := int(b.get("residents", 0))
+	var tgt := int(b.get("target", 0))
+	if str(b.get("burn", "")) != "":
+		return "불에 타 아무도 살 수 없다"
+	if res < tgt:
+		return "%d명이 짐을 들고 오는 중(%d/%d) — 행복할수록 빨리 온다" % [tgt - res, res, tgt]
+	if res < int(b.get("cap", 0)):
+		return "수요가 채워지면 더 들어온다(%d/%d)" % [res, int(b.get("cap", 0))]
+	return "만실"
+
+
 static func _floor_progress(sim: Sim, state: CityState, z: int, need: int) -> Dictionary:
 	var used := Cover.used_cells_fast(sim, state, z)
 	var text := ""
@@ -135,10 +166,11 @@ static func _effect_text(sim: Sim, d: Dictionary) -> String:
 		parts.append(("%s → %s /일" % [", ".join(a), ", ".join(b)]) if not a.is_empty() else ("%s /일" % ", ".join(b)))
 	for u: String in d.get("supply", {}):
 		parts.append("%s +%s/일" % ["물" if u == "water" else "전기", _n(d["supply"][u])])
+	var rg := Cover.rng_of(d)
 	if d.has("market"):
-		parts.append("%d등급 이하 상품 취급, 범위 %d" % [int(d["market"]), int(d.get("range", 0))])
+		parts.append("%d등급 이하 상품 취급, %s" % [int(d["market"]), Cover.range_text(rg)])
 	elif d.has("services"):
-		parts.append("서비스 범위 %d" % int(d.get("range", 0)))
+		parts.append("범위 %s" % Cover.range_text(rg))
 	if float(d.get("water", 0)) > 0:
 		parts.append("물 %s/일 사용" % _n(d["water"]))
 	if float(d.get("power", 0)) > 0:
@@ -151,9 +183,24 @@ static func _effect_text(sim: Sim, d: Dictionary) -> String:
 		parts.append("음성 수입 %s/일" % Sim.won(float(d["vice"].get("income", 0))))
 	if "noise" in d.get("tags", []):
 		parts.append("시끄럽다(옆 칸 주거 행복 −)")
-	if d.get("open_sky", false):
-		parts.append("하늘이 열린 자리만")
+	if d.get("open_sky", false) or d.get("needs_sky", false):
+		parts.append("위가 뚫린 자리만(위에 지으면 멈춤)")
+	if int(d.get("min_floor", 0)) > 0:
+		parts.append("%d층 이상" % (int(d["min_floor"]) + 1))
 	return " · ".join(parts)
+
+
+const CAUSE_TEXT := {"": "가동 중", "staff": "인력 부족", "input": "원료 부족", "water": "물 부족", "power": "전기 부족",
+	"money": "돈이 없어 멈춤", "storage": "창고가 가득", "paused": "일시 정지", "raid": "단속으로 폐쇄", "sky": "위가 막혀 해가 안 듦",
+	"fire": "불이 났다", "burnt": "타 버림 — 수리 필요", "repair": "수리 중"}
+
+
+## 경제일 → "0.4일(약 4분)"처럼 ×1 실제 시간과 함께.
+static func day_text(days: float) -> String:
+	var mins := days * 10.0
+	if days >= 1.0:
+		return "%.1f일" % days
+	return "%.1f일(×1로 약 %d분)" % [days, maxi(1, int(roundf(mins)))]
 
 
 static func _n(x: Variant) -> String:
@@ -183,8 +230,9 @@ static func _build_menu(sim: Sim, state: CityState) -> Array:
 	var house_cost := float(sim.cfg("zone.shack_cost", 5))
 	var hl := not sim.is_unlocked(state, "house")
 	by["house"] = [{"id": "house", "name": "주거 구역", "desc": "칠한 칸마다 판잣집이 선다(1칸 = 1주거, %s %d명)." % [sim.tname(1), int(sim.tier(1).get("cap", 4))],
-		"sign": "住", "size": 1, "cost": {"money": house_cost, "goods": {}}, "workforce": [], "upkeep": 0, "range": 0,
-		"effect_text": "주민이 살며 세금을 낸다", "locked": hl, "lock_hint": "", "affordable": state.money >= house_cost}]
+		"sign": "집", "size": 1, "footprint": [1, 1], "floors": 1, "rotatable": false, "build_days": 0.0, "needs_sky": false, "min_floor": 0,
+		"look": "house", "cost": {"money": house_cost, "goods": {}}, "workforce": [], "upkeep": 0, "range": null,
+		"effect_text": "주민이 살며 세금을 낸다(판잣집은 바로 서고 주민은 조금씩 들어온다)", "locked": hl, "lock_hint": "", "affordable": state.money >= house_cost}]
 	for id: String in sim.items("buildings"):
 		var d := sim.bdef(id)
 		var c := str(d.get("cat", "infra"))
@@ -201,10 +249,14 @@ static func _build_menu(sim: Sim, state: CityState) -> Array:
 		var aff := state.money + 1e-9 >= float(cost.get("money", 0))
 		for g: String in cost.get("goods", {}):
 			aff = aff and float(state.stock.get(g, 0.0)) + 1e-9 >= float(cost["goods"][g])
-		by[c].append({"id": id, "name": d.get("name", id), "desc": d.get("desc", ""), "sign": d.get("sign", ""), "size": int(d.get("size", 1)),
+		var k := sim.fp(id)
+		var rg := Cover.rng_of(d)
+		by[c].append({"id": id, "name": d.get("name", id), "desc": d.get("desc", ""), "sign": d.get("sign", ""), "size": maxi(k.x, k.y),
+			"footprint": [k.x, k.y], "floors": k.z, "rotatable": k.x != k.y, "build_days": snappedf(sim.build_days(id), 0.01),
+			"needs_sky": bool(d.get("needs_sky", d.get("open_sky", false))), "min_floor": int(d.get("min_floor", 0)), "look": str(d.get("look", "")),
 			"cost": {"money": float(cost.get("money", 0)), "goods": cost.get("goods", {})}, "workforce": _wf(sim, d.get("workforce", {})),
-			"upkeep": float(d.get("upkeep", 0)), "range": int(d.get("range", 0)), "effect_text": _effect_text(sim, d),
-			"locked": locked, "lock_hint": hint, "affordable": aff})
+			"upkeep": float(d.get("upkeep", 0)), "range": null if rg.is_empty() else rg, "range_text": Cover.range_text(rg) if not rg.is_empty() else "",
+			"effect_text": _effect_text(sim, d), "locked": locked, "lock_hint": hint, "affordable": aff})
 	for c: String in ["house"] + cats.keys():
 		if by.has(c) and not (c == "house" and out.size() > 0):
 			out.append({"cat": c, "cat_name": cats.get(c, "주거"), "items": by[c]})
@@ -229,11 +281,17 @@ static func _info(sim: Sim, state: CityState, args: Dictionary) -> Dictionary:
 		return {"bid": bid, "kind": "house", "pos": b["pos"], "title": "%s의 집" % sim.tname(t), "tier": t, "tier_name": sim.tname(t),
 			"material": b["material"], "material_name": mn.get(b["material"], b["material"]), "residents": int(b["residents"]), "cap": int(b["cap"]),
 			"target": int(b.get("target", 0)), "happiness": snappedf(float(b.get("happiness", 50)), 0.1), "tax_per_day": snappedf(float(b.get("tax", 0)), 0.01),
-			"need_state": b["need_state"], "upgradable": b["upgradable"], "scaffold": b.get("upgrading") != null, "needs": [], "upgrade": {}}
+			"need_state": b["need_state"], "upgradable": b["upgradable"], "scaffold": b.get("upgrading") != null, "needs": [], "upgrade": {},
+			"arriving": snappedf(float(b.get("arriving", 0.0)), 0.01), "arriving_text": _arriving_text(b),
+			"burn": str(b.get("burn", "")), "sick": bool(b.get("sick", false)), "repair": {"ok": false, "cost_text": "", "days": 0.0}}
 	var d := sim.bdef(str(b["type"]))
 	if b["kind"] == "site":
+		var left := float(b.get("build_left", 0.0))
 		return {"bid": bid, "kind": "site", "pos": b["pos"], "title": "공사 중 — %s" % d.get("name", b["type"]), "type": b["type"],
-			"lines": ["대나무 비계가 올라가는 중 (%d%%)" % int(float(b["progress"]) * 100.0)], "actions": [{"id": "demolish", "label": "공사 취소(환불 없음)", "enabled": true, "reason": ""}]}
+			"w": int(b.get("w", 1)), "h": int(b.get("h", 1)), "d": int(b.get("d", 1)), "rot": int(b.get("rot", 0)), "footprint": Cover.bcells(b),
+			"progress": snappedf(float(b["progress"]), 0.01), "build_progress": snappedf(float(b["progress"]), 0.01), "build_left_text": "완공까지 %s" % day_text(left),
+			"lines": ["대나무 비계가 올라가는 중 (%d%%) — 완공까지 %s" % [int(float(b["progress"]) * 100.0), day_text(left)]],
+			"actions": [{"id": "demolish", "label": "공사 취소(환불 없음)", "enabled": true, "reason": ""}]}
 	var staff_lines: Array = []
 	for w: Dictionary in _wf(sim, d.get("workforce", {})):
 		staff_lines.append("%s %d명 필요" % [w["name"], w["n"]])
@@ -251,14 +309,19 @@ static func _info(sim: Sim, state: CityState, args: Dictionary) -> Dictionary:
 		var hn := snappedf(float(d["vice"].get("heat", 0.0)) * float(b.get("eff", 0.0)) * maxf(0.0, sim.mod(state, "heat.gain")), 0.1)
 		io.append("음성 수입 %s/일 (지금 %s) · 단속 위험 +%s/일 (지금 +%s)" % [Sim.won(float(d["vice"].get("income", 0))), Sim.won(float(b.get("vice_rate", 0.0))), _n(d["vice"].get("heat", 0)), _n(hn)])
 	var cause := str(b.get("cause", ""))
-	var ct: String = {"": "가동 중", "staff": "인력 부족", "input": "원료 부족", "water": "물 부족", "power": "전기 부족",
-		"money": "돈이 없어 멈춤", "storage": "창고가 가득", "paused": "일시 정지", "raid": "단속으로 폐쇄"}.get(cause, cause)
+	var ct: String = CAUSE_TEXT.get(cause, cause)
 	var served := int(sim.cover(state).get("served", {}).get(bid, 0))
-	return {"bid": bid, "kind": "facility", "pos": b["pos"], "size": int(b.get("size", 1)), "footprint": Cover.footprint(b["pos"], int(b.get("size", 1))),
+	var k := Cover.dims(b)
+	var rg := Cover.rng_of(d)
+	return {"bid": bid, "kind": "facility", "pos": b["pos"], "size": maxi(k.x, k.y), "footprint": Cover.bcells(b),
+		"w": k.x, "h": k.y, "d": k.z, "rot": int(b.get("rot", 0)), "look": str(d.get("look", "")),
+		"build_left_text": "", "build_progress": 1.0, "front": int(b.get("front", int(b.get("rot", 0)))), "range_text": Cover.range_text(rg) if not rg.is_empty() else "",
+		"interior": {"staff_ratio": snappedf(sim.staff_of(b), 0.01), "active": bool(b.get("active", false))},
+		"burn": str(b.get("burn", "")),
 		"title": d.get("name", b["type"]), "type": b["type"], "desc": d.get("desc", ""), "sign": d.get("sign", ""),
 		"active": b.get("active", false), "paused": b.get("paused", false),
 		"staff": {"ratio": snappedf(sim.staff_of(b), 0.01), "lines": staff_lines}, "io_lines": io, "eff": snappedf(eff, 0.01),
-		"cause": cause, "cause_text": ct, "upkeep": float(d.get("upkeep", 0)), "range": int(d.get("range", 0)), "served_houses": served,
+		"cause": cause, "cause_text": ct, "upkeep": float(d.get("upkeep", 0)), "range": null if rg.is_empty() else rg, "served_houses": served,
 		"actions": [{"id": "pause", "label": "다시 돌리기" if b.get("paused", false) else "일시 정지", "enabled": true, "reason": ""},
 			{"id": "demolish", "label": "철거(환불 없음)", "enabled": true, "reason": ""}]}
 

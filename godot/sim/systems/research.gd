@@ -74,6 +74,7 @@ func apply(state: CityState, name: String, args: Dictionary) -> Variant:
 			var r := sim.item("research", id)
 			var cost := float(r.get("cost", 0))
 			state.money -= cost
+			state.stat_add("spent_research", cost)
 			state.book("build", -cost)
 			state.stat_add("research_spent", cost)
 			var days := float(r.get("days", 1.0))
@@ -121,13 +122,6 @@ func _finish(state: CityState, id: String) -> void:
 	sim.say(state, "연구 완료: %s — %s%s" % [r.get("name", id), r.get("desc", ""), (" 새 목적지: " + ", ".join(extra)) if not extra.is_empty() else ""], "good")
 
 
-func fast_forward(state: CityState, _econ_days: float, before: Dictionary, lines: Array) -> void:
-	var bs: Dictionary = before.get("stats", {})
-	for id: String in sim.items("research"):
-		var k := "research_%s_day" % id
-		if state.stats.has(k) and not bs.has(k):
-			lines.append("연구가 끝났다: %s." % sim.item("research", id).get("name", id))
-
 
 func query(state: CityState, name: String, _args: Dictionary) -> Variant:
 	if name != "research":
@@ -160,7 +154,7 @@ func query(state: CityState, name: String, _args: Dictionary) -> Variant:
 	if studies == 0:
 		hint = "공부방을 지으면 연구할 수 있다."
 	elif not a.is_empty() and _study_count(state, true) == 0:
-		hint = "공부방이 멈춰 연구도 멈췄다(토박이 일손 필요)."
+		hint = "족보 공부방이 멈춰 연구도 멈췄다(박힌 돌 일손 필요)."
 	elif a.is_empty():
 		hint = "연구를 하나 고르자. 한 번에 하나만 한다."
 	return {"can": studies > 0 and a.is_empty(), "hint": hint, "active": act, "nodes": nodes, "done": _done(state).size(), "total": nodes.size()}

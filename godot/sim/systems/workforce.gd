@@ -18,7 +18,7 @@ func tick(state: CityState, _dt: float) -> void:
 	for b: Dictionary in sim.cover(state)["houses"]:
 		var ti: int = b["tier"]
 		var ri: int = b["residents"]
-		rawp[ti] += float(ri)
+		rawp[ti] += float(ri) * (0.5 if b.get("sick", false) else 1.0)   # 앓는 집은 일손 절반(hazards)
 	for t: int in range(1, tiers + 1):
 		raw[t] = rawp[t]
 	for t: Variant in state.waiting:
@@ -35,7 +35,7 @@ func tick(state: CityState, _dt: float) -> void:
 		var demand := {}
 		for f: Array in members:
 			var b: Dictionary = f[0]
-			var off: bool = b.get("paused", false) or b.get("money_stop", false) or b.get("raided", false)
+			var off: bool = Sim.off_reason(b) != ""
 			for tn: Array in f[5]:
 				var t: int = tn[0]
 				labor[t]["need"] += float(tn[1])
@@ -51,7 +51,7 @@ func tick(state: CityState, _dt: float) -> void:
 		for f: Array in members:
 			var b: Dictionary = f[0]
 			var st := 1.0
-			if b.get("paused", false) or b.get("money_stop", false) or b.get("raided", false):
+			if Sim.off_reason(b) != "":
 				st = 0.0
 			else:
 				for tn: Array in f[5]:
