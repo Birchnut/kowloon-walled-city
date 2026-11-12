@@ -450,9 +450,13 @@ func _input(ev: InputEvent) -> void:
 			else:
 				var hv: Dictionary = UI.to_dict(Q.vcall("hover", [mp], {}))
 				inspector.set_hover(hv.get("pos") if bool(hv.get("hit", false)) else null)
-				_layout_inspector_inset()
+				# 마우스 아래 주민 한 줄(뷰 who): "굴러온 돌 · 통조림 사러 가는 중"
+				var w: Dictionary = UI.to_dict(Q.vcall("who", [mp], {}))
+				tips.cursor_tone = "dim"
+				tips.cursor_text = str(w.get("text", "")) if bool(w.get("ok", false)) else ""
 		elif not place.active():
 			inspector.set_hover(null)
+			tips.cursor_text = ""
 	elif ev is InputEventMouseButton:
 		var mb := ev as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT and not mb.pressed:
@@ -471,10 +475,6 @@ func _on_right_click() -> void:
 	elif inspector.selected_pos != null:
 		inspector.deselect()
 		_layout()
-
-
-func _layout_inspector_inset() -> void:
-	pass
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:

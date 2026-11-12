@@ -27,7 +27,7 @@
   {"shot": "pc_ui_06_place_refused"},
   {"key": "Esc"},
   {"dbg": "unlock_all,add_money:50000,mats:200"},
-  {"wait": 0.5},
+  {"wait": 2.5},
   {"place": "city_hall", "cell": [8, 6, 0], "commit": false},
   {"wait": 0.5},
   {"shot": "pc_ui_06b_landmark_two_floors"},

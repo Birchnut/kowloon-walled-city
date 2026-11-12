@@ -52,7 +52,7 @@ func _build(b: VBoxContainer) -> void:
 	_table = PcWindow.scroll_list(lv)
 	var rs := ScrollContainer.new()
 	rs.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	rs.custom_minimum_size.x = 480
+	rs.custom_minimum_size.x = 430
 	rs.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	h.add_child(rs)
 	_side = UI.vbox(10)
@@ -61,7 +61,7 @@ func _build(b: VBoxContainer) -> void:
 
 
 func _cols() -> Array:
-	return [26, 190, 96, 96, 120, 84]
+	return [26, 160, 86, 86, 110, 80]
 
 
 func _header_row() -> Control:
@@ -369,7 +369,7 @@ func _sec_hazards() -> Control:
 			close())
 		h.add_child(lb)
 		var tl := UI.label(str(hd.get("text", "")), "LabelDim", true)
-		tl.custom_minimum_size.x = 430
+		tl.custom_minimum_size.x = 380
 		v.add_child(tl)
 	if v.get_child_count() <= 1:
 		v.add_child(UI.label("아직 위험이 없다.", "LabelDim"))

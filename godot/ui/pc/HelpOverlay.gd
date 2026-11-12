@@ -80,6 +80,7 @@ func _ready() -> void:
 
 func toggle() -> void:
 	visible = not visible
+	Q.vcall("set_input_enabled", [not visible])   # 도움말이 떠 있는 동안 카메라 키가 도시를 움직이지 않게
 	Sfx.play("window_open" if visible else "window_close")
 
 

@@ -36,8 +36,12 @@ func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 
 
+var _row: HBoxContainer
+
+
 func _ready() -> void:
 	var row := UI.hbox(10)
+	_row = row
 	add_child(row)
 	# ── 돈 ──
 	_money_btn = _flat_btn()
@@ -96,7 +100,7 @@ func _ready() -> void:
 	dh.add_child(_date)
 	_clock = UI.label("", "LabelBold")
 	dh.add_child(_clock)
-	TipLayer.set_tip(dbtn, "날짜·시각\n하루는 ×1에서 10분. 멈춘 채로도 짓고 볼 수 있다.")
+	TipLayer.set_tip(dbtn, func() -> String: return "%d일째 %s\n하루는 ×1에서 10분. 멈춘 채로도 짓고 볼 수 있다." % [int(_hud.get("day", 1)), UI.clock(float(_hud.get("hour", 0.0)))])
 	row.add_child(dbtn)
 	# ── 배속 ──
 	var sp := UI.hbox(2)
@@ -241,8 +245,11 @@ func refresh(h: Dictionary) -> void:
 		(e2["pic"] as Picto).color = c if st != "off" else UI.col("mute")
 		(e2["bar"] as ColorRect).color = c if st != "off" else Color(0, 0, 0, 0)
 		(e2["btn"] as Control).visible = not s.is_empty() or id in ["water", "food", "fun"]
-	_date.text = ("%d일" if compact > 1 else "%d일째") % int(h.get("day", 1))
+	_date.text = "%d일째" % int(h.get("day", 1))
+	_date.visible = compact < 2
 	_net.visible = compact < 2
+	if _row != null:
+		_row.add_theme_constant_override("separation", 10 if compact < 2 else 4)
 	_clock.text = UI.clock(float(h.get("hour", 0.0)))
 	var hr := float(h.get("hour", 12.0))
 	_tod.shape = "clock"

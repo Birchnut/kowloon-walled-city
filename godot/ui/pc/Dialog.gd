@@ -31,10 +31,13 @@ func _init() -> void:
 
 func _enter_tree() -> void:
 	open_count += 1
+	Q.vcall("set_input_enabled", [false])
 
 
 func _exit_tree() -> void:
 	open_count -= 1
+	if open_count <= 0:
+		Q.vcall("set_input_enabled", [true])
 
 
 func _build(opt: Dictionary, two: bool) -> void:

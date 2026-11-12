@@ -42,25 +42,6 @@ static func font(n: String = "body") -> Font:
 	return ThemeDB.fallback_font
 
 
-## 한자 간판 글자(收買, 麻雀 …): 웹 빌드에는 시스템 대체 글꼴이 없어 네모로 나온다.
-## 뷰가 쓰는 번체 픽셀 글꼴이 있으면 UI 글꼴들의 대체 글꼴로 건다.
-const CJK_FALLBACK := "res://assets/view/fonts/FusionPixel12-zh_hk.ttf"
-
-static func ensure_cjk_fallback() -> void:
-	if not ResourceLoader.exists(CJK_FALLBACK):
-		return
-	var fb: Font = load(CJK_FALLBACK)
-	var t := theme()
-	var fonts: Array = [t.default_font]
-	for n: String in t.get_font_list("Kowloon"):
-		fonts.append(t.get_font(n, "Kowloon"))
-	for f: Variant in fonts:
-		if f is FontFile and not (fb in (f as FontFile).fallbacks):
-			var arr: Array[Font] = (f as FontFile).fallbacks.duplicate()
-			arr.append(fb)
-			(f as FontFile).fallbacks = arr
-
-
 static func font_size(n: String = "body") -> int:
 	var t := theme()
 	if t.has_font_size(n, "Kowloon"):
