@@ -220,6 +220,7 @@ var _aff_last: Array = []
 var _off_last := false
 var _settle_seen := -1
 var _hz_seen := -1
+var _sid := -1
 var _sick_pen := 15.0
 var _sick_tax := 0.8
 var _acls_of: PackedInt32Array = PackedInt32Array()   # cls → acls
@@ -622,6 +623,19 @@ func tick(state: CityState, dt: float) -> void:
 	var clsmap: Dictionary = cov["cls"]
 	if sim.no_cache:
 		_forget(cov)
+	elif state.get_instance_id() != _sid:
+		# 다른 상태(불러오기·새 게임): 스텝을 넘는 묶음 기억을 버린다 — 불러온 값은 JSON 자릿수로 반올림돼 있어
+		# 옛 묶음 결과를 다시 쓰면 캐시 없는 계산과 끝자리가 갈린다(긴 퍼즈 씨앗 8에서 찾음).
+		_sid = state.get_instance_id()
+		_pents.clear()
+		_pacc = -1
+		_acc_key = ""
+		_mrev = ""
+		_last_used.clear()
+		_dems.clear()
+		_dem_of.clear()
+		_cov_ref = null
+		_settle_seen = -1      # 이번 스텝은 모든 주거를 다시 쓴다(불러온 반올림 값을 덮는다)
 	_access(state, cov)
 	var houses: Array = cov["houses"]
 	_spare.clear()
