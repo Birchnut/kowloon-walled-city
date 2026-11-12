@@ -31,6 +31,27 @@ var _zoom_i := 1
 var _inner := false
 var _hour := 12.0
 var _t := 0.0
+var occupants: Dictionary = {}   # bid -> [{tier, shirt, pal, until, hs, look}] 걸어 들어온 손님
+var _leavers: Array = []
+var _guest_rank: Dictionary = {}
+
+
+## 걸어온 주민이 시설에 들어와 손님 자리에 앉는다(dur초). 자리가 차 있으면 그냥 들어가 사라진 것으로.
+func occupy(bid: int, who: Dictionary, dur: float) -> void:
+	if not occupants.has(bid):
+		occupants[bid] = []
+	var w2 := who.duplicate()
+	w2["until"] = _t + dur
+	w2["bid"] = bid
+	(occupants[bid] as Array).append(w2)
+	_dirty = true
+
+
+## 자리에서 일어난 손님들(주민 쪽이 문에서 다시 걷게 한다).
+func pop_leavers() -> Array:
+	var out := _leavers
+	_leavers = []
+	return out
 
 
 func setup(c: ViewCfg, v: Control, lg: Texture3D) -> void:
@@ -160,8 +181,12 @@ func _visible_slot(s: Dictionary, bs: Dictionary, staff_rank: Dictionary, staff_
 		var n: int = int(staff_n.get(bid, 1))
 		var rank: int = int(staff_rank.get(int(s.get("i", 0)), 0))
 		return (float(rank) + 0.5) / float(maxi(n, 1)) <= ratio + 0.001
+	var rank: int = int(_guest_rank.get(int(s.get("i", 0)), 0))
+	var occ: Array = occupants.get(bid, [])
+	if rank < occ.size():
+		return true   # 걸어 들어온 주민이 앉은 자리
 	var h := ViewCfg.h2(int(s.get("i", 0)) * 13 + bid, 77) % 100
-	return float(h) < bf * 100.0
+	return float(h) < bf * 100.0 * float(cfg.r("interior.ambient_guests", 0.55))
 
 
 func _recompute() -> void:
@@ -169,11 +194,28 @@ func _recompute() -> void:
 	var bs: Dictionary = Game.state.buildings if Game.state != null else {}
 	var staff_n: Dictionary = {}
 	var staff_rank: Dictionary = {}
+	var guest_n: Dictionary = {}
+	_guest_rank = {}
 	for s in slots:
+		var bid := int(s.get("bid", -1))
 		if str(s.get("role", "")) == "staff":
-			var bid := int(s.get("bid", -1))
 			staff_rank[int(s.get("i", 0))] = int(staff_n.get(bid, 0))
 			staff_n[bid] = int(staff_n.get(bid, 0)) + 1
+		elif str(s.get("role", "")) == "guest":
+			_guest_rank[int(s.get("i", 0))] = int(guest_n.get(bid, 0))
+			guest_n[bid] = int(guest_n.get(bid, 0)) + 1
+	# 자리 시간이 끝난 손님은 일어난다(넘치는 손님도 — 자리 수만큼만 앉는다)
+	for bid in occupants.keys():
+		var keep_o: Array = []
+		for o in occupants[bid]:
+			if float(o["until"]) <= _t or keep_o.size() >= int(guest_n.get(bid, 0)):
+				_leavers.append(o)
+			else:
+				keep_o.append(o)
+		if keep_o.is_empty():
+			occupants.erase(bid)
+		else:
+			occupants[bid] = keep_o
 	var keep: Dictionary = {}
 	for v in _vis:
 		keep[v["key"]] = v
@@ -187,6 +229,13 @@ func _recompute() -> void:
 		if is_extra and _zoom_i < 1:
 			continue
 		var key: String = "%d:%d:%s" % [int(s.get("bid", -1)), int(s.get("i", 0)), str(s.get("pose", ""))]
+		var oc: Dictionary = {}
+		if str(s.get("role", "")) == "guest":
+			var occl: Array = occupants.get(int(s.get("bid", -1)), [])
+			var rk: int = int(_guest_rank.get(int(s.get("i", 0)), 99))
+			if rk < occl.size():
+				oc = occl[rk]
+				key += ":o%d" % int(oc.get("hs", 0))
 		if keep.has(key):
 			_vis.append(keep[key])
 			continue
@@ -209,6 +258,9 @@ func _recompute() -> void:
 			"stir":
 				prop = 3
 		var pal := (hs % 6) + ((hs / 6) % 8) * 8 + ((hs / 48) % 8) * 64 + prop * 512
+		if not oc.is_empty():
+			shirt = oc["shirt"]
+			pal = int(oc["pal"]) + prop * 512
 		_vis.append({"key": key, "hs": hs, "s": s, "shirt": shirt, "pal": pal, "phase": float(hs % 1000) / 1000.0, "acc": float((hs / 300) % 8) / 8.0})
 
 
