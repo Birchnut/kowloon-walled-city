@@ -8,7 +8,7 @@
 | market_alley | 뒷골목 시장(골목) | market_alley | 시장 | 2×2×1 | 0.3 | ₩200 + 고물 10 | 8 | 월세 전사 4 | 시장 2등급 범위 5칸·위1/아래1층 | – | service |
 | market_hall | 지붕 있는 시장(시장) | market_hall | 시장 | 2×2×1 | 0.3 | ₩700 + 고물 30 | 20 | 박힌 돌 6 | 시장 3등급 범위 6칸·위1/아래1층 | 전기 6 | service |
 | market_mall | 면세 백화점(면세) | market_mall | 시장 | 2×2×1 | 0.3 | ₩2500 + 고물 60 + 설비 부품 2 | 50 | 깡통 귀족 6 | 시장 4등급 범위 7칸·위2/아래1층 | 전기 12 | service |
-| rain_catcher | 하늘 수도국(수도국) | water_catcher | 물 | 1×1×1 | 0.1 | ₩20 | 0.5 | – | 물 +20 | – | utility |
+| rain_catcher | 하늘 수도국(수도국) | water_catcher | 물 | 1×1×1 | 0.1 | ₩30 | 0.5 | – | 물 +40 | – | utility |
 | water_tank | 훔친 물탱크(물탱크) | water_tank | 물 | 1×2×1 | 0.15 | ₩120 + 고물 10 | 6 | 굴러온 돌 2 | 물 +120 | – | utility |
 | water_pipe | 수도관 몰래 잇기(수도) | water_pipe | 물 | 1×1×1 | 0.1 | ₩300 | 35 | – | 물 +250 | – | utility |
 | water_plant | 끓여 거르는 정수장(정수장) | water_plant | 물 | 2×2×1 | 0.3 | ₩1200 + 고물 40 + 설비 부품 2 | 50 | 박힌 돌 4 | 물 +600 | 전기 10 | utility |

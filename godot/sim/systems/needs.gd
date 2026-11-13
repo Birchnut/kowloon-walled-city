@@ -939,7 +939,7 @@ func tick(state: CityState, dt: float) -> void:
 		var up: bool = ready and bool(aff[t])
 		_hp2[hix] = p
 		_hres[hix] = res
-		_hset[hix] = 1 if ((p.unmet_mask & ~int(b.get("sdc", 0))) == 0 and (int(b.get("sdm", 0)) & p.met_mask) == 0 and res >= target and float(b["grow"]) == 0.0 \
+		_hset[hix] = 1 if ((p.unmet_mask & ~int(b.get("sdc", 0))) == 0 and (int(b.get("sdm", 0)) & p.met_mask) == 0 and res == target and float(b["grow"]) == 0.0 \
 			and float(b["leave"]) == 0.0 and upg == null and not hz_burn and not hz_sick) else 0
 		if res != old_res or ns != str(b["need_state"]) or up != bool(b["upgradable"]) or ready != bool(b.get("ready", false)):
 			b["need_state"] = ns
