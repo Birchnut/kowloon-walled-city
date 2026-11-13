@@ -9,8 +9,8 @@ signal speed_pressed(speed: float, paused: bool)
 signal window_pressed(id: String)
 
 const WINDOWS := [
-	["metrics", "현황판", "metrics", "Tab"], ["economy", "경제", "economy", "F2"], ["trade", "교역", "trade", "F3"],
-	["expedition", "탐험", "expedition", "F4"], ["keep", "성채", "keep", "F6"], ["help", "도움말", "help", "F1"],
+	["metrics", "장부", "metrics", "Tab"], ["economy", "돈", "economy", "F2"], ["trade", "회상회", "trade", "F3"],
+	["expedition", "회색 띠", "expedition", "F4"], ["keep", "네모청", "keep", "F6"], ["help", "도움말", "help", "F1"],
 ]
 
 var _money: Label
@@ -48,12 +48,12 @@ func _ready() -> void:
 	var mb := UI.hbox(6)
 	_money_btn.add_child(mb)
 	mb.add_child(Picto.make("coin", UI.col("gold")))
-	_money = UI.label("₩0", "LabelGold")
+	_money = UI.label("0달러", "LabelGold")
 	mb.add_child(_money)
 	_net = UI.label("", "LabelSmall")
 	mb.add_child(_net)
 	_money_btn.pressed.connect(func() -> void: jump.emit({"screen": "economy", "arg": "finance"}))
-	TipLayer.set_tip(_money_btn, func() -> String: return "금고\n지금 %s. 하루 순수입 %s(최근 며칠 평균).\n누르면 경제 › 장부." % [UI.won(_hud.get("money", 0)), UI.won_signed(_hud.get("net_per_day", 0))])
+	TipLayer.set_tip(_money_btn, func() -> String: return "금고\n지금 %s. 하루 순수입 %s(최근 며칠 평균).\n누르면 돈 › 수지." % [UI.won(_hud.get("money", 0)), UI.won_signed(_hud.get("net_per_day", 0))])
 	row.add_child(_money_btn)
 	row.add_child(VSeparator.new())
 	# ── 계층 ──
@@ -125,15 +125,15 @@ func _ready() -> void:
 static func win_tip(id: String, key: String) -> String:
 	match id:
 		"metrics":
-			return "현황판 [%s]\n모든 수급을 한 표로: 물·전기·먹을 것·물건·서비스·불과 병. 무엇이 모자라고 무엇을 하면 되는지." % key
+			return "장부 [%s]\n모든 수급을 한 표로: 물·전기·먹을 것·물건·서비스·불과 병. 무엇이 모자라고 무엇을 하면 되는지." % key
 		"economy":
-			return "경제 [%s]\n상품 재고와 흐름, 일손, 장부." % key
+			return "돈 [%s]\n상품 재고와 흐름, 일손, 수지." % key
 		"trade":
-			return "교역 [%s]\n거래처와 계약. 정해진 시각마다 사고판다." % key
+			return "회상회 [%s]\n거래처와 계약. 정해진 시각마다 사고판다." % key
 		"expedition":
-			return "탐험 [%s]\n자재를 구하러 사람을 보낸다. 직접 줍기(준비 중)." % key
+			return "회색 띠 [%s]\n자재를 구하러 회띠꾼을 보낸다. 직접 줍기도 할 수 있다." % key
 		"keep":
-			return "성채 [%s]\n목표·정책·연구·기록·설정." % key
+			return "네모청 [%s]\n목표·포고·방백의 서랍·기록·설정." % key
 		"help":
 			return "조작 도움말 [%s]\n마우스·키보드 조작 전부." % key
 	return ""
@@ -210,7 +210,7 @@ func _tier_tip(t: int) -> String:
 		s += "일손 %s / 필요 %s" % [UI.num(lab.get("have", 0)), UI.num(lab.get("need", 0))]
 		if int(lab.get("need", 0)) > int(lab.get("have", 0)):
 			s += " — 모자란다"
-	s += "\n누르면 현황판 › 계층."
+	s += "\n누르면 장부 › 계층."
 	return s
 
 

@@ -9,7 +9,7 @@ const ActorShader := preload("res://view/shaders/actor.gdshader")
 const MAX_INST := 260
 const LOD_SIZE := [Vector2(6, 12), Vector2(10, 20), Vector2(20, 40), Vector2(26, 52)]
 const DIRS: Array[Vector3i] = [Vector3i(1, 0, 0), Vector3i(-1, 0, 0), Vector3i(0, 1, 0), Vector3i(0, -1, 0)]
-const TIER_NAMES := ["굴러온 돌", "월세 전사", "박힌 돌", "깡통 귀족", "옥상 황제"]
+const TIER_NAMES := ["벽틈시민", "판자시민", "성채민", "온수민", "청공시민"]
 
 var cfg: ViewCfg
 var view: Control
@@ -307,15 +307,15 @@ func _going_text(e: Dictionary) -> String:
 			return ("%s에 일하러 가는 중" % sg) if sg != "" else "일하러 가는 중"
 	match lk:
 		"food_cans":
-			return "통조림 사러 가는 중"
+			return "맹관 사러 가는 중"
 		"food_pilgrims":
-			return "마감 세일 줄 서러 가는 중"
+			return "띠수레 줄 서러 가는 중"
 		"noodle_stall":
 			return "완탕면 먹으러 가는 중"
 		"burger":
-			return "출처 묻지 마 버거 먹으러 가는 중"
+			return "토끼버거 먹으러 가는 중"
 		"sushi":
-			return "어제 잡은 스시 먹으러 가는 중"
+			return "하늘상에서 스시 먹으러 가는 중"
 		"mahjong":
 			return "마작 한 판 하러 가는 중"
 		"teahouse":
@@ -323,7 +323,7 @@ func _going_text(e: Dictionary) -> String:
 		"karaoke":
 			return "노래 부르러 가는 중"
 		"bathhouse":
-			return "때 밀러 가는 중"
+			return "김탕에 씻으러 가는 중"
 		"shrine":
 			return "향 피우러 가는 중"
 		"dentist":
@@ -331,15 +331,15 @@ func _going_text(e: Dictionary) -> String:
 		"clinic":
 			return "진료 받으러 가는 중"
 		"pharmacy":
-			return "약 비슷한 것 사러 가는 중"
+			return "약 사러 가는 중"
 		"salon":
-			return "머리 하러 가는 중"
+			return "머리 깎으러 가는 중"
 		"study":
-			return "족보 공부하러 가는 중"
+			return "글방에 가는 중"
 		"gambling", "casino":
-			return "딱 한 판만 하러 가는 중"
+			return "도박하러 가는 중"
 		"roof_park":
-			return "바람 쐬러 가는 중"
+			return "소리 지르러 가는 중"
 	return ("%s에 가는 중" % sg) if sg != "" else "볼일 보러 가는 중"
 
 
@@ -353,7 +353,7 @@ func _coming_text(e: Dictionary) -> Array:
 		"work":
 			return ["일 끝나고 집에 가는 중", "walk"]
 	if str(e.get("look", "")) == "food_cans":
-		return ["통조림 들고 집에 가는 중", "can"]
+		return ["맹관 들고 집에 가는 중", "can"]
 	return ["집에 가는 중", "walk"]
 
 
@@ -422,7 +422,7 @@ func _spawn_special(hr: float) -> void:
 		if path.size() >= 3:
 			var hs := _ri(1 << 20)
 			agents.append({"kind": "walk", "seat": -1, "look": "", "path": path, "i": 0, "pos": _node_pos(path[0], hs), "to": _node_pos(path[1], hs + 1), "hs": hs,
-				"pose": "carry", "tier": 2, "text": "완탕 배달 중(국물 안 흘리게)", "speed": 0.95, "wait": 0.0, "dir": Vector3(1, 0, 0),
+				"pose": "carry", "tier": 2, "text": "완탕 배달 중", "speed": 0.95, "wait": 0.0, "dir": Vector3(1, 0, 0),
 				"shirt": Color("#f4f0e6"), "pal": (hs % 6) + ((hs / 6) % 8) * 8 + 64})
 		return
 	if hr < 8.0 or hr > 19.5:

@@ -14,7 +14,7 @@ var _sig := ""
 func _init() -> void:
 	super._init()
 	win_id = "trade"
-	title_text = "교역"
+	title_text = "회상회"
 	key_hint = "F3"
 	want_size = Vector2(1400, 820)
 
@@ -52,11 +52,11 @@ func _refresh() -> void:
 		var p := UI.panel("PanelGold")
 		var v := UI.vbox(6)
 		p.add_child(v)
-		v.add_child(UI.label("뒷문 무역관이 없다", "LabelBold"))
-		var l := UI.label("기반(K)의 뒷문 무역관을 지으면 계약 자리가 생긴다(월세 전사 40명이 되면 열린다).", "LabelSmall", true)
+		v.add_child(UI.label("회상회가 없다", "LabelBold"))
+		var l := UI.label("기반(K)의 회상회를 지으면 계약 자리가 생긴다(판자시민 40명이 되면 열린다).", "LabelSmall", true)
 		l.custom_minimum_size.x = 540
 		v.add_child(l)
-		var b := PcButton.make("뒷문 무역관 짓기", "infra", "K", "ButtonJade")
+		var b := PcButton.make("회상회 짓기", "infra", "K", "ButtonJade")
 		b.pressed.connect(func() -> void:
 			close()
 			ui.jump({"screen": "build", "arg": "trade_post"}))
@@ -79,7 +79,7 @@ func _active_row(c: Dictionary) -> Control:
 	var paused := bool(c.get("paused", false))
 	var h := UI.hbox(8)
 	v.add_child(h)
-	h.add_child(UI.tag("수출" if exp else "수입", "gold" if exp else "jade"))
+	h.add_child(UI.tag("내보냄" if exp else "들여옴", "gold" if exp else "jade"))
 	var nm := UI.label("%s · %s" % [str(c.get("good_name", "")), str(c.get("partner_name", ""))], "LabelBold")
 	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(nm)
@@ -106,7 +106,7 @@ func _active_row(c: Dictionary) -> Control:
 		ctl.add_child(minus)
 		var rl := UI.label("최소 보유 %s" % UI.num(rv), "LabelSmall")
 		ctl.add_child(rl)
-		TipLayer.set_tip(rl, "수출 최소 보유\n재고가 이만큼 아래면 그 회차는 수출하지 않는다.")
+		TipLayer.set_tip(rl, "내보낼 최소 보유\n재고가 이만큼 아래면 그 회차는 내보내지 않는다.")
 		var plus := PcButton.make("", "plus", "", "Button")
 		plus.pressed.connect(func() -> void: _set_contract(id, {"reserve": rv + RESERVE_STEP}))
 		ctl.add_child(plus)
@@ -114,7 +114,7 @@ func _active_row(c: Dictionary) -> Control:
 	var cx := PcButton.make("해지", "close", "", "ButtonRed")
 	cx.pressed.connect(func() -> void:
 		ui.confirm({"kicker": "계약 해지", "title": "%s 계약을 끝낸다" % str(c.get("good_name", "")),
-			"lines": ["정기 %s이 멈춘다. 벌금은 없다." % ("수출" if exp else "수입")], "ok_text": "해지", "danger": true}, func() -> void:
+			"lines": ["정기 %s이 멈춘다. 벌금은 없다." % ("내보내기" if exp else "들여오기")], "ok_text": "해지", "danger": true}, func() -> void:
 				var r: Dictionary = ui.cmd("contract_cancel", {"id": id})
 				if not bool(r.get("ok", false)):
 					ui.toast(str(r.get("reason", "")), "warn")
@@ -152,7 +152,7 @@ func _offer_list(rows: Array, no_post: bool) -> void:
 		_offers.add_child(UI.label(pn if known else pn + " (모름)", "LabelGold"))
 		if not known:
 			var hint := str((by[pn][0] as Dictionary).get("lock_hint", ""))
-			_offers.add_child(UI.label("잠김 — " + (hint if hint != "" else "탐험으로 만난다"), "LabelDim"))
+			_offers.add_child(UI.label("잠김 — " + (hint if hint != "" else "회색 띠에서 만난다"), "LabelDim"))
 			continue
 		for od2: Dictionary in by[pn]:
 			_offers.add_child(_offer_row(od2, no_post))
@@ -163,7 +163,7 @@ func _offer_row(o: Dictionary, no_post: bool) -> Control:
 	var h := UI.hbox(8)
 	p.add_child(h)
 	var exp := str(o.get("dir", "")) == "export"
-	h.add_child(UI.tag("수출" if exp else "수입", "gold" if exp else "jade"))
+	h.add_child(UI.tag("내보냄" if exp else "들여옴", "gold" if exp else "jade"))
 	var nm := UI.label(str(o.get("good_name", "")), "LabelSmall")
 	nm.custom_minimum_size.x = 120
 	h.add_child(nm)
@@ -187,6 +187,6 @@ func _offer_row(o: Dictionary, no_post: bool) -> Control:
 				ui.toast(str(r.get("reason", "")), "warn")
 			_sig = ""
 			_refresh())
-		TipLayer.set_tip(b, "%s %s\n%s개를 %s시간마다, 개당 %s. 하루 %s.%s" % ["수출" if exp else "수입", str(o.get("good_name", "")), UI.num(sd.get("qty", 0)), UI.dec(sd.get("interval_h", 0)), UI.won(sd.get("price", 0)), UI.won_signed(pm), ("\n" + str(can.get("reason", ""))) if not bool(can.get("ok", false)) else ""])
+		TipLayer.set_tip(b, "%s %s\n%s개를 %s시간마다, 개당 %s. 하루 %s.%s" % ["내보냄" if exp else "들여옴", str(o.get("good_name", "")), UI.num(sd.get("qty", 0)), UI.dec(sd.get("interval_h", 0)), UI.won(sd.get("price", 0)), UI.won_signed(pm), ("\n" + str(can.get("reason", ""))) if not bool(can.get("ok", false)) else ""])
 		flow.add_child(b)
 	return p

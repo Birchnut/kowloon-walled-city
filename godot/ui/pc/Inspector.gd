@@ -185,7 +185,7 @@ func _house() -> void:
 	if arr != "":
 		_kv(g, "들어오는 중", arr)
 	_kv(g, "행복", "%d" % int(float(info.get("happiness", 0))), "good" if float(info.get("happiness", 0)) >= 60 else ("bad" if float(info.get("happiness", 0)) < 35 else ""))
-	_kv(g, "세금", "%s/일" % UI.won(info.get("tax_per_day", 0)))
+	_kv(g, "물세·자리값", "%s/일" % UI.won(info.get("tax_per_day", 0)))
 	PcWindow.section(_v, "수요")
 	for n: Variant in UI.to_array(info.get("needs", [])):
 		_need_row(UI.to_dict(n))
@@ -265,7 +265,7 @@ func _hazard_box(burn: String, sick: bool) -> void:
 		v.add_child(h)
 		h.add_child(Picto.make("fire", UI.col("red_hi"), 2, UI.col("gold_hi")))
 		h.add_child(UI.label("불타는 중", "LabelRed"))
-		v.add_child(_wrap("소방대 범위 안이면 곧 꺼진다. 밖이면 옆 칸·위 칸으로 번진다.", "LabelSmall"))
+		v.add_child(_wrap("불밥통 범위 안이면 곧 꺼진다. 밖이면 옆 칸·위 칸으로 번진다.", "LabelSmall"))
 	elif burn == "burnt":
 		var h2 := UI.hbox(6)
 		v.add_child(h2)
@@ -285,7 +285,7 @@ func _hazard_box(burn: String, sick: bool) -> void:
 		v.add_child(h3)
 		h3.add_child(Picto.make("sick", UI.col("jade_hi"), 2, UI.col("red_hi")))
 		h3.add_child(UI.label("병이 돈다", "LabelRed"))
-		v.add_child(_wrap("일손이 반, 행복이 떨어진다. 의원 범위 안이면 빨리 낫는다. 쓰레기 수거 범위를 넓힌다.", "LabelSmall"))
+		v.add_child(_wrap("일손이 반으로 줄고 행복이 떨어진다. 봉합방 범위 안이면 빨리 낫는다. 오물 수거 범위를 넓힌다.", "LabelSmall"))
 
 
 # ------------------------------------------------------------------ 시설

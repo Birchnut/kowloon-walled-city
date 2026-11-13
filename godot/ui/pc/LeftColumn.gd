@@ -45,7 +45,7 @@ func _ready() -> void:
 	var all := PcButton.make("목표 전부", "", "", "ButtonFlat")
 	all.min_h = 28
 	all.pressed.connect(func() -> void: jump.emit({"screen": "keep", "arg": "goals"}))
-	TipLayer.set_tip(all, "성채 › 목표\n앞으로의 목표와 끝낸 목표.")
+	TipLayer.set_tip(all, "네모청 › 목표\n앞으로의 목표와 끝낸 목표.")
 	gh.add_child(all)
 	_goal_text = UI.label("", "LabelBold", true)
 	_goal_text.custom_minimum_size.x = W - 30
@@ -199,17 +199,17 @@ static func _jump_word(j: Dictionary) -> String:
 		"build":
 			return "짓기 — 그 시설"
 		"metrics":
-			return "현황판"
+			return "장부"
 		"lens":
 			return "범위 렌즈"
 		"economy":
-			return "경제 창"
+			return "돈 창"
 		"trade":
-			return "교역 창"
+			return "회상회 창"
 		"expedition":
-			return "탐험 창"
+			return "회색 띠 창"
 		"keep":
-			return "성채 창"
+			return "네모청 창"
 		"upgrade":
 			return "일괄 승급"
 		"inspect":

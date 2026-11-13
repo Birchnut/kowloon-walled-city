@@ -14,13 +14,13 @@ var _show_all := false
 func _init() -> void:
 	super._init()
 	win_id = "economy"
-	title_text = "경제"
+	title_text = "돈"
 	key_hint = "F2"
 	want_size = Vector2(1300, 820)
 
 
 func _build(b: VBoxContainer) -> void:
-	_tabs = PcWindow.tabs(b, [["goods", "상품", "goods"], ["labor", "일손", "labor"], ["finance", "장부", "economy"]], func(id: String) -> void:
+	_tabs = PcWindow.tabs(b, [["goods", "상품", "goods"], ["labor", "일손", "labor"], ["finance", "수지", "economy"]], func(id: String) -> void:
 		tab = id
 		PcWindow.set_tab(_tabs, id)
 		_sig = ""
@@ -74,7 +74,7 @@ func _row(cells: Array, widths: Array, vars: Array = [], tone: Array = []) -> HB
 
 func _goods(e: Dictionary) -> void:
 	var w := [200, 120, 90, 90, 90, 90, 100, 100]
-	_list.add_child(_row(["상품", "재고 / 한도", "만듦", "씀", "수입", "수출", "하루 순", "남은 날"], w, ["LabelMute", "LabelMute", "LabelMute", "LabelMute", "LabelMute", "LabelMute", "LabelMute", "LabelMute"]))
+	_list.add_child(_row(["상품", "재고 / 한도", "만듦", "씀", "들여옴", "내보냄", "하루 순", "남은 날"], w, ["LabelMute", "LabelMute", "LabelMute", "LabelMute", "LabelMute", "LabelMute", "LabelMute", "LabelMute"]))
 	var cat := ""
 	var hidden := 0
 	for g: Variant in UI.to_array(e.get("goods", [])):

@@ -22,7 +22,7 @@ var _m: Dictionary = {}
 func _init() -> void:
 	super._init()
 	win_id = "metrics"
-	title_text = "현황판"
+	title_text = "장부"
 	key_hint = "Tab"
 	want_size = Vector2(1560, 880)
 	poll = 1.0
@@ -338,7 +338,7 @@ func _sec_finance() -> Control:
 		var al := UI.label(UI.won_signed(ld.get("amount", 0)), "LabelSmall")
 		al.add_theme_color_override("font_color", UI.col("jade_hi") if float(ld.get("amount", 0)) >= 0 else UI.col("red_hi"))
 		g.add_child(al)
-	var more := PcButton.make("장부 자세히", "economy", "F2", "ButtonFlat")
+	var more := PcButton.make("돈 자세히", "economy", "F2", "ButtonFlat")
 	more.min_h = 28
 	more.pressed.connect(func() -> void: ui.open_window("economy", "finance"))
 	v.add_child(more)

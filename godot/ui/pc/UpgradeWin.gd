@@ -266,7 +266,7 @@ func _preview(pv: Dictionary) -> void:
 		_kv("일손", " · ".join(parts))
 	if pv.has("tax_delta"):
 		var td := float(pv.get("tax_delta", 0.0))
-		_kv("세수", "%s/일" % UI.won_signed(td), "good" if td >= 0 else "bad")
+		_kv("물세·자리값", "%s/일" % UI.won_signed(td), "good" if td >= 0 else "bad")
 	var dt := UI.to_array(pv.get("demand_text", []))
 	if not dt.is_empty():
 		PcWindow.section(_pv, "입주가 끝나면 새로 찾는 것")
@@ -296,7 +296,7 @@ func _short_row(qty: int, have: int, mname: String, blockers: Array) -> void:
 	var l := UI.label(line + ((" 가장 빠른 곳: " + src) if src != "" else ""), "LabelGoldSmall", true)
 	l.custom_minimum_size.x = 900
 	_short.add_child(l)
-	var b2 := PcButton.make("탐험 — 그 자재를 주는 곳", "expedition", "F4", "Button")
+	var b2 := PcButton.make("회색 띠 — 그 자재를 주는 곳", "expedition", "F4", "Button")
 	b2.pressed.connect(func() -> void:
 		close()
 		ui.open_window("expedition", need_good))

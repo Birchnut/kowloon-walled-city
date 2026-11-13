@@ -15,13 +15,13 @@ var _sig := ""
 func _init() -> void:
 	super._init()
 	win_id = "keep"
-	title_text = "성채"
+	title_text = "네모청"
 	key_hint = "F6"
 	want_size = Vector2(1200, 820)
 
 
 func _build(b: VBoxContainer) -> void:
-	var items := [["goals", "목표", "goal"], ["policies", "정책", "keep"], ["research", "연구", "tier"], ["log", "기록", "economy"], ["settings", "설정", "gear"]]
+	var items := [["goals", "목표", "goal"], ["policies", "포고", "keep"], ["research", "방백의 서랍", "tier"], ["log", "기록", "economy"], ["settings", "설정", "gear"]]
 	if bool(Data.cfg("debug.enabled", false)):
 		items.append(["debug", "디버그", "warn"])
 	_tabs = PcWindow.tabs(b, items, func(id: String) -> void:
@@ -141,7 +141,7 @@ func _goals(g: Dictionary) -> void:
 # ------------------------------------------------------------------ 정책
 func _policies(p: Dictionary, vice: Dictionary) -> void:
 	var sl := UI.to_dict(p.get("slots", {}))
-	set_subtitle("정책 자리 %d / %d" % [int(sl.get("used", 0)), int(sl.get("max", 0))])
+	set_subtitle("포고 자리 %d / %d" % [int(sl.get("used", 0)), int(sl.get("max", 0))])
 	if float(vice.get("heat", 0)) > 0.0 or not UI.to_array(vice.get("items", [])).is_empty():
 		var vp := UI.panel("PanelRed")
 		_list.add_child(vp)
@@ -150,9 +150,9 @@ func _policies(p: Dictionary, vice: Dictionary) -> void:
 		var hh := UI.hbox(8)
 		vv.add_child(hh)
 		hh.add_child(Picto.make("warn", UI.col("red_hi")))
-		hh.add_child(UI.label("단속 위험 %d / 100" % int(float(vice.get("heat", 0))), "LabelRed"))
+		hh.add_child(UI.label("바깥의 시선 %d / 100" % int(float(vice.get("heat", 0))), "LabelRed"))
 		hh.add_child(PcWindow.bar(float(vice.get("heat", 0)) / 100.0, "bad", 240, 10))
-		vv.add_child(_w("하루 +%s, 저절로 -%s. 높으면 음성 시설이 단속으로 닫힌다." % [UI.dec(vice.get("gain_per_day", 0)), UI.dec(vice.get("decay_per_day", 0))], "LabelSmall", 1040))
+		vv.add_child(_w("하루 +%s, 저절로 -%s. 높으면 두 우산 시설이 닫힌다." % [UI.dec(vice.get("gain_per_day", 0)), UI.dec(vice.get("decay_per_day", 0))], "LabelSmall", 1040))
 	for it: Variant in UI.to_array(p.get("items", [])):
 		var d := UI.to_dict(it)
 		var row := UI.panel("PanelRow")
@@ -187,7 +187,7 @@ func _research(r: Dictionary) -> void:
 	set_subtitle("연구 %d / %d" % [int(r.get("done", 0)), int(r.get("total", 0))])
 	var act := UI.to_dict(r.get("active", {}))
 	if not bool(r.get("can", true)):
-		_list.add_child(_w(str(r.get("hint", "공부방이 있어야 연구한다.")), "LabelRedSmall"))
+		_list.add_child(_w(str(r.get("hint", "글방이 있어야 연구한다.")), "LabelRedSmall"))
 	if str(act.get("id", "")) != "":
 		var p := UI.panel("PanelGold")
 		_list.add_child(p)
@@ -377,7 +377,7 @@ func _debug() -> void:
 	var f := HFlowContainer.new()
 	f.custom_minimum_size.x = 1080
 	_list.add_child(f)
-	var ops: Array = [["₩+1,000", {"op": "add_money", "n": 1000}], ["₩+10,000", {"op": "add_money", "n": 10000}],
+	var ops: Array = [["+1,000달러", {"op": "add_money", "n": 1000}], ["+10,000달러", {"op": "add_money", "n": 10000}],
 		["세 자재 +20", "mats"], ["고물 +50", {"op": "add_stock", "good": "scrap", "n": 50}], ["설비 부품 +5", {"op": "add_stock", "good": "parts", "n": 5}],
 		["하루 건너뛰기", {"op": "skip_days", "n": 1}], ["전부 해금", {"op": "unlock_all"}], ["거래처 공개", {"op": "reveal_partners"}],
 		["불 내기(고른 건물·없으면 아무 집)", "fire"], ["병 퍼뜨리기(고른 집·없으면 아무 집)", "outbreak"], ["불 켜기(유예 없이)", {"op": "set_hazard", "kind": "fire", "on": true}], ["병 켜기(유예 없이)", {"op": "set_hazard", "kind": "disease", "on": true}], ["층 채우기(다음 층 열릴 만큼)", "fill"]]

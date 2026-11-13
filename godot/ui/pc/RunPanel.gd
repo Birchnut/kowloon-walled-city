@@ -241,7 +241,7 @@ func _report(r: Dictionary, note: String) -> void:
 		body += "\n잃은 것 %d개(쓰러지면 절반)." % _sum(lost)
 	if note != "":
 		body += "\n" + note
-	body += "\n탐험대가 다시 쉬는 중이다. 털린 만큼 던전 재고가 줄었다(게임 시간이 지나면 다시 찬다)."
+	body += "\n회띠꾼 팀이 다시 쉰다. 털린 만큼 재고가 줄었다(게임 시간이 지나면 다시 찬다)."
 	ui.toasts.card({"kicker": "직접 줍기 — " + _dest_name(), "title": title, "body": body,
 		"tone": "jade" if oc != "down" else "red", "picto": "expedition", "life": 7.0})
 	Sfx.play("expedition")

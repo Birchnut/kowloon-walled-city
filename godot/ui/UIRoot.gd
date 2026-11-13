@@ -666,13 +666,13 @@ func _on_event(n: String, p: Dictionary) -> void:
 		"floor_unlocked":
 			var z := int(p.get("z", 0))
 			Sfx.play("floor")
-			toasts.card({"kicker": "새 층", "title": "%d층이 열렸다" % (z + 1), "body": "왼쪽 아래 층 고르기나 PgUp으로 %dF를 보고 짓는다." % (z + 1), "tone": "jade", "picto": "floor"})
+			toasts.card({"kicker": "새 층", "title": "%d층 받침이 올랐다" % (z + 1), "body": "왼쪽 아래 층 고르기나 PgUp으로 %d층을 보고 짓는다." % (z + 1), "tone": "jade", "picto": "floor"})
 		"hazard_on":
 			_hazard_intro(str(p.get("kind", "")), float(p.get("grace_days", 0.0)))
 		"fire_started":
 			Sfx.play("fire")
 			var pos: Variant = p.get("pos")
-			toasts.push("불이 났다! 왼쪽 알림을 누르면 그 자리로 간다.", "bad", "fire")
+			toasts.push("불이 났다. 왼쪽 알림을 누르면 그 자리로 간다.", "bad", "fire")
 			if pos is Vector3i and not bool(_hz_seen.get("fire_first", false)):
 				_hz_seen["fire_first"] = true
 				Q.vcall("focus", [pos, -1])
@@ -684,11 +684,11 @@ func _on_event(n: String, p: Dictionary) -> void:
 		"construction_done":
 			pass
 		"research_done":
-			toasts.card({"kicker": "연구 끝", "title": str(p.get("name", "")), "body": "성채 › 연구에서 다음 것을 고른다.", "tone": "jade", "picto": "check"})
+			toasts.card({"kicker": "연구 끝", "title": str(p.get("name", "")), "body": "네모청 › 방백의 서랍에서 다음 것을 고른다.", "tone": "jade", "picto": "check"})
 		"raid":
-			toasts.card({"kicker": "단속", "title": "%s 닫혔다" % UI.josa(_type_name(str(p.get("type", ""))), "가", "이"), "body": "벌금 %s. 이틀 뒤 다시 연다. 뒷돈 정책이 위험을 늦춘다." % UI.won(p.get("fine", 0)), "tone": "red", "picto": "warn"})
+			toasts.card({"kicker": "바깥의 시선", "title": "%s 닫혔다" % UI.josa(_type_name(str(p.get("type", ""))), "가", "이"), "body": "벌금 %s. 이틀 뒤 다시 연다. 띠값 포고가 시선이 닿는 속도를 늦춘다." % UI.won(p.get("fine", 0)), "tone": "red", "picto": "warn"})
 		"raid_end":
-			toast("단속이 풀렸다. 닫혔던 곳이 다시 연다.", "good")
+			toast("바깥의 시선이 걷혔다. 닫혔던 곳이 다시 연다.", "good")
 		"expedition_done":
 			Sfx.play("expedition")
 			refresh_soon()
@@ -725,16 +725,16 @@ func _hazard_intro(kind: String, grace: float) -> void:
 	Sfx.play("hazard_on")
 	if kind == "fire":
 		toasts.card({"kicker": "새 위험 — 불", "title": "이제부터 불이 날 수 있다%s" % ((" (%s 뒤부터)" % UI.days(grace)) if grace > 0.0 else ""),
-			"body": "소방대 범위 밖의 칸에 불이 나면 옆·위로 번진다. 탄 집은 수리해야 쓴다. 소방대(양동이)는 위아래 한 층까지 닿는다. 위 띠의 불 신호등과 '소방' 렌즈로 빈 곳을 본다.",
-			"tone": "red", "picto": "fire", "life": 0.0, "buttons": [{"label": "소방대 짓기", "cb": func() -> void:
+			"body": "소방 범위 밖의 칸에 불이 나면 옆과 위로 번진다. 탄 집은 수리해야 쓴다. 불밥통 골목은 위아래 한 층까지 닿는다. 위 띠의 불 신호등과 '소방' 렌즈로 빈 곳을 본다.",
+			"tone": "red", "picto": "fire", "life": 0.0, "buttons": [{"label": "불밥통 골목 짓기", "cb": func() -> void:
 				set_lens("fire")
 				jump({"screen": "build", "arg": "fire_bucket"})}, {"label": "소방 렌즈 보기", "cb": func() -> void: set_lens("fire")}, {"label": "알았다", "cb": Callable()}]})
 	elif kind == "disease":
 		toasts.card({"kicker": "새 위험 — 병", "title": "이제부터 병이 돌 수 있다%s" % ((" (%s 뒤부터)" % UI.days(grace)) if grace > 0.0 else ""),
-			"body": "집마다 쓰레기가 나온다. 수거 범위 밖에 쌓이면 그 구역에 병이 돈다 — 일손 반, 행복 하락. 넝마주이 조합(수거)과 의원으로 막는다. '수거'·'의원' 렌즈로 본다.",
-			"tone": "red", "picto": "disease", "life": 0.0, "buttons": [{"label": "조합 짓기", "cb": func() -> void:
+			"body": "집마다 오물이 나온다. 수거 범위 밖에 쌓이면 그 구역에 병이 돈다. 일손은 반으로 줄고 행복이 떨어진다. 밤배꾼(수거)과 봉합방으로 막는다. '오물'·'봉합방' 렌즈로 본다.",
+			"tone": "red", "picto": "disease", "life": 0.0, "buttons": [{"label": "밤배꾼 짓기", "cb": func() -> void:
 				set_lens("trash")
-				jump({"screen": "build", "arg": "trash_guild"})}, {"label": "수거 렌즈 보기", "cb": func() -> void: set_lens("trash")}, {"label": "알았다", "cb": Callable()}]})
+				jump({"screen": "build", "arg": "trash_guild"})}, {"label": "오물 렌즈 보기", "cb": func() -> void: set_lens("trash")}, {"label": "알았다", "cb": Callable()}]})
 
 
 var _unlock_pending: Array = []

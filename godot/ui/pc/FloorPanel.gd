@@ -11,9 +11,9 @@ const LENSES := [
 	["needs", "수요", "warn", "수요 렌즈\n집마다 수요가 채워졌는지(초록·노랑·빨강)."],
 	["market", "시장", "market", "시장 범위\n시장 범위 안의 집(초록)과 밖의 집(빨강)."],
 	["fun", "놀 곳", "fun", "놀 곳 범위\n놀 것 시설 범위 안·밖의 집."],
-	["fire", "소방", "fire", "소방 범위\n소방대가 닿는 집과 닿지 않는 집(불이 나면 번진다)."],
-	["trash", "수거", "trash", "쓰레기 수거 범위\n범위 밖에 쓰레기가 쌓이면 병이 돈다."],
-	["clinic", "의원", "clinic", "의원 범위\n의원 범위 안이면 병이 빨리 낫는다."],
+	["fire", "소방", "fire", "소방 범위\n불밥통이 닿는 집과 닿지 않는 집(불이 나면 번진다)."],
+	["trash", "오물", "trash", "오물 수거 범위\n범위 밖에 오물이 쌓이면 병이 돈다."],
+	["clinic", "봉합방", "clinic", "봉합방 범위\n봉합방 범위 안이면 병이 빨리 낫는다."],
 	["tier", "계층", "tier", "계층 렌즈\n집마다 계층 색."],
 	["happiness", "행복", "smile", "행복 렌즈\n집마다 행복도 색."],
 ]
@@ -87,7 +87,7 @@ func refresh(h: Dictionary) -> void:
 		var need := float(fp.get("need", 0))
 		var used := float(fp.get("used", 0))
 		var r := used / maxf(used + need, 1.0)
-		_lock_btn.label_text = "%dF 열림까지 %s" % [n + 1, UI.pct(r)]
+		_lock_btn.label_text = "%d층 받침까지 %s" % [n + 1, UI.pct(r)]
 		_lock_bar.ratio = r
 	var cut := int(Q.view().get("floor_cut")) if Q.view() != null and Q.view().get("floor_cut") != null else -1
 	set_cut(cut)
@@ -104,7 +104,7 @@ func _rebuild_floors() -> void:
 		_lock_btn.center = false
 		TipLayer.set_tip(_lock_btn, func() -> String:
 			var fp := UI.to_dict(_hud.get("floor_progress", {}))
-			return "%d층은 아직 잠겼다\n%s\n쓰이는 칸 = 사람이 사는 집 + 다 지은 시설. 빈집·공사장·골조는 세지 않는다." % [_floors_n + 1, str(fp.get("text", "아래층을 더 채우면 열린다."))])
+			return "%d층 받침은 아직 오르지 않았다\n%s\n쓰이는 칸 = 사람이 사는 집 + 다 지은 시설. 빈집·공사장·골조는 세지 않는다." % [_floors_n + 1, str(fp.get("text", "아래층을 더 채우면 받침이 오른다."))])
 		_lock_row.add_child(_lock_btn)
 		_lock_bar = RatioBarPc.new()
 		_lock_bar.col = UI.col("jade")
@@ -114,7 +114,7 @@ func _rebuild_floors() -> void:
 	else:
 		_lock_btn = null
 	for z in range(-1, _floors_n):
-		var b := PcButton.make("전체" if z < 0 else "%dF" % (z + 1), "", "", "ButtonToggle")
+		var b := PcButton.make("전체" if z < 0 else "%d층" % (z + 1), "", "", "ButtonToggle")
 		b.toggle_mode = true
 		b.min_h = 30
 		b.min_w = 52

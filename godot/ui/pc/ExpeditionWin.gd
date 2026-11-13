@@ -20,7 +20,7 @@ var _good_hl := ""
 func _init() -> void:
 	super._init()
 	win_id = "expedition"
-	title_text = "탐험"
+	title_text = "회색 띠"
 	key_hint = "F4"
 	want_size = Vector2(1480, 860)
 	poll = 1.0
@@ -35,7 +35,7 @@ func _build(b: VBoxContainer) -> void:
 	var lv := UI.vbox(6)
 	lv.custom_minimum_size.x = 480
 	h.add_child(lv)
-	PcWindow.section(lv, "탐험대")
+	PcWindow.section(lv, "회띠꾼")
 	_teams = PcWindow.scroll_list(lv)
 	var rv := UI.vbox(6)
 	rv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -63,7 +63,7 @@ func _refresh() -> void:
 		return
 	_sig = sig
 	var slots := UI.to_dict(_data.get("slots", {}))
-	set_subtitle("탐험대 %d / %d" % [int(slots.get("have", 0)), int(slots.get("max", 0))])
+	set_subtitle("회띠꾼 %d / %d" % [int(slots.get("have", 0)), int(slots.get("max", 0))])
 	_build_mats()
 	_build_teams()
 	_build_dests()
@@ -89,10 +89,10 @@ func _build_teams() -> void:
 	_bars.clear()
 	var teams := UI.to_array(_data.get("teams", []))
 	if teams.is_empty():
-		var l := UI.label("탐험대가 없다. 기반 분류(K)의 줍줍 본부를 지으면 공사가 끝날 때 생긴다.", "LabelDim", true)
+		var l := UI.label("회띠꾼이 없다. 기반 분류(K)의 회띠꾼 막을 지으면 공사가 끝날 때 생긴다.", "LabelDim", true)
 		l.custom_minimum_size.x = 440
 		_teams.add_child(l)
-		var gb := PcButton.make("줍줍 본부 짓기", "infra", "K", "Button")
+		var gb := PcButton.make("회띠꾼 막 짓기", "infra", "K", "Button")
 		gb.pressed.connect(func() -> void:
 			close()
 			ui.jump({"screen": "build", "arg": "expedition_base"}))
@@ -150,7 +150,7 @@ func _claim(team: Variant) -> void:
 			parts.append("%s %s" % [str(rd.get("name", "")), UI.num(rd.get("n", 0))])
 		ui.toast("받았다: " + (" · ".join(parts) if not parts.is_empty() else "빈손"), "good", "mat")
 		for f: Variant in UI.to_array(r.get("finds", [])):
-			ui.toasts.card({"kicker": "탐험에서 찾았다", "title": str(f), "tone": "gold", "picto": "expedition"})
+			ui.toasts.card({"kicker": "회색 띠에서 찾았다", "title": str(f), "tone": "gold", "picto": "expedition"})
 	else:
 		ui.toast(str(r.get("reason", "")), "warn")
 	_sig = ""
@@ -159,7 +159,7 @@ func _claim(team: Variant) -> void:
 
 func _build_dests() -> void:
 	PcWindow.clear(_dests)
-	var bands := {"near": "가까운 곳", "mid": "중거리", "far": "먼 곳"}
+	var bands := {"near": "가까운 곳", "mid": "중간", "far": "먼 곳"}
 	var last_band := ""
 	for d: Variant in UI.to_array(_data.get("dests", [])):
 		var dd := UI.to_dict(d)
@@ -219,7 +219,7 @@ func _dest_row(dd: Dictionary) -> Control:
 	rb.disabled = not known
 	rb.pressed.connect(func() -> void: _run(id))
 	var why := "" if bool(run.get("available", false)) else "\n지금은: " + str(RunPanel.check(id).get("reason", ""))
-	TipLayer.set_tip(rb, "직접 줍기 — 내가 들어간다\n던전에 직접 들어가 배낭만큼 들고 나온다. 깊을수록 위험·보상이 크다. 두목을 잡으면 덤. 쓰러지면 절반을 잃는다.\n털면 재고가 줄고 게임 시간으로 다시 찬다. 줍는 동안 도시는 ×1로 계속 돈다.\n%s%s" % [str(run.get("text", "")), why])
+	TipLayer.set_tip(rb, "직접 줍기 — 내가 들어간다\n회색 띠에 직접 들어가 배낭만큼 들고 나온다. 깊을수록 위험과 보상이 크다. 두목을 잡으면 덤이 붙는다. 쓰러지면 절반을 잃는다.\n털면 재고가 줄고 게임 시간이 지나면 다시 찬다. 줍는 동안 도시는 ×1로 계속 돈다.\n%s%s" % [str(run.get("text", "")), why])
 	rv.add_child(rb)
 	var sh := UI.hbox(4)
 	rv.add_child(sh)
@@ -297,7 +297,7 @@ func _build_send() -> void:
 	var args := {"team": team, "dest": _sel, "provision": _provision}
 	if _pick != "":
 		args["pick"] = _pick
-	var can := Q.can_full("expedition_send", args) if team != null else {"ok": false, "reason": "쉬는 탐험대가 없다."}
+	var can := Q.can_full("expedition_send", args) if team != null else {"ok": false, "reason": "쉬는 팀이 없다."}
 	var row := UI.hbox(10)
 	_send.add_child(row)
 	var why := UI.label("" if bool(can.get("ok", false)) else str(can.get("reason", "")), "LabelRedSmall", true)
