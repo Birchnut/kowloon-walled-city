@@ -24,6 +24,7 @@ var _built := false
 
 func _init() -> void:
 	theme_type_variation = "PanelWindow"
+	theme = PcTheme.paper_theme()      # 창은 종이 — 안쪽 글자·단추·줄이 전부 종이 색
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	clip_contents = true
 	visible = false
@@ -40,18 +41,24 @@ func _ready() -> void:
 	var hb := UI.hbox(10)
 	bar.add_child(hb)
 	_title = UI.label(title_text, "LabelHead")
+	_title.size_flags_vertical = Control.SIZE_SHRINK_END
 	hb.add_child(_title)
 	_sub = UI.label("", "LabelDim")
+	_sub.size_flags_vertical = Control.SIZE_SHRINK_END
 	_sub.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hb.add_child(_sub)
 	if key_hint != "":
 		hb.add_child(UI.label("[%s]" % key_hint, "LabelKey"))
-	var x := PcButton.make("", "close", "Esc", "ButtonFlat")
-	x.min_h = 36
+	var x := PcButton.make("닫기", "", "", "Button")
+	x.min_h = 34
 	x.pressed.connect(close)
 	TipLayer.set_tip(x, "닫기 [Esc]")
 	hb.add_child(x)
-	var m := UI.margin(14, 10, 14, 12)
+	var rl := UI.margin(26, 0, 26, 0)
+	var line := HSeparator.new()
+	rl.add_child(line)
+	v.add_child(rl)
+	var m := UI.margin(26, 10, 26, 16)
 	m.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(m)
 	body = UI.vbox(8)
@@ -190,12 +197,12 @@ static func clear(c: Node) -> void:
 static func bar(ratio: float, st: String, w: float = 120.0, h: float = 10.0) -> Control:
 	var r := RatioBarPc.new()
 	r.ratio = ratio
-	r.col = UI.state_col(st)
+	r.col = UI.pstate(st)
 	r.custom_minimum_size = Vector2(w, h)
 	return r
 
 
-## 단락 제목(금색 작은 글씨 + 선)
+## 단락 제목(붉은 작은 글씨 + 가는 줄)
 static func section(parent: Control, text: String) -> void:
 	var h := UI.hbox(8)
 	parent.add_child(h)

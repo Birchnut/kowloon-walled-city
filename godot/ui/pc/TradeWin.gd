@@ -85,7 +85,7 @@ func _active_row(c: Dictionary) -> Control:
 	h.add_child(nm)
 	var pm := float(c.get("per_day_money", 0))
 	var ml := UI.label("%s/일" % UI.won_signed(pm), "LabelSmall")
-	ml.add_theme_color_override("font_color", UI.col("jade_hi") if pm >= 0 else UI.col("red_hi"))
+	ml.add_theme_color_override("font_color", UI.pcol("jade_hi") if pm >= 0 else UI.pcol("red_hi"))
 	h.add_child(ml)
 	v.add_child(UI.label("%s개씩 %s시간마다 · 개당 %s · %s" % [UI.num(c.get("qty", 0)), UI.dec(c.get("interval_h", 0)), UI.won(c.get("price", 0)),
 		"멈춤" if paused else ("다음 회차 %s시간 뒤" % UI.dec(c.get("next_in_h", 0)))], "LabelDim"))

@@ -76,17 +76,19 @@ func _ready() -> void:
 	gv.add_child(_goal_btns)
 
 	# ── 알림 ──
-	alert_box = UI.panel("PanelBar")
+	alert_box = UI.panel("PanelNone")          # 알림은 상자 없이 종이 쪽지만 쌓는다
+	PcTheme.paper(alert_box)
 	alert_box.mouse_filter = Control.MOUSE_FILTER_STOP
 	alert_box.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	add_child(alert_box)
-	var av := UI.vbox(4)
+	var av := UI.vbox(6)
 	alert_box.add_child(av)
 	var ah := UI.hbox(6)
 	av.add_child(ah)
 	ah.add_child(Picto.make("alert", UI.col("paper2")))
 	_alert_head = UI.label("알림", "LabelGoldSmall")
 	ah.add_child(_alert_head)
+	ah.visible = false                        # 시안: 머리글 없이 쪽지만(개수는 "알림 N" 대신 쪽지 수로 보인다)
 	_alerts = UI.vbox(2)
 	av.add_child(_alerts)
 
@@ -174,17 +176,21 @@ func _refresh_alerts(list: Array, total: int) -> void:
 		var ad := UI.to_dict(a)
 		var tone := str(ad.get("tone", ""))
 		var b := ClickRow.new()
+		b.base = "PanelNote"
 		var hb := UI.hbox(6)
 		b.add_child(hb)
 		var pic := "warn" if tone in ["bad", "danger", "red", "alert"] else ("check" if tone in ["good", "ok", "jade"] else "alert")
 		var t := str(ad.get("text", ""))
 		if t.contains("불") and tone in ["bad", "danger", "red"]:
 			pic = "fire"
-		hb.add_child(Picto.make(pic, UI.tone_col(tone)))
+		hb.add_child(Picto.make(pic, UI.ptone(tone)))
 		var l := UI.label(t, "LabelSmall", true)
-		l.custom_minimum_size.x = W - 80
-		l.add_theme_color_override("font_color", UI.tone_col(tone) if tone != "" else UI.col("paper"))
+		l.custom_minimum_size.x = W - 90
 		hb.add_child(l)
+		# 살짝 기운 쪽지: 줄마다 -0.7° ~ +0.7°
+		var tilt: float = [-0.8, 0.6, -0.4, 0.9, -0.7, 0.45][_alerts.get_child_count() % 6]
+		b.rotation_degrees = tilt
+		b.resized.connect(func() -> void: b.pivot_offset = b.size * 0.5)
 		var j: Variant = ad.get("jump", {})
 		b.pressed.connect(func() -> void: jump.emit(j))
 		var jj := Q.norm_jump(j)

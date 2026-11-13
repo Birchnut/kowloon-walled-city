@@ -25,6 +25,7 @@ static func notice(parent: Node, opt: Dictionary) -> Dialog:
 
 
 func _init() -> void:
+	theme = PcTheme.paper_theme()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 
@@ -43,7 +44,7 @@ func _exit_tree() -> void:
 func _build(opt: Dictionary, two: bool) -> void:
 	_two = two
 	var scrim := ColorRect.new()
-	scrim.color = Color(UI.col("out"), 0.6)
+	scrim.color = Color(0.05, 0.04, 0.03, 0.55)
 	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(scrim)

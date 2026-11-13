@@ -253,7 +253,7 @@ func refresh(h: Dictionary) -> void:
 	_clock.text = UI.clock(float(h.get("hour", 0.0)))
 	var hr := float(h.get("hour", 12.0))
 	_tod.shape = "clock"
-	_tod.color = UI.col("gold_hi") if hr >= 6.0 and hr < 19.0 else Color("5aa0e0")
+	_tod.color = UI.col("gold_hi") if hr >= 6.0 and hr < 19.0 else UI.col("blue")
 	var paused := bool(h.get("paused", Game.paused))
 	var spd := float(h.get("speed", Game.speed))
 	(_speed_btns["pause"] as Button).set_pressed_no_signal(paused)

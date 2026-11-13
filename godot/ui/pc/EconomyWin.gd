@@ -67,7 +67,7 @@ func _row(cells: Array, widths: Array, vars: Array = [], tone: Array = []) -> HB
 		if i > 0:
 			l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		if i < tone.size() and str(tone[i]) != "":
-			l.add_theme_color_override("font_color", UI.tone_col(str(tone[i])))
+			l.add_theme_color_override("font_color", UI.ptone(str(tone[i])))
 		h.add_child(l)
 	return h
 

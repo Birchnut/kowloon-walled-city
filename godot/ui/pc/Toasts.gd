@@ -17,6 +17,7 @@ var side: bool = false:
 			if _card != null:
 				_card.visible = not side      # 소식 카드는 창이 닫힐 때까지 기다린다(시간도 멈춤)
 			_relayout()
+var _tilt_i: int = 0
 var _items: Array = []         # [{node, born, life}]
 var _cards: Array = []         # 기다리는 카드 opts
 var _card: Control = null
@@ -25,6 +26,7 @@ var _card_life: float = 0.0
 
 
 func _init() -> void:
+	theme = PcTheme.paper_theme()
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
@@ -42,15 +44,16 @@ func push(text: String, tone: String = "", pic: String = "", life: float = LIFE)
 	var h := UI.hbox(8)
 	p.add_child(h)
 	var bar := ColorRect.new()
-	bar.color = UI.tone_col(tone)
+	bar.color = UI.ptone(tone)
 	bar.custom_minimum_size = Vector2(4, 0)
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	h.add_child(bar)
 	if pic != "":
-		h.add_child(Picto.make(pic, UI.tone_col(tone)))
+		h.add_child(Picto.make(pic, UI.ptone(tone)))
 	var l := UI.label(text, "LabelSmall")
-	l.add_theme_color_override("font_color", UI.tone_col(tone) if tone != "" else UI.col("paper"))
 	h.add_child(l)
+	p.rotation_degrees = [-0.8, 0.6, -0.4, 0.9][_tilt_i % 4]       # 살짝 기운 쪽지
+	_tilt_i += 1
 	add_child(p)
 	_items.append({"node": p, "born": Time.get_ticks_msec() / 1000.0, "life": life, "text": text})
 	while _items.size() > MAX:
@@ -98,7 +101,7 @@ func _next_card() -> void:
 	var h := UI.hbox(12)
 	p.add_child(h)
 	if str(o.get("picto", "")) != "":
-		h.add_child(Picto.make(str(o["picto"]), UI.tone_col(tone), 3))
+		h.add_child(Picto.make(str(o["picto"]), UI.ptone(tone), 3))
 	var v := UI.vbox(2)
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(v)
@@ -166,6 +169,7 @@ func _relayout() -> void:
 	for it: Dictionary in _items:
 		var n: Control = it["node"]
 		n.reset_size()
+		n.pivot_offset = n.size * 0.5
 		n.position = Vector2(_x(w, n.size.x), y)
 		y += n.size.y + 4
 

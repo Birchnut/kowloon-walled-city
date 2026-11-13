@@ -205,7 +205,7 @@ func _update() -> void:
 			if hl != null:
 				var hv := int(md.get("have", 0))
 				hl.text = "가진 것 %s / 필요 %s" % [UI.num(hv), UI.num(qty)]
-				hl.add_theme_color_override("font_color", UI.col("jade_hi") if hv >= qty else UI.col("red_hi"))
+				hl.add_theme_color_override("font_color", UI.pcol("jade_hi") if hv >= qty else UI.pcol("red_hi"))
 		if id == mat:
 			mname = str(md.get("name", mat))
 			have = int(md.get("have", 0))
@@ -239,7 +239,7 @@ func _kv(k: String, v: String, tone: String = "") -> void:
 	h.add_child(kl)
 	var vl := UI.label(v, "LabelSmall")
 	if tone != "":
-		vl.add_theme_color_override("font_color", UI.tone_col(tone))
+		vl.add_theme_color_override("font_color", UI.ptone(tone))
 	h.add_child(vl)
 
 

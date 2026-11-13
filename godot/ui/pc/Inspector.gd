@@ -23,6 +23,7 @@ var _is_hover := false
 
 
 func _init() -> void:
+	theme = PcTheme.paper_theme()
 	theme_type_variation = "PanelGold"
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	clip_contents = true
@@ -135,7 +136,7 @@ func _header(kind: String) -> void:
 	var h := UI.hbox(8)
 	_v.add_child(h)
 	var pic := "house" if kind == "house" else (UI.cat_picto(ui.build.cat_of(str(info.get("type", "")))) if ui != null and kind in ["facility", "site"] else "floor")
-	h.add_child(Picto.make(pic, UI.col("gold_hi"), 3))
+	h.add_child(Picto.make(pic, UI.pcol("gold_hi"), 3))
 	var tv := UI.vbox(0)
 	tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(tv)
@@ -166,7 +167,7 @@ func _kv(g: GridContainer, k: String, v: String, tone: String = "") -> void:
 	var l := UI.label(v, "LabelSmall", true)
 	l.custom_minimum_size.x = W - 200.0
 	if tone != "":
-		l.add_theme_color_override("font_color", UI.tone_col(tone))
+		l.add_theme_color_override("font_color", UI.ptone(tone))
 	g.add_child(l)
 
 
@@ -219,7 +220,7 @@ func _need_row(n: Dictionary) -> void:
 	b.add_child(v)
 	var h := UI.hbox(6)
 	v.add_child(h)
-	var dot := Picto.make("dot", UI.state_col(st))
+	var dot := Picto.make("dot", UI.pstate(st))
 	h.add_child(dot)
 	var nm := UI.label(str(n.get("name", "")), "LabelSmall")
 	nm.custom_minimum_size.x = 118
@@ -263,13 +264,13 @@ func _hazard_box(burn: String, sick: bool) -> void:
 	if burn == "burning":
 		var h := UI.hbox(6)
 		v.add_child(h)
-		h.add_child(Picto.make("fire", UI.col("red_hi"), 2, UI.col("gold_hi")))
+		h.add_child(Picto.make("fire", UI.pcol("red_hi"), 2, UI.pcol("gold_hi")))
 		h.add_child(UI.label("불타는 중", "LabelRed"))
 		v.add_child(_wrap("불밥통 범위 안이면 곧 꺼진다. 밖이면 옆 칸·위 칸으로 번진다.", "LabelSmall"))
 	elif burn == "burnt":
 		var h2 := UI.hbox(6)
 		v.add_child(h2)
-		h2.add_child(Picto.make("burnt", UI.col("paper3")))
+		h2.add_child(Picto.make("burnt", UI.pcol("paper3")))
 		h2.add_child(UI.label("타 버렸다 — 수리해야 쓴다", "LabelRed"))
 		var rp := UI.to_dict(info.get("repair", {}))
 		var rb := PcButton.make("수리 %s" % str(rp.get("cost_text", "")), "repair", "", "ButtonGold")
@@ -283,7 +284,7 @@ func _hazard_box(burn: String, sick: bool) -> void:
 	if sick:
 		var h3 := UI.hbox(6)
 		v.add_child(h3)
-		h3.add_child(Picto.make("sick", UI.col("jade_hi"), 2, UI.col("red_hi")))
+		h3.add_child(Picto.make("sick", UI.pcol("jade_hi"), 2, UI.pcol("red_hi")))
 		h3.add_child(UI.label("병이 돈다", "LabelRed"))
 		v.add_child(_wrap("일손이 반으로 줄고 행복이 떨어진다. 봉합방 범위 안이면 빨리 낫는다. 오물 수거 범위를 넓힌다.", "LabelSmall"))
 
@@ -298,7 +299,7 @@ func _facility() -> void:
 	if kind == "site" or bl != "":
 		var pv := UI.hbox(8)
 		_v.add_child(pv)
-		pv.add_child(Picto.make("clock", UI.col("gold")))
+		pv.add_child(Picto.make("clock", UI.pcol("gold")))
 		pv.add_child(UI.label("공사 중 " + bl, "LabelGold"))
 		if info.has("build_progress"):
 			var bp := float(info.get("build_progress", 0.0))

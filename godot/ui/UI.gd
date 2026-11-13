@@ -35,6 +35,52 @@ static func col(n: String) -> Color:
 	return Color(1, 0, 1)
 
 
+## 종이 위에서 쓰는 색(창·쪽지·카드 안에서 코드로 색을 읽을 때). 이름은 col 과 같다.
+static func pcol(n: String) -> Color:
+	return PcTheme.cp(n)
+
+
+static func ptone(tone: String) -> Color:
+	match tone:
+		"good", "gain", "jade", "ok":
+			return pcol("jade_hi")
+		"bad", "loss", "danger", "red", "alert":
+			return pcol("red_hi")
+		"warn", "gold", "money", "vice", "unlock":
+			return pcol("gold")
+		"debug", "dim", "system":
+			return pcol("dim")
+	return pcol("paper")
+
+
+static func pstate(st: String) -> Color:
+	match st:
+		"ok", "good":
+			return pcol("jade_hi")
+		"warn":
+			return pcol("gold")
+		"bad", "danger":
+			return pcol("red_hi")
+		"off", "":
+			return pcol("mute")
+	return pcol("dim")
+
+
+static func ptier(t: int) -> Color:
+	match t:
+		1:
+			return pcol("paper3")
+		2:
+			return pcol("jade_hi")
+		3:
+			return pcol("blue")
+		4:
+			return pcol("gold")
+		5:
+			return pcol("red_hi")
+	return pcol("dim")
+
+
 static func font(n: String = "body") -> Font:
 	var t := theme()
 	if t.has_font(n, "Kowloon"):
@@ -349,7 +395,7 @@ static func tier_col(t: int) -> Color:
 		2:
 			return col("jade_hi")
 		3:
-			return Color("5aa0e0")
+			return col("blue")
 		4:
 			return col("gold")
 		5:

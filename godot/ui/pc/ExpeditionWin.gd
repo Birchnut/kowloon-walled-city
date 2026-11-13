@@ -76,7 +76,7 @@ func _build_mats() -> void:
 	for m: Variant in UI.to_array(_data.get("materials", [])):
 		var md := UI.to_dict(m)
 		var h := UI.hbox(4)
-		h.add_child(Picto.make("mat", UI.col("gold") if str(md.get("id", "")) == _good_hl else UI.col("paper2")))
+		h.add_child(Picto.make("mat", UI.pcol("gold") if str(md.get("id", "")) == _good_hl else UI.pcol("paper2")))
 		h.add_child(UI.label("%s %s" % [str(md.get("name", "")), UI.num(md.get("have", 0))], "LabelSmall"))
 		_mats.add_child(h)
 
@@ -108,7 +108,7 @@ func _build_teams() -> void:
 		p.add_child(v)
 		var h := UI.hbox(8)
 		v.add_child(h)
-		h.add_child(Picto.make("expedition", UI.col("jade_hi") if st == "done" else (UI.col("gold") if st == "out" else UI.col("dim"))))
+		h.add_child(Picto.make("expedition", UI.pcol("jade_hi") if st == "done" else (UI.pcol("gold") if st == "out" else UI.pcol("dim"))))
 		h.add_child(UI.label(str(td.get("name", "")), "LabelBold"))
 		var stl := UI.label(str(td.get("state_name", {"idle": "쉬는 중", "out": "나가 있음", "done": "돌아옴"}.get(st, st))), "LabelSmall")
 		stl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -189,7 +189,7 @@ func _dest_row(dd: Dictionary) -> Control:
 		row.theme_type_variation = "PanelRowHi"
 	var h := UI.hbox(10)
 	row.add_child(h)
-	var pic := Picto.make("expedition", UI.col("gold") if _gives(dd, _good_hl) else (UI.col("paper") if known else UI.col("mute")))
+	var pic := Picto.make("expedition", UI.pcol("gold") if _gives(dd, _good_hl) else (UI.pcol("paper") if known else UI.pcol("mute")))
 	h.add_child(pic)
 	var v := UI.vbox(1)
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
