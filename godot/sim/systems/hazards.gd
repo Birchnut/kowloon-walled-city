@@ -600,7 +600,7 @@ func _hazards_q_raw(state: CityState) -> Dictionary:
 		elif bn == "burnt":
 			var c := _repair_cost(b)
 			burnt.append({"bid": bid, "pos": b["pos"], "repairing": b.get("repair") != null,
-				"repair_text": "수리 중" if b.get("repair") != null else "수리 %s + 고물 %d · %s" % [Sim.won(float(c["money"])), int(c["goods"]["scrap"]), Queries.day_text(float(c["days"]))]})
+				"repair_text": "수리 중" if b.get("repair") != null else "수리 %s + %s · %s" % [Sim.won(float(c["money"])), _goods_text(c["goods"]), Queries.day_text(float(c["days"]))]})
 		var used := _used(b)
 		if used:
 			n_all += 1
@@ -692,8 +692,40 @@ func _coverage_q(state: CityState, kind: String) -> Dictionary:
 			uncovered.append_array(cells)
 	var n := covered.size() + uncovered.size()
 	var pct := 1.0 if n == 0 else float(covered.size()) / float(n)
+	var why := ""
+	if kind in TAGS and pct < 1.0:
+		# 왜 덮이지 않나: 그 범위 시설이 공사 중이거나 멈춰 있으면 그렇게 말한다(통합 보고: "0%"만으로는 공사 중인지 알 수 없었다)
+		var tag2: String = TAGS[kind]
+		var n_site := 0
+		var n_off := 0
+		for fb: Dictionary in state.buildings.values():
+			if not (tag2 in sim.bdef(str(fb.get("type", ""))).get("services", [])):
+				continue
+			if fb["kind"] == "site":
+				n_site += 1
+			elif fb["kind"] == "facility" and not fb.get("active", false):
+				n_off += 1
+		if n_site > 0:
+			why += " — %d곳 공사 중" % n_site
+		if n_off > 0:
+			var oc := Sim.off_reason(_first_off(state, tag2))
+			why += " — %d곳 멈춤(%s)" % [n_off, {"paused": "멈춰 둠", "money": "돈 없음", "raid": "단속", "fire": "불", "burnt": "탐", "repair": "수리 중", "sky": "하늘 막힘"}.get(oc, "일손 부족")]
 	return {"covered": covered, "uncovered": uncovered, "pct": snappedf(pct, 0.01),
-		"text": "%s 범위: 쓰이는 칸 %d%% (밖 %d칸)" % [label, int(roundf(pct * 100.0)), uncovered.size()]}
+		"text": "%s 범위: 쓰이는 칸 %d%% (밖 %d칸)%s" % [label, int(roundf(pct * 100.0)), uncovered.size(), why]}
+
+
+func _goods_text(g: Dictionary) -> String:
+	var parts: Array = []
+	for k: String in g:
+		parts.append("%s %d" % [sim.gname(k), int(g[k])])
+	return " + ".join(parts)
+
+
+func _first_off(state: CityState, tag: String) -> Dictionary:
+	for fb: Dictionary in state.buildings.values():
+		if fb["kind"] == "facility" and not fb.get("active", false) and tag in sim.bdef(str(fb["type"])).get("services", []):
+			return fb
+	return {}
 
 
 func augment(state: CityState, name: String, _args: Dictionary, out: Variant) -> void:

@@ -752,16 +752,22 @@ func _run_commands() -> void:
 	_ok(str(sim.query(st, "expeditions")["teams"][0]["state"]) == "run", "팀이 직접 줍는 중")
 	var stock: Dictionary = b["stock"]
 	var g: String = stock.keys()[0]
-	var over := sim.apply(st, "run_result", {"dest": dest, "loot": {g: int(stock[g]) + 1}, "outcome": "exit", "finds": []})
-	_ok(not over.get("ok", true) and str(over.get("code", "")) in ["stock", "carry"], "던전 재고보다 많이 들고 나오면 거절(%s)" % over.get("code", ""))
-	var big := sim.apply(st, "run_result", {"dest": dest, "loot": {g: int(b["carry"]) + 1}, "outcome": "exit", "finds": []})
-	_ok(not big.get("ok", true), "배낭 한도를 넘으면 거절")
-	var n := mini(int(stock[g]), 10)
+	var h0 := float(st.stock.get(g, 0.0))
+	var over := sim.apply(st, "run_result", {"dest": dest, "loot": {g: int(b["carry_cap"]) + 5}, "outcome": "exit", "finds": ["압축기 큰형의 설계도를 주웠다"]})
+	var got_over := float(st.stock.get(g, 0.0)) - h0
+	_ok(over.get("ok", false) and got_over <= minf(float(stock[g]), float(b["carry_cap"])) + 1e-6 and not (over.get("lost", []) as Array).is_empty(),
+		"재고·배낭 한도를 넘으면 거절하지 않고 잘라 받는다(+%d, 잘림 %s)" % [int(got_over), str(over.get("lost", []))])
+	_ok(str(sim.query(st, "expeditions")["teams"][0]["state"]) == "idle", "잘린 결과도 팀을 풀어 준다")
+	var w: Variant = sim.query(st, "run_wanted", {})
+	_ok(w is Array, "run_wanted → 상품 id 배열 %s" % str(w))
+	sim.apply(st, "run_begin", {"dest": dest})
+	var dst0 := float(st.dests[dest]["stock"][g])
+	var n := mini(int(floorf(dst0 + 1e-6)), 10)
 	var have0 := float(st.stock.get(g, 0.0))
 	var res := sim.apply(st, "run_result", {"dest": dest, "loot": {g: n}, "outcome": "down", "finds": [], "lost": {g: 3}})
 	_ok(res.get("ok", false) and _near(float(st.stock.get(g, 0.0)) - have0, float(n)) and (res["lost"] as Array).size() == 1, "loot는 들고 나온 그대로(쓰러짐의 절반은 미니게임이 이미 뺐다) (+%d, 잃음 %s)" % [int(float(st.stock.get(g, 0.0)) - have0), str(res.get("lost", []))])
 	_ok(int(b.get("carry_cap", 0)) >= 72, "배낭 한도 = 6칸 × 12 + 큰 짐(%d)" % int(b.get("carry_cap", 0)))
-	_ok(float(st.dests[dest]["stock"][g]) <= float(stock[g]) - n + 1e-6, "던전 재고에서 빠진다")
+	_ok(float(st.dests[dest]["stock"][g]) <= dst0 - n + 1e-6, "던전 재고에서 빠진다")
 	_ok(str(sim.query(st, "expeditions")["teams"][0]["state"]) == "idle", "팀이 돌아온다")
 	var b2 := sim.apply(st, "run_begin", {"dest": dest})
 	var c0 := float(st.stock.get("cans", 0.0))
@@ -878,7 +884,15 @@ func _hazards_disease() -> void:
 	var tr := float(st.buildings[int(st.cells[Vector3i(0, 10, 0)]["bid"])].get("trash", 0.0))
 	_ok(tr > 0.2 and float(st.cells[Vector3i(0, 10, 0)].get("trash", 0.0)) > 0.1, "수거 범위 밖 주거에 쓰레기가 쌓인다 (%.2f)" % tr)
 	_fac(sim, st, "trash_guild", Vector3i(2, 12, 0))
-	_steps(sim, st, 24)
+	_steps(sim, st, 2)
+	var cq: Dictionary = sim.query(st, "coverage", {"kind": "trash"})
+	_ok(float(cq["pct"]) > 0.0, "넝마주이 조합을 짓고 일손이 차면 그 층 주거가 덮인다 (%s)" % str(cq["text"]))
+	var site_id := st.next_id
+	st.buildings[site_id] = {"id": site_id, "kind": "site", "type": "trash_guild", "pos": Vector3i(12, 12, 0)}
+	var cq2: Dictionary = sim.query(st, "coverage", {"kind": "trash"})
+	_ok(float(cq2["pct"]) >= 1.0 or str(cq2["text"]).contains("공사 중"), "공사 중인 조합이 있으면 범위 글이 그렇게 말한다 (%s)" % str(cq2["text"]))
+	st.buildings.erase(site_id)
+	_steps(sim, st, 22)
 	var tr2 := float(st.buildings[int(st.cells[Vector3i(2, 10, 0)]["bid"])].get("trash", 0.0))
 	_ok(tr2 < 0.05, "넝마주이 조합 범위에 새로 들면 싹 치워진다 (%.2f)" % tr2)
 	# 발병(디버그): 이웃까지

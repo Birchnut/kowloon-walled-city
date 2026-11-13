@@ -25,7 +25,8 @@ func on_new_game(state: CityState) -> void:
 
 
 func tick(state: CityState, dt: float) -> void:
-	if sim.every(state, 4, dt):
+	if sim.every(state, 4, dt) or int(state.flags.get("goal_floors", 1)) != state.floors_unlocked:
+		state.flags["goal_floors"] = state.floors_unlocked
 		_check(state)
 
 

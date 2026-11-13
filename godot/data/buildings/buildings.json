@@ -140,13 +140,13 @@
     1
    ],
    "cost": {
-    "money": 20,
+    "money": 30,
     "goods": {}
    },
    "upkeep": 0.5,
    "workforce": {},
    "supply": {
-    "water": 20
+    "water": 40
    },
    "desc": "양철 홈통과 드럼통 하나. 비 오는 날엔 국장님이 웃는다."
   },

@@ -469,6 +469,45 @@ func _alias_loot(loot: Dictionary) -> Dictionary:
 	return out
 
 
+## 한도를 넘을 때 남길 순서: 값어치 높은 것부터(부품 → 전자 폐품 → 자재 → 통조림 → 고물), 같은 값이면 id 순.
+const RUN_VALUE := {"parts": 10.0, "elec_scrap": 4.0, "metal": 3.0, "wood": 3.0, "concrete": 3.0, "cans": 2.0, "scrap": 1.0}
+
+
+func _run_order(loot: Dictionary) -> Array:
+	var ks: Array = loot.keys()
+	ks.sort_custom(func(a: String, b: String) -> bool:
+		var va := float(RUN_VALUE.get(a, 1.5))
+		var vb := float(RUN_VALUE.get(b, 1.5))
+		return va > vb if va != vb else a < b)
+	return ks
+
+
+## 지금 도시에 모자란 것(던전에서 나올 수 있는 상품 중) — 미니게임의 "지금 도시에 모자란 것" 줄. dest를 주면 그 던전 재고에 있는 것만.
+func _run_wanted(state: CityState, dest: String) -> Array:
+	var can_give := {}
+	for id: String in sim.items("destinations"):
+		if dest != "" and id != dest:
+			continue
+		for g: String in _dest(id).get("stock", {}):
+			can_give[g] = true
+	var need := {}
+	for m: String in sim.db.get("upgrade_costs", {}).get("materials", []):
+		need[m] = float(sim.db["upgrade_costs"]["items"]["2to3"].get("qty", 16))
+	need["scrap"] = 30.0
+	need["parts"] = 4.0
+	need["elec_scrap"] = 10.0
+	need["cans"] = 20.0
+	var out: Array = []
+	for g: String in _run_order(can_give):
+		var short := float(state.stock.get(g, 0.0)) < float(need.get(g, 10.0))
+		var f: Variant = state.flags.get("fill", {}).get(g)
+		if f != null and float(f) < 0.999:
+			short = true
+		if short:
+			out.append(g)
+	return out
+
+
 func _run_begin(state: CityState, args: Dictionary) -> Dictionary:
 	var id := str(args["dest"])
 	var d := _dest(id)
@@ -514,14 +553,9 @@ func _check_result(state: CityState, args: Dictionary) -> Dictionary:
 		var n := int(loot[g])
 		if n < 0 or sim.good(g).is_empty():
 			return {"ok": false, "reason": "모르는 상품이거나 음수: %s" % g, "code": "loot"}
-		if not st.has(g):
-			return {"ok": false, "reason": "%s에는 %s이(가) 없다." % [_dname(id), sim.gname(g)], "code": "stock"}
-		if float(n) > floorf(float(st[g]) + 1e-6):
-			return {"ok": false, "reason": Sim.kr("%s 재고보다 많이 들고 나왔다(%s %d / 재고 %d)." % [_dname(id), sim.gname(g), n, int(st[g])]), "code": "stock"}
 		total += n
-	if total > carry:
-		return {"ok": false, "reason": "배낭 한도 %d칸을 넘는다(%d)." % [carry, total], "code": "carry"}
-	return {"ok": true, "reason": "", "code": "ok"}
+	# 재고·배낭 한도를 넘는 것은 거절하지 않고 run_result가 잘라 낸다(잘린 몫은 결과의 lost) — 결과가 팀을 묶어 두면 안 된다(통합 보고)
+	return {"ok": true, "reason": "", "code": "ok", "carry_cap": carry}
 
 
 func _run_result(state: CityState, args: Dictionary) -> Dictionary:
@@ -534,11 +568,25 @@ func _run_result(state: CityState, args: Dictionary) -> Dictionary:
 	var lost: Array = []
 	# loot = 미니게임 결과 화면의 "들고 나온 것"(쓰러졌을 때의 절반 잃음·두목의 큰 짐은 미니게임이 이미 반영했다 — 도시는 더 깎거나 얹지 않는다).
 	# 잃은 것은 결과의 lost{good:n}(선택)로 받아 알림에만 쓴다.
-	for g: String in loot:
+	var cap_left := int(_run_conf(d).get("carry", 40))
+	var st0: Dictionary = state.dests.get(id, {}).get("stock", {})
+	var clipped := {}
+	for g: String in _run_order(loot):
 		var n := float(int(loot[g]))
-		_take(state, id, g, n)
-		if n > 0.0:
-			got[g] = n
+		var ok_n := n
+		if not st0.has(g):
+			ok_n = 0.0                          # 이 던전에 없는 물건
+		else:
+			ok_n = minf(ok_n, floorf(float(st0[g]) + 1e-6))
+		ok_n = minf(ok_n, float(maxi(0, cap_left)))
+		if ok_n < n:
+			clipped[g] = int(n - ok_n)
+		cap_left -= int(ok_n)
+		if ok_n > 0.0:
+			_take(state, id, g, ok_n)
+			got[g] = ok_n
+	for g: String in clipped:
+		lost.append({"good": g, "name": sim.gname(g), "n": int(clipped[g]), "why": "한도"})
 	var lv: Variant = args.get("lost", {})
 	if lv is Dictionary:
 		var la := _alias_loot(lv)
@@ -560,6 +608,8 @@ func _run_result(state: CityState, args: Dictionary) -> Dictionary:
 	for s: Variant in args.get("finds", []):
 		var key := str(s)
 		if not allowed.has(key):
+			if not key.contains(":") or key.contains(" "):
+				sim.say(state, Sim.kr("%s에서: %s" % [_dname(id), key]))     # 미니게임의 발견 문장은 성채 소식으로만
 			continue
 		var parts := key.split(":", true, 1)
 		var ft := _apply_find(state, {"type": parts[0], "id": parts[1]})
@@ -621,6 +671,9 @@ func reveal(state: CityState, id: String) -> String:
 
 # ------------------------------------------------------------------ 질의
 func query(state: CityState, name: String, _args: Dictionary) -> Variant:
+	if name == "run_wanted":
+		var dd := str(_args.get("dest", ""))
+		return _run_wanted(state, str(DEST_ALIAS.get(dd, dd)))
 	if name != "expeditions":
 		return null
 	_sync(state)
