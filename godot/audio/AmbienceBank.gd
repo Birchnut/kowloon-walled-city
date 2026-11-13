@@ -75,6 +75,7 @@ const LOOPS := {
 	"crickets": ["_crickets", 11025, 198],
 	"fire": ["_firebed", 11025, 90],
 	"rain": ["_rain", 11025, 143],
+	"pipe": ["_pipe", 11025, 110],   # 고요시간 전용: 배관 떨림
 }
 
 ## 한 번짜리 이름 → 변주 수, 기본 이득 dB
@@ -91,6 +92,10 @@ const SHOTS := {
 	"drip": [3, -16.0],
 	"wok": [2, -15.0],
 	"shutter": [1, -14.0],
+	# 고요시간 전용(AudioDirector.quiet_*): 일반 배경 빈도표에는 없다.
+	"q_drip": [3, -12.0],
+	"q_step": [3, -14.0],
+	"q_crack": [2, -14.0],
 }
 
 
@@ -111,6 +116,8 @@ static func build_loop(loop_name: String, bud: Budget) -> PackedFloat32Array:
 			b = await _firebed(bud)
 		"rain":
 			b = await _rain(bud)
+		"pipe":
+			b = await _pipe(bud)
 	if bud.over():
 		await bud.wait()
 	_norm_rms(b, LOOP_TARGET_DB)
@@ -181,6 +188,44 @@ static func _hum(bud: Budget) -> PackedFloat32Array:
 	for i in L:
 		var t := float(i) / R
 		b[i] += (0.004 * sin(TAU * 50.0 * t) + 0.0025 * sin(TAU * 100.0 * t + 0.5) + 0.0012 * sin(TAU * 150.0 * t + 1.7)) * (0.8 + 0.2 * sin(w1 * t))
+	return b
+
+
+## 배관 떨림(고요시간): 60·120·180 Hz 가 20 Hz 로 떨리고(L 안에 정수 번 → 이음매 없음), 갈색 잡음이 느리게 꾸르륵.
+static func _pipe(bud: Budget) -> PackedFloat32Array:
+	var R := 11025.0
+	var L := int(8.0 * R)
+	var X := int(R)
+	var n := L + X
+	var b := PackedFloat32Array()
+	b.resize(n)
+	var s := 5151
+	var br := 0.0
+	var y1 := 0.0
+	var a1 := 1.0 - exp(-TAU * 140.0 / R)
+	var wl := TAU / 8.0
+	for i in n:
+		if (i & 4095) == 0 and bud.over():
+			await bud.wait()
+		s = (s * 48271) % 2147483647
+		var w := float(s) * S.INV_M2 - 1.0
+		br = br * 0.97 + w * 0.1
+		y1 += a1 * (br - y1)
+		var t := float(i) / R
+		var gur := 0.5 + 0.5 * sin(wl * 3.0 * t + 1.0)
+		b[i] = y1 * 0.07 * (0.3 + 0.7 * gur)   # 꾸르륵(아주 작게 — 톤이 주인이어야 이음매 크기가 안정적)
+	await _wait(bud, 22050.0)
+	S.hp1(b, 30.0, R)
+	await _wait(bud, 22050.0)
+	b = S.loop_xfade(b, L, X)
+	await _wait(bud, 22050.0)
+	for i in L:
+		if (i & 4095) == 0 and bud.over():
+			await bud.wait()
+		var t := float(i) / R
+		var trem := 0.65 + 0.35 * cos(wl * 160.0 * t)   # 20 Hz 떨림(50 ms 에 정수 번)
+		var v := 0.05 * sin(wl * 480.0 * t) + 0.02 * sin(wl * 960.0 * t + 0.7) + 0.006 * sin(wl * 1440.0 * t + 1.9)   # 60·120·180 Hz
+		b[i] += v * trem * (0.75 + 0.25 * sin(wl * t + 2.0))
 	return b
 
 
@@ -645,6 +690,34 @@ static func _shot(n: String, v: int, bud: Budget = null) -> PackedFloat32Array:
 			S.thud(o, 1.0, 140.0, 80.0, 0.4, 0.12)
 			await _wait_opt(bud, SHOT_RATE)
 			_far(o, 2500.0, 0.1)
+		"q_drip":   # 고요시간: 가까운 물방울(맑고 조금 울림)
+			o = S.buf(0.9)
+			var qf: float = [920.0, 1100.0, 780.0][v % 3]
+			S.partial(o, 0.0, qf, 0.45, 0.09, 0.001, qf * 1.5, 0.05)
+			S.partial(o, 0.0, qf * 2.7, 0.06, 0.03, 0.001)
+			S.tick(o, 0.0, 0.05, 2200.0, 441 + v, 0.003)
+			await _wait_opt(bud, SHOT_RATE)
+			S.lp1(o, 4200.0)
+			S.room(o, 0.5, 0.25)
+		"q_step":   # 고요시간: 머리 위 발소리(천장 너머 둔하게, 느린 걸음 3~5번)
+			o = S.buf(3.2)
+			var st := 0.0
+			for j in 3 + v:
+				var amp := rng.r(0.7, 1.0)
+				S.thud(o, st, rng.r(95.0, 130.0), 55.0, 0.8 * amp, 0.09)
+				S.noise(o, st, 0.08, 0.12 * amp, 1, 380.0, 260.0, 1.0, 451 + v * 13 + j, 0.004, 0.06)
+				st += rng.r(0.5, 0.72)
+			await _wait_opt(bud, SHOT_RATE)
+			S.lp1(o, 420.0)
+			S.lp1(o, 420.0)
+		"q_crack":   # 고요시간: 구조물 미세한 균열(짧은 딱 + 낮은 삐걱)
+			o = S.buf(1.6)
+			S.tick(o, 0.0, 0.5, 1500.0, 461 + v, 0.003)
+			S.modal(o, 0.0, 210.0 + 40.0 * v, 0.25, [1.0, 1.9, 3.1], [1.0, 0.5, 0.3], [0.25, 0.15, 0.08])
+			S.tone(o, 0.05, 0.9, 150.0 + 20.0 * v, 118.0 + 20.0 * v, S.SAW, 0.05, 0.1, 0.5)
+			await _wait_opt(bud, SHOT_RATE)
+			S.lp1(o, 1400.0)
+			S.room(o, 0.7, 0.3)
 		_:
 			o = PackedFloat32Array()
 	return o

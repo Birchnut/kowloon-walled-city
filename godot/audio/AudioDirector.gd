@@ -7,12 +7,17 @@ extends Node
 ## - 배경: 게임 상태(시각·인구·공사장·불·확대·배속·멈춤)를 0.5초마다 읽어 층별 목표 크기를 정하고 천천히 따라간다.
 ## - 음악: 분위기(낮·저녁·밤·불)에 맞춰 씨앗 구절을 띄엄띄엄. 실제 시간 기준(배속과 무관).
 ## - 설정: user://audio.cfg (nosave 실행이면 메모리만).
+## - v0.5: 진짜 음원(CC0)을 얹는다 — data/audio/audio_map.json 이 파일 대응표·재생 목록·확대 곡선·고요시간 값을 가진다.
+##   음악 = RecordedMusic(곡이 없으면 합성 음악), 효과음·한 번짜리·루프는 파일이 있으면 파일, 없으면 합성(대역).
+##   확대 단계에 따라 음악↓·생활 소리↑, 사건 quiet_start/quiet_end 에서 고요시간(음악·생활 소리 사라지고 배관·물방울·발소리만).
 ## 규칙: 게임 상태는 읽기만 한다(Game.state, Game.view 를 덕 타이핑으로). 명령은 보내지 않는다.
 
 const S := preload("res://audio/Synth.gd")
 const SB := preload("res://audio/SfxBank.gd")
 const AB := preload("res://audio/AmbienceBank.gd")
 const MB := preload("res://audio/MusicBank.gd")
+const RM := preload("res://audio/RecordedMusic.gd")
+const MAP_PATH := "res://data/audio/audio_map.json"
 
 const CFG_PATH := "user://audio.cfg"
 const BUS_NAMES := {"master": "Master", "sfx": "SFX", "ambience": "Ambience", "music": "Music"}
@@ -27,7 +32,12 @@ const FREQUENT := ["click", "hover", "window_open", "window_close", "tab", "zone
 const LAYERS := {
 	"hum": [-7.0, 2.5], "wind": [-11.0, 2.5], "murmur": [-8.0, 2.5], "market": [-11.0, 2.5],
 	"crickets": [-16.0, 3.0], "fire": [-7.0, 1.0], "rain": [-9.0, 2.0],
+	"pipe": [-14.0, 0.6],   # 고요시간 전용(크기는 audio_map.json quiet.pipe_db)
 }
+## 고요시간에도 남는 층(나머지는 사라진다)
+const QUIET_KEEP := ["pipe"]
+## 확대·고요시간 영향을 받는 생활 소리(한 번짜리). 확대하면 더 자주·더 크게.
+const LIFE_SHOTS := ["mahjong", "wok", "kettle", "radio", "shutter", "bell"]
 const PAUSE_DUCK_DB := -9.0
 const MUSIC_PAUSE_DUCK_DB := -5.0
 
@@ -63,6 +73,20 @@ var build_max_cpu_ms := 0.0      # 같은 것을 메인 스레드 CPU 로(KOWLOO
 var build_max_cpu_at := ""
 var build_done := false
 
+var map: Dictionary = {}                 # audio_map.json
+var file_sfx: Dictionary = {}            # 이름 → {streams: Array, gain: float, pitch: float}
+var file_shots: Dictionary = {}          # 이름 → {streams, offset, append, rate_mult}
+var file_loops: Dictionary = {}          # 층 → {stream, offset}
+var rec: Node = null                     # RecordedMusic
+var quiet_on := false                    # 고요시간 중인가(사건 quiet_start ~ quiet_end)
+var quiet_cfg: Dictionary = {}
+var zoom_cfg: Dictionary = {}
+var _q := 0.0                            # 고요시간 정도 0..1(실제 시간으로 오르내림)
+var _quiet_t := 0.0
+var _q_next: Dictionary = {}             # 고요 소리 이름 → 다음까지 남은 초
+var _q_pool: Array = []
+var _zoom_mduck := 0.0
+var _qm_db := 0.0
 var _rng := RandomNumberGenerator.new()
 var _sfx_pool: Array = []
 var _amb_pool: Array = []
@@ -100,6 +124,7 @@ func _ready() -> void:
 	_rng.seed = 20261113
 	mem_only = "nosave" in OS.get_cmdline_user_args() or OS.get_environment("KOWLOON_NOSAVE") == "1"
 	_load_cfg()
+	_load_map()
 	_ensure_buses()
 	_apply_volumes()
 	for i in SFX_VOICES:
@@ -110,6 +135,12 @@ func _ready() -> void:
 		_mus_pool.append(_player("Music"))
 	for i in 2:
 		_pad_players.append(_player("Music"))
+	for i in 3:
+		_q_pool.append(_player("Ambience"))
+	rec = RM.new()
+	rec.name = "RecordedMusic"
+	add_child(rec)
+	rec.setup(map.get("music", {}))
 	for l: String in LAYERS:
 		_layer_g[l] = 0.0
 		_layer_tgt[l] = 0.0
@@ -119,7 +150,9 @@ func _ready() -> void:
 		if g.has_signal("event"):
 			g.event.connect(_on_game_event)
 		if g.has_signal("state_replaced"):
-			g.state_replaced.connect(func() -> void: _fires_ev = 0)
+			g.state_replaced.connect(func() -> void:
+				_fires_ev = 0
+				quiet_end())
 	# 웹: 브라우저는 첫 입력 뒤에야 소리를 낸다 → 배경·음악은 첫 입력에 시작. 데스크톱은 바로.
 	if not OS.has_feature("web"):
 		_started = true
@@ -141,6 +174,68 @@ func _input(ev: InputEvent) -> void:
 	if (ev is InputEventMouseButton and ev.pressed) or (ev is InputEventKey and ev.pressed) or (ev is InputEventScreenTouch and ev.pressed):
 		_started = true
 		_next_phrase_ms = Time.get_ticks_msec() + 4000
+
+
+# ------------------------------------------------------------------ 음원 대응표
+
+func _load_map() -> void:
+	map = {}
+	if FileAccess.file_exists(MAP_PATH):
+		var j: Variant = JSON.parse_string(FileAccess.get_file_as_string(MAP_PATH))
+		if j is Dictionary:
+			map = j
+	if map.is_empty():
+		push_warning("AudioDirector: %s 를 못 읽었다 — 전부 합성으로" % MAP_PATH)
+	quiet_cfg = map.get("quiet", {})
+	zoom_cfg = map.get("zoom", {})
+	file_sfx.clear()
+	var sf: Dictionary = map.get("sfx_files", {})
+	for n: String in sf:
+		if n.begins_with("_") or not SB.SPEC.has(n):
+			continue
+		var streams := _load_streams(sf[n].get("files", []))
+		if streams.is_empty():
+			continue   # 하나라도 못 읽으면(파일 없음) 합성 대역
+		file_sfx[n] = {"streams": streams, "gain": float(sf[n].get("gain_db", -6.0)), "pitch": float(sf[n].get("pitch", 0.0))}
+	file_shots.clear()
+	var hf: Dictionary = map.get("shot_files", {})
+	for n: String in hf:
+		if n.begins_with("_"):
+			continue
+		var streams := _load_streams(hf[n].get("files", []))
+		if streams.is_empty():
+			continue
+		file_shots[n] = {"streams": streams, "offset": float(hf[n].get("offset_db", 0.0)), "append": bool(hf[n].get("append", false)),
+			"rate_mult": float(hf[n].get("rate_mult", 1.0))}
+	file_loops.clear()
+	var lf: Dictionary = map.get("loop_files", {})
+	for n: String in lf:
+		if n.begins_with("_") or not AB.LOOPS.has(n):
+			continue
+		var s: Variant = _load_one(str(lf[n].get("file", "")))
+		if s is AudioStream:
+			var dup: AudioStream = (s as AudioStream).duplicate()
+			if "loop" in dup:
+				dup.set("loop", true)
+			file_loops[n] = {"stream": dup, "offset": float(lf[n].get("offset_db", 0.0))}
+
+
+func _load_one(path: String) -> Variant:
+	if path == "" or not ResourceLoader.exists(path):
+		push_warning("AudioDirector: 음원 파일이 없다 %s" % path)
+		return null
+	return load(path)
+
+
+func _load_streams(paths: Array) -> Array:
+	var out: Array = []
+	for pth: Variant in paths:
+		var s: Variant = _load_one(str(pth))
+		if s is AudioStream:
+			out.append(s)
+		else:
+			return []
+	return out
 
 
 # ------------------------------------------------------------------ 버스 · 설정
@@ -222,6 +317,8 @@ func set_music_enabled(on: bool) -> void:
 			p.stop()
 		_pad_cur = ""
 		_notes.clear()
+		if rec != null:
+			rec.stop_all()
 	_apply_volumes()
 	_save_cfg()
 
@@ -253,7 +350,7 @@ func _apply_volumes() -> void:
 		if k == "ambience":
 			extra = _duck_db
 		elif k == "music":
-			extra = _mduck_db
+			extra = _mduck_db + _zoom_mduck + _qm_db
 		var db := linear_to_db(maxf(v, 0.001)) + extra
 		# 바뀐 때만 건드린다(웹 '표본 재생'에서는 버스 값이 바뀔 때마다 브라우저 쪽으로 넘어간다)
 		var last: Array = _bus_last.get(k, [null, 999.0])
@@ -315,24 +412,29 @@ func _build_all() -> void:
 func build_everything(bud: AB.Budget) -> void:
 	# 자주 쓰는 효과음 → 배경 바닥 루프(배경이 빨리 시작하게) → 나머지 효과음 → …
 	for n: String in FREQUENT:
-		if not sfx.has(n):
+		if not sfx.has(n) and not file_sfx.has(n):
 			bud.label = "sfx:" + n
 			await _build_sfx(n, bud)
-	for l: String in ["hum", "wind", "murmur", "crickets", "market"]:
+	for l: String in ["hum", "wind", "murmur", "crickets", "market", "pipe"]:
 		await _build_loop(l, bud)
 	for n: String in SB.names():
-		if not sfx.has(n):
+		if not sfx.has(n) and not file_sfx.has(n):
 			bud.label = "sfx:" + n
 			await _build_sfx(n, bud)
 	for n: String in AB.SHOTS:
 		var b0 := bud.busy_now()
 		bud.label = "shot:" + n
 		var arr: Array = []
+		if file_shots.has(n) and not bool(file_shots[n]["append"]):
+			shots[n] = file_shots[n]["streams"]
+			continue
 		for v in int(AB.SHOTS[n][0]):
 			var sb: PackedFloat32Array = await AB.build_shot(n, v, bud)
 			arr.append(S.to_wav(sb, false, 0, AB.SHOT_RATE))
 			if bud.over():
 				await bud.wait()
+		if file_shots.has(n):   # append: 합성 변주 뒤에 실제 소리를 잇는다
+			arr.append_array(file_shots[n]["streams"])
 		shots[n] = arr
 		_note("shot:" + n, bud.busy_now() - b0)
 	for i: String in MB.INSTS:
@@ -390,6 +492,9 @@ func _note(n: String, us: int) -> void:
 
 
 func _build_loop(l: String, bud: AB.Budget) -> void:
+	if file_loops.has(l):
+		loops[l] = file_loops[l]["stream"]
+		return
 	var b0 := bud.busy_now()
 	bud.label = "loop:" + l
 	var b: PackedFloat32Array = await AB.build_loop(l, bud)
@@ -429,9 +534,14 @@ func play(n: String, volume: float = 1.0) -> void:
 			same += 1
 	if same >= 3:
 		return
-	if not sfx.has(n):
-		_build_sfx(n)
-	var arr: Array = sfx[n]
+	var arr: Array
+	var fi: Dictionary = file_sfx.get(n, {})
+	if not fi.is_empty():
+		arr = fi["streams"]
+	else:
+		if not sfx.has(n):
+			_build_sfx(n)
+		arr = sfx[n]
 	if arr.is_empty():
 		return
 	_last_play[n] = now
@@ -442,8 +552,9 @@ func play(n: String, volume: float = 1.0) -> void:
 	var pl := _free_player(_sfx_pool)
 	pl.stream = arr[vi]
 	pl.set_meta("sfx", n)
-	pl.volume_db = SB.gain_db(n) + linear_to_db(maxf(volume, 0.001))
-	var j := SB.pitch_jitter(n)
+	var gdb := float(fi["gain"]) if not fi.is_empty() else SB.gain_db(n)
+	pl.volume_db = gdb + linear_to_db(maxf(volume, 0.001))
+	var j := float(fi["pitch"]) if not fi.is_empty() else SB.pitch_jitter(n)
 	pl.pitch_scale = 1.0 + (_rng.randf_range(-j, j) if j > 0.0 else 0.0)
 	pl.play()
 
@@ -466,6 +577,12 @@ func _free_player(pool: Array) -> AudioStreamPlayer:
 
 func _on_game_event(n: String, p: Dictionary) -> void:
 	match n:
+		"quiet_start":
+			quiet_start()
+			return
+		"quiet_end":
+			quiet_end()
+			return
 		"fire_started", "fire_spread":
 			_fires_ev += 1
 		"fire_out":
@@ -503,6 +620,7 @@ func _read_state() -> void:
 			var zl: Variant = v.get("_zoom_levels")
 			if zi != null and zl is Array and (zl as Array).size() > 1:
 				st["zoom_out"] = 1.0 - float(zi) / float((zl as Array).size() - 1)
+				st["zoom_i"] = int(zi)
 		var s: Variant = g.get("state")
 		if tod < 0.0 and s != null and g.has_method("time_of_day"):
 			tod = float(g.time_of_day())
@@ -560,8 +678,10 @@ func _layer_targets() -> void:
 	var t := {}
 	t["hum"] = (0.45 + 0.55 * cs) * (1.0 - 0.25 * float(w["deep"]))
 	t["wind"] = clampf(0.3 + 0.6 * zo + 0.15 * float(w["night"]), 0.0, 1.0)
-	t["murmur"] = clampf(cs * float(w["awake"]) * (0.65 + 0.5 * float(w["evening"]) + 0.15 * float(w["morning"])) * (0.8 + 0.35 * (1.0 - zo)), 0.0, 1.0)
-	t["market"] = clampf(cs * (float(w["evening"]) + 0.35 * float(w["morning"])) * (0.75 + 0.35 * (1.0 - zo)), 0.0, 1.0)
+	var life := life_mult(zo)
+	t["murmur"] = clampf(cs * float(w["awake"]) * (0.65 + 0.5 * float(w["evening"]) + 0.15 * float(w["morning"])) * (0.8 + 0.35 * (1.0 - zo)) * life, 0.0, 1.0)
+	t["market"] = clampf(cs * (float(w["evening"]) + 0.35 * float(w["morning"])) * (0.75 + 0.35 * (1.0 - zo)) * life, 0.0, 1.0)
+	t["pipe"] = 1.0 if quiet_on else 0.0
 	t["crickets"] = float(w["night"]) * (1.0 - 0.45 * cs)
 	var f := int(st["fires"])
 	t["fire"] = 0.0 if f <= 0 else minf(1.0, 0.6 + 0.2 * float(f))
@@ -583,6 +703,8 @@ func _process(dt: float) -> void:
 	var k := minf(1.0, dt / 0.6)
 	_duck_db += (want_duck - _duck_db) * k
 	_mduck_db += (want_mduck - _mduck_db) * k
+	_quiet_tick(dt)
+	_zoom_tick(dt)
 	_apply_volumes()
 	if not _started:
 		return
@@ -591,8 +713,11 @@ func _process(dt: float) -> void:
 	_shot_t -= dt
 	if _shot_t <= 0.0:
 		_shot_t = 0.25
-		_schedule_shots(0.25)
-	_music_tick()
+		if _q < 0.02:
+			_schedule_shots(0.25)
+	if quiet_on and _q > 0.6:
+		_quiet_sounds(dt)
+	_music_tick(dt)
 
 
 func _mix_layers(dt: float) -> void:
@@ -615,7 +740,14 @@ func _mix_layers(dt: float) -> void:
 			p.volume_db = -80.0
 			continue
 		_layer_quiet[l] = 0.0
-		var db := float(LAYERS[l][0]) + linear_to_db(g)
+		var base_db := float(LAYERS[l][0])
+		if l == "pipe":
+			base_db = float(quiet_cfg.get("pipe_db", base_db))
+		if file_loops.has(l):
+			base_db += float(file_loops[l]["offset"])
+		var db := base_db + linear_to_db(g)
+		if not QUIET_KEEP.has(l):
+			db += float(quiet_cfg.get("quiet_layer_db", -70.0)) * _q
 		if absf(p.volume_db - db) > 0.05:
 			p.volume_db = db
 		if not p.playing:
@@ -648,6 +780,13 @@ func shot_rates() -> Dictionary:
 		"wok": 1.5 * cs * (eve + 0.5 * mor + 0.3 * day),
 		"shutter": 0.4 * cs * (mor + _ss(20.5, 21.5, float(w["h"])) * (1.0 - _ss(23.0, 23.9, float(w["h"])))),
 	}
+	var life := life_mult(float(st["zoom_out"]))
+	for n: String in LIFE_SHOTS:
+		if r.has(n):
+			r[n] = float(r[n]) * life
+	for n: String in file_shots:
+		if r.has(n):
+			r[n] = float(r[n]) * float(file_shots[n]["rate_mult"])
 	var spd: float = maxf(1.0, float(st["speed"]))
 	var mult := clampf(1.0 + 0.25 * log(spd) / log(2.0), 1.0, 1.6)
 	if bool(st["paused"]):
@@ -681,7 +820,13 @@ func play_shot(n: String, gain_db: float = 0.0) -> void:
 	var pl := _free_player(_amb_pool)
 	pl.stream = arr[_rng.randi() % arr.size()]
 	pl.bus = ["Ambience", "AmbL", "AmbR"][_rng.randi() % 3]
-	pl.volume_db = float(AB.SHOTS[n][1]) + _rng.randf_range(-4.0, 0.0) + gain_db + linear_to_db(maxf(_amb_fade, 0.01))
+	var off := 0.0
+	if file_shots.has(n) and not bool(file_shots[n]["append"]):
+		off = float(file_shots[n]["offset"])
+	if LIFE_SHOTS.has(n):   # 확대하면 생활 소리가 또렷해진다
+		off += linear_to_db(maxf(life_mult(float(st["zoom_out"])), 0.05))
+	pl.volume_db = float(AB.SHOTS[n][1]) + off + _rng.randf_range(-4.0, 0.0) + gain_db + linear_to_db(maxf(_amb_fade, 0.01))
+	pl.set_meta("base_db", pl.volume_db)
 	pl.pitch_scale = _rng.randf_range(0.9, 1.1) if n == "bird" else _rng.randf_range(0.96, 1.04)
 	pl.play()
 
@@ -699,10 +844,24 @@ func mood_now() -> String:
 	return "night"
 
 
-func _music_tick() -> void:
-	if not music_on or master_muted or insts.size() < MB.INSTS.size():
+func _rec_music() -> bool:
+	return rec != null and rec.active
+
+
+func _music_tick(dt: float = 0.0) -> void:
+	if not music_on or master_muted:
 		return
 	var m := mood_now()
+	if _rec_music():
+		rec.mood = m
+		rec.tick(dt)
+		if m != "alarm":   # 받아 둔 곡만. 합성 구절·바탕 화음은 불 났을 때만 얹는다.
+			_mood = m
+			_notes.clear()
+			_pad_tick()
+			return
+	if insts.size() < MB.INSTS.size():
+		return
 	if m != _mood:
 		_mood = m
 		if m == "alarm":   # 불이 나면 다음 구절을 곧바로
@@ -731,6 +890,8 @@ func _music_tick() -> void:
 
 func _pad_tick() -> void:
 	var want: String = MB.MOODS[_mood]["pad"]
+	if _rec_music() and _mood != "alarm":
+		want = ""
 	if want != "" and not pads.has(want):
 		return
 	if want != _pad_cur:
@@ -756,6 +917,109 @@ func _pad_tick() -> void:
 			_pad_tw.append(tw2)
 
 
+# ------------------------------------------------------------------ 확대 → 음악↓ 생활 소리↑
+
+func _interp(arr: Array, pos: float) -> float:
+	if arr.is_empty():
+		return 0.0
+	var i := clampi(int(floor(pos)), 0, arr.size() - 1)
+	var j := mini(i + 1, arr.size() - 1)
+	return lerpf(float(arr[i]), float(arr[j]), clampf(pos - float(i), 0.0, 1.0))
+
+
+## 확대 위치(0 = 가장 멂 … 단계 수-1 = 가장 가까움). zoom_out 은 1(멂)…0(가까움).
+func _zoom_pos(zo: float) -> float:
+	var n: int = (zoom_cfg.get("music_db", [0.0]) as Array).size()
+	return (1.0 - clampf(zo, 0.0, 1.0)) * float(maxi(n - 1, 1))
+
+
+## 생활 소리 배율(멀리 0.35 … 가까이 1.3 — audio_map.json zoom.life)
+func life_mult(zo: float) -> float:
+	var a: Array = zoom_cfg.get("life", [])
+	if a.is_empty():
+		return 1.0
+	return _interp(a, _zoom_pos(zo))
+
+
+## 음악에 더하는 dB(멀리 0 … 가까이 -15)
+func music_zoom_db(zo: float) -> float:
+	return _interp(zoom_cfg.get("music_db", [0.0]), _zoom_pos(zo))
+
+
+func _zoom_tick(dt: float) -> void:
+	var tgt := music_zoom_db(float(st["zoom_out"])) if st.has("zoom_i") else 0.0
+	var follow := maxf(0.05, float(zoom_cfg.get("follow_s", 0.8)))
+	_zoom_mduck += (tgt - _zoom_mduck) * minf(1.0, dt / follow)
+
+
+# ------------------------------------------------------------------ 고요시간 (사건 quiet_start / quiet_end, 실제 시간)
+
+func quiet_start() -> void:
+	if quiet_on:
+		return
+	quiet_on = true
+	_quiet_t = 0.0
+	_q_next = {"q_drip": 1.2, "q_step": 3.0, "q_crack": 5.0}
+	_layer_tgt["pipe"] = 1.0
+
+
+func quiet_end() -> void:
+	if not quiet_on:
+		return
+	quiet_on = false
+	_layer_tgt["pipe"] = 0.0
+
+
+func quiet_amount() -> float:
+	return _q
+
+
+func _quiet_tick(dt: float) -> void:
+	if quiet_on:
+		_quiet_t += dt
+		if _quiet_t > float(quiet_cfg.get("max_s", 90.0)):   # 끝 사건을 놓쳤을 때의 안전장치
+			quiet_end()
+	var fo := maxf(0.05, float(quiet_cfg.get("fade_out_s", 1.0)))
+	var fi := maxf(0.05, float(quiet_cfg.get("fade_in_s", 2.0)))
+	if quiet_on:
+		_q = minf(1.0, _q + dt / fo)
+	else:
+		_q = maxf(0.0, _q - dt / fi)
+	_qm_db = -75.0 * _q
+	if _q > 0.0:
+		for p: AudioStreamPlayer in _amb_pool:
+			if p.playing and p.has_meta("base_db"):
+				p.volume_db = float(p.get_meta("base_db")) - 70.0 * _q
+
+
+const QUIET_KEYS := {"q_drip": ["drip_every_s", "drip_db"], "q_step": ["step_every_s", "step_db"], "q_crack": ["crack_every_s", "crack_db"]}
+
+
+func _quiet_sounds(dt: float) -> void:
+	for n: String in QUIET_KEYS:
+		_q_next[n] = float(_q_next.get(n, 3.0)) - dt
+		if float(_q_next[n]) <= 0.0:
+			var iv: Array = quiet_cfg.get(QUIET_KEYS[n][0], [4.0, 9.0])
+			_q_next[n] = _rng.randf_range(float(iv[0]), float(iv[1]))
+			play_quiet(n)
+
+
+## 고요시간 소리 한 번(배관 떨림은 루프 층 pipe). 시험·샌드박스가 직접 부를 수 있다.
+func play_quiet(n: String) -> void:
+	if not shots.has(n) or not QUIET_KEYS.has(n):
+		return
+	var arr: Array = shots[n]
+	if arr.is_empty():
+		return
+	var pl := _free_player(_q_pool)
+	pl.stream = arr[_rng.randi() % arr.size()]
+	pl.bus = ["Ambience", "AmbL", "AmbR"][_rng.randi() % 3]
+	pl.volume_db = float(quiet_cfg.get(QUIET_KEYS[n][1], -20.0)) + _rng.randf_range(-3.0, 0.0)
+	pl.pitch_scale = _rng.randf_range(0.94, 1.06)
+	pl.set_meta("q", true)
+	pl.play()
+
+
 # ------------------------------------------------------------------ 보기(샌드박스·검사)
 
 func debug_state() -> Dictionary:
@@ -763,4 +1027,6 @@ func debug_state() -> Dictionary:
 	for l: String in _layer_g:
 		lg[l] = snappedf(float(_layer_g[l]), 0.01)
 	return {"started": _started, "built": build_done, "build_ms": build_total_us / 1000.0, "max_frame_ms": build_max_frame_us / 1000.0, "max_frame_at": build_max_frame_at, "max_frame_cpu_ms": build_max_cpu_ms, "max_frame_cpu_at": build_max_cpu_at, "state": st.duplicate(),
-		"weights": w.duplicate(), "layers": lg, "targets": _layer_tgt.duplicate(), "mood": _mood, "duck_db": _duck_db}
+		"weights": w.duplicate(), "layers": lg, "targets": _layer_tgt.duplicate(), "mood": _mood, "duck_db": _duck_db,
+		"quiet": quiet_on, "q": snappedf(_q, 0.01), "music_zoom_db": snappedf(_zoom_mduck, 0.1), "music_quiet_db": snappedf(_qm_db, 0.1),
+		"rec": rec.debug_state() if rec != null else {}, "file_sfx": file_sfx.keys(), "file_shots": file_shots.keys(), "file_loops": file_loops.keys()}
