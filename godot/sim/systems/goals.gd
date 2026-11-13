@@ -64,7 +64,17 @@ func _check(state: CityState) -> void:
 			state.emit("goal_done", {"id": id, "text": str(g.get("text", id)), "rewards": lines})
 			sim.say(state, "목표 달성: %s%s" % [g.get("text", id), (" — " + ", ".join(lines)) if not lines.is_empty() else ""], "good")
 			state.stats["goal_%s_day" % id] = state.econ_days
-			sim.chron(state, "goal", "목표를 이루었다. %s" % str(g.get("text", id)))
+			sim.chron(state, "goal", "목표를 이루었다. %s" % _chron_text(g, id))
+
+
+## 연표에 적을 목표 글. 데이터에 chron 이 있으면 그것을, 없으면 목표 글에서 괄호 설명을 뺀 것.
+func _chron_text(g: Dictionary, id: String) -> String:
+	if g.has("chron"):
+		return str(g["chron"])
+	var t := str(g.get("text", id))
+	var re := RegEx.new()
+	re.compile("\\s*\\([^)]*\\)")
+	return re.sub(t, "", true).strip_edges()
 
 
 ## 보상을 주고 문구를 돌려준다.
