@@ -2,16 +2,16 @@
  "_comment": "연구(GDD §10, Jin 요청의 '우리 쪽 추가'). 공부방이 하나 이상 가동 중일 때만 진행, 한 번에 하나. cost = ₩(시작할 때 냄), days = 경제일(공부방이 멈추면 진행도 멈춤). requires = 앞 단계. effects = {수정치 키: 비율}(sim.mod = 1 + Σ, happy.base는 더하는 점수). reveals = 끝나면 알게 되는 목적지. 후반 돈 싱크라 값이 크다(실험값). 키 목록: docs/SIM_NOTES.md §수정치.",
  "status": "구조 제안 / 수치 실험값",
  "branches": {
-  "living": "살림",
-  "work": "일",
-  "road": "길"
+  "living": "첫째 칸 — 살 만한 삶",
+  "work": "둘째 칸 — 빽빽하게 사는 법",
+  "road": "띠 건너는 길"
  },
  "items": {
   "rationing": {
    "branch": "living",
    "tier": 1,
-   "name": "솥 돌리기",
-   "desc": "골목마다 솥을 건다. 끼니 소비 −15%.",
+   "name": "밥벽",
+   "desc": "층마다 한 곳에서 밥을 지어 칸칸이 나눈다. 끼니 소비 −15%.",
    "cost": 1800,
    "days": 1.0,
    "effects": {
@@ -21,8 +21,8 @@
   "soundproof": {
    "branch": "living",
    "tier": 2,
-   "name": "솜 넣은 벽",
-   "desc": "공장 벽에 솜을 채운다. 소음으로 깎이는 행복이 사라진다.",
+   "name": "자리 바꾸기",
+   "desc": "시끄러운 공방과 잠자리를 떼어 놓는다. 소음으로 깎이는 행복이 사라진다.",
    "cost": 4800,
    "days": 1.5,
    "requires": "rationing",
@@ -33,8 +33,8 @@
   "greening": {
    "branch": "living",
    "tier": 3,
-   "name": "화분 대작전",
-   "desc": "지붕마다 화분. 모든 주거 행복 +5.",
+   "name": "거울 채광통",
+   "desc": "거울과 통으로 빛을 아래층까지 내린다. 모든 주거 행복 +5.",
    "cost": 12000,
    "days": 2.5,
    "requires": "soundproof",
@@ -45,8 +45,8 @@
   "high_water": {
    "branch": "living",
    "tier": 4,
-   "name": "층마다 물탱크",
-   "desc": "물탱크와 펌프를 층마다. 주민 물 수요 −20%.",
+   "name": "손물통",
+   "desc": "층마다 손물통을 둔다. 주민 물 수요 −20%.",
    "cost": 27000,
    "days": 3.5,
    "requires": "greening",
@@ -57,8 +57,8 @@
   "workflow": {
    "branch": "work",
    "tier": 1,
-   "name": "공구 벽에 걸기",
-   "desc": "공구를 벽에 건다. 생산 시설 처리량 +10%.",
+   "name": "도르래길",
+   "desc": "공방마다 도르래로 짐을 옮긴다. 생산 시설 처리량 +10%.",
    "cost": 2400,
    "days": 1.0,
    "effects": {
@@ -68,8 +68,8 @@
   "night_shift": {
    "branch": "work",
    "tier": 2,
-   "name": "불 안 끄는 공장",
-   "desc": "불이 꺼지지 않는 작업장. 처리량 +15% 더.",
+   "name": "삼교대 침대표",
+   "desc": "한 침상을 세 사람이 시간을 나눠 쓴다. 처리량 +15% 더.",
    "cost": 6000,
    "days": 1.5,
    "requires": "workflow",
@@ -80,8 +80,8 @@
   "waste_heat": {
    "branch": "work",
    "tier": 3,
-   "name": "발전기 열로 목욕물",
-   "desc": "발전기 열로 물을 데운다. 전기 공급 +20%.",
+   "name": "혈관도",
+   "desc": "훔쳐 온 전기가 지나는 길을 그려 둔다. 전기 공급 +20%.",
    "cost": 15000,
    "days": 2.5,
    "requires": "night_shift",
@@ -92,8 +92,8 @@
   "precision": {
    "branch": "work",
    "tier": 4,
-   "name": "덜 버리기 운동",
-   "desc": "덜 버리고 덜 고친다. 시설 유지비 −15%.",
+   "name": "받침값 장부",
+   "desc": "받침값을 장부에 적어 아낀다. 시설 유지비 −15%.",
    "cost": 36000,
    "days": 3.5,
    "requires": "waste_heat",
@@ -104,8 +104,8 @@
   "handcart": {
    "branch": "road",
    "tier": 1,
-   "name": "바퀴 달린 탐험",
-   "desc": "탐험대에 바퀴를. 탐험 날짜 −15%.",
+   "name": "손수레",
+   "desc": "짐을 손수레에 싣는다. 회띠꾼의 왕복 날짜 −15%.",
    "cost": 1800,
    "days": 1.0,
    "effects": {
@@ -115,8 +115,8 @@
   "mapping": {
    "branch": "road",
    "tier": 2,
-   "name": "약도 그리기",
-   "desc": "다녀온 길을 그려 둔다. 원거리 던전을 모두 알게 되고 수확 +5%.",
+   "name": "회색 띠 약도",
+   "desc": "다녀온 길을 그려 둔다. 먼 곳을 모두 알게 되고 수확 +5%.",
    "cost": 4500,
    "days": 1.5,
    "requires": "handcart",
@@ -132,8 +132,8 @@
   "truck": {
    "branch": "road",
    "tier": 3,
-   "name": "고물 트럭",
-   "desc": "고물 트럭 한 대. 탐험 수확 +20%.",
+   "name": "등짐 줄",
+   "desc": "짐꾼을 줄지어 세운다. 수확 +20%.",
    "cost": 13500,
    "days": 2.5,
    "requires": "mapping",
@@ -144,8 +144,8 @@
   "regulars": {
    "branch": "road",
    "tier": 4,
-   "name": "얼굴 아는 사이",
-   "desc": "얼굴을 아는 거래처. 수입 단가 −10%, 수출 단가 +10%.",
+   "name": "회상회 줄",
+   "desc": "회상회와 줄이 닿는다. 들여오는 값 −10%, 내보내는 값 +10%.",
    "cost": 30000,
    "days": 3.5,
    "requires": "truck",

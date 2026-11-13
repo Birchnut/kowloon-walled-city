@@ -11,14 +11,14 @@
   "electronics": "전자",
   "service": "놀 것·서비스",
   "safety": "방재",
-  "vice": "음성",
+  "vice": "두 우산",
   "infra": "기반",
   "landmark": "명소"
  },
  "items": {
   "market_mat": {
-   "name": "돗자리 장터",
-   "sign": "장터",
+   "name": "좌판",
+   "sign": "좌판",
    "look": "market_mat",
    "cat": "market",
    "priority": "service",
@@ -40,11 +40,11 @@
     "up": 1,
     "down": 1
    },
-   "desc": "돗자리 한 장이면 가게다. 자릿세는 비공식."
+   "desc": "바닥에 천 한 장을 펴고 판다. 자릿값은 말로 정한다."
   },
   "market_alley": {
-   "name": "뒷골목 시장",
-   "sign": "골목",
+   "name": "골목 장",
+   "sign": "골목장",
    "look": "market_alley",
    "cat": "market",
    "priority": "service",
@@ -68,11 +68,11 @@
     "up": 1,
     "down": 1
    },
-   "desc": "골목 하나가 통째로 시장. 길을 잃으면 그냥 산다."
+   "desc": "골목 하나가 통째로 장이 된다. 길을 아는 사람만 물건을 찾는다."
   },
   "market_hall": {
-   "name": "지붕 있는 시장",
-   "sign": "시장",
+   "name": "지붕 장",
+   "sign": "지붕장",
    "look": "market_hall",
    "cat": "market",
    "priority": "service",
@@ -97,11 +97,11 @@
     "down": 1
    },
    "power": 6,
-   "desc": "지붕이 있다는 것만으로 동네 자랑거리. 전기가 든다."
+   "desc": "양철 지붕을 얹은 장이다. 비가 와도 열린다. 전기가 든다."
   },
   "market_mall": {
-   "name": "면세 백화점",
-   "sign": "면세",
+   "name": "아홉우물 장터",
+   "sign": "아홉우물",
    "look": "market_mall",
    "cat": "market",
    "priority": "service",
@@ -127,11 +127,11 @@
     "down": 1
    },
    "power": 12,
-   "desc": "세금을 안 낸다. 원래 아무도 안 내지만 여긴 간판에 써 붙였다. 위로 두 층까지 손님이 온다."
+   "desc": "아홉 우물을 낀 큰 장터다. 위로 두 층까지 손님이 온다. 전기가 든다."
   },
   "rain_catcher": {
-   "name": "하늘 수도국",
-   "sign": "수도국",
+   "name": "빗물받이",
+   "sign": "빗물받이",
    "look": "water_catcher",
    "cat": "water",
    "priority": "utility",
@@ -148,11 +148,11 @@
    "supply": {
     "water": 40
    },
-   "desc": "양철 홈통과 드럼통 하나. 비 오는 날엔 국장님이 웃는다."
+   "desc": "차양 끝에 깔때기를 달아 빗물을 통으로 받는다. 아랫집과 윗집이 자리를 두고 다툰다."
   },
   "water_tank": {
-   "name": "훔친 물탱크",
-   "sign": "물탱크",
+   "name": "우물 펌프",
+   "sign": "우물펌프",
    "look": "water_tank",
    "cat": "water",
    "priority": "utility",
@@ -173,11 +173,11 @@
    "supply": {
     "water": 120
    },
-   "desc": "어디서 떼어 왔는지는 탱크에 적힌 남의 회사 이름이 말해 준다."
+   "desc": "우물에서 물을 올린다. 우물물은 끓여서 마신다."
   },
   "water_pipe": {
-   "name": "수도관 몰래 잇기",
-   "sign": "수도",
+   "name": "훔친 수돗물 줄",
+   "sign": "수돗줄",
    "look": "water_pipe",
    "cat": "water",
    "priority": "utility",
@@ -194,11 +194,11 @@
    "supply": {
     "water": 250
    },
-   "desc": "성채 밖 수도관에 구멍 하나. 요금은 옆 동네가 낸다. 자리는 적게, 돈은 많이."
+   "desc": "회색 띠 바깥의 수도관에서 물을 몰래 끌어온다. 요금은 내지 않는다. 자리는 적게 쓰고 유지비가 크다."
   },
   "water_plant": {
-   "name": "끓여 거르는 정수장",
-   "sign": "정수장",
+   "name": "단물 거르는 곳",
+   "sign": "단물터",
    "look": "water_plant",
    "cat": "water",
    "priority": "utility",
@@ -221,10 +221,10 @@
     "water": 600
    },
    "power": 10,
-   "desc": "거르고 끓여 보내는 큰 설비. 전기가 든다."
+   "desc": "우물물을 거르고 끓여 단물로 만든다. 전기가 든다."
   },
   "gen_small": {
-   "name": "털털이 발전기",
+   "name": "중고 발전기",
    "sign": "발전기",
    "look": "gen_small",
    "cat": "power",
@@ -249,11 +249,11 @@
    "tags": [
     "noise"
    ],
-   "desc": "털털거리는 중고 발전기. 옆집은 잠을 못 잔다."
+   "desc": "바깥에서 들여온 낡은 발전기다. 돌아가는 동안 옆집은 잠들지 못한다."
   },
   "power_tap": {
-   "name": "전봇대 문어발",
-   "sign": "문어발",
+   "name": "거미줄 한 줄",
+   "sign": "거미줄",
    "look": "power_tap",
    "cat": "power",
    "priority": "utility",
@@ -270,7 +270,7 @@
    "supply": {
     "power": 150
    },
-   "desc": "전봇대 하나에 전선 마흔 가닥. 자리는 적게, 돈은 많이."
+   "desc": "바깥 전봇대에서 전깃줄을 훔쳐 끌어온다. 자리는 적게 쓰고 유지비가 크다."
   },
   "power_plant": {
    "name": "성채 발전소",
@@ -330,8 +330,8 @@
    "desc": "쓰레기를 태워 불을 켠다. 냄새는 덤. 도면이 있어야 짓는다(옛 발전소 탐험)."
   },
   "food_cans": {
-   "name": "찌그러진 캔 은행",
-   "sign": "캔 은행",
+   "name": "맹관 좌판",
+   "sign": "맹관",
    "look": "food_cans",
    "cat": "food",
    "priority": "food",
@@ -353,11 +353,11 @@
      "cans": 40
     }
    },
-   "desc": "찌그러진 캔만 받는다. 멀쩡한 캔을 어디서 찌그러뜨려 오는지는 묻지 않는다."
+   "desc": "라벨 없는 깡통을 모아 판다. 따 보기 전에는 안에 무엇이 들었는지 모른다."
   },
   "food_pilgrims": {
-   "name": "마감 세일 순례단",
-   "sign": "순례단",
+   "name": "띠장수 수레",
+   "sign": "띠수레",
    "look": "food_pilgrims",
    "cat": "food",
    "priority": "food",
@@ -379,11 +379,11 @@
      "cans": 50
     }
    },
-   "desc": "폐점 30분 전 마트를 순례한다. 계산대를 지났는지는 기도로 해결."
+   "desc": "회색 띠를 건너 물건을 나르는 사람들이 수레로 깡통을 들여온다."
   },
   "noodle_mill": {
-   "name": "수타 제면소",
-   "sign": "제면",
+   "name": "완자 공방",
+   "sign": "완자",
    "look": "noodle_mill",
    "cat": "food",
    "priority": "food",
@@ -411,10 +411,10 @@
    "tags": [
     "noise"
    ],
-   "desc": "밀가루는 어디서 났냐고요? 그건 묻지 않는 게 예의다."
+   "desc": "밀가루를 반죽해 완자와 면을 뽑는다. 기계 소리가 크다. 물이 든다."
   },
   "noodle_stall": {
-   "name": "완탕 한 그릇",
+   "name": "구룡완탕",
    "sign": "완탕",
    "look": "noodle_stall",
    "cat": "food",
@@ -440,11 +440,11 @@
     }
    },
    "water": 4,
-   "desc": "국물은 어제 것에 오늘 것을 붓는다. 깊은 맛의 비결."
+   "desc": "구룡완탕을 끓여 판다. 국물은 하루 묵은 것에 이어 붓는다."
   },
   "rat_farm": {
-   "name": "쥐덫 조합",
-   "sign": "쥐덫",
+   "name": "토끼집",
+   "sign": "토끼집",
    "look": "rat_farm",
    "cat": "food",
    "priority": "food",
@@ -468,11 +468,11 @@
      "ratmeat": 24
     }
    },
-   "desc": "조합원 모두 덫 놓기 1급. 자격증은 조합장이 손으로 그렸다."
+   "desc": "계단참에서 토끼를 기른다. 나온 고기는 토끼집 고기라 부른다."
   },
   "burger": {
-   "name": "출처 묻지 마 버거",
-   "sign": "버거",
+   "name": "토끼버거 노점",
+   "sign": "토끼버거",
    "look": "burger",
    "cat": "food",
    "priority": "food",
@@ -498,11 +498,11 @@
      "burger": 30
     }
    },
-   "desc": "패티의 출처를 묻는 손님에겐 감자튀김을 하나 더 준다."
+   "desc": "토끼집 고기로 패티를 부친다. 먹는 사람은 출처를 묻지 않는다."
   },
   "sushi": {
-   "name": "어제 잡은 스시",
-   "sign": "스시",
+   "name": "하늘상",
+   "sign": "하늘상",
    "look": "sushi",
    "cat": "food",
    "priority": "food",
@@ -530,10 +530,10 @@
    },
    "water": 4,
    "power": 4,
-   "desc": "어제 잡았다. 몇 년 어제인지는 말하지 않았다. 생선은 수입한다."
+   "desc": "옥상에 차린 스시집이다. 생선은 바깥에서 들여온다. 물과 전기가 든다."
   },
   "roof_garden": {
-   "name": "하늘 텃밭",
+   "name": "옥상 텃밭",
    "sign": "텃밭",
    "look": "roof_garden",
    "cat": "food",
@@ -561,11 +561,11 @@
    "water": 6,
    "needs_sky": true,
    "min_floor": 2,
-   "desc": "옥상 스티로폼 상자 농장. 위가 뚫린 3층 이상에만, 위에 뭘 지으면 해가 안 들어 멈춘다."
+   "desc": "옥상 상자에 채소를 기른다. 위가 비어 있는 3층 이상에만 둔다. 위에 층이 오르면 해가 가려 멈춘다."
   },
   "brewery": {
-   "name": "부스러기 양조장",
-   "sign": "양조장",
+   "name": "빵술 통",
+   "sign": "빵술",
    "look": "brewery",
    "cat": "food",
    "priority": "goods",
@@ -587,11 +587,11 @@
      "moonshine": 25
     }
    },
-   "desc": "빵 부스러기와 비스킷을 모아 빚는다. 가끔은 옆 도시 트럭에서 무료로 받아오기도 한다. 받아왔는지는 알 수 없지만요."
+   "desc": "팔리지 않은 빵을 통에 넣고 삭혀 술을 얻는다."
   },
   "clothes_bin": {
-   "name": "수거함 정리단",
-   "sign": "헌 옷",
+   "name": "헌 옷 고르는 집",
+   "sign": "헌옷",
    "look": "rag_collect",
    "cat": "goods",
    "priority": "goods",
@@ -613,11 +613,11 @@
      "oldclothes": 12
     }
    },
-   "desc": "헌 옷 수거함은 기부함이 아니라 공용 옷장이라는 학설을 따른다."
+   "desc": "헌 옷 더미에서 입을 만한 것을 가려낸다."
   },
   "rag_collect": {
-   "name": "넝마 수거단",
-   "sign": "넝마",
+   "name": "자투리 모으는 집",
+   "sign": "자투리",
    "look": "rag_collect",
    "cat": "goods",
    "priority": "goods",
@@ -639,7 +639,7 @@
      "rags": 20
     }
    },
-   "desc": "버린 천은 모두 넝마가 된다. 널어 둔 천도 가끔."
+   "desc": "버려진 천 조각을 모아 자투리 천으로 묶는다."
   },
   "oil_collect": {
    "name": "기름 수거단",
@@ -668,8 +668,8 @@
    "desc": "식당 뒷문의 폐식용유를 모은다. 앞문으로 받은 적은 없다."
   },
   "candle_shop": {
-   "name": "초 공방",
-   "sign": "초",
+   "name": "양초 공방",
+   "sign": "양초",
    "look": "candle",
    "cat": "goods",
    "priority": "goods",
@@ -693,7 +693,7 @@
      "candle": 20
     }
    },
-   "desc": "폐식용유를 녹여 초를 붓는다. 정전이 대목이다."
+   "desc": "기름을 녹여 깡통에 붓고 심지를 꽂는다. 불이 나간 밤에 많이 쓴다."
   },
   "soap_shop": {
    "name": "비누 공방",
@@ -721,7 +721,7 @@
      "soap": 20
     }
    },
-   "desc": "같은 기름으로 비누를 굳힌다. 초와 비누의 차이는 심지 하나."
+   "desc": "같은 기름에 잿물을 섞어 비누로 굳힌다."
   },
   "tailor": {
    "name": "봉제방",
@@ -751,7 +751,7 @@
      "clothes": 12
     }
    },
-   "desc": "재봉틀 여섯 대가 쉬지 않는다. 넝마가 옷이 된다."
+   "desc": "재봉틀이 쉬지 않는다. 자투리 천이 기운 옷이 된다."
   },
   "suit_shop": {
    "name": "맞춤 양복점",
@@ -784,8 +784,8 @@
    "desc": "넝마로 지은 양복. 재단사는 '빈티지'라고 부른다."
   },
   "radio_shop": {
-   "name": "전파사",
-   "sign": "전파사",
+   "name": "소리 고치는 집",
+   "sign": "소리집",
    "look": "radio",
    "cat": "electronics",
    "priority": "goods",
@@ -812,7 +812,7 @@
     }
    },
    "power": 6,
-   "desc": "고장 난 라디오 세 대로 멀쩡한 한 대를 만든다. 전기가 든다."
+   "desc": "고장 난 라디오를 뜯어 쓸 만한 한 대로 맞춘다. 전기가 든다."
   },
   "assembly": {
    "name": "조립소",
@@ -849,7 +849,7 @@
    "desc": "라디오를 뜯어 가전을 만든다. 남는 나사는 다음 가전에."
   },
   "mahjong": {
-   "name": "패가망신 클럽",
+   "name": "마작방",
    "sign": "마작",
    "look": "mahjong",
    "cat": "service",
@@ -874,11 +874,11 @@
     "up": 1,
     "down": 1
    },
-   "desc": "패 섞는 소리에 잠드는 동네. 가산 탕진은 셀프 서비스."
+   "desc": "일 끝난 사람들이 모인다. 자리와 외상과 다툼을 맡는 사람이 생긴다."
   },
   "teahouse": {
-   "name": "하루 종일 한 잔",
-   "sign": "찻집",
+   "name": "차 좌판",
+   "sign": "찻좌판",
    "look": "teahouse",
    "cat": "service",
    "priority": "service",
@@ -902,10 +902,10 @@
     "up": 1,
     "down": 1
    },
-   "desc": "차 한 잔 시키고 하루를 앉아 있는다. 주인도 같이 앉아 있다."
+   "desc": "차 한 잔을 시키고 하루를 앉아 있는다. 주인도 같이 앉는다."
   },
   "karaoke": {
-   "name": "음치 해방구",
+   "name": "가라오케",
    "sign": "노래방",
    "look": "karaoke",
    "cat": "service",
@@ -931,10 +931,10 @@
     "down": 1
    },
    "power": 8,
-   "desc": "음정은 자유. 이웃의 수면권은 협의 중. 전기가 든다."
+   "desc": "마이크 한 대와 반주 테이프 한 벌이 있다. 음정은 따지지 않는다. 벽 너머 이웃은 참는다. 전기가 든다."
   },
   "shrine": {
-   "name": "아무 신이나 사당",
+   "name": "사당",
    "sign": "사당",
    "look": "shrine",
    "cat": "service",
@@ -959,11 +959,11 @@
     "up": 1,
     "down": 1
    },
-   "desc": "누구 신인지는 모른다. 향은 일단 피운다."
+   "desc": "작은 위패 하나와 향로 하나가 있다. 어느 신인지는 적혀 있지 않다."
   },
   "study": {
-   "name": "족보 공부방",
-   "sign": "공부방",
+   "name": "글방",
+   "sign": "글방",
    "look": "study",
    "cat": "service",
    "priority": "service",
@@ -987,11 +987,11 @@
     "up": 1,
     "down": 1
    },
-   "desc": "족보로 공부해 족보를 만든다. 연구도 여기서 한다."
+   "desc": "성채의 하나뿐인 학교다. 아이들이 빛상자 아래에 앉는다. 연구도 이곳에서 한다."
   },
   "bathhouse": {
-   "name": "때밀이 성전",
-   "sign": "목욕탕",
+   "name": "공동 김탕",
+   "sign": "김탕",
    "look": "bathhouse",
    "cat": "service",
    "priority": "service",
@@ -1019,11 +1019,11 @@
    },
    "water": 30,
    "luxury": true,
-   "desc": "때를 밀면 업보도 밀린다고 믿는 곳. 행복한 동네에만 문을 연다."
+   "desc": "여럿이 함께 쓰는 더운 목욕탕이다. 창에서 김이 난다. 행복도가 오래 유지된 동네에만 문을 연다."
   },
   "dentist": {
-   "name": "발치 전문",
-   "sign": "치과",
+   "name": "치공",
+   "sign": "치공",
    "look": "dentist",
    "cat": "service",
    "priority": "service",
@@ -1051,13 +1051,13 @@
    "vice": {
     "income": 0,
     "heat": 1,
-    "raid_line": "발치 전문에 단속. 면허는 여전히 본토에 있다고 한다."
+    "raid_line": "치공에 바깥의 시선이 닿았다. 면허를 묻는 사람이 다녀갔다."
    },
-   "desc": "발치 전문. 마취는 별도, 면허는 본토에."
+   "desc": "면허 없는 치과의가 이를 뽑는다. 마취는 따로 값을 받는다."
   },
   "pharmacy": {
-   "name": "약 비슷한 것 약국",
-   "sign": "약국",
+   "name": "약방",
+   "sign": "약방",
    "look": "pharmacy",
    "cat": "service",
    "priority": "service",
@@ -1082,11 +1082,11 @@
     "down": 1
    },
    "luxury": true,
-   "desc": "약과 비슷하게 생겼다. 효과도 비슷할지 모른다."
+   "desc": "약봉지에 해와 달을 그려 판다. 해는 아침, 달은 밤이다."
   },
   "salon": {
-   "name": "가위손 이모",
-   "sign": "미용실",
+   "name": "계단 이발",
+   "sign": "이발",
    "look": "salon",
    "cat": "service",
    "priority": "service",
@@ -1111,11 +1111,11 @@
     "down": 1
    },
    "luxury": true,
-   "desc": "이모의 가위는 자비가 없다. 대신 수다는 공짜."
+   "desc": "계단참에 의자를 놓고 머리를 깎는다. 이야기는 값에 든다."
   },
   "roof_park": {
-   "name": "하늘 공원",
-   "sign": "공원",
+   "name": "소리터",
+   "sign": "소리터",
    "look": "roof_park",
    "cat": "service",
    "priority": "service",
@@ -1145,11 +1145,11 @@
    "needs_sky": true,
    "min_floor": 2,
    "luxury": true,
-   "desc": "빨래 줄 사이에 벤치 둘. 성채에서 하늘이 제일 넓게 보인다. 위가 뚫린 3층 이상."
+   "desc": "옥상에서 한 사람씩 소리를 지르는 자리다. 위가 비어 있는 3층 이상에만 둔다."
   },
   "fire_bucket": {
-   "name": "양동이 소방대",
-   "sign": "소방대",
+   "name": "불밥통 골목",
+   "sign": "불밥통",
    "look": "fire_bucket",
    "cat": "safety",
    "priority": "utility",
@@ -1173,11 +1173,11 @@
     "up": 1,
     "down": 1
    },
-   "desc": "양동이 서른 개와 목청 큰 대장. 불보다 먼저 소리가 도착한다."
+   "desc": "붉은 띠를 두른 모래통을 골목에 줄지어 둔다. 불이 나면 이웃이 통을 들고 뛴다."
   },
   "fire_station": {
-   "name": "무허가 소방서",
-   "sign": "소방서",
+   "name": "물통조",
+   "sign": "물통조",
    "look": "fire_station",
    "cat": "safety",
    "priority": "utility",
@@ -1204,11 +1204,11 @@
     "up": 2,
     "down": 2
    },
-   "desc": "소방차는 없다. 대신 지붕 위로 뛰는 사람들이 있다."
+   "desc": "불 끄는 사람들이 물통을 들고 지붕 위로 뛴다. 소방차는 없다."
   },
   "trash_guild": {
-   "name": "넝마주이 조합",
-   "sign": "넝마주이",
+   "name": "밤배꾼",
+   "sign": "밤배꾼",
    "look": "trash_guild",
    "cat": "safety",
    "priority": "utility",
@@ -1232,11 +1232,11 @@
     "up": 1,
     "down": 1
    },
-   "desc": "쓰레기를 치워 주고 쓸 만한 건 챙겨 간다. 조합 회비는 그걸로 낸다."
+   "desc": "밤마다 오물을 지고 나간다. 모두가 고마워하고 모두가 피한다."
   },
   "clinic": {
-   "name": "무면허 의원",
-   "sign": "의원",
+   "name": "봉합방",
+   "sign": "봉합",
    "look": "clinic",
    "cat": "safety",
    "priority": "utility",
@@ -1260,7 +1260,7 @@
     "up": 1,
     "down": 1
    },
-   "desc": "면허는 액자 안에. 액자는 빌린 것."
+   "desc": "면허 없는 의사들이 모여 있다. 상처를 꿰매고 약을 싸 준다."
   },
   "scrapyard": {
    "name": "고물 분해소",
@@ -1314,8 +1314,8 @@
    "desc": "물건을 쌓아 두는 곳. 꺼낼 때가 문제다."
   },
   "trade_post": {
-   "name": "뒷문 무역관",
-   "sign": "무역관",
+   "name": "회상회",
+   "sign": "회상회",
    "look": "trade_post",
    "cat": "infra",
    "priority": "other",
@@ -1332,11 +1332,11 @@
     "t2": 2
    },
    "contract_slots": 2,
-   "desc": "정문은 없다. 뒷문으로만 거래한다. 정기 계약 2자리."
+   "desc": "띠장수들이 만든 조합이다. 정기 계약 2자리를 받는다."
   },
   "expedition_base": {
-   "name": "줍줍 본부",
-   "sign": "줍줍",
+   "name": "회띠꾼 막",
+   "sign": "회띠",
    "look": "expedition_base",
    "cat": "infra",
    "priority": "other",
@@ -1351,11 +1351,11 @@
    "upkeep": 2,
    "workforce": {},
    "teams": 1,
-   "desc": "탐험대의 집결지. 줍는 사람이 임자다. 탐험대 1팀(최대 3)."
+   "desc": "회색 띠의 빈 마을에서 자재를 벗겨 오는 사람들이 머문다. 회띠꾼 1팀(최대 3)."
   },
   "gambling_den": {
-   "name": "딱 한 판만",
-   "sign": "한 판",
+   "name": "탄환방",
+   "sign": "탄환방",
    "look": "gambling",
    "cat": "vice",
    "priority": "vice",
@@ -1382,16 +1382,16 @@
    "vice": {
     "income": 30,
     "heat": 3,
-    "raid_line": "'딱 한 판만' 문에 경찰 테이프. 판돈은 증거물이 되었다."
+    "raid_line": "탄환방에 바깥의 시선이 닿았다. 판돈이 모두 걷혔다."
    },
    "tags": [
     "vice"
    ],
-   "desc": "딱 한 판만 하고 간다던 사람이 3년째 앉아 있다. 마작 수요도 채운다."
+   "desc": "슬롯머신이 줄지어 있다. 마작 수요도 채운다."
   },
   "callcenter": {
-   "name": "고객님 상담실",
-   "sign": "상담실",
+   "name": "목소리방",
+   "sign": "목소리",
    "look": "callcenter",
    "cat": "vice",
    "priority": "vice",
@@ -1412,16 +1412,16 @@
    "vice": {
     "income": 160,
     "heat": 8,
-    "raid_line": "'고객님, 검찰청입니다' — 이번엔 진짜 검찰청이 전화를 받았다."
+    "raid_line": "목소리방에 바깥의 시선이 닿았다. 전화선이 잘렸다."
    },
    "tags": [
     "vice"
    ],
-   "desc": "고객님, 검찰청입니다."
+   "desc": "창이 없다. 낮고 또렷한 목소리를 오래 내는 사람을 쓴다."
   },
   "casino": {
-   "name": "돌려막기 카지노",
-   "sign": "카지노",
+   "name": "용궁",
+   "sign": "용궁",
    "look": "casino",
    "cat": "vice",
    "priority": "vice",
@@ -1452,12 +1452,12 @@
    "vice": {
     "income": 500,
     "heat": 12,
-    "raid_line": "카지노에 단속. 손님들은 다들 지나가던 길이었다고 한다."
+    "raid_line": "용궁에 바깥의 시선이 닿았다. 손님들은 지나가던 길이었다고 한다."
    },
    "tags": [
     "vice"
    ],
-   "desc": "이번 판으로 지난 판을 막는다. 하우스는 돌려막지 않는다."
+   "desc": "붉은 네온 아래에서 바깥 손님을 받는 도박장이다. 위아래 층이 붉게 물든다."
   },
   "fireworks": {
    "name": "화약 가공소",
@@ -1568,11 +1568,11 @@
    },
    "landmark": true,
    "build_days": 2.0,
-   "desc": "용 한 마리가 탑을 감고 있다. 전기 요금도 감고 있다. 두 개 층."
+   "desc": "용 한 마리가 탑을 감은 모양의 네온이다. 성채에서 가장 먼저 눈에 들어온다. 두 개 층."
   },
   "city_hall": {
-   "name": "무허가 구청",
-   "sign": "구청",
+   "name": "네모청",
+   "sign": "네모청",
    "look": "landmark_hall",
    "cat": "landmark",
    "priority": "service",
@@ -1603,7 +1603,7 @@
    },
    "landmark": true,
    "build_days": 3.0,
-   "desc": "도장도 서류도 다 있다. 허가만 없다. 세 자재를 모두 쓴다 — 마지막 목표."
+   "desc": "장부로 다스리는 방 세 개짜리 정부다. 세 자재를 모두 쓴다. 마지막 목표다."
   }
  }
 }
