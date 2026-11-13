@@ -322,8 +322,31 @@ func _lens_name(id: String) -> String:
 func _apply_lens_cells() -> void:
 	if lens in ["", "needs", "tier", "happiness"]:
 		return
+	if lens == "warehouse":
+		_apply_warehouse_lens()
+		return
 	var cv := Q.dict("coverage", {"kind": lens})
 	Q.vcall("set_coverage", [UI.to_array(cv.get("covered", [])), UI.to_array(cv.get("uncovered", []))])
+
+
+## 창고 렌즈(v0.5): 창고가 덮는 층의 시설(초록)과 덮지 않는 층의 시설(빨강, 생산이 느리다). 규칙 질의 warehouse_cover(층).
+## 창고가 덮지 않아도 느려지지 않는 동안(작은 창고가 열리기 전)에는 칠하지 않는다.
+func _apply_warehouse_lens() -> void:
+	var by_floor: Dictionary = {}
+	var inn: Array = []
+	var out: Array = []
+	for p: Variant in Game.state.cells:
+		if not (p is Vector3i) or str((Game.state.cells[p] as Dictionary).get("kind", "")) != "facility":
+			continue
+		var z: int = (p as Vector3i).z
+		if not by_floor.has(z):
+			by_floor[z] = Q.dict("warehouse_cover", {"floor": z})
+		var w: Dictionary = by_floor[z]
+		if bool(w.get("covered", false)):
+			inn.append(p)
+		elif float(w.get("production_mult", 1.0)) < 1.0:
+			out.append(p)
+	Q.vcall("set_coverage", [inn, out])
 
 
 # ------------------------------------------------------------------ 창
@@ -803,6 +826,10 @@ func _on_state_replaced() -> void:
 
 
 func _start_session() -> void:
+	# 마지막 장이 펼쳐졌는데 아직 보여 주지 못한 저장(접속 전에 때가 지난 경우)이면 지금 연다
+	var lp := Q.dict("last_page")
+	if bool(lp.get("ready", false)) and not bool(lp.get("shown", false)):
+		call_deferred("open_window", "last_page")
 	if auto_tutorial and not tutorial.running and not tutorial.is_done():
 		tutorial.start(tutorial.saved_step())
 

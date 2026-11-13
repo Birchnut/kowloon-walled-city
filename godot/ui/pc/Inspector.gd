@@ -187,6 +187,11 @@ func _house() -> void:
 		_kv(g, "들어오는 중", arr)
 	_kv(g, "행복", "%d" % int(float(info.get("happiness", 0))), "good" if float(info.get("happiness", 0)) >= 60 else ("bad" if float(info.get("happiness", 0)) < 35 else ""))
 	_kv(g, "물세·자리값", "%s/일" % UI.won(info.get("tax_per_day", 0)))
+	if int(info.get("depth", 0)) > 0:
+		_kv(g, "위에 덮인 층", "%d층 — 아래층은 어둡고 습하다" % int(info.get("depth", 0)), "bad" if int(info.get("depth", 0)) >= 3 else "")
+	var onear := str(info.get("org_near", ""))
+	if onear != "":
+		_kv(g, "옆의 조직", {"thirteen": "십삼요회", "yeonu": "연우당", "both": "십삼요회와 연우당"}.get(onear, onear), "bad")
 	PcWindow.section(_v, "수요")
 	for n: Variant in UI.to_array(info.get("needs", [])):
 		_need_row(UI.to_dict(n))

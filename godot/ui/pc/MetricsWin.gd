@@ -284,6 +284,15 @@ func _sec_labor() -> Control:
 		g.add_child(sl)
 	if g.get_child_count() <= 4:
 		v.add_child(UI.label("아직 일하는 사람이 없다.", "LabelDim"))
+	var idle := Q.dict("idle_citizens")
+	var ih := UI.hbox(8)
+	v.add_child(ih)
+	ih.add_child(UI.label("쉬었음시민", "LabelBold"))
+	var il := UI.label("%s명" % UI.num(idle.get("count", 0)), "LabelBold")
+	il.add_theme_color_override("font_color", UI.pcol("gold") if int(idle.get("count", 0)) > 0 else UI.pcol("mute"))
+	ih.add_child(il)
+	TipLayer.set_tip(ih, "쉬었음시민\n일하지 않는 벽틈시민(넷 가운데 하나). 많을수록 오물이 조금 늦게 쌓이고 병이 조금 줄고 행복이 조금 오른다.")
+	ih.mouse_filter = Control.MOUSE_FILTER_PASS
 	return v
 
 
@@ -387,6 +396,29 @@ func _sec_hazards() -> Control:
 		var tl := UI.label(str(hd.get("text", "")), "LabelDim", true)
 		tl.custom_minimum_size.x = 380
 		v.add_child(tl)
-	if v.get_child_count() <= 1:
-		v.add_child(UI.label("아직 위험이 없다.", "LabelDim"))
+	_gauge_row(v, "치안", Q.dict("security"), "security", false)
+	_gauge_row(v, "갈등", Q.dict("conflict"), "conflict", true)
 	return v
+
+
+## 치안·갈등 한 줄: 이름 · 막대 · 값, 아래에 규칙이 주는 한 줄 설명. 치안은 낮을수록, 갈등은 높을수록 나쁘다.
+func _gauge_row(v: VBoxContainer, nm: String, q: Dictionary, id: String, high_bad: bool) -> void:
+	var val := float(q.get("value", 0.0))
+	var mx := float(q.get("max", 100.0))
+	var r := clampf(val / maxf(mx, 1.0), 0.0, 1.0)
+	var st := "ok"
+	if high_bad:
+		st = "bad" if r >= 0.8 else ("warn" if r >= 0.5 else "ok")
+	else:
+		st = "bad" if bool(q.get("low", false)) else "ok"
+	var h := UI.hbox(8)
+	v.add_child(h)
+	var l := UI.label(nm, "LabelBold")
+	l.custom_minimum_size.x = 50
+	h.add_child(l)
+	h.add_child(PcWindow.bar(r, st, 150, 10))
+	h.add_child(UI.label("%d" % int(val), "LabelSmall"))
+	var tl := UI.label(UI.no_hanja(str(q.get("text", ""))), "LabelDim", true)
+	tl.custom_minimum_size.x = 380
+	v.add_child(tl)
+	_sections[id] = h

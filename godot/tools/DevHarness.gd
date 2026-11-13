@@ -12,7 +12,7 @@ extends Node
 ##   place=<시설 id>@x,y,z[@rot]   배치 모드 + 마우스를 그 칸으로(고스트·범위·커서 글)
 ##   zone=x0,y0,z;x1,y1     주거 칠하기 모드 + 네모 미리보기(뗄 때 짓지 않음 — 그림 확인용)
 ##   mouse=x,y              마우스를 그 화면 점으로(툴팁·살피기 미리보기)   hovertext=<글자>  그 글자를 품은 버튼 위로
-##   hazard_on=<fire|disease>  처음 켜짐 카드 견본
+##   hazard_on=<fire|disease>  첫 불·첫 병 카드 견본
 ##   scale=<1|1.25|1.5>     UI 크기
 ##   perf=1                 프레임마다 스크립트 시간 — 100프레임마다 평균·최대, 끝에 가장 큰 튐과 그때의 사건
 ##   png=<절대 경로>         실제 창 크기 그대로 한 장 찍고 끝. png_wait=<초>
@@ -189,7 +189,9 @@ func _apply() -> void:
 		if u.size() > 3:
 			ui.upgrade.pick_material(u[3])
 	if args.has("hazard_on"):
-		ui._on_event("hazard_on", {"kind": str(args["hazard_on"]), "grace_days": 2.0})
+		# v0.5: 층 카드가 아니라 첫 불·첫 병 사건의 카드(견본 글은 규칙과 같은 뜻)
+		var hk := str(args["hazard_on"])
+		ui._on_event("first_fire" if hk == "fire" else "first_disease", {"card": {"title": hk, "text": "처음으로 %s. 칸이 빽빽하고 위에 덮인 층이 많을수록 잦다." % ("불이 났다" if hk == "fire" else "병이 돌았다")}})
 	if args.has("place"):
 		var pp := str(args["place"]).split("@")
 		var it: Dictionary = ui.build.find(pp[0])
