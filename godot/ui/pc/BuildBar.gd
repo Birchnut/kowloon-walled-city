@@ -244,7 +244,7 @@ func _card(it: Dictionary, cid: String) -> Control:
 	return b
 
 
-## 비용 한 줄: "₩40 · 고물 10"
+## 비용 한 줄: "40달러 · 고물 10"
 func cost_text(it: Dictionary, short: bool = false) -> String:
 	var c := UI.to_dict(it.get("cost", {}))
 	var parts: Array = [UI.won(c.get("money", 0))]

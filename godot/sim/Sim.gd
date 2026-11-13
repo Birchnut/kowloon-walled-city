@@ -282,9 +282,9 @@ static func num(v: float) -> String:
 	return ("−" if neg else "") + s + out
 
 
-## 문장 속 돈: "₩33,151"(음수는 "−₩320"). 시뮬이 만드는 글에서 돈은 모두 이것으로.
+## 문장 속 돈: "33,151달러"(음수는 "−320달러"). 시뮬이 만드는 글에서 돈은 모두 이것으로.
 static func won(v: float) -> String:
-	return ("−₩" + num(-v)) if int(v) < 0 else ("₩" + num(v))
+	return ("−" + num(-v) + "달러") if int(v) < 0 else (num(v) + "달러")
 
 
 ## "이(가)" 같은 조사를 앞말 받침에 맞춘다.

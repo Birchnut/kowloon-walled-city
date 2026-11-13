@@ -289,16 +289,16 @@ static func no_hanja(s: String) -> String:
 	return "".join(out).strip_edges()
 
 
-## 돈: ₩1,234 / 100만 이상은 ₩123.4만 / ₩1.25억
+## 돈: 1,234달러 / 100만 이상은 123.4만달러 / 1.25억달러
 static func won(v: Variant) -> String:
 	var f := float(v) if (v is float or v is int) else 0.0
-	return ("-₩" if f < 0.0 else "₩") + big(absf(f))
+	return ("-" if f < 0.0 else "") + big(absf(f)) + "달러"
 
 
-## 부호 붙은 돈: +₩12 / -₩3
+## 부호 붙은 돈: +12달러 / -3달러
 static func won_signed(v: Variant) -> String:
 	var f := float(v) if (v is float or v is int) else 0.0
-	return ("+₩" if f >= 0.0 else "-₩") + big(absf(f))
+	return ("+" if f >= 0.0 else "-") + big(absf(f)) + "달러"
 
 
 ## 소수 한 자리까지(정수면 정수로): 12 / 12.5

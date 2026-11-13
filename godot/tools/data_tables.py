@@ -57,7 +57,7 @@ def main():
 
     files = {}
     L = header("계층과 수요", "population/tiers.json, needs.json", tiers.get("status", "") + " / " + needs.get("status", ""))
-    L += ["| id | 이름 | 정원 | 노동 참여 | 세율 ₩/인·일 | 물/인·일 | 전기/인 | 만실 세수/칸 |", "|---|---|---|---|---|---|---|---|"]
+    L += ["| id | 이름 | 정원 | 노동 참여 | 세율 달러/인·일 | 물/인·일 | 전기/인 | 만실 세수/칸 |", "|---|---|---|---|---|---|---|---|"]
     for tid, t in T.items():
         L.append(f"| {tid} | {t['name']} | {t['cap']} | {n(t['labor'])} | {n(t['tax'])} | {n(t['water'])} | {n(t['power'])} | {n(round(t['cap'] * t['tax'], 1))} |")
     L += ["", "| 계층 | 수요 | 역할 | 정원 몫 | 소비/인·일 | 선택지(몇 종) |", "|---|---|---|---|---|---|"]
@@ -69,7 +69,7 @@ def main():
     files["tiers_needs.md"] = L
 
     L = header("상품", "economy/goods.json", goods.get("status", ""))
-    L += ["| id | 이름 | 분류 | 시장 등급 | 기준가 ₩ | 계열 |", "|---|---|---|---|---|---|"]
+    L += ["| id | 이름 | 분류 | 시장 등급 | 기준가 달러 | 계열 |", "|---|---|---|---|---|---|"]
     for gid, g in G.items():
         L.append(f"| {gid} | {g['name']} | {goods['cats'].get(g['cat'], g['cat'])} | {g.get('grade', '')} | {n(g.get('price', ''))} | {g.get('family', '')} |")
     files["goods.md"] = L
@@ -77,7 +77,7 @@ def main():
     L = header("시설", "buildings/buildings.json", blds.get("status", ""))
     L += ["| id | 이름(간판) | 외형(look) | 분류 | 모양(w×h×층) | 공사(일) | 비용 | 유지비/일 | 인력 | 생산/공급/서비스 | 물·전기 | 순위 |", "|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for bid, b in B.items():
-        cost = f"₩{n(b['cost']['money'])}" + "".join(f" + {gname(g)} {n(q)}" for g, q in b["cost"].get("goods", {}).items())
+        cost = f"{n(b['cost']['money'])}달러" + "".join(f" + {gname(g)} {n(q)}" for g, q in b["cost"].get("goods", {}).items())
         wf = ", ".join(f"{tname(t)} {q}" for t, q in b.get("workforce", {}).items()) or "–"
         eff = []
         rec = b.get("recipe")
@@ -104,7 +104,7 @@ def main():
         if b.get("contract_slots"):
             eff.append(f"계약 +{b['contract_slots']}")
         if b.get("vice"):
-            eff.append(f"음성 ₩{b['vice']['income']}/일")
+            eff.append(f"층세 {b['vice']['income']}달러/일")
         ut = " ".join(x for x in [f"물 {n(b['water'])}" if b.get("water") else "", f"전기 {n(b['power'])}" if b.get("power") else ""] if x) or "–"
         fp = b.get("footprint", [b.get("size", 1), b.get("size", 1)])
         cells = fp[0] * fp[1] * b.get("floors", 1)
@@ -148,7 +148,7 @@ def main():
     L = header("탐험 목적지", "exploration/destinations.json", dest.get("status", ""))
     pv = dest.get("provision", {})
     L += [f"팀: 탐험 거점 하나당 1팀, 최대 {dest.get('teams', {}).get('max', 3)}. 보급: 끼니 {pv.get('n', 10)}({'·'.join(gname(g) for g in pv.get('goods', []))}) → 수확 +{int(pv.get('bonus', 0.25) * 100)}%.", ""]
-    L += ["| id | 이름 | 거리 | 경제일(×1 실제) | 비용 ₩ | 보장 주력 | 주력/경제일 | 덤 | 던전 재고(최대, 하루 회복) | 위험 | 발견 | 처음부터 앎 |", "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    L += ["| id | 이름 | 거리 | 경제일(×1 실제) | 비용 달러 | 보장 주력 | 주력/경제일 | 덤 | 던전 재고(최대, 하루 회복) | 위험 | 발견 | 처음부터 앎 |", "|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for did, d in dest["items"].items():
         pr = d.get("primary", {})
         pg = pr.get("good", "")
@@ -170,7 +170,7 @@ def main():
         rw = g.get("rewards", {})
         parts = []
         if rw.get("money"):
-            parts.append(f"₩{rw['money']}")
+            parts.append(f"{rw['money']}달러")
         for k, v in rw.get("stock", {}).items():
             parts.append(f"{gname(k)} {v}")
         for r in rw.get("reveal", []):
@@ -181,7 +181,7 @@ def main():
     res = load("progression/research.json")
     br = res.get("branches", {})
     L = header("연구", "progression/research.json", res.get("status", ""))
-    L += ["| 갈래 | 단계 | id | 이름 | 비용 ₩ | 경제일 | 앞 단계 | 효과 | 설명 |", "|---|---|---|---|---|---|---|---|---|"]
+    L += ["| 갈래 | 단계 | id | 이름 | 비용 달러 | 경제일 | 앞 단계 | 효과 | 설명 |", "|---|---|---|---|---|---|---|---|---|"]
     tot = 0
     for rid, r in sorted(res["items"].items(), key=lambda kv: (list(br).index(kv[1]["branch"]), kv[1].get("tier", 0))):
         tot += r.get("cost", 0)
@@ -189,12 +189,12 @@ def main():
         if r.get("reveals"):
             fx += " · 목적지 공개 " + ", ".join(dest["items"][x]["name"] for x in r["reveals"])
         L.append(f"| {br.get(r['branch'], r['branch'])} | {r.get('tier', 0)} | {rid} | {r['name']} | {n(r.get('cost', 0))} | {n(r.get('days', 0))} | {res['items'].get(r.get('requires', ''), {}).get('name', '')} | {fx} | {r.get('desc', '')} |")
-    L += ["", f"전부 합계 ₩{tot}."]
+    L += ["", f"전부 합계 {tot}달러."]
     files["research.md"] = L
 
     pol = load("progression/policies.json")
     L = header("정책", "progression/policies.json", pol.get("status", ""))
-    L += ["칸 수 = 열린 `feature:policy_slot_N`(해금 표 참고).", "", "| id | 이름 | 효과 | 유지비 ₩/일 | 음성 시설당 ₩/일 | 같이 못 켬 | 설명 |", "|---|---|---|---|---|---|---|"]
+    L += ["칸 수 = 열린 `feature:policy_slot_N`(해금 표 참고).", "", "| id | 이름 | 효과 | 유지비 달러/일 | 두 우산 시설당 달러/일 | 같이 못 켬 | 설명 |", "|---|---|---|---|---|---|---|"]
     for pid, p in pol["items"].items():
         fx = ", ".join(f"{k} {'+' if v >= 0 else ''}{n(v)}" for k, v in p.get("effects", {}).items())
         L.append(f"| {pid} | {p['name']} | {fx} | {n(p.get('upkeep', 0))} | {n(p.get('upkeep_per_vice', 0))} | {p.get('group', '')} | {p.get('desc', '')} |")
@@ -204,7 +204,7 @@ def main():
     cfg = load("rules/config.json")
     h = cfg.get("heat", {})
     L += [f"위험은 가동 중인 음성 시설마다 하루 heat만큼 오르고 하루 {h.get('decay_per_day')}씩 식는다. {h.get('warn')}에서 알림, {h.get('raid')}에서 단속(하나 {h.get('close_days')}일 폐쇄, 벌금 = max({h.get('fine_min')}, 수입 × {h.get('fine_days_income')}), 위험 −{h.get('after_raid_drop')}).", ""]
-    L += ["| 시설 | 수입 ₩/일 | 위험/일 | 단속 문구 |", "|---|---|---|---|"]
+    L += ["| 시설 | 층세 달러/일 | 위험/일 | 단속 문구 |", "|---|---|---|---|"]
     for bid, b in B.items():
         v = b.get("vice")
         if v:

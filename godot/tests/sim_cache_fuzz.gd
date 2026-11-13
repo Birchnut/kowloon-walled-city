@@ -208,7 +208,7 @@ func run_seed(seed_v: int, days: float, every: int) -> String:
 	var d2 := _compare(sa, sb)
 	if d2 != "":
 		return "끝에서 다름: %s" % d2
-	return "ok (%.1f일, 건물 %d, 인구 %d, 층 %d, ₩%d)" % [sa.econ_days, sa.buildings.size(), sa.population(), sa.floors_unlocked, int(sa.money)]
+	return "ok (%.1f일, 건물 %d, 인구 %d, 층 %d, %d달러)" % [sa.econ_days, sa.buildings.size(), sa.population(), sa.floors_unlocked, int(sa.money)]
 
 
 func _both(sims: Array, sts: Array, cmd: Dictionary) -> String:
