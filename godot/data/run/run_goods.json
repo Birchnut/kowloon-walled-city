@@ -1,5 +1,5 @@
 {
- "_comment": "직접 줍기에서 나오는 물건. id는 도시의 goods id(canned만 도시에 아직 없음 — 통합 때 확인). bundle = 묶음 하나의 수량, cap = 한 칸에 겹칠 수 있는 묶음 수, value = 봇이 버릴 것 고를 때 쓰는 대략 값, w_shallow/w_deep = 얕은 방/깊은 방 출현 가중치, min_depth = 이 깊이부터 나온다. city_id = 도시(SIM v4) goods id — 통합 때 여기 한 곳만 맞춘다(통조림·전자 폐품 id는 추정값).",
+ "_comment": "직접 줍기에서 나오는 물건. id는 줍기 쪽 이름. bundle = 묶음 하나의 수량, cap = 한 칸에 겹칠 수 있는 묶음 수, value = 봇이 버릴 것 고를 때 쓰는 대략 값, w_shallow/w_deep = 얕은 방/깊은 방 출현 가중치, min_depth = 이 깊이부터 나온다. city_id = 도시(SIM v4) goods id — 통합 때 여기 한 곳만 맞춘다(통조림 cans · 전자 폐품 elec_scrap 로 맞춤).",
  "items": {
   "scrap": {
    "name": "고물",
@@ -59,7 +59,7 @@
    "w_deep": 1,
    "min_depth": 0,
    "color": "#d8574a",
-   "city_id": "canned"
+   "city_id": "cans"
   },
   "elec": {
    "name": "전자 폐품",
@@ -71,7 +71,7 @@
    "w_deep": 3,
    "min_depth": 1,
    "color": "#5fc48a",
-   "city_id": "ewaste"
+   "city_id": "elec_scrap"
   },
   "parts": {
    "name": "설비 부품",

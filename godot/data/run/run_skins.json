@@ -4,7 +4,7 @@
  "items": {
   "scrap_yard": {
    "name": "고물 야적장", "desc": "쌓인 차체, 녹슨 담, 그리고 압축기 \"큰형\". 주로 나오는 것: 철제 · 고물 · 전자 폐품",
-   "dests": ["scrap_yard", "junkyard"],
+   "dests": ["junk_yard", "scrap_yard", "junkyard"],
    "boss": {"name": "압축기 큰형", "sub": "고물 야적장 관리 책임자(자칭) · 근속 31년 · 휴가 0일", "look": "press", "special": "chain"},
    "lines": {"dead": "큰형, 퇴근.", "phase2": "큰형이 열 받았다"}
   },

@@ -7,6 +7,7 @@ const RunArt = preload("res://expedition/RunArt.gd")
 signal action(id: String)
 
 var mode := ""               # "" start pause result
+var city_mode := false     # 도시에서 띄웠을 때: 결과 화면에 "한 판 더" 없음
 var data: Dictionary = {}
 var font: Font
 var font_b: Font
@@ -218,5 +219,8 @@ func _draw_result(vs: Vector2) -> void:
 		kn += int(kills[kk])
 	var tt := float(data.get("time", 0.0))
 	_tl(Vector2(r.position.x + 12 * s, r.end.y - 12 * s), "걸린 시간 %d:%02d · 가 본 방 %d/%d · 눕힌 것 %d · 소란 %d단계" % [int(tt) / 60, int(tt) % 60, int(data.get("rooms_visited", 0)), int(data.get("rooms_total", 0)), kn, int(data.get("noise_level", 0))], Color(0.7, 0.68, 0.62), fs())
-	_button(Vector2(vs.x / 2 - 70 * s, r.end.y + 24 * s), "도시로 (Enter)", "city", 120 * s)
-	_button(Vector2(vs.x / 2 + 70 * s, r.end.y + 24 * s), "한 판 더 (R)", "again", 120 * s)
+	if city_mode:
+		_button(Vector2(vs.x / 2, r.end.y + 24 * s), "성채로 (Enter)", "city", 120 * s)
+	else:
+		_button(Vector2(vs.x / 2 - 70 * s, r.end.y + 24 * s), "도시로 (Enter)", "city", 120 * s)
+		_button(Vector2(vs.x / 2 + 70 * s, r.end.y + 24 * s), "한 판 더 (R)", "again", 120 * s)

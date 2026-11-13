@@ -3,6 +3,7 @@ extends Node
 ## M 키로 끄고 켠다(RunSandbox). 헤드리스에서는 만들지 않는다.
 
 const RATE := 22050
+const BUS := "Run"
 const S = preload("res://audio/Synth.gd")
 const SHEET_R := [1.0, 1.47, 2.09, 2.56, 3.18, 3.9, 4.7, 5.6]
 const SHEET_A := [1.0, 0.8, 0.7, 0.55, 0.45, 0.35, 0.28, 0.2]
@@ -31,8 +32,16 @@ const VOL := {
 
 func _ready() -> void:
 	rng.seed = 11
+	# 줍기 소리는 제 버스("Run")로 — M 키가 도시 소리(Master)까지 끄지 않게.
+	if AudioServer.get_bus_index(BUS) < 0:
+		AudioServer.add_bus()
+		var bi := AudioServer.bus_count - 1
+		AudioServer.set_bus_name(bi, BUS)
+		AudioServer.set_bus_send(bi, "Master")
+	AudioServer.set_bus_mute(AudioServer.get_bus_index(BUS), false)
 	for k in 10:
 		var p := AudioStreamPlayer.new()
+		p.bus = BUS
 		add_child(p)
 		players.append(p)
 	var gen := {
@@ -67,6 +76,7 @@ func _ready() -> void:
 	ss.loop_end = int(RATE * 0.6)
 	search_player.stream = ss
 	search_player.volume_db = -14.0
+	search_player.bus = BUS
 	add_child(search_player)
 	ambient = AudioStreamPlayer.new()
 	# 6초 + 0.5초를 만들어 끝 0.5초를 처음에 겹쳐 이음매 없이(예전엔 6초마다 딸깍)
@@ -75,13 +85,14 @@ func _ready() -> void:
 	var amb := S.to_wav(looped, true)
 	ambient.stream = amb
 	ambient.volume_db = -20.0
+	ambient.bus = BUS
 	add_child(ambient)
 	ambient.play()
 
 
 func set_muted(m: bool) -> void:
 	muted = m
-	AudioServer.set_bus_mute(0, m)
+	AudioServer.set_bus_mute(AudioServer.get_bus_index(BUS), m)
 
 
 func play(id: String) -> void:

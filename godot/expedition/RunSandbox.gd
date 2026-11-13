@@ -54,9 +54,15 @@ var ticker_i := 0
 
 
 func _ready() -> void:
+	# 도시에서 띄울 때(standalone=false)는 도시를 몰던 인자(script=·speed=…)를 읽지 않는다 — run_ 로 시작하는 것만(run_auto=average 등).
 	for a in OS.get_cmdline_user_args():
 		var kv := a.split("=", true, 1)
-		args[kv[0]] = kv[1] if kv.size() == 2 else "1"
+		var key: String = kv[0]
+		if not standalone:
+			if not key.begins_with("run_"):
+				continue
+			key = key.substr(4)
+		args[key] = kv[1] if kv.size() == 2 else "1"
 	seed_arg = int(args.get("seed", "-1"))
 	auto_profile = str(args.get("auto", ""))
 	speed = float(args.get("speed", "1"))
@@ -89,6 +95,7 @@ func _ready() -> void:
 	layer2.layer = 6
 	add_child(layer2)
 	menus = RunMenus.new()
+	menus.city_mode = not standalone
 	layer2.add_child(menus)
 	menus.action.connect(_on_action)
 	if DisplayServer.get_name() != "headless":
@@ -102,6 +109,8 @@ func _ready() -> void:
 	view.fog = not args.has("nofog")
 	get_viewport().size_changed.connect(_on_resize)
 	_on_resize()
+	# 혼자 띄운 연습판은 도시(Game)를 건드리지 않는다 — 견본 재고로 돈다. 도시에서 띄우면 진짜 run_begin/run_result.
+	CityLink.use_city = not standalone or args.has("city")
 	hud.ticker_lines = CityLink.ticker().slice(0, 2)
 	if args.has("dest"):
 		dest = str(args["dest"])
@@ -190,6 +199,8 @@ func _on_action(id: String) -> void:
 				begin["seed"] = int(begin.get("seed", 1)) + 1
 				_show_start()
 		"again":
+			if not standalone:
+				return      # 도시에서는 한 판마다 탐험 창에서 다시 보낸다(팀·던전 재고를 도시가 정한다)
 			begin["seed"] = int(begin.get("seed", 1)) + 1
 			_start_run()
 
@@ -224,7 +235,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 			"result":
 				if k == KEY_ENTER or k == KEY_KP_ENTER:
 					_on_action("city")
-				elif k == KEY_R:
+				elif k == KEY_R and standalone:
 					_on_action("again")
 			"run":
 				if k == KEY_ESCAPE:
