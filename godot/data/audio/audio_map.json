@@ -24,14 +24,11 @@
 
 	"shot_files": {
 		"_doc": "배경 한 번짜리 이름 → 파일. offset_db = 합성 기본 이득(AmbienceBank.SHOTS)에 더하는 값. 없는 이름은 합성.",
-		"mahjong": {"files": ["res://audio/amb/tiles_1.ogg", "res://audio/amb/tiles_2.ogg", "res://audio/amb/tiles_3.ogg", "res://audio/amb/tiles_4.ogg"], "offset_db": 2.0, "rate_mult": 2.0},
-		"hammer":  {"files": ["res://audio/amb/hammer_1.ogg", "res://audio/amb/hammer_2.ogg", "res://audio/amb/hammer_3.ogg", "res://audio/amb/hammer_4.ogg"], "offset_db": -4.5},
-		"q_step":  {"files": ["res://audio/amb/overhead_step_1.ogg", "res://audio/amb/overhead_step_2.ogg", "res://audio/amb/overhead_step_3.ogg", "res://audio/amb/overhead_step_4.ogg"], "offset_db": 0.0, "append": true}
+		"mahjong": {"files": ["res://audio/amb/tiles_1.ogg", "res://audio/amb/tiles_2.ogg", "res://audio/amb/tiles_3.ogg", "res://audio/amb/tiles_4.ogg"], "offset_db": 2.0, "rate_mult": 2.0}
 	},
 
 	"loop_files": {
-		"_doc": "배경 루프 층 이름 → 파일(루프로 돌린다). offset_db = 합성 루프(-22 dBFS RMS) 크기에 맞추는 값. 날씨 비는 Sfx.set_rain 이 크기를 정한다.",
-		"rain": {"file": "res://audio/amb/rain_loop.ogg", "offset_db": 15.5}
+		"_doc": "배경 루프 층 이름 → 파일(루프로 돌린다). offset_db = 합성 루프(-22 dBFS RMS) 크기에 맞추는 값. 날씨 비는 Sfx.set_rain 이 크기를 정한다. (지금은 없다 — 합성 비)"
 	},
 
 	"music": {

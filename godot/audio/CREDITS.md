@@ -29,11 +29,7 @@ Jin 목록의 **Chills(Holizna)**·**Shop Theme(Cleyton Kauffman)**·**Oriented(
 | 파일 | 설명 | 작가·원본 | 받은 곳 | 라이선스 | 확인 |
 |---|---|---|---|---|---|
 | tiles_1~4.ogg | 마작패 딸깍의 대역 — 칩 부딪힘(`chipsCollide1~4`) | Kenney, Casino Audio https://kenney.nl/assets/casino-audio | github.com/lavenderdotpet/CC0-Public-Domain-Sounds `kenney_casinoaudio/Audio/` (폴더에 License.txt) | CC0 | K |
-| rain_loop.ogg | 빗소리 루프 6.8 s | 팩 `40-cc0-water-splash-slime-sfx` 의 `loop_rain.ogg` (OpenGameArt 의 'rubberduck' CC0 팩으로 추정 — 저장소에 작가 표기 없음) | 같은 저장소 | CC0 (팩 이름·저장소 LICENSE) | C |
-| hammer_1~4.ogg | 공사장 망치 | 팩 `100-CC0-wood-metal-SFX` `hammer_01~04.ogg` (위와 같은 추정) | 같은 저장소 | CC0 (팩 이름·저장소 LICENSE) | C |
-| overhead_step_1~4.ogg | 머리 위 발소리(고요시간) — 팩 `100-cc0-sfx-2` 의 `footstep_wood_01~04` 를 ffmpeg 로 420 Hz 아래만 남기고 모노로 둔하게 가공 | 위와 같은 추정 | 같은 저장소 | CC0 (팩 이름·저장소 LICENSE) | C |
 
-C 등급 4 묶음(비·망치·발소리)은 저장소가 여러 팩을 섞어 담고 있고(그중 일부는 CC0 가 아님 — 예: warfork 팩) 이 팩들에는 작가·라이선스 파일이 없다. 팩 이름이 'CC0' 라 쓴 것이지만 **Jin 이 확인하기 전까지는 임시**로 본다. 빼려면 `audio_map.json` 에서 `loop_files.rain`, `shot_files.hammer`, `shot_files.q_step` 의 줄을 지우면 합성으로 돌아간다(파일도 지울 것).
 
 ## 직접 만든 소리 (코드 합성, 라이선스 문제 없음)
 
