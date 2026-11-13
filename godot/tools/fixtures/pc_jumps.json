@@ -1,101 +1,353 @@
 [
-  {"say": "jump 점검(통합 v4): 모든 jump 종류가 맞는 곳을 여는지 + 지금 신호등·알림의 jump 를 하나씩 눌러 본다. tools/shot.sh \"\" out 700 1920x1080 skiptut load=mid script=res://tools/fixtures/pc_jumps.json out=out"},
-  {"wait": 1.0},
-  {"expr": "ui.jump('focus:5,5,0')"},
-  {"wait": 0.5},
-  {"expr": "[ui.inspector.selected_pos, ui.screen, view.floor_cut]"},
-  {"shot": "j01_focus"},
-  {"expr": "ui.jump('lens:fire')"},
-  {"wait": 0.5},
-  {"expr": "[ui.lens, view.lens]"},
-  {"shot": "j02_lens_fire"},
-  {"expr": "ui.jump('lens:trash')"},
-  {"expr": "ui.jump('lens:clinic')"},
-  {"expr": "ui.jump('lens:market')"},
-  {"expr": "ui.jump('lens:fun')"},
-  {"expr": "ui.jump('lens:service:mahjong')"},
-  {"wait": 0.5},
-  {"expr": "[ui.lens, view.lens]"},
-  {"shot": "j03_lens_service"},
-  {"key": "Esc"},
-  {"key": "Esc"},
-  {"expr": "ui.jump('metrics:food')"},
-  {"wait": 0.8},
-  {"expr": "ui.screen"},
-  {"shot": "j04_metrics_food"},
-  {"expr": "ui.jump('build:water')"},
-  {"wait": 0.5},
-  {"expr": "[ui.screen, ui.build.cat, ui.place.mode]"},
-  {"expr": "ui.jump('build:house')"},
-  {"expr": "[ui.place.mode]"},
-  {"key": "Esc"},
-  {"expr": "ui.jump('build:fire_bucket')"},
-  {"wait": 0.5},
-  {"expr": "[ui.build.cat, ui.place.mode, ui.tips.cursor_text]"},
-  {"shot": "j05_build_item"},
-  {"key": "Esc"},
-  {"expr": "ui.jump('economy')"},
-  {"expr": "ui.screen"},
-  {"expr": "ui.jump('trade:offers')"},
-  {"expr": "ui.screen"},
-  {"expr": "ui.jump('expedition')"},
-  {"expr": "ui.screen"},
-  {"expr": "ui.jump('keep:research')"},
-  {"wait": 0.5},
-  {"expr": "[ui.screen, ui.wins['keep'].tab]"},
-  {"shot": "j06_keep_research"},
-  {"expr": "ui.close_all_windows()"},
-  {"expr": "ui.jump('upgrade')"},
-  {"wait": 0.5},
-  {"expr": "ui.screen"},
-  {"shot": "j07_upgrade"},
-  {"expr": "ui.close_all_windows()"},
-  {"expr": "ui.jump({'screen': 'inspect', 'arg': str(game.state.buildings.keys()[3])})"},
-  {"wait": 0.5},
-  {"expr": "[ui.inspector.selected_pos, ui.inspector.info.get('title')]"},
-  {"key": "Esc"},
-  {"say": "신호등: 위 띠의 각 신호를 진짜 마우스로 누른다"},
-  {"q": "hud", "keys": ["signals"]},
-  {"target": "signal:water"},
-  {"wait": 0.4},
-  {"expr": "[ui.screen, ui.build.cat, ui.place.mode, ui.lens]"},
-  {"key": "Esc"},
-  {"key": "Esc"},
-  {"target": "signal:food"},
-  {"wait": 0.4},
-  {"expr": "[ui.screen, ui.build.cat, ui.place.mode, ui.lens]"},
-  {"key": "Esc"},
-  {"key": "Esc"},
-  {"target": "signal:fun"},
-  {"wait": 0.4},
-  {"expr": "[ui.screen, ui.build.cat, ui.place.mode, ui.lens]"},
-  {"key": "Esc"},
-  {"key": "Esc"},
-  {"target": "signal:fire"},
-  {"wait": 0.4},
-  {"expr": "[ui.screen, ui.build.cat, ui.place.mode, ui.lens]"},
-  {"key": "Esc"},
-  {"key": "Esc"},
-  {"target": "signal:disease"},
-  {"wait": 0.4},
-  {"expr": "[ui.screen, ui.build.cat, ui.place.mode, ui.lens]"},
-  {"key": "Esc"},
-  {"key": "Esc"},
-  {"target": "signal:labor"},
-  {"wait": 0.4},
-  {"expr": "[ui.screen, ui.build.cat, ui.place.mode, ui.lens]"},
-  {"key": "Esc"},
-  {"key": "Esc"},
-  {"target": "signal:power"},
-  {"wait": 0.4},
-  {"expr": "[ui.screen, ui.build.cat, ui.place.mode, ui.lens]"},
-  {"key": "Esc"},
-  {"key": "Esc"},
-  {"say": "알림: 왼쪽 알림 줄을 하나씩"},
-  {"q": "hud", "keys": ["alerts"]},
-  {"expr": "ui.left.jump.emit(ui.hud['alerts'][0]['jump'])"},
-  {"wait": 0.5},
-  {"expr": "[ui.screen, ui.build.cat, ui.place.mode, ui.lens, ui.inspector.selected_pos]"},
-  {"shot": "j08_alert0"},
-  {"quit": 1}
+ {
+  "say": "jump 점검(통합 v4): 모든 jump 종류가 맞는 곳을 여는지 + 지금 신호등·알림의 jump 를 하나씩 눌러 본다. tools/shot.sh \"\" out 700 1920x1080 skiptut load=<stage_c.json> script=res://tools/fixtures/pc_jumps.json out=out"
+ },
+ {
+  "wait": 1.0
+ },
+ {
+  "expr": "ui.jump('focus:5,5,0')"
+ },
+ {
+  "wait": 0.5
+ },
+ {
+  "expr": "[ui.inspector.selected_pos, ui.screen, view.floor_cut]"
+ },
+ {
+  "shot": "j01_focus"
+ },
+ {
+  "expr": "ui.jump('lens:fire')"
+ },
+ {
+  "wait": 0.5
+ },
+ {
+  "expr": "[ui.lens, view.lens]"
+ },
+ {
+  "shot": "j02_lens_fire"
+ },
+ {
+  "expr": "ui.jump('lens:trash')"
+ },
+ {
+  "expr": "ui.jump('lens:clinic')"
+ },
+ {
+  "expr": "ui.jump('lens:market')"
+ },
+ {
+  "expr": "ui.jump('lens:fun')"
+ },
+ {
+  "expr": "ui.jump('lens:service:mahjong')"
+ },
+ {
+  "wait": 0.5
+ },
+ {
+  "expr": "[ui.lens, view.lens]"
+ },
+ {
+  "shot": "j03_lens_service"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "expr": "ui.jump('metrics:food')"
+ },
+ {
+  "wait": 0.8
+ },
+ {
+  "expr": "ui.screen"
+ },
+ {
+  "shot": "j04_metrics_food"
+ },
+ {
+  "expr": "ui.jump('build:water')"
+ },
+ {
+  "wait": 0.5
+ },
+ {
+  "expr": "[ui.screen, ui.build.cat, ui.place.mode]"
+ },
+ {
+  "expr": "ui.jump('build:house')"
+ },
+ {
+  "expr": "[ui.place.mode]"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "expr": "ui.jump('build:fire_bucket')"
+ },
+ {
+  "wait": 0.5
+ },
+ {
+  "expr": "[ui.build.cat, ui.place.mode, ui.tips.cursor_text]"
+ },
+ {
+  "shot": "j05_build_item"
+ },
+ {
+  "hover": "양동이 소방대"
+ },
+ {
+  "wait": 0.6
+ },
+ {
+  "shot": "j05a_build_tooltip"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "expr": "ui.jump('economy')"
+ },
+ {
+  "wait": 0.8
+ },
+ {
+  "shot": "j05b_economy"
+ },
+ {
+  "expr": "ui.close_all_windows()"
+ },
+ {
+  "expr": "ui.screen"
+ },
+ {
+  "expr": "ui.jump('trade:offers')"
+ },
+ {
+  "wait": 0.8
+ },
+ {
+  "shot": "j05c_trade"
+ },
+ {
+  "expr": "ui.close_all_windows()"
+ },
+ {
+  "expr": "ui.screen"
+ },
+ {
+  "expr": "ui.jump('expedition')"
+ },
+ {
+  "wait": 0.8
+ },
+ {
+  "shot": "j05d_expedition"
+ },
+ {
+  "expr": "ui.close_all_windows()"
+ },
+ {
+  "expr": "ui.screen"
+ },
+ {
+  "expr": "ui.jump('keep:research')"
+ },
+ {
+  "wait": 0.5
+ },
+ {
+  "expr": "[ui.screen, ui.wins['keep'].tab]"
+ },
+ {
+  "shot": "j06_keep_research"
+ },
+ {
+  "expr": "ui.close_all_windows()"
+ },
+ {
+  "expr": "ui.jump('upgrade')"
+ },
+ {
+  "wait": 0.5
+ },
+ {
+  "expr": "ui.screen"
+ },
+ {
+  "shot": "j07_upgrade"
+ },
+ {
+  "expr": "ui.close_all_windows()"
+ },
+ {
+  "expr": "ui.jump({'screen': 'inspect', 'arg': str(game.state.buildings.keys()[3])})"
+ },
+ {
+  "wait": 0.5
+ },
+ {
+  "expr": "[ui.inspector.selected_pos, ui.inspector.info.get('title')]"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "say": "신호등: 위 띠의 각 신호를 진짜 마우스로 누른다"
+ },
+ {
+  "q": "hud",
+  "keys": [
+   "signals"
+  ]
+ },
+ {
+  "target": "signal:water"
+ },
+ {
+  "wait": 0.4
+ },
+ {
+  "expr": "[ui.screen, ui.build.cat, ui.place.mode, ui.lens]"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "target": "signal:food"
+ },
+ {
+  "wait": 0.4
+ },
+ {
+  "expr": "[ui.screen, ui.build.cat, ui.place.mode, ui.lens]"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "target": "signal:fun"
+ },
+ {
+  "wait": 0.4
+ },
+ {
+  "expr": "[ui.screen, ui.build.cat, ui.place.mode, ui.lens]"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "target": "signal:fire"
+ },
+ {
+  "wait": 0.4
+ },
+ {
+  "expr": "[ui.screen, ui.build.cat, ui.place.mode, ui.lens]"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "target": "signal:disease"
+ },
+ {
+  "wait": 0.4
+ },
+ {
+  "expr": "[ui.screen, ui.build.cat, ui.place.mode, ui.lens]"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "target": "signal:labor"
+ },
+ {
+  "wait": 0.4
+ },
+ {
+  "expr": "[ui.screen, ui.build.cat, ui.place.mode, ui.lens]"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "target": "signal:power"
+ },
+ {
+  "wait": 0.4
+ },
+ {
+  "expr": "[ui.screen, ui.build.cat, ui.place.mode, ui.lens]"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "say": "알림: 왼쪽 알림 줄을 하나씩"
+ },
+ {
+  "q": "hud",
+  "keys": [
+   "alerts"
+  ]
+ },
+ {
+  "expr": "ui.left.jump.emit(ui.hud['alerts'][0]['jump'])"
+ },
+ {
+  "wait": 0.5
+ },
+ {
+  "expr": "[ui.screen, ui.build.cat, ui.place.mode, ui.lens, ui.inspector.selected_pos]"
+ },
+ {
+  "shot": "j08_alert0"
+ },
+ {
+  "key": "F6"
+ },
+ {
+  "press": "설정"
+ },
+ {
+  "wait": 0.6
+ },
+ {
+  "shot": "j09_settings_audio"
+ },
+ {
+  "quit": 1
+ }
 ]
