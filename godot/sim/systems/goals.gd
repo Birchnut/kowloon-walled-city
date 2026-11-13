@@ -64,8 +64,7 @@ func _check(state: CityState) -> void:
 			state.emit("goal_done", {"id": id, "text": str(g.get("text", id)), "rewards": lines})
 			sim.say(state, "목표 달성: %s%s" % [g.get("text", id), (" — " + ", ".join(lines)) if not lines.is_empty() else ""], "good")
 			state.stats["goal_%s_day" % id] = state.econ_days
-			if g.get("final", false):
-				sim.say(state, "구룡성채가 섰다. 이제부터 목표는 없다. 마음대로 쌓아 올린다.", "good")
+			sim.chron(state, "goal", "목표를 이루었다. %s" % str(g.get("text", id)))
 
 
 ## 보상을 주고 문구를 돌려준다.
@@ -152,4 +151,4 @@ func augment(state: CityState, name: String, _args: Dictionary, out: Variant) ->
 		var m := Metrics.compute(sim, state)
 		out["next_goal"] = {"id": id, "text": str(g.get("text", id)), "progress": snappedf(_progress(g, m), 0.01), "rewards": _reward_text(state, g)}
 		return
-	out["next_goal"] = {"id": "", "text": "구룡성채가 섰다. 이제 자유롭게 성채를 가꾼다.", "progress": 1.0, "rewards": []}
+	out["next_goal"] = {"id": "", "text": "길잡이 목표는 여기까지다. 도시는 계속된다.", "progress": 1.0, "rewards": []}

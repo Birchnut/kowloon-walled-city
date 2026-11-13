@@ -1,5 +1,5 @@
 {
- "_comment": "계층별 수요(v0.4). role: basic(정원 몫 share — 계층마다 합 = 정원) / advance(승급 조건) / luxury(행복·세수). options = 대체 묶음({good}|{service}|{utility}), count = 그중 몇 종을 동시에. amount = 상품 소비량/인·경제일. food = 끼니(연구·정책의 cons.food가 닿는다). 1층부터 필수 셋: 먹을 것(시장 + 통조림) · 물 · 놀 거리(마작방). 먹을 것 사다리: 통조림 → 완탕면 → 쥐고기 버거 → 스시 → 신선 채소.",
+ "_comment": "계층별 수요(v0.4). role: basic(정원 몫 share — 계층마다 합 = 정원) / advance(승급 조건) / luxury(행복·세수). options = 대체 묶음({good}|{service}|{utility}), count = 그중 몇 종을 동시에. amount = 상품 소비량/인·경제일. food = 끼니(연구·정책의 cons.food가 닿는다). 1층부터 필수 셋: 먹을 것(시장 + 통조림) · 물 · 놀 거리(마작방). 먹을 것 사다리(v0.5): 통조림(벽틈) → 통조림+토끼버거(판자) → 완탕면+토끼버거(성채) → 완탕면+스시(온수) → 스시+텃밭 채소(청공).",
  "status": "실험값",
  "items": {
   "t1_water": {
@@ -104,16 +104,16 @@
     }
    ]
   },
-  "t2_wonton": {
+  "t2_burger": {
    "tier": 2,
    "role": "basic",
    "share": 1,
-   "name": "완탕면",
+   "name": "토끼버거",
    "amount": 0.15,
    "food": true,
    "options": [
     {
-     "good": "wonton"
+     "good": "burger"
     }
    ]
   },
@@ -377,16 +377,16 @@
     }
    ]
   },
-  "t4_burger": {
+  "t4_wonton": {
    "tier": 4,
    "role": "basic",
    "share": 1,
-   "name": "토끼버거",
+   "name": "완탕면",
    "amount": 0.1,
    "food": true,
    "options": [
     {
-     "good": "burger"
+     "good": "wonton"
     }
    ]
   },
@@ -467,7 +467,7 @@
   "t4_fake": {
    "tier": 4,
    "role": "advance",
-   "name": "짝퉁 명품",
+   "name": "모조품",
    "amount": 0.01,
    "options": [
     {
@@ -580,7 +580,7 @@
   "t5_fake": {
    "tier": 5,
    "role": "luxury",
-   "name": "짝퉁 명품",
+   "name": "모조품",
    "amount": 0.015,
    "options": [
     {

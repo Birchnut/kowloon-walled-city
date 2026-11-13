@@ -34,12 +34,12 @@
    "branch": "living",
    "tier": 3,
    "name": "거울 채광통",
-   "desc": "거울과 통으로 빛을 아래층까지 내린다. 모든 주거 행복 +5.",
+   "desc": "거울과 통으로 빛을 아래층까지 내린다. 위에 덮인 층 때문에 아래층 주거가 잃는 행복이 절반으로 준다.",
    "cost": 12000,
    "days": 2.5,
    "requires": "soundproof",
    "effects": {
-    "happy.base": 5
+    "happy.depth": -0.5
    }
   },
   "high_water": {

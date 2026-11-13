@@ -1,5 +1,5 @@
 {
- "_comment": "정책(GDD §10). 칸 수 = 열린 feature:policy_slot_N 수(unlocks.json). effects = 수정치(research와 같은 키). upkeep = 켜져 있는 동안 ₩/경제일, upkeep_per_vice = 음성 시설 하나당 ₩/경제일. group이 같은 정책은 하나만. 장부 'upkeep'. 실험값.",
+ "_comment": "정책(GDD §10). 칸 수 = 열린 feature:policy_slot_N 수(unlocks.json). effects = 수정치(research와 같은 키). upkeep = 켜져 있는 동안 ₩/경제일, upkeep_per_vice = 조직 시설 하나당 ₩/경제일. group이 같은 정책은 하나만. 장부 'upkeep'. 실험값.",
  "status": "구조 제안 / 수치 실험값",
  "items": {
   "rations": {
@@ -38,7 +38,7 @@
   },
   "bribes": {
    "name": "띠값",
-   "desc": "바깥의 눈에 띠값을 쥐여 준다. 바깥의 시선이 쌓이는 속도 −70%, 두 우산 시설 하나당 유지비 {upkeep_per_vice}/일.",
+   "desc": "바깥의 눈에 띠값을 쥐여 준다. 바깥의 시선이 쌓이는 속도 −70%, 조직 시설 하나당 유지비 {upkeep_per_vice}/일.",
    "effects": {
     "heat.gain": -0.7
    },

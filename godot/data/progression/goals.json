@@ -1,5 +1,5 @@
 {
- "_comment": "단계 목표(v0.4 PC, 24단계). order 순서로 hud.next_goal에 하나씩 보인다(먼저 이룬 것은 그때 끝난다). cond = Expr 조건(Metrics 지표: pop.tN, houses.tN, count.<시설>, floors, contracts, lux_built(사치 시설 완공 수), stat.<통계>…). rewards: money, stock{상품:n}, reveal[목적지]. unlock = 같은 순간 열리는 해금 단계 id(보상 문구용). final = 마지막(이후 샌드박스).",
+ "_comment": "단계 목표(v0.4 PC, 24단계). order 순서로 hud.next_goal에 하나씩 보인다(먼저 이룬 것은 그때 끝난다). cond = Expr 조건(Metrics 지표: pop.tN, houses.tN, count.<시설>, floors, contracts, lux_built(사치 시설 완공 수), stat.<통계>…). rewards: money, stock{상품:n}, reveal[목적지]. unlock = 같은 순간 열리는 해금 단계 id(보상 문구용). 마지막 목표도 끝이 아니다 — 목표는 길잡이일 뿐(v0.5).",
  "status": "제안(문구) / 실험값(보상)",
  "items": {
   "g_zone": {
@@ -108,10 +108,10 @@
   },
   "g_wonton": {
    "order": 7,
-   "text": "완자 공방에서 완자를 뽑고 구룡완탕을 끓인다(첫 두 단 사슬)",
+   "text": "토끼집에서 고기를 대고 토끼버거 노점을 연다(첫 두 단 사슬)",
    "cond": [
     [
-     "stat.prod.wonton",
+     "stat.prod.burger",
      ">=",
      10
     ]
@@ -122,7 +122,7 @@
   },
   "g_floor2": {
    "order": 8,
-   "text": "1층의 여덟 할을 채워 2층 받침을 올린다. 2층부터 불이 난다",
+   "text": "1층의 여덟 할을 채워 2층 받침을 올린다",
    "cond": [
     [
      "floors",
@@ -137,7 +137,7 @@
   },
   "g_fire": {
    "order": 9,
-   "text": "불밥통 골목으로 쓰이는 칸을 덮는다(위아래 한 층까지 닿는다)",
+   "text": "불밥통 골목으로 쓰이는 칸을 덮는다(같은 층과 위아래 한 층까지 닿는다). 칸이 빽빽할수록 불이 잦다",
    "cond": [
     [
      "count.fire_bucket",
@@ -210,7 +210,7 @@
   },
   "g_floor3": {
    "order": 14,
-   "text": "2층의 여덟 할을 채워 3층 받침을 올린다. 3층부터 오물이 병을 부른다",
+   "text": "2층의 여덟 할을 채워 3층 받침을 올린다",
    "cond": [
     [
      "floors",
@@ -225,7 +225,7 @@
   },
   "g_disease": {
    "order": 15,
-   "text": "밤배꾼(오물)과 봉합방(병)을 세운다",
+   "text": "밤배꾼(오물)과 봉합방(병)을 세운다. 사람이 빽빽할수록 오물이 빨리 쌓인다",
    "cond": [
     [
      "count.trash_guild",
@@ -338,7 +338,7 @@
   },
   "g_t5_1": {
    "order": 22,
-   "text": "첫 청공시민. 꼬냑과 짝퉁 명품을 갖춘 만실 온수민 집을 설비 부품으로 올린다",
+   "text": "첫 청공시민. 꼬냑과 모조품을 갖춘 만실 온수민 집을 설비 부품으로 올린다",
    "cond": [
     [
      "pop.t5",
@@ -367,7 +367,7 @@
   },
   "g_final": {
    "order": 24,
-   "text": "청공시민 여든 명과 네모청. 장부의 마지막 줄을 적는다",
+   "text": "청공시민 여든 명과 네모청. 목표는 여기까지이고 도시는 계속된다",
    "cond": [
     [
      "pop.t5",
@@ -381,7 +381,6 @@
     ]
    ],
    "unlock": "final",
-   "final": true,
    "rewards": {}
   }
  }

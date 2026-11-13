@@ -293,45 +293,57 @@ facility: + w,h,d,rot · burn · build_left(days) · repair
 
 ---
 
-# v5 계약 변경 — 2026-11-14, SIM (초안: 구현하며 고친다)
+# v5 계약 변경 — 2026-11-14, SIM (구현 완료판)
 
-기준 기획은 `docs/DESIGN_v0.5.md`. 아래는 v4 계약에서 **더하거나 바뀌는 것**이다. 화면·그림·소리는 이 절만 보고 붙인다. 모든 새 규칙은 config `systems`의 id로 켜고 끈다(꺼지면 질의는 기본값을 돌려준다). 숫자는 임시값(`_status: "임시값(v0.5)"`).
+기준 기획은 `docs/DESIGN_v0.5.md`. 아래는 v4 계약에서 **더하거나 바뀌는 것**이다. 화면·그림·소리는 이 절만 보고 붙인다. 모든 새 규칙은 config `systems`의 id로 켜고 끈다 — 꺼지면 질의는 기본값 모양을 돌려준다(null 없음). 숫자는 임시값(`_status: "임시값(v0.5)"`). 저장 버전은 그대로 4이고 새 값은 전부 `state.flags` 안에 있어 옛 저장은 기본값으로 돈다.
 
-## 새 시스템
-config `systems`에 `chronicle`(민력·연표·고요시간·마지막 장)과 `org`(조직·치안·갈등·부랑자)를 더한다. `hazards`·`space`·`finance`·`needs`는 안에서 새 규칙을 읽는다.
+## 새 시스템 (config `systems` 순서)
+`… production → idle → needs → upgrades → hazards → vice → org → finance → alerts → chronicle`
+- `idle`: 쉬었음시민의 소일. `org`: 조직(치안·갈등·부랑자·시민 영향). `chronicle`: 민력·연표·고요시간·마지막 장.
+- 층 규칙·창고·밀도·받침·물은 기존 시스템(space·hazards·needs·utilities·production)이 읽는다 — config `layers.*`, `storage.*`, `hazards.*.density`, `org.*`, `finance.leak`, `idle.*`, `calendar.*`, `quiet.*`.
 
 ## 이름
 - 플레이어는 처음부터 `identity.title = "방백"`.
-- 분류 `vice`의 표시 이름은 **조직**(`buildings.json cats.vice`). 조직 시설은 데이터 `org`: `"thirteen"`(십삼요회: gambling_den, casino) · `"yeonu"`(연우당: callcenter, fireworks, fake_shop). 이름은 `orgs` 질의로 받는다.
-- 일하지 않는 벽틈시민 = **쉬었음시민**(질의 `idle_citizens`).
+- 분류 `vice`의 표시 이름은 **조직**(`build_menu`의 `cat_name`). 시설 데이터 `org`: `"thirteen"` 십삼요회(gambling_den, casino) · `"yeonu"` 연우당(callcenter, fireworks, fake_shop).
 - 되살린 9종: power_plant 큰 발전기 · power_waste 재 태우는 발전 · oil_collect 폐기름 모으는 집(재화 oil = 폐기름) · suit_shop 양복 짓는 집 · assembly 조립 공방 · scrapyard 고물 뜯는 곳 · warehouse 창고 · fireworks 화약방 · fake_shop 모조품 공방(재화 fakelux = 모조품).
+- 새 시설: `warehouse_small`(작은 창고 1×1, look `warehouse_small`) · `warehouse_big`(큰 창고 2×2, look `warehouse_big`). 기존 `warehouse`는 2칸짜리(1×2). 데이터 `storage_cells` 1|2|4.
 
-## 질의 — 추가
+## 질의 — 추가 (시스템이 꺼져 있어도 같은 모양)
 | name | args | 반환 | 예 |
 |---|---|---|---|
-| `date_minryeok` | — | `{year:int, season:"장마"\|"봄"\|"여름"\|"가을"\|"겨울", season_idx:0..3, year_day:float(0..3), hour:int, minute:int, text:String}` | `{year:4, season:"장마", text:"민력 4년 장마 06:00"}` |
-| `chronicle` | — | `{lines:[{day:int, year:int, season:String, date_text:String, text:String, kind:String}], count:int}` (오래된 것부터) | `{date_text:"민력 4년 봄", text:"첫 불이 났다.", kind:"first_fire"}` |
-| `security` | — | `{value:0..100, low:bool, threshold:int, org_active:int, vagrant_risk:bool, text:String}` | `{value:42, low:false, text:"치안 42"}` |
-| `conflict` | — | `{value:float, max:100, thirteen:int, yeonu:int, buffer:int, rising:bool, text:String}` (두 조직이 다 있을 때만 `rising`) | |
-| `leak_per_day` | — | `{amount:float(₩/경제일), vault:float, safe_cap:float, over:float, rate:float, text:String}` (평소 amount 0) | |
-| `covered_depth` | `pos:Vector3i` | `int` — 그 칸(x,y,z)의 위에 덮인 층 수(위 층에 건물·골조가 있는 층 수). args 없이 부르면 `{Vector3i: int}` 전체(0 아닌 칸만) | |
-| `warehouse_cover` | `floor:int` | `{covered:bool, size:int(그 층을 덮는 가장 큰 창고 칸수), warehouses:[{bid, size, floors:[int]}], production_mult:float}` — 렌즈용 | |
-| `last_page` | — | `{ready:bool, shown:bool, year:int, axes:[{id, name, value:float, text:String}], text:String}` 다섯 축 id: `tiers`·`money_source`·`height`·`updown`·`gaze` | |
-| `idle_citizens` | — | `{count:int, t1:int, text:String}` | |
-| `orgs` | — | `{items:[{id:"thirteen"\|"yeonu", name, buildings:[String], active:int}]}` | |
+| `date_minryeok` | — | `{year, season:"장마"\|"봄"\|"여름"\|"가을"\|"겨울", season_idx:0..3, year_day:0..3, hour, minute, date_text, text, quiet:bool}` (`quiet` = 고요시간 중) | `{year:4, season:"장마", date_text:"민력 4년 장마", text:"민력 4년 장마 06:00", quiet:false}` |
+| `chronicle` | — | `{lines:[{day, year, season, date_text, text, kind}], count}` 오래된 것부터, 최근 400줄 | `{date_text:"민력 4년 봄", text:"성채에 처음으로 불이 났다(2층, 구룡완탕).", kind:"first_fire"}` |
+| `security` | — | `{value:0..100, low:bool, threshold:30, org_active:int, vagrant_risk:bool, text}` | `{value:30.0, low:false, text:"치안 30 — 넉넉하다."}` |
+| `conflict` | — | `{value, max:100, thirteen:int, yeonu:int, buffer:int(사이 층 중립 시설 수), rising:bool, text}` | `{value:12.5, rising:true, buffer:1}` |
+| `leak_per_day` | — | `{amount(₩/일), vault, safe_cap, over, rate, text}` 평소 amount 0, text "" | `{amount:1374.0, safe_cap:4200.0}` |
+| `covered_depth` | `pos:Vector3i` → int / args 없음 → `{Vector3i:int}` (0 아닌 칸만) | 그 칸 위에 덮인 층 수(건물 칸이나 골조가 있는 층). 그림의 어두움 | `2` |
+| `warehouse_cover` | `floor:int`(0부터) | `{covered:bool, size:int(덮는 가장 큰 창고 칸수), warehouses:[{bid,size,floors:[int]}], production_mult:float}` — 창고 렌즈 | `{covered:false, production_mult:0.85}` |
+| `last_page` | — | `{ready, shown, year, date_text, axes:[{id,name,value,text,shares?}], text}` 축 id: `tiers`(shares 5개) · `money_source`(shares{tax,org,export}) · `height` · `updown` · `gaze`. ready 전에는 지금 값의 미리보기 | |
+| `idle_citizens` | — | `{count, t1, text}` | `{count:10, t1:40}` |
+| `orgs` | — | `{items:[{id, name, buildings:[시설 id], active:int}]}` | |
 
-hud에 `date`(= `date_minryeok`), `security`(value, low), `conflict`(value), `leak`(amount)를 덧붙인다. `build_menu` 항목에 `org`(id 또는 `""`), `org_name`, `advance_mult`(조직 선금 배수, 아니면 1), `storage_cells`(창고 칸수, 아니면 0)를 더한다. `build_menu` 값 `cost`는 **선금이 얹힌 최종 값**이다.
+기존 질의에 더한 것:
+- `hud`: `date`(= date_minryeok) · `security{value,low}` · `conflict{value}` · `leak`(₩/일). `net_per_day`는 새는 돈을 뺀다.
+- `build_menu` 항목: `org`·`org_name`·`advance_mult`(조직 선금 배수, 아니면 1)·`storage_cells`(창고 칸수, 아니면 0). `cost`는 **선금이 얹힌 최종 값**(돈에만 ×1.5).
+- `info`(주거): `depth`(덮인 층 수) · `gap`(맞닿은 빈 칸 수) · `org_near`(`""|"thirteen"|"yeonu"|"both"`). 시설 `cause`에 `wreck`(부서짐)·`rest`(자리 비움) 추가(`cause_text`는 글로 준다).
+- `economy`.`finance.lines`: `leak`("새는 돈") 줄은 샐 때만 들어간다.
+- `demolish_preview`: 받침 값이 `lines`에 "받침 N층: …"으로 들어간다.
 
 ## 명령·can — 추가
-- `build`의 can `code` 추가: `org_zone`(두 조직이 같은 층·맞닿은 층), 이때 `reason`에 어느 조직·어느 층인지가 들어 있다.
-- `demolish_preview`에 받침 값이 `lines`에 들어간다(`받침 N층: +값`). 철거 비용은 `base × (1 + 층당 0.5 × 위에 얹힌 층 수)`.
-- 새 명령 `last_page_ack {}`: 마지막 장을 한 번 보여 준 것으로 표시(저장됨, 이후 `last_page.shown = true`). 게임은 계속된다.
+- `build`의 can `code` 추가 `org_zone`(`reason`에 조직 이름·층). `demolish`의 can은 받침 값이 모자라면 `ok:false, code:"money"`, `cost.money`에 받침 값.
+- 철거 값 = 덮인 층 수 × 0.5 × (시설 = 건설비 돈, 주거 = 계층별 수리비 표). 위에 아무것도 없으면 0(그대로 공짜).
+- 새 명령 `last_page_ack {}`: 마지막 장을 보여 줬다는 표시(저장). 게임은 계속된다.
 
 ## 이벤트 — 추가
-`quiet_start{}` · `quiet_end{}`(게임 시계 03:12, 조금 뒤 — 길이는 화면·소리 몫) · `chronicle_added{text, date_text, kind}` · `first_fire{bid,pos,card:{title,text}}` · `first_disease{bids,pos,card:{title,text}}` · `vagrant_incident{kind:"rest"\|"loss"\|"fire", bid, pos, text}` · `org_clash{kind:"fire"\|"damage", bid, pos, org, text}` · `last_page_ready{page}` · `security_low{value}`.
+`quiet_start{}` · `quiet_end{}`(게임 시계 03:12 / 03:30. 길이는 화면·소리 몫) · `chronicle_added{text, date_text, kind}` · `first_fire{bid,pos,card:{title,text}}` · `first_disease{bids,pos,card:{title,text}}` · `vagrant_incident{kind:"rest"|"loss"|"fire", bid, pos, text}` · `org_clash{kind:"fire"|"damage", bid, pos, org, text}` · `last_page_ready{page}` · `security_low{value}`.
+- **`hazard_on`은 이제 기본으로 나가지 않는다**(불·병이 처음부터 켜져 있다). 층 카드 대신 `first_fire`·`first_disease`의 `card`를 띄운다. 디버그 `set_hazard`로 켤 때만 `hazard_on`이 나간다.
+- 연표 `kind`: `goal` · `floor` · `grade_reached` · `first_upgrade_t2..t5` · `first_fire` · `first_disease` · `first_org` · `first_raid` · `first_vagrant` · `org_clash` · `last_page`.
 
-## 상태 — 추가 필드
-`state.flags`에 들어간다(옛 저장에는 없어도 기본값으로 돈다): `chronicle` · `chron_first` · `quiet_state` · `security` · `conflict` · `last_page` · `leak_total` · `gaze_max`.
+## 상태 — 추가 필드 (`state.flags`, 읽지 말고 질의를 쓴다)
+`chronicle` · `chron_first` · `quiet_state` · `security` · `conflict` · `last_page` · `last_page_shown` · `gaze_max` · `leak_total` · `idle_count` · `idle_happy` · `idle_trash_cut` · `idle_disease_cut` · `ignite_q`(점화 요청 `[{bid}]` — 규칙끼리 직접 부르지 않으려고 org가 적고 hazards가 읽는다). 건물: 주거 `org_near`, 시설 `wrecked`/`wrecked_until`·`resting`/`resting_until`·`wh_slow`.
+`Sim.off_reason`에 `"wreck"`·`"rest"` 추가. 수정치 키 `happy.depth`(거울 채광통 −0.5).
 
-## 건물 데이터 — 추가
-`org`, `storage_cells`(1|2|4), 새 시설 `warehouse_small`(1×1, look `warehouse_small`)·`warehouse_big`(2×2, look `warehouse_big`). 기존 `warehouse`는 2칸짜리.
+## 바뀐 규칙 한눈에 (화면 글이 따라가야 하는 것)
+- 불·병: 층이 아니라 밀도. 알림 `fire_cover`·`trash_cover`는 그 방재 시설이 열린 뒤에만 뜬다. 불밥통(fire_bucket)은 t1_20, 밤배꾼·봉합방은 t2_1에서 열린다(층 해금이 아니다).
+- 끝 목표 없음: `goals`의 step에 `final`은 늘 false, 마지막 목표(`g_final`)도 보통 목표. `sandbox`는 목표를 다 이뤘을 때만 true.
+- 목표 7번(id `g_wonton`은 그대로)의 글이 "토끼집에서 고기를 대고 토끼버거 노점을 연다"로 바뀌었다 — 화면 쪽 `goal_tips.json`의 같은 id 글을 맞춰야 한다.

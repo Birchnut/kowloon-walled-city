@@ -1167,13 +1167,15 @@ func _hall_t4() -> float:
 	return 60.0
 
 
-## 마지막 목표의 옥상 황제 수(goals.json의 final 목표 조건에서 읽는다).
+## 마지막 목표(order가 가장 큰 목표)의 청공시민 수.
 func _final_t5() -> float:
+	var last: Dictionary = {}
 	for g: Dictionary in sim.items("goals").values():
-		if g.get("final", false):
-			for cnd: Array in g.get("cond", []):
-				if str(cnd[0]) == "pop.t5":
-					return float(cnd[2])
+		if last.is_empty() or int(g.get("order", 0)) > int(last.get("order", 0)):
+			last = g
+	for cnd: Array in last.get("cond", []):
+		if str(cnd[0]) == "pop.t5":
+			return float(cnd[2])
 	return 60.0
 
 

@@ -37,7 +37,65 @@ static func run(sim: Sim, state: CityState, name: String, args: Dictionary) -> V
 				"movers": 0, "vacancies": 0, "labor": [], "tax_now": 0.0, "tax_after_now": 0.0, "tax_full": 0.0, "tax_delta": 0.0, "demand_text": []}
 		"offline_summary":
 			return null   # G1: 보여 줄 것이 없으면 null(Game이 정산 직후 한 번만 실제 요약을 돌려준다)
+		# ── v5: 규칙이 꺼져 있어도 모양은 그대로(기본값). 켜진 시스템이 먼저 답하면 여기까지 오지 않는다.
+		"date_minryeok":
+			var di := Calendar.info(sim, state)
+			di["quiet"] = bool(state.flags.get("quiet_state", false))
+			return di
+		"chronicle": return {"lines": [], "count": 0}
+		"security": return {"value": 0.0, "low": false, "threshold": int(sim.cfg("org.security_low", 30)), "org_active": 0, "vagrant_risk": false, "text": "조직이 없다."}
+		"conflict": return {"value": 0.0, "max": float(sim.cfg("org.conflict.max", 100.0)), "thirteen": 0, "yeonu": 0, "buffer": 0, "rising": false, "text": "다툼이 없다."}
+		"leak_per_day": return {"amount": 0.0, "vault": state.money, "safe_cap": 0.0, "over": 0.0, "rate": 0.0, "text": ""}
+		"idle_citizens": return {"count": 0, "t1": 0, "text": "쉬었음시민이 없다."}
+		"last_page": return {"ready": false, "shown": false, "year": 0, "date_text": "", "axes": [], "text": ""}
+		"orgs": return orgs(sim, state)
+		"covered_depth":
+			var cp: Variant = args.get("pos", null)
+			if cp is Vector3i:
+				return Cover.depth_of(state, cp, sim.F)
+			var dm := {}
+			for cq: Vector3i in state.cells:
+				var dd := Cover.depth_of(state, cq, sim.F)
+				if dd > 0:
+					dm[cq] = dd
+			return dm
+		"warehouse_cover": return warehouse_cover(sim, state, int(args.get("floor", 0)))
 	return null
+
+
+## 조직 목록(v5): {items:[{id, name, buildings:[시설 id], active:가동 중 시설 수}]}.
+static func orgs(sim: Sim, state: CityState) -> Dictionary:
+	var names: Dictionary = sim.cfg("org.names", {})
+	var out: Array = []
+	for oid: String in names:
+		var ids: Array = []
+		for bid: String in sim.items("buildings"):
+			if str(sim.bdef(bid).get("org", "")) == oid:
+				ids.append(bid)
+		var act := 0
+		for b: Dictionary in sim.cover(state)["facs"]:
+			if str(sim.bdef(str(b["type"])).get("org", "")) == oid and b.get("active", false) and Sim.off_reason(b) == "":
+				act += 1
+		out.append({"id": oid, "name": str(names[oid]), "buildings": ids, "active": act})
+	return {"items": out}
+
+
+## 창고 렌즈(v5): z층을 덮는 창고들과 그 층 생산 시설의 처리량 배수.
+static func warehouse_cover(sim: Sim, state: CityState, z: int) -> Dictionary:
+	var cov := sim.cover(state)
+	var list: Array = []
+	var best := 0
+	for w: Array in cov["wh"]:
+		var fl := Cover._wh_floors(int(w[1]), int(w[2]))
+		if z in fl:
+			list.append({"bid": int(w[0]), "size": int(w[1]), "floors": fl})
+			best = maxi(best, int(w[1]))
+	var covered: bool = cov["wh_floors"].has(z)
+	var mult := 1.0
+	if not covered:
+		var probe := {"pos": Vector3i(0, 0, z)}
+		mult = sim.store_mult(state, probe)
+	return {"covered": covered, "size": best, "warehouses": list, "production_mult": mult}
 
 
 ## 해금 조건을 문장으로.
@@ -176,7 +234,11 @@ static func _effect_text(sim: Sim, d: Dictionary) -> String:
 	if float(d.get("power", 0)) > 0:
 		parts.append("전기 %s 필요" % _n(d["power"]))
 	if d.get("storage", false):
-		parts.append("상품마다 저장 한도 +%d(소비재·원료) / +%d(건축자재)" % [int(sim.cfg("storage.goods_per_warehouse", 300)), int(sim.cfg("storage.material_per_warehouse", 200))])
+		var sc := int(d.get("storage_cells", 2))
+		parts.append("저장 한도 +%d(소비재·원료) / +%d(건축자재) · %s의 생산 시설을 받친다" % [int(sim.cfg("storage.goods_per_cell", 150)) * sc, int(sim.cfg("storage.material_per_cell", 100)) * sc,
+			{1: "이 층", 2: "이 층과 위층", 4: "이 층과 위아래 층"}.get(sc, "이 층")])
+	if d.has("org"):
+		parts.append("%s 소속 · 선금 ×%s · 같은 층과 맞닿은 층에 다른 조직 시설 불가" % [str(sim.cfg("org.names", {}).get(str(d["org"]), "")), _n(sim.advance_mult())])
 	if d.has("contract_slots"):
 		parts.append("계약 자리 +%d" % int(d["contract_slots"]))
 	if d.has("vice"):
@@ -192,7 +254,7 @@ static func _effect_text(sim: Sim, d: Dictionary) -> String:
 
 const CAUSE_TEXT := {"": "가동 중", "staff": "인력 부족", "input": "원료 부족", "water": "물 부족", "power": "전기 부족",
 	"money": "돈이 없어 멈춤", "storage": "창고가 가득", "paused": "일시 정지", "raid": "바깥의 시선으로 폐쇄", "sky": "위가 막혀 해가 안 듦",
-	"fire": "불이 났다", "burnt": "타 버림 — 수리 필요", "repair": "수리 중"}
+	"fire": "불이 났다", "burnt": "타 버림 — 수리 필요", "repair": "수리 중", "wreck": "부서져 하루 멈춤", "rest": "자리를 비움"}
 
 
 ## 경제일 → "0.4일(약 4분)"처럼 ×1 실제 시간과 함께.
@@ -245,7 +307,7 @@ static func _build_menu(sim: Sim, state: CityState) -> Array:
 		elif d.has("blueprint") and not state.flags.get("blueprints", {}).has(str(d["blueprint"])):
 			locked = true
 			hint = "도면 필요(회색 띠)"
-		var cost: Dictionary = d.get("cost", {})
+		var cost: Dictionary = sim.build_cost(id)
 		var aff := state.money + 1e-9 >= float(cost.get("money", 0))
 		for g: String in cost.get("goods", {}):
 			aff = aff and float(state.stock.get(g, 0.0)) + 1e-9 >= float(cost["goods"][g])
@@ -256,7 +318,9 @@ static func _build_menu(sim: Sim, state: CityState) -> Array:
 			"needs_sky": bool(d.get("needs_sky", d.get("open_sky", false))), "min_floor": int(d.get("min_floor", 0)), "look": str(d.get("look", "")),
 			"cost": {"money": float(cost.get("money", 0)), "goods": cost.get("goods", {})}, "workforce": _wf(sim, d.get("workforce", {})),
 			"upkeep": float(d.get("upkeep", 0)), "range": null if rg.is_empty() else rg, "range_text": Cover.range_text(rg) if not rg.is_empty() else "",
-			"effect_text": _effect_text(sim, d), "locked": locked, "lock_hint": hint, "affordable": aff})
+			"effect_text": _effect_text(sim, d), "locked": locked, "lock_hint": hint, "affordable": aff,
+			"org": str(d.get("org", "")), "org_name": str(sim.cfg("org.names", {}).get(str(d.get("org", "")), "")),
+			"advance_mult": sim.advance_mult() if d.has("org") else 1.0, "storage_cells": int(d.get("storage_cells", 2)) if d.get("storage", false) else 0})
 	for c: String in ["house"] + cats.keys():
 		if by.has(c) and not (c == "house" and out.size() > 0):
 			out.append({"cat": c, "cat_name": cats.get(c, "주거"), "items": by[c]})
@@ -283,7 +347,8 @@ static func _info(sim: Sim, state: CityState, args: Dictionary) -> Dictionary:
 			"target": int(b.get("target", 0)), "happiness": snappedf(float(b.get("happiness", 50)), 0.1), "tax_per_day": snappedf(float(b.get("tax", 0)), 0.01),
 			"need_state": b["need_state"], "upgradable": b["upgradable"], "scaffold": b.get("upgrading") != null, "needs": [], "upgrade": {},
 			"arriving": snappedf(float(b.get("arriving", 0.0)), 0.01), "arriving_text": _arriving_text(b),
-			"burn": str(b.get("burn", "")), "sick": bool(b.get("sick", false)), "repair": {"ok": false, "cost_text": "", "days": 0.0}}
+			"burn": str(b.get("burn", "")), "sick": bool(b.get("sick", false)), "repair": {"ok": false, "cost_text": "", "days": 0.0},
+			"depth": int(sim.cover(state)["depth"].get(bid, 0)), "gap": int(sim.cover(state)["gap"].get(bid, 0)), "org_near": str(b.get("org_near", ""))}
 	var d := sim.bdef(str(b["type"]))
 	if b["kind"] == "site":
 		var left := float(b.get("build_left", 0.0))

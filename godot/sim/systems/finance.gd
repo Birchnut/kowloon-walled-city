@@ -4,11 +4,13 @@ extends SimSystem
 ##  유지비 = Σ 완공 시설 upkeep × dt(일시정지·파산 정지는 0) → 'upkeep'.
 ##  돈이 모자라면: 우선순위가 가장 낮은 시설부터 b.money_stop(cause "money")으로 멈춰 이번 스텝 유지비를 낼 수 있을 때까지.
 ##  다시 켜기: 멈춘 시설까지 포함한 유지비 config finance.broke_resume_days 일치가 모이면 전부 다시 켠다(깜빡임 방지).
-##  장부: ledger.today{tax, upkeep, import, export, build, vice}(부호 있음) → 자정에 ledger.days로(최근 14일).
+##  새는 돈(v0.5, config finance.leak): 금고가 safe_base + 인구 × per_pop을 넘으면 넘는 몫의 rate가 하루마다 사라진다 → 장부 'leak'.
+##   평소(금고가 그 밑)에는 0이라 보이지 않는다. 치안(org)이 높을수록 덜 샌다(org.leak_security_cut). 질의 leak_per_day.
+##  장부: ledger.today{tax, upkeep, import, export, build, vice, leak}(부호 있음) → 자정에 ledger.days로(최근 14일).
 ##  내부 판매는 세수에 이미 들어 있으므로 매출로 따로 잡지 않는다(이중 수입 금지).
 ## 끄면: 세수·유지비가 없다(금고는 건설·교역으로만 움직인다).
 
-const LINES := ["tax", "upkeep", "import", "export", "build", "vice", "reward", "fine"]
+const LINES := ["tax", "upkeep", "import", "export", "build", "vice", "reward", "fine", "leak"]
 
 
 func tick(state: CityState, dt: float) -> void:
@@ -20,6 +22,13 @@ func tick(state: CityState, dt: float) -> void:
 		tax += float(b["tax"])
 	for b: Dictionary in fac:
 		vice += float(b.get("vice_rate", 0.0))
+	var lk := leak_info(sim, state)
+	if float(lk["amount"]) > 0.0:
+		var lost := minf(state.money, float(lk["amount"]) * dt)
+		state.money -= lost
+		state.book("leak", -lost)
+		state.stat_add("leak_total", lost)
+		state.flags["leak_total"] = float(state.flags.get("leak_total", 0.0)) + lost
 	state.money += tax * dt
 	state.book("tax", tax * dt)
 	state.stat_add("tax_total", tax * dt)
@@ -68,6 +77,31 @@ func tick(state: CityState, dt: float) -> void:
 	state.stat_add("upkeep_total", due)
 
 
+## 새는 돈 계산(₩/경제일). 정적 — 질의·시험이 같이 쓴다.
+static func leak_info(sim_: Sim, state: CityState) -> Dictionary:
+	var out := {"amount": 0.0, "vault": state.money, "safe_cap": 0.0, "over": 0.0, "rate": 0.0}
+	if not bool(sim_.cfg("finance.leak.on", true)):
+		return out
+	var safe := float(sim_.cfg("finance.leak.safe_base", 3000)) + float(state.population()) * float(sim_.cfg("finance.leak.per_pop", 150))
+	var over := maxf(0.0, state.money - safe)
+	var sec := float(state.flags.get("security", 0.0)) if sim_.enabled.has("org") else 0.0
+	var rate := float(sim_.cfg("finance.leak.rate", 0.03)) * (1.0 - float(sim_.cfg("org.leak_security_cut", 0.6)) * clampf(sec / 100.0, 0.0, 1.0))
+	out["safe_cap"] = safe
+	out["over"] = over
+	out["rate"] = rate
+	out["amount"] = over * rate
+	return out
+
+
+func query(state: CityState, name: String, _args: Dictionary) -> Variant:
+	if name != "leak_per_day":
+		return null
+	var lk := leak_info(sim, state)
+	lk["amount"] = snappedf(float(lk["amount"]), 0.1)
+	lk["text"] = ("금고가 %s를 넘어 하루 %s이(가) 샌다." % [Sim.won(float(lk["safe_cap"])), Sim.won(float(lk["amount"]))]) if float(lk["amount"]) > 0.0 else ""
+	return lk
+
+
 func on_day_end(state: CityState, ended: int) -> void:
 	var today: Dictionary = state.ledger.get("today", {})
 	var row := {"day": ended}
@@ -85,7 +119,7 @@ func on_day_end(state: CityState, ended: int) -> void:
 	state.ledger["today"] = {}
 
 
-const LINE_NAME := {"tax": "물세·자리값", "upkeep": "유지비", "import": "들여온 값", "export": "내보낸 값", "build": "짓고 올린 값", "vice": "층세", "reward": "목표 보상", "fine": "벌금·뒷돈"}
+const LINE_NAME := {"tax": "물세·자리값", "upkeep": "유지비", "import": "들여온 값", "export": "내보낸 값", "build": "짓고 올린 값", "vice": "층세", "reward": "목표 보상", "fine": "벌금·뒷돈", "leak": "새는 돈"}
 
 
 func augment(state: CityState, name: String, _args: Dictionary, out: Variant) -> void:
@@ -98,7 +132,9 @@ func augment(state: CityState, name: String, _args: Dictionary, out: Variant) ->
 				rate += float(b.get("vice_rate", 0.0))
 				if not b.get("paused", false) and not b.get("money_stop", false):
 					rate -= float(sim.bdef(str(b["type"])).get("upkeep", 0.0)) * sim.mod(state, "upkeep.all")
+		rate -= float(leak_info(sim, state)["amount"])
 		out["net_per_day"] = snappedf(rate, 0.1)
+		out["leak"] = snappedf(float(leak_info(sim, state)["amount"]), 0.1)
 		var stopped := 0
 		for b: Dictionary in state.buildings.values():
 			if b.get("money_stop", false):
@@ -117,7 +153,8 @@ func augment(state: CityState, name: String, _args: Dictionary, out: Variant) ->
 			for r: Dictionary in days:
 				s += float(r.get(l, 0.0))
 			avg[l] = snappedf(s / float(maxi(1, days.size())), 0.1)
-			lines.append({"id": l, "name": LINE_NAME[l], "amount": avg[l]})
+			if l != "leak" or float(avg[l]) != 0.0 or float(t[l]) != 0.0:      # 새는 돈은 샐 때만 보인다
+				lines.append({"id": l, "name": LINE_NAME[l], "amount": avg[l]})
 		var net := 0.0
 		var tnet := 0.0
 		for l: String in LINES:

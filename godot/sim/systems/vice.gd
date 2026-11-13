@@ -36,6 +36,7 @@ func tick(state: CityState, dt: float) -> void:
 	gain *= maxf(0.0, sim.mod(state, "heat.gain"))
 	var h0 := state.heat
 	state.heat = clampf(state.heat + (gain - _c("decay_per_day", 6.0)) * dt, 0.0, 100.0)
+	state.flags["gaze_max"] = maxf(float(state.flags.get("gaze_max", 0.0)), state.heat)
 	if h0 < _c("warn", 50.0) and state.heat >= _c("warn", 50.0):
 		sim.say(state, "바깥의 시선이 골목에 닿는다. 바깥의 시선 %d." % int(state.heat), "warn")
 	if state.heat >= _c("raid", 80.0) and not contrib.is_empty():
@@ -65,6 +66,7 @@ func _raid(state: CityState, contrib: Array) -> void:
 	state.stat_add("fines", fine)
 	state.heat = maxf(0.0, state.heat - _c("after_raid_drop", 40.0))
 	state.emit("raid", {"bid": int(pick["id"]), "type": str(pick["type"]), "until": until, "fine": fine})
+	sim.chron(state, "first_raid", "바깥의 시선이 처음으로 성채에 닿았다. %s이(가) 닫혔다." % str(d.get("name", "")), true)
 	state.emit("building_changed", {"bid": int(pick["id"])})
 	sim.say(state, "%s 벌금 %s. %d일 뒤 다시 연다." % [str(d.get("vice", {}).get("raid_line", "바깥의 시선이 닿았다.")), Sim.won(fine), int(roundf(_c("close_days", 2.0)))], "bad")
 

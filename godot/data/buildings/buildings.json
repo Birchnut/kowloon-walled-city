@@ -1,5 +1,5 @@
 {
- "_comment": "시설(v0.4 PC). footprint = [w,h](x방향 w칸, y방향 h칸, rot 1이면 바뀜), floors = 쌓이는 층 수(1|2). cost = 돈 + 상품, upkeep = ₩/경제일, workforce = 계층별 인원, priority = 노동·물·전기 배분 순위, build_days = 공사 경제일(없으면 config build.days_by_cells), recipe = 경제일당 입력→출력, water/power = 가동 중 부하, supply = 공급, market = 취급 등급, services = 서비스 태그(fire/trash/clinic은 방재 — hazards가 읽음), range = {r: 가로·세로 칸(체비쇼프), up, down: 층}, needs_sky = 위가 비어야(위에 지으면 멈춤), min_floor = 이 층(z) 이상, luxury = 사치 시설(해금에 행복 유지 조건), look = 뷰 외형 이름표(ARCHITECTURE v4), sign = 간판(한글 4자 이내, 한자 금지), vice = 음성(income, heat, raid_line).",
+ "_comment": "시설(v0.4 PC). footprint = [w,h](x방향 w칸, y방향 h칸, rot 1이면 바뀜), floors = 쌓이는 층 수(1|2). cost = 돈 + 상품, upkeep = ₩/경제일, workforce = 계층별 인원, priority = 노동·물·전기 배분 순위, build_days = 공사 경제일(없으면 config build.days_by_cells), recipe = 경제일당 입력→출력, water/power = 가동 중 부하, supply = 공급, market = 취급 등급, services = 서비스 태그(fire/trash/clinic은 방재 — hazards가 읽음), range = {r: 가로·세로 칸(체비쇼프), up, down: 층}, needs_sky = 위가 비어야(위에 지으면 멈춤), min_floor = 이 층(z) 이상, luxury = 사치 시설(해금에 행복 유지 조건), look = 뷰 외형 이름표(ARCHITECTURE v4), sign = 간판(한글 4자 이내, 한자 금지), vice = 조직 시설의 층세·바깥의 시선(income, heat, raid_line). v0.5: org = 조직(thirteen 십삼요회 | yeonu 연우당), storage_cells = 창고 칸수(1|2|4), neutral = 조직 사이를 식히는 중립 시설.",
  "status": "실험값(v0.4 — 시뮬레이션으로 맞춤)",
  "cats": {
   "house": "주거",
@@ -11,7 +11,7 @@
   "electronics": "전자",
   "service": "놀 것·서비스",
   "safety": "방재",
-  "vice": "두 우산",
+  "vice": "조직",
   "infra": "기반",
   "landmark": "명소"
  },
@@ -273,8 +273,8 @@
    "desc": "바깥 전봇대에서 전깃줄을 훔쳐 끌어온다. 자리는 적게 쓰고 유지비가 크다."
   },
   "power_plant": {
-   "name": "성채 발전소",
-   "sign": "발전소",
+   "name": "큰 발전기",
+   "sign": "발전",
    "look": "power_plant",
    "cat": "power",
    "priority": "utility",
@@ -299,11 +299,11 @@
    "tags": [
     "noise"
    ],
-   "desc": "성채의 심장. 설비 부품이 든다."
+   "desc": "성채에서 가장 큰 발전기다. 설비 부품이 든다."
   },
   "power_waste": {
-   "name": "쓰레기 화력 발전",
-   "sign": "화력",
+   "name": "재 태우는 발전",
+   "sign": "재발전",
    "look": "power_waste",
    "cat": "power",
    "priority": "utility",
@@ -327,7 +327,7 @@
     "power": 800
    },
    "blueprint": "power_waste",
-   "desc": "쓰레기를 태워 불을 켠다. 냄새는 덤. 도면이 있어야 짓는다(옛 발전소 탐험)."
+   "desc": "쓰레기를 태운 열로 전기를 만든다. 냄새가 난다. 도면이 있어야 짓는다(옛 발전소 탐험)."
   },
   "food_cans": {
    "name": "맹관 좌판",
@@ -488,7 +488,7 @@
    },
    "upkeep": 10,
    "workforce": {
-    "t3": 4
+    "t2": 4
    },
    "recipe": {
     "in": {
@@ -498,7 +498,7 @@
      "burger": 30
     }
    },
-   "desc": "토끼집 고기로 패티를 부친다. 먹는 사람은 출처를 묻지 않는다."
+   "desc": "토끼집 고기로 패티를 부친다. 먹는 사람은 출처를 묻지 않는다. 판자시민의 끼니다."
   },
   "sushi": {
    "name": "하늘상",
@@ -642,8 +642,8 @@
    "desc": "버려진 천 조각을 모아 자투리 천으로 묶는다."
   },
   "oil_collect": {
-   "name": "기름 수거단",
-   "sign": "기름",
+   "name": "폐기름 모으는 집",
+   "sign": "폐기름",
    "look": "oil_collect",
    "cat": "goods",
    "priority": "goods",
@@ -665,7 +665,7 @@
      "oil": 20
     }
    },
-   "desc": "식당 뒷문의 폐식용유를 모은다. 앞문으로 받은 적은 없다."
+   "desc": "식당 뒷문에서 나온 폐식용유를 모아 간다. 값은 치르지 않는다."
   },
   "candle_shop": {
    "name": "양초 공방",
@@ -754,7 +754,7 @@
    "desc": "재봉틀이 쉬지 않는다. 자투리 천이 기운 옷이 된다."
   },
   "suit_shop": {
-   "name": "맞춤 양복점",
+   "name": "양복 짓는 집",
    "sign": "양복",
    "look": "suit",
    "cat": "goods",
@@ -781,7 +781,7 @@
      "suit": 6
     }
    },
-   "desc": "넝마로 지은 양복. 재단사는 '빈티지'라고 부른다."
+   "desc": "넝마를 풀어 양복을 짓는다. 재단사는 이것을 빈티지라 적는다."
   },
   "radio_shop": {
    "name": "소리 고치는 집",
@@ -815,7 +815,7 @@
    "desc": "고장 난 라디오를 뜯어 쓸 만한 한 대로 맞춘다. 전기가 든다."
   },
   "assembly": {
-   "name": "조립소",
+   "name": "조립 공방",
    "sign": "조립",
    "look": "assembly",
    "cat": "electronics",
@@ -846,7 +846,7 @@
     }
    },
    "power": 12,
-   "desc": "라디오를 뜯어 가전을 만든다. 남는 나사는 다음 가전에."
+   "desc": "라디오를 뜯어 가전을 맞춘다. 남은 나사는 다음 가전에 쓴다."
   },
   "mahjong": {
    "name": "마작방",
@@ -959,7 +959,8 @@
     "up": 1,
     "down": 1
    },
-   "desc": "작은 위패 하나와 향로 하나가 있다. 어느 신인지는 적혀 있지 않다."
+   "desc": "작은 위패 하나와 향로 하나가 있다. 어느 신인지는 적혀 있지 않다.",
+   "neutral": true
   },
   "study": {
    "name": "글방",
@@ -987,7 +988,8 @@
     "up": 1,
     "down": 1
    },
-   "desc": "성채의 하나뿐인 학교다. 아이들이 빛상자 아래에 앉는다. 연구도 이곳에서 한다."
+   "desc": "성채의 하나뿐인 학교다. 아이들이 빛상자 아래에 앉는다. 연구도 이곳에서 한다.",
+   "neutral": true
   },
   "bathhouse": {
    "name": "공동 김탕",
@@ -1263,7 +1265,7 @@
    "desc": "면허 없는 의사들이 모여 있다. 상처를 꿰매고 약을 싸 준다."
   },
   "scrapyard": {
-   "name": "고물 분해소",
+   "name": "고물 뜯는 곳",
    "sign": "고물",
    "look": "scrapyard",
    "cat": "infra",
@@ -1290,10 +1292,32 @@
    "tags": [
     "noise"
    ],
-   "desc": "뭐든 뜯으면 고물이 된다. 뜯긴 쪽의 의견은 받지 않는다. 가끔 쓸 만한 기판도 나온다."
+   "desc": "닥치는 대로 뜯어 고물을 낸다. 가끔 쓸 만한 기판이 섞여 나온다."
+  },
+  "warehouse_small": {
+   "name": "작은 창고",
+   "sign": "창고",
+   "look": "warehouse_small",
+   "cat": "infra",
+   "priority": "other",
+   "footprint": [
+    1,
+    1
+   ],
+   "cost": {
+    "money": 50,
+    "goods": {}
+   },
+   "upkeep": 2,
+   "workforce": {
+    "t1": 1
+   },
+   "storage": true,
+   "storage_cells": 1,
+   "desc": "한 칸짜리 창고. 이 층의 생산 시설을 받친다."
   },
   "warehouse": {
-   "name": "쌓아 두는 곳",
+   "name": "창고",
    "sign": "창고",
    "look": "warehouse",
    "cat": "infra",
@@ -1311,7 +1335,32 @@
     "t1": 2
    },
    "storage": true,
-   "desc": "물건을 쌓아 두는 곳. 꺼낼 때가 문제다."
+   "desc": "물건을 쌓아 두는 곳. 이 층과 위층의 생산 시설을 받친다(두 칸).",
+   "storage_cells": 2
+  },
+  "warehouse_big": {
+   "name": "큰 창고",
+   "sign": "큰창고",
+   "look": "warehouse_big",
+   "cat": "infra",
+   "priority": "other",
+   "footprint": [
+    2,
+    2
+   ],
+   "cost": {
+    "money": 400,
+    "goods": {
+     "scrap": 20
+    }
+   },
+   "upkeep": 8,
+   "workforce": {
+    "t1": 3
+   },
+   "storage": true,
+   "storage_cells": 4,
+   "desc": "네 칸짜리 창고. 이 층과 위아래 한 층의 생산 시설을 받친다."
   },
   "trade_post": {
    "name": "회상회",
@@ -1387,7 +1436,8 @@
    "tags": [
     "vice"
    ],
-   "desc": "슬롯머신이 줄지어 있다. 마작 수요도 채운다."
+   "desc": "슬롯 기계가 줄지어 있다. 십삼요회가 연다. 마작 수요도 채운다.",
+   "org": "thirteen"
   },
   "callcenter": {
    "name": "목소리방",
@@ -1417,7 +1467,8 @@
    "tags": [
     "vice"
    ],
-   "desc": "창이 없다. 낮고 또렷한 목소리를 오래 내는 사람을 쓴다."
+   "desc": "창이 없다. 낮고 또렷한 목소리를 오래 내는 사람을 쓴다.",
+   "org": "yeonu"
   },
   "casino": {
    "name": "용궁",
@@ -1457,11 +1508,12 @@
    "tags": [
     "vice"
    ],
-   "desc": "붉은 네온 아래에서 바깥 손님을 받는 도박장이다. 위아래 층이 붉게 물든다."
+   "desc": "붉은 네온 아래에서 바깥 손님을 받는 도박장이다. 위아래 층이 붉게 물든다.",
+   "org": "thirteen"
   },
   "fireworks": {
-   "name": "화약 가공소",
-   "sign": "폭죽",
+   "name": "화약방",
+   "sign": "화약",
    "look": "fireworks",
    "cat": "vice",
    "priority": "vice",
@@ -1494,11 +1546,12 @@
     "heat": 5,
     "raid_line": "화약 가공소가 봉인됐다. 이웃들은 처음으로 조용한 밤을 보낸다."
    },
-   "desc": "폭죽을 말아 수출한다. 불조심은 표어로만."
+   "desc": "폭죽을 말아 바깥에 내보낸다. 연우당이 연다. 불조심은 표어로만 있다.",
+   "org": "yeonu"
   },
   "fake_shop": {
-   "name": "거의 명품 공방",
-   "sign": "명품",
+   "name": "모조품 공방",
+   "sign": "모조품",
    "look": "fake",
    "cat": "vice",
    "priority": "vice",
@@ -1532,7 +1585,8 @@
     "heat": 4,
     "raid_line": "거의 명품 공방 압수. 압수품 목록에 '진짜'라고 적힌 상자가 있었다."
    },
-   "desc": "로고가 진짜보다 크다. 그게 거의 명품의 '거의'다."
+   "desc": "진짜 이름을 크게 박은 모조품을 만든다. 연우당이 연다.",
+   "org": "yeonu"
   },
   "neon_tower": {
    "name": "네온 용탑",
@@ -1603,7 +1657,8 @@
    },
    "landmark": true,
    "build_days": 3.0,
-   "desc": "장부로 다스리는 방 세 개짜리 정부다. 세 자재를 모두 쓴다. 마지막 목표다."
+   "desc": "장부로 다스리는 방 세 개짜리 정부다. 세 자재를 모두 쓴다. 마지막 목표다.",
+   "neutral": true
   }
  }
 }

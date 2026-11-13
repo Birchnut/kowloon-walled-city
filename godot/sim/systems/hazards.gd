@@ -1,8 +1,10 @@
 extends SimSystem
 ## hazards — 불과 병(GDD_PC §3.1). config hazards.fire / hazards.disease. 세 자재 계열의 차이는 없다(확정: 세 계열 동등).
 ##
-##  불: 2층이 열리면 켜진다(hazard_on{kind:"fire", grace_days}) — 유예(grace_days) 동안은 위험이 쌓이지 않는다.
-##   쓰이는 건물(주민 있는 주거·완공 시설)마다 위험 fire_risk(0..1)가 쌓인다: 소방 범위 밖이면 risk_per_day, 안이면 그 × covered_mult.
+##  v0.5: 불·병은 층이 아니라 밀도에서 난다 — 처음부터 켜져 있고(config hazards.*.floor = 1) 그 층의 쓰인 칸 비율과 위에 덮인 층 수가 클수록 커진다.
+##   첫 불·첫 병이 났을 때 안내 카드 사건(first_fire·first_disease, card{title,text})과 연표 한 줄. 연우당 시설 옆 주거는 병이 더 잘 난다(org 시스템).
+##   불: 시작 뒤 유예(grace_days) 동안은 위험이 쌓이지 않는다.
+##   쓰이는 건물(주민 있는 주거·완공 시설)마다 위험 fire_risk가 쌓인다: 소방 범위 밖이면 risk_per_day, 안이면 그 × covered_mult. 위험의 상한 = 밀도 값(density).
 ##   한 경제시간마다 결정론 RNG: 위험 합 × ignite_per_day × dt 확률로 한 곳(위험 비례)에 불이 난다
 ##   (동시에 타는 곳은 max_burning + 건물 수/burning_per 이하, 불 사이 min_gap_days — 도시를 통째로 태우지 않는다).
 ##   타는 곳: 소방 범위 안이면 out_days(약 1시간) 만에 꺼지고 피해는 주민 1명이 흩어지는 것뿐.
@@ -46,6 +48,8 @@ func _switch(state: CityState) -> void:
 		if forced.has(kind):
 			want = bool(forced[kind])
 		var h: Dictionary = hz[kind]
+		if forced.has(kind) and want and bool(h["on"]) and float(h["since"]) > state.econ_days:
+			h["since"] = state.econ_days       # 디버그로 켜면 유예 없이 바로
 		if want and not bool(h["on"]):
 			h["on"] = true
 			var grace := float(sim.cfg("hazards.%s.grace_days" % kind, 2.0)) if not forced.has(kind) else 0.0
@@ -53,12 +57,9 @@ func _switch(state: CityState) -> void:
 			if bool(h.get("announced", false)):
 				continue
 			h["announced"] = true       # 도시마다 한 번만(저장에 남는다 — 불러와도, 디버그로 껐다 켜도 다시 알리지 않는다)
-			state.emit("hazard_on", {"kind": kind, "grace_days": grace})
 			state.stats["hazard_%s_on_day" % kind] = state.econ_days
-			if kind == "fire":
-				sim.say(state, "2층 받침이 올랐다. 판자와 전깃줄이 겹겹이 쌓여 %s 뒤부터 불이 난다. 불밥통 골목 범위(위아래 한 층까지)로 쓰이는 칸을 덮어야 한다." % Queries.day_text(grace), "warn")
-			else:
-				sim.say(state, "3층 받침이 올랐다. 사람이 쌓이면 오물도 쌓이고 오물은 병을 부른다. %s 뒤부터다. 밤배꾼과 봉합방을 세워야 한다." % Queries.day_text(grace), "warn")
+			if bool(sim.cfg("hazards.%s.announce_on" % kind, false)) or forced.has(kind):
+				state.emit("hazard_on", {"kind": kind, "grace_days": grace})     # v0.5 기본: 알리지 않는다(첫 불·첫 병에서 카드)
 		elif not want and bool(h["on"]):
 			h["on"] = false
 
@@ -88,6 +89,7 @@ func tick(state: CityState, dt: float) -> void:
 	if not sim.every(state, 2, dt):
 		return
 	# 손실 장부(주거-일, 한 경제시간마다): 탄·타는 주거, 앓는 주거(절반으로 셈)
+	_ignite_queue(state, cov)
 	var dth := sim.step_days * 2.0
 	var nh := 0
 	var nb := 0
@@ -111,6 +113,19 @@ func tick(state: CityState, dt: float) -> void:
 		for b: Dictionary in cov["houses"]:
 			if b.get("sick", false):
 				_heal(state, b)
+
+
+## 다른 규칙(org 시스템 등)이 state.flags.ignite_q에 건물 id를 넣어 두면 여기서 불을 낸다(규칙끼리 직접 부르지 않는다).
+func _ignite_queue(state: CityState, cov: Dictionary) -> void:
+	var q: Array = state.flags.get("ignite_q", [])
+	if q.is_empty():
+		return
+	state.flags["ignite_q"] = []
+	for x: Variant in q:
+		var b: Dictionary = state.buildings.get(int((x as Dictionary).get("bid", -1)), {})
+		if b.is_empty() or not (b.get("kind", "") in ["house", "facility"]) or str(b.get("burn", "")) != "":
+			continue
+		_ignite(state, cov, b, false)
 
 
 func _covered(state: CityState, cov: Dictionary, tag: String, bid: int) -> bool:
@@ -140,6 +155,7 @@ func _fire_tick(state: CityState, cov: Dictionary, fire: Dictionary, dt: float) 
 	var n_used := 0
 	var rate := _f("risk_per_day", 0.35)
 	var cm := _f("covered_mult", 0.1)
+	var fills := {}
 	for b: Dictionary in cov["all"]:
 		var bn := str(b.get("burn", ""))
 		if bn == "burning":
@@ -151,7 +167,7 @@ func _fire_tick(state: CityState, cov: Dictionary, fire: Dictionary, dt: float) 
 		if not active:
 			continue
 		var c := _covered(state, cov, "fire", int(b["id"]))
-		var r := minf(1.0, float(b.get("fire_risk", 0.0)) + rate * dt * (cm if c else 1.0))
+		var r := minf(_density(state, cov, b, fills, "fire"), float(b.get("fire_risk", 0.0)) + rate * dt * (cm if c else 1.0))
 		b["fire_risk"] = r
 		if r > 0.0:
 			cands.append(b)
@@ -192,6 +208,15 @@ func _fire_tick(state: CityState, cov: Dictionary, fire: Dictionary, dt: float) 
 			break
 
 
+## 밀도 값(v0.5): base + per_fill × (그 층 쓰인 칸/부지 칸) + per_depth × 덮인 층 수. kind = fire(위험 상한) | disease(오물 속도 배수).
+func _density(state: CityState, cov: Dictionary, b: Dictionary, fills: Dictionary, kind: String) -> float:
+	var z: int = (b["pos"] as Vector3i).z
+	if not fills.has(z):
+		fills[z] = minf(1.0, float(Cover.used_cells_fast(sim, state, z)) / float(maxi(1, sim.W * sim.H)))
+	var k := "hazards.%s.density." % kind
+	return float(sim.cfg(k + "base", 0.1)) + float(sim.cfg(k + "per_fill", 0.5)) * float(fills[z]) + float(sim.cfg(k + "per_depth", 0.1)) * float(cov["depth"].get(int(b["id"]), 0))
+
+
 func _max_burning(n_used: int) -> int:
 	return int(_f("max_burning", 2)) + n_used / maxi(1, int(_f("burning_per", 150)))
 
@@ -204,9 +229,12 @@ func _ignite(state: CityState, cov: Dictionary, b: Dictionary, spread: bool) -> 
 	_cells_set(state, b, "burn", "burning")
 	_bump(state)
 	state.stat_add("fires", 1.0)
+	var pos: Vector3i = b["pos"]
 	if not state.stats.has("first_fire_day"):
 		state.stats["first_fire_day"] = state.econ_days
-	var pos: Vector3i = b["pos"]
+		var card := {"title": "불", "text": "처음으로 불이 났다. 칸이 빽빽하고 위에 덮인 층이 많을수록 불은 자주 난다. 불밥통 골목의 범위(같은 층과 위아래 한 층) 안에서는 금방 꺼지고, 밖에서는 옆과 위로 번져 건물이 탄다. 탄 건물은 수리해야 한다."}
+		state.emit("first_fire", {"bid": int(b["id"]), "pos": pos, "card": card})
+		sim.chron(state, "first_fire", "성채에 처음으로 불이 났다(%d층, %s)." % [pos.z + 1, _bname(b)], true)
 	state.emit("fire_spread" if spread else "fire_started", {"bid": int(b["id"]), "pos": pos})
 	state.emit("building_changed", {"bid": int(b["id"])})
 	var nm := _bname(b)
@@ -385,11 +413,15 @@ func _disease_tick(state: CityState, cov: Dictionary, dis: Dictionary, dt: float
 	var total := 0.0
 	var n_sick := 0
 	var nh := 0
+	var fills := {}
+	var idle_trash := 1.0 - float(state.flags.get("idle_trash_cut", 0.0))      # 쉬었음시민의 소일: 오물이 조금 천천히 쌓인다
+	var yeonu_mult := float(sim.cfg("org.yeonu_disease_mult", 2.0))
 	for b: Dictionary in cov["houses"]:
 		nh += 1
 		var tr := float(b.get("trash", 0.0))
 		var res := int(b["residents"])
 		var tc := _covered(state, cov, "trash", int(b["id"]))
+		var dens := _density(state, cov, b, fills, "disease") * idle_trash
 		if tc:
 			# 수거 범위 안: 새로 덮이면 먼저 싹 치우고(tclean), 그 뒤로는 넝마주이가 다 못 따라간 몫이 covered_mult만큼 천천히 쌓여 covered_cap에서 멈춘다
 			if not b.get("tcov", false):
@@ -402,13 +434,13 @@ func _disease_tick(state: CityState, cov: Dictionary, dis: Dictionary, dt: float
 			elif tr > ccap:
 				tr = maxf(ccap, tr - clear * dt)
 			elif active and res > 0:
-				tr = minf(ccap, tr + per * cm * dt * float(res) / maxf(1.0, float(b["cap"])))
+				tr = minf(ccap, tr + per * dens * cm * dt * float(res) / maxf(1.0, float(b["cap"])))
 		else:
 			if b.get("tcov", false):
 				b.erase("tcov")
 				b.erase("tclean")
 			if active and res > 0:
-				tr = minf(1.0, tr + per * dt * float(res) / maxf(1.0, float(b["cap"])))
+				tr = minf(1.0, tr + per * dens * dt * float(res) / maxf(1.0, float(b["cap"])))
 		if tr != float(b.get("trash", 0.0)):
 			b["trash"] = tr
 			var shown := snappedf(tr, 0.1)
@@ -427,6 +459,8 @@ func _disease_tick(state: CityState, cov: Dictionary, dis: Dictionary, dt: float
 			elif tc and tr >= ccap - 1e-6:
 				w = cw      # 범위 안이어도 오래 쌓이면 가끔 작은 병(의원 범위면 금방 낫고, 나으면 넝마주이가 싹 치운다)
 			if w > 0.0:
+				if str(b.get("org_near", "")) in ["yeonu", "both"]:
+					w *= yeonu_mult           # 연우당 옆: 병이 더 잘 난다
 				cands.append(b)
 				weights.append(w)
 				total += w
@@ -435,7 +469,7 @@ func _disease_tick(state: CityState, cov: Dictionary, dis: Dictionary, dt: float
 	var cap := maxi(int(_s("max_sick_min", 6)), int(float(nh) * _s("max_sick_frac", 0.08)))
 	if n_sick >= cap or state.econ_days - float(dis.get("last", -99.0)) < _s("min_gap_days", 0.2):
 		return
-	var p := minf(0.5, total * _s("outbreak_per_day", 0.08) * dt)
+	var p := minf(0.5, total * _s("outbreak_per_day", 0.08) * dt * (1.0 - float(state.flags.get("idle_disease_cut", 0.0))))
 	if sim.roll(state) >= p:
 		return
 	var x := sim.roll(state) * total
@@ -472,6 +506,9 @@ func _outbreak(state: CityState, cov: Dictionary, b: Dictionary, room: int) -> v
 	state.stat_add("sick_houses", float(bids.size()))
 	if not state.stats.has("first_outbreak_day"):
 		state.stats["first_outbreak_day"] = state.econ_days
+		var card := {"title": "병", "text": "처음으로 병이 돌았다. 사람이 빽빽하고 위에 덮인 층이 많을수록 오물은 빨리 쌓이고, 오물이 쌓인 집에서 병이 난다. 밤배꾼이 오물을 치우고 봉합방이 앓는 집을 낫게 한다. 앓는 집은 일손이 줄고 오래 앓으면 주민이 떠난다."}
+		state.emit("first_disease", {"bids": bids, "pos": o, "card": card})
+		sim.chron(state, "first_disease", "성채에 처음으로 병이 돌았다(%d층, 주거 %d채)." % [o.z + 1, bids.size()], true)
 	state.emit("outbreak", {"bids": bids, "pos": o})
 	sim.say(state, "%d층 오물 더미 옆에서 병이 돈다. 주거 %d채가 앓는다%s." % [o.z + 1, bids.size(),
 		"" if _covered(state, cov, "clinic", int(b["id"])) else " — 봉합방 범위 밖이라 오래 간다"], "bad")

@@ -1,5 +1,5 @@
 {
- "_comment": "해금 단계(v0.4). cond = Expr 조건(지표: pop.tN = 계층 인구(대기 포함), count.<시설>, floors, happy_held.<n> = 도시 행복도가 n 이상으로 이어진 경제일, money, day). 한 번 열리면 닫히지 않는다. grade_name/title = 성채 등급·호칭(§8). features = 정책 칸 등. 사치 시설(luxury)은 '행복도 n을 m일 유지' 조건을 함께 쓴다.",
+ "_comment": "해금 단계(v0.4). cond = Expr 조건(지표: pop.tN = 계층 인구(대기 포함), count.<시설>, floors, happy_held.<n> = 도시 행복도가 n 이상으로 이어진 경제일, money, day). 한 번 열리면 닫히지 않는다. grade_name/title = 성채 등급·호칭(§8). features = 정책 칸 등. 사치 시설(luxury)은 '행복도 n을 m일 유지' 조건을 함께 쓴다. v0.5: 불·병은 층이 아니라 밀도에서 나므로 불밥통·밤배꾼·봉합방은 층이 아니라 계층으로 열린다.",
  "status": "실험값",
  "items": {
   "start": {
@@ -32,7 +32,9 @@
     "candle_shop",
     "shrine",
     "warehouse",
-    "scrapyard"
+    "scrapyard",
+    "fire_bucket",
+    "warehouse_small"
    ],
    "grade_name": "판자촌",
    "title": "방백"
@@ -48,8 +50,7 @@
    ],
    "unlocks": [
     "brewery",
-    "water_tank",
-    "noodle_mill"
+    "water_tank"
    ]
   },
   "t2_1": {
@@ -63,12 +64,15 @@
    ],
    "unlocks": [
     "market_alley",
-    "noodle_stall",
     "rag_collect",
     "tailor",
     "soap_shop",
     "teahouse",
-    "gambling_den"
+    "gambling_den",
+    "burger",
+    "rat_farm",
+    "trash_guild",
+    "clinic"
    ],
    "grade_name": "골목",
    "title": "방백"
@@ -82,9 +86,7 @@
      2
     ]
    ],
-   "unlocks": [
-    "fire_bucket"
-   ]
+   "unlocks": []
   },
   "t2_40": {
    "order": 5,
@@ -97,8 +99,8 @@
    ],
    "unlocks": [
     "trade_post",
-    "rat_farm",
-    "study"
+    "study",
+    "warehouse_big"
    ],
    "features": [
     "policy_slot_1"
@@ -132,10 +134,7 @@
      3
     ]
    ],
-   "unlocks": [
-    "trash_guild",
-    "clinic"
-   ]
+   "unlocks": []
   },
   "t3_1": {
    "order": 8,
@@ -148,11 +147,12 @@
    ],
    "unlocks": [
     "market_hall",
-    "burger",
     "karaoke",
     "radio_shop",
     "suit_shop",
-    "water_pipe"
+    "water_pipe",
+    "noodle_stall",
+    "noodle_mill"
    ],
    "grade_name": "성채",
    "title": "방백"
@@ -304,8 +304,7 @@
    ],
    "unlocks": [],
    "grade_name": "구룡성채",
-   "title": "방백",
-   "final": true
+   "title": "방백"
   }
  }
 }

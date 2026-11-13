@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# v0.5부터 쓰지 않는다. godot/data/**.json이 원본이고, 이 생성기를 돌리면 v0.5 데이터(조직·창고 세 크기·먹을 것 순서 등)를 v0.4로 덮어쓴다. 돌리지 마라.
 """v0.4(PC) 콘텐츠를 한 번에 쓰는 생성기 — 한 번 돌린 뒤에는 godot/data/**.json이 원본이다(튜닝은 JSON을 직접 고친다).
 이름·설명은 docs/GDD_PC.md §8의 결: 주민 = 황무지식, 관직 = 능청 관공서식, 가게 = 간판 농담. 한자 없음.
 실행: python3 simulation/gen_v4_data.py  (godot/data/를 덮어쓴다 — 첫 작성용)"""

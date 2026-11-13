@@ -1,5 +1,27 @@
 # SIM 노트
 
+## v0.5 — 2026-11-14, 브랜치 `wip/v05-sim` (코어 시스템 확정)
+
+기획은 `docs/DESIGN_v0.5.md`, 계약은 `docs/ARCHITECTURE.md` "v5 계약 변경", 정한 것·남은 것은 `docs/progress_v05_sim.md`. 숫자는 전부 임시값이다.
+
+| 규칙 | 어디에 | 켜고 끄기 / 수치 |
+|---|---|---|
+| 민력·연표·고요시간·마지막 장 | `systems/chronicle.gd`, `Calendar.gd`, `Sim.chron()` | systems의 `chronicle` · config `calendar.*` `quiet.*` `chronicle.max` |
+| 조직(층 규칙·치안·갈등·부랑자·시민 영향) | `systems/org.gd`, space의 `_org_conflict`, `Sim.build_cost` | systems의 `org` · config `org.*` · 시설 `org`, `neutral` |
+| 쉬었음시민 소일 | `systems/idle.gd` (flags → needs·hazards가 읽음) | systems의 `idle` · config `idle.*` |
+| 새는 돈 | `systems/finance.gd` `leak_info` | config `finance.leak.on` 등 |
+| 창고 세 크기 | `Cover` `wh`·`wh_floors`, `Sim.cap_of`·`store_mult`, production `_produce` | config `storage.*` · 시설 `storage_cells` |
+| 불·병 밀도 | `hazards.gd` `_density` | config `hazards.*.floor=1`, `hazards.*.density`, `announce_on` |
+| 아래층 어둠·빈 칸 행복 | `Cover`(depth·gap, 덮임 등급 키에 들어감) → `needs.gd` `_phase2` | config `layers.*` · 수정치 `happy.depth` |
+| 물 층당 +5% | `utilities.gd` | `layers.water_per_floor` |
+| 받침(철거 값) | `space.gd` `_demolish_cost` | `layers.demolish_per_floor` |
+| 먹을 것 순서 | needs.json · unlocks.json · goods.json(grade) · buildings.json(burger 일손 t2) | 데이터 |
+
+- 시스템끼리 직접 부르지 않는다: org → hazards 점화는 `state.flags.ignite_q`, idle → needs·hazards는 `flags.idle_*`(행복 값이 바뀔 때만 `Sim.mods_changed`로 needs 캐시를 비운다).
+- `needs`의 덮임 등급 키에 (덮인 층 수, 빈 칸 수)가 들어간다 — 등급이 늘어 같은 시장·서비스를 받는 집도 층·이웃에 따라 따로 계산된다.
+- 저장에 새로 들어가는 정수 키는 `CityState._INT_KEYS`에 더했다(`year`·`idle_count`·`pop`·`mods_rev`). 이 목록에 없는 정수는 불러온 뒤 `4.0`으로 써져 왕복 시험이 깨진다.
+- 수정치 키 추가: `happy.depth`.
+
 ## v4 (PC) — 2026-11-13, 브랜치 `sim4`
 
 기준: `docs/GDD_PC.md`, `docs/ARCHITECTURE.md`의 "v4 (PC판) 계약 변경", `docs/DECISIONS.md` 라운드 9·10.

@@ -67,6 +67,9 @@ func tick(state: CityState, dt: float) -> void:
 func _produce(state: CityState, b: Dictionary, d: Dictionary, x: float, dt: float) -> float:
 	var rec: Dictionary = d["recipe"]
 	dt *= sim.mod(state, "prod.all")    # 연구·정책: 처리량(원료와 산출을 함께) 배수
+	var sm := sim.store_mult(state, b)  # v0.5: 창고가 덮지 않는 층이면 조금 느리다
+	b["wh_slow"] = sm < 1.0
+	dt *= sm
 	var eff := x
 	if eff <= 0.0:
 		return 0.0

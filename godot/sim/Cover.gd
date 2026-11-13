@@ -6,7 +6,9 @@ extends RefCounted
 ## 결과: {markets:{hbid:[fbid…]}, services:{hbid:{tag:[fbid…]}}, noise:{hbid:n}, served:{fbid:n},
 ##        warehouses:n, posts:n, teams:n, by_prio:[fbid…], houses:[주거 dict…](buildings 순서), facs:[완공 시설 dict…],
 ##        cls:{hbid:덮임 등급}, cls_mk/cls_sv/cls_noise:[등급별], vice:[음성 시설 bid…],
-##        hz:{tag:{bid:[fbid…]}}(방재 범위 — 주거와 시설 모두, config hazards.tags), sky:[하늘이 필요한 시설 bid…]}
+##        hz:{tag:{bid:[fbid…]}}(방재 범위 — 주거와 시설 모두, config hazards.tags), sky:[하늘이 필요한 시설 bid…],
+##        v0.5: wh:[[fbid, 칸수, z]…](창고), wh_cells:n(창고 칸수 합), wh_floors:{z:true}(창고가 덮는 층), depth:{bid:위에 덮인 층 수},
+##        gap:{hbid:빈 칸과 맞닿은 수(0..4)}, cls_depth/cls_gap:[등급별], org:{bid:"thirteen"|"yeonu"}(조직 시설)}
 ## 주의: houses/facs는 상태의 dict 참조다. 건물 dict를 통째로 바꾸는 코드는 반드시 state.layout_changed()를 부른다.
 
 
@@ -83,7 +85,7 @@ static func range_cells(sim: Sim, o: Vector3i, w: int, h: int, d: int, rg: Dicti
 
 static func build(sim: Sim, state: CityState) -> Dictionary:
 	var c := {"markets": {}, "services": {}, "noise": {}, "served": {}, "warehouses": 0, "posts": 0, "teams": 0,
-		"by_prio": [], "houses": [], "facs": [], "cls": {}, "cls_mk": [], "cls_sv": [], "cls_noise": [], "vice": [], "ranged": [], "sites": [],
+		"by_prio": [], "houses": [], "facs": [], "cls": {}, "cls_mk": [], "cls_sv": [], "cls_noise": [], "cls_depth": [], "cls_gap": [], "vice": [], "wh": [], "wh_cells": 0, "wh_floors": {}, "depth": {}, "gap": {}, "org": {}, "ranged": [], "sites": [],
 		"floor_houses": {}, "floor_fac_cells": {}, "hz": {}, "sky": [], "all": []}
 	var ranged: Array = []      # [fbid, origin, w, h, d, rg, is_market, services(주거용), hz_tags]
 	var noisy: Array = []
@@ -117,6 +119,13 @@ static func build(sim: Sim, state: CityState) -> Dictionary:
 		var d := sim.bdef(str(b["type"]))
 		if d.get("storage", false):
 			c["warehouses"] += 1
+			var sc := int(d.get("storage_cells", 2))
+			c["wh"].append([bid, sc, bz])
+			c["wh_cells"] += sc
+			for zz: int in _wh_floors(sc, bz):
+				c["wh_floors"][zz] = true
+		if d.has("org"):
+			c["org"][bid] = str(d["org"])
 		c["posts"] += int(d.get("contract_slots", 0))
 		c["teams"] += int(d.get("teams", 0))
 		if d.has("vice") or "vice" in d.get("tags", []):
@@ -139,6 +148,8 @@ static func build(sim: Sim, state: CityState) -> Dictionary:
 			noisy.append(b)
 		var pi := prio.find(str(d.get("priority", "other")))
 		buckets[pi if pi >= 0 else prio.size()].append(bid)
+	for b2: Dictionary in c["all"]:
+		c["depth"][int(b2["id"])] = depth_of_b(state, b2, sim.F)
 	for bk: Array in buckets:
 		c["by_prio"].append_array(bk)
 	# 우선순위 묶음(같은 순위끼리, 순위 순서): [[순위 이름, [시설 정보…]]…]
@@ -200,7 +211,10 @@ static func build(sim: Sim, state: CityState) -> Dictionary:
 				n += 1
 		c["noise"][hbid] = n
 		# 같은 시장·서비스 접근 + 같은 소음 = 같은 "덮임 등급"(needs가 등급 단위로 한 번만 계산한다)
-		var key := "%s/%s/%d" % [str(mk), str(sv), n]
+		var dep: int = c["depth"].get(hbid, 0)
+		var gp := gap_count(state, pos, sim)
+		c["gap"][hbid] = gp
+		var key := "%s/%s/%d/%d/%d" % [str(mk), str(sv), n, dep, gp]
 		var ci: int = cls_of.get(key, -1)
 		if ci < 0:
 			ci = (c["cls_mk"] as Array).size()
@@ -208,8 +222,53 @@ static func build(sim: Sim, state: CityState) -> Dictionary:
 			c["cls_mk"].append(mk)
 			c["cls_sv"].append(sv)
 			c["cls_noise"].append(n)
+			c["cls_depth"].append(dep)
+			c["cls_gap"].append(gp)
 		c["cls"][hbid] = ci
 	return c
+
+
+## 창고 칸수 → 덮는 층: 1칸 = 그 층, 2칸 = 그 층 + 위층, 4칸 = 위·아래 층까지.
+static func _wh_floors(cells: int, z: int) -> Array:
+	if cells >= 4:
+		return [z - 1, z, z + 1]
+	if cells >= 2:
+		return [z, z + 1]
+	return [z]
+
+
+## 칸 하나 위에 덮인 층 수(v0.5): 같은 (x,y) 기둥에서 위쪽 층 중 건물 칸이나 골조가 있는 층의 수.
+static func depth_of(state: CityState, p: Vector3i, floors: int) -> int:
+	var n := 0
+	for z: int in range(p.z + 1, floors):
+		var q := Vector3i(p.x, p.y, z)
+		if state.cells.has(q) or state.supports.has(q):
+			n += 1
+	return n
+
+
+## 건물(여러 칸)의 덮인 층 수 = 발자국 칸 중 가장 큰 값(맨 위층 기준).
+static func depth_of_b(state: CityState, b: Dictionary, floors: int) -> int:
+	var k := dims(b)
+	var top := (b["pos"] as Vector3i).z + k.z - 1
+	var best := 0
+	for dx: int in k.x:
+		for dy: int in k.y:
+			best = maxi(best, depth_of(state, Vector3i(b["pos"].x + dx, b["pos"].y + dy, top), floors))
+	return best
+
+
+## 주거 칸과 맞닿은(가로·세로 4방향) 같은 층의 빈 칸 수. 부지 밖은 세지 않는다.
+static func gap_count(state: CityState, p: Vector3i, sim: Sim) -> int:
+	var n := 0
+	for dv: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		var x := p.x + dv.x
+		var y := p.y + dv.y
+		if x < 0 or y < 0 or x >= sim.W or y >= sim.H:
+			continue
+		if not state.cells.has(Vector3i(x, y, p.z)):
+			n += 1
+	return n
 
 
 ## 쓰이는 칸 수(z층): 주민 1명 이상인 주거 + 완공 시설 칸(그 층에 걸친 칸). 빈 판잣집·공사장·골조만 있는 칸 = 0.

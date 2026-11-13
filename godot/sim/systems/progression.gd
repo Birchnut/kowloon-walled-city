@@ -86,6 +86,8 @@ func _check(state: CityState) -> void:
 				state.identity["title"] = str(u["title"])
 			state.emit("milestone", {"grade": state.milestone, "grade_name": state.identity["grade_name"], "title": state.identity.get("title", "")})
 			if int(u.get("order", 0)) > 0:
+				sim.chron(state, "grade_reached", "성채가 %s의 모습이 되었다." % str(u["grade_name"]), true)
+			if int(u.get("order", 0)) > 0:
 				sim.say(state, "성채 등급: %s. 이제 사람들은 %s(이)라 부른다." % [u["grade_name"], state.identity.get("title", "")], "good")
 		if not names.is_empty() and int(u.get("order", 0)) > 0:
 			sim.say(state, "새로 지을 수 있다: %s" % ", ".join(names), "good")

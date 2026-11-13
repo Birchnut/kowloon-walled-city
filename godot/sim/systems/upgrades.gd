@@ -87,7 +87,10 @@ func apply(state: CityState, name: String, args: Dictionary) -> Variant:
 	for bid: int in p["bids"]:
 		var b: Dictionary = state.buildings[bid]
 		var t := int(b["tier"])
-		b["upgrading"] = {"to": t + 1, "material": mat, "done_at": state.econ_days + float(_cost(t).get("days", 0.05))}
+		var wait := float(_cost(t).get("days", 0.05))
+		if sim.enabled.has("org") and str(b.get("org_near", "")) in ["thirteen", "both"]:
+			wait *= float(sim.cfg("org.debt_wait_mult", 1.5))      # 십삼요회 옆: 빚 때문에 승급 대기가 길다
+		b["upgrading"] = {"to": t + 1, "material": mat, "done_at": state.econ_days + wait}
 		b["upgradable"] = false
 		b["ready"] = false
 		state.cells[b["pos"]]["scaffold"] = true
@@ -137,6 +140,7 @@ func _finish(state: CityState, b: Dictionary) -> void:
 	if not state.stats.has(key):
 		state.stats[key] = state.econ_days
 	state.stat_add("upgrades_t%d" % new_t, 1.0)
+	sim.chron(state, "first_upgrade_t%d" % new_t, ("첫 승급이 끝났다. " if new_t == 2 else "") + "첫 %s의 집이 섰다." % sim.tname(new_t), true)
 	if movers > 0:
 		var moved := _move_into(state, old_t, movers, int(b["id"]))
 		var left := movers - moved

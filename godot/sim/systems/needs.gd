@@ -28,6 +28,10 @@ func setup(s: Sim) -> void:
 	for k: String in ["grace_days", "short_recover_mult", "move_in_per_day", "move_out_per_day", "happiness_base", "happiness_per_luxury",
 			"happiness_basic_short", "noise_penalty", "tax_mult_min", "tax_mult_max", "advance_tax_bonus", "luxury_tax_bonus"]:
 		_c[k] = float(sim.cfg(P + k, DEF[k]))
+	_depth_pen = float(sim.cfg("layers.depth_happy_per_floor", 2.0))
+	_depth_max = float(sim.cfg("layers.depth_happy_max", 10.0))
+	_gap_bonus = float(sim.cfg("layers.gap_happy", 1.0))
+	_gap_max = float(sim.cfg("layers.gap_happy_max", 2.0))
 	_has_up.clear()
 	for t: int in range(1, sim.max_tier() + 1):
 		_has_up[t] = not sim.item("upgrade_costs", "%dto%d" % [t, t + 1]).is_empty()
@@ -226,6 +230,13 @@ var _sick_tax := 0.8
 var _acls_of: PackedInt32Array = PackedInt32Array()   # cls → acls
 var _acls_tab: Array = []                              # acls → {"mkt:g"/"svc:tag": cause}
 var _acls_noise: PackedInt32Array = PackedInt32Array()
+var _acls_depth: PackedInt32Array = PackedInt32Array()   # v0.5: 덮인 층 수(어둡고 습함), 빈 칸과 맞닿은 수
+var _acls_gap: PackedInt32Array = PackedInt32Array()
+var _depth_k := 1.0            # 수정치 happy.depth(연구 거울 채광통: −0.5 → 감점이 절반)
+var _depth_pen := 2.0          # config layers.* (임시값 v0.5)
+var _depth_max := 10.0
+var _gap_bonus := 1.0
+var _gap_max := 2.0
 
 
 func _access(state: CityState, cov: Dictionary) -> void:
@@ -247,6 +258,10 @@ func _access(state: CityState, cov: Dictionary) -> void:
 	_acls_of.resize(cls_mk.size())
 	_acls_tab.clear()
 	_acls_noise.clear()
+	_acls_depth.clear()
+	_acls_gap.clear()
+	var cls_depth: Array = cov["cls_depth"]
+	var cls_gap: Array = cov["cls_gap"]
 	var seen := {}
 	for ci: int in cls_mk.size():
 		var tab := {}
@@ -259,13 +274,15 @@ func _access(state: CityState, cov: Dictionary) -> void:
 			var c := _service_cause(state, cls_sv[ci], tg)
 			tab["svc:" + tg] = c
 			parts.append(c)
-		var k := "%s#%d" % ["|".join(parts), int(cls_noise[ci])]
+		var k := "%s#%d#%d#%d" % ["|".join(parts), int(cls_noise[ci]), int(cls_depth[ci]), int(cls_gap[ci])]
 		var a: int = seen.get(k, -1)
 		if a < 0:
 			a = _acls_tab.size()
 			seen[k] = a
 			_acls_tab.append(tab)
 			_acls_noise.append(int(cls_noise[ci]))
+			_acls_depth.append(int(cls_depth[ci]))
+			_acls_gap.append(int(cls_gap[ci]))
 		_acls_of[ci] = a
 
 
@@ -516,7 +533,7 @@ func _p2valid(p: P2, fill: Dictionary, state: CityState) -> bool:
 	return ok
 
 
-func _phase2(state: CityState, e: Ent, rpos: bool, fill: Dictionary, noise: int) -> P2:
+func _phase2(state: CityState, e: Ent, rpos: bool, fill: Dictionary, noise: int, depth: int = 0, gap: int = 0) -> P2:
 	var p := P2.new()
 	var t := e.t
 	var target_f := 0.0
@@ -590,7 +607,8 @@ func _phase2(state: CityState, e: Ent, rpos: bool, fill: Dictionary, noise: int)
 	var td := sim.tier(t)
 	p.target = mini(int(td.get("cap", 4)), int(floorf(target_f + 1e-6)))
 	var hp: float = _c["happiness_base"] + _hap_add + float(lux_met) * _c["happiness_per_luxury"] \
-		+ float(basic_short) * _c["happiness_basic_short"] - float(noise) * _c["noise_penalty"] * maxf(0.0, _noise_k)
+		+ float(basic_short) * _c["happiness_basic_short"] - float(noise) * _c["noise_penalty"] * maxf(0.0, _noise_k) \
+		- minf(_depth_max, float(depth) * _depth_pen) * maxf(0.0, _depth_k) + minf(_gap_max, float(gap) * _gap_bonus)
 	p.hp = clampf(hp, 0.0, 100.0)
 	var hm := lerpf(_c["tax_mult_min"], _c["tax_mult_max"], p.hp / 100.0)
 	p.taxk = float(td.get("tax", 0.0)) * (1.0 + float(adv_met) * _c["advance_tax_bonus"] + float(lux_met) * _c["luxury_tax_bonus"]) * hm * _tax_k
@@ -658,7 +676,8 @@ func tick(state: CityState, dt: float) -> void:
 		_hset.fill(0)
 		_food_k = sim.mod(state, "cons.food")
 		_all_k = sim.mod(state, "cons.all")
-		_hap_add = sim.mod_sum(state, "happy.base")
+		_hap_add = sim.mod_sum(state, "happy.base") + float(state.flags.get("idle_happy", 0.0))
+		_depth_k = sim.mod(state, "happy.depth")
 		_noise_k = sim.mod(state, "happy.noise")
 		_tax_k = sim.mod(state, "tax.all")
 		_movein_k = sim.mod(state, "movein")
@@ -850,7 +869,7 @@ func tick(state: CityState, dt: float) -> void:
 		var t: int = b["tier"]
 		var p: P2 = e.p2[1 if rpos else 0]
 		if p == null or not _p2valid(p, fill, state):
-			p = _phase2(state, e, rpos, fill, _acls_noise[e.ci])
+			p = _phase2(state, e, rpos, fill, _acls_noise[e.ci], _acls_depth[e.ci], _acls_gap[e.ci])
 			p.vstep = _stepno
 			e.p2[1 if rpos else 0] = p
 		var tl: Array = by_tier.get(t, [])

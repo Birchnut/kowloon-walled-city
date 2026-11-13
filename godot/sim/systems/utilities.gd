@@ -23,13 +23,14 @@ func tick(state: CityState, _dt: float) -> void:
 		pt[t] = float(sim.tier(t).get("power", 0.0))
 	var rw := 0.0
 	var rp := 0.0
+	var wfloor := float(sim.cfg("layers.water_per_floor", 0.05))
 	for b: Dictionary in sim.cover(state)["houses"]:
 		var ri: int = b["residents"]
 		if ri <= 0:
 			continue
 		var r := float(ri)
 		var ti: int = b["tier"]
-		rw += r * wt[ti]
+		rw += r * wt[ti] * (1.0 + wfloor * float((b["pos"] as Vector3i).z))
 		rp += r * pt[ti]
 		var ex: Dictionary = b.get("util_extra", {})
 		if not ex.is_empty():

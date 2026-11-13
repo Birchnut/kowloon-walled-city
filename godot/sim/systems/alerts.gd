@@ -148,20 +148,23 @@ func _compute(state: CityState) -> Dictionary:
 		var unrep := (f["burnt"] as Array).filter(func(x: Dictionary) -> bool: return not x.get("repairing", false))
 		if not unrep.is_empty():
 			r["burnt"] = _al("burnt", "탄 건물 %d — 수리해야 다시 쓴다(%s)" % [unrep.size(), unrep[0]["repair_text"]], "warn", "inspect", int(unrep[0]["bid"]))
-		if bool(f["on"]) and float(f["covered_pct"]) < 0.9:
+		if bool(f["on"]) and float(f["covered_pct"]) < 0.9 and sim.is_unlocked(state, "fire_bucket"):
 			var g := float(f["grace_left"])
 			r["fire_cover"] = _al("fire_cover", ("%s 뒤부터 불이 난다 — " % Queries.day_text(g) if g > 0.0 else "") + "소방 범위가 쓰이는 칸의 %d%%만 덮는다" % int(roundf(float(f["covered_pct"]) * 100.0)),
 				"warn" if g > 0.0 or float(f["covered_pct"]) >= 0.6 else "bad", "lens", "fire")
 		if not (d["sick"] as Array).is_empty():
 			var p2: Vector3i = d["sick"][0]["pos"]
 			r["sick"] = _al("sick", "주거 %d채가 앓는다 — 일손 절반, 오래 가면 떠난다" % (d["sick"] as Array).size(), "bad", "focus", "%d,%d,%d" % [p2.x, p2.y, p2.z])
-		if bool(d["on"]) and (float(d["trash_covered_pct"]) < 0.9 or float(d["covered_pct"]) < 0.8):
+		if bool(d["on"]) and sim.is_unlocked(state, "trash_guild") and (float(d["trash_covered_pct"]) < 0.9 or float(d["covered_pct"]) < 0.8):
 			var low_t := float(d["trash_covered_pct"]) < 0.9
 			r["trash_cover"] = _al("trash_cover", ("오물 수거가 주거의 %d%%만 덮는다 — 밤배꾼을 더" % int(roundf(float(d["trash_covered_pct"]) * 100.0))) if low_t \
 				else ("봉합방이 주거의 %d%%만 덮는다 — 봉합방을 더" % int(roundf(float(d["covered_pct"]) * 100.0))), "warn", "lens", "trash" if low_t else "clinic")
+	# 조직(v0.5): 다툼이 차오르면
+	if sim.enabled.has("org") and float(state.flags.get("conflict", 0.0)) >= float(sim.cfg("org.conflict.max", 100.0)) * 0.7:
+		r["conflict"] = _al("conflict", "십삼요회와 연우당의 다툼 %d — 가득 차면 불이나 파손이 난다" % int(float(state.flags.get("conflict", 0.0))), "warn", "build", "vice")
 	# 단속 위험
 	if state.heat >= float(sim.cfg("heat.warn", 50)):
-		r["heat"] = _al("heat", "바깥의 시선 %d — 80이면 두 우산 시설 하나가 닫힌다" % int(state.heat), "warn", "keep", "policies")
+		r["heat"] = _al("heat", "바깥의 시선 %d — 80이면 조직 시설 하나가 닫힌다" % int(state.heat), "warn", "keep", "policies")
 	for b: Dictionary in sim.cover(state)["facs"]:
 		if b.get("raid_until", -1.0) != null and float(b.get("raid_until", -1.0)) > state.econ_days:
 			r["raid"] = _al("raid", Sim.kr("%s이(가) 바깥의 시선으로 닫혀 있다" % sim.bdef(str(b["type"])).get("name", "")), "bad", "inspect", int(b["id"]))

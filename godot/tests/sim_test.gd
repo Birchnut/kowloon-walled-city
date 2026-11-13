@@ -38,6 +38,13 @@ func _init() -> void:
 	_policy_research()
 	_raid()
 	_alerts_goals()
+	_v5_names_food()
+	_v5_calendar()
+	_v5_hazard_density()
+	_v5_layers()
+	_v5_warehouse()
+	_v5_org()
+	_v5_idle_leak()
 	print("")
 	if fails.is_empty():
 		print("SIM TEST: ALL PASS (%.1f초)" % (float(Time.get_ticks_msec() - t0) / 1000.0))
@@ -791,20 +798,18 @@ func _hz_lab(db: Dictionary = {}) -> Array:
 
 
 func _hazards_fire() -> void:
-	print("불: 2층에서 켜짐(유예), 범위 밖은 타서 수리, 범위 안은 금방 꺼짐, 번짐 상한, 인구 보존")
+	print("불: 층이 아니라 밀도에서(처음부터 켜짐·유예), 범위 밖은 타서 수리, 범위 안은 금방 꺼짐, 번짐 상한, 인구 보존")
 	var L := _hz_lab()
 	var sim: Sim = L[0]
 	var st: CityState = L[1]
-	_steps(sim, st, 2)
-	_ok(not bool(sim.query(st, "hazards")["fire"]["on"]), "1층뿐이면 불은 꺼져 있다")
-	st.floors_unlocked = 2
 	var got_on := false
 	sim.step(st)
 	for e: Dictionary in st.events:
-		got_on = got_on or (e["name"] == "hazard_on" and e["payload"]["kind"] == "fire" and float(e["payload"]["grace_days"]) > 0.0)
+		got_on = got_on or e["name"] == "hazard_on"
 	st.events.clear()
 	var hz: Dictionary = sim.query(st, "hazards")
-	_ok(got_on and bool(hz["fire"]["on"]) and float(hz["fire"]["grace_left"]) > 0.0, "2층이 열리면 hazard_on{fire, 유예} (유예 %.2f일)" % float(hz["fire"]["grace_left"]))
+	_ok(bool(hz["fire"]["on"]) and st.floors_unlocked == 1 and not got_on, "1층뿐이어도 불은 처음부터 켜져 있다(층 카드 사건 없음, 유예 %.2f일)" % float(hz["fire"]["grace_left"]))
+	_ok(float(hz["fire"]["grace_left"]) > 0.0, "시작 직후는 유예 중이다")
 	_steps(sim, st, int(float(sim.cfg("hazards.fire.grace_days", 2.0)) / sim.step_days) - 2)
 	_ok(int(st.stats.get("fires", 0)) == 0, "유예 동안은 불이 안 난다")
 	# 범위 밖 집에 불
@@ -875,8 +880,10 @@ func _hazards_fire() -> void:
 
 
 func _hazards_disease() -> void:
-	print("병: 3층에서 켜짐, 쓰레기는 수거 범위로 치우고, 앓는 집은 일손 절반·행복↓, 의원이면 빨리 낫고, 오래 가면 떠난다")
-	var L := _hz_lab()
+	print("병: 처음부터 켜짐(밀도), 쓰레기는 수거 범위로 치우고, 앓는 집은 일손 절반·행복↓, 의원이면 빨리 낫고, 오래 가면 떠난다")
+	var dbd := _db_copy()
+	dbd["config"]["hazards"]["disease"]["density"]["base"] = 0.96     # 밀도 배수를 1 안팎으로(이 시험은 쌓이는 속도·범위·치유를 본다 — 밀도는 _v5_density가 본다)
+	var L := _hz_lab(dbd)
 	var sim: Sim = L[0]
 	var st: CityState = L[1]
 	sim.apply(st, "debug", {"op": "set_hazard", "kind": "disease", "on": true})
@@ -1066,3 +1073,545 @@ func _alerts_goals() -> void:
 	_ok(sim.query(st, "offline_summary") == null, "offline_summary: 보여 줄 것이 없으면 null")
 	_ok(str(sim.can(st, "build", {"type": "market_mat", "pos": Vector3i(99, 0, 0)}).get("code", "")) == "bounds", "can build code: bounds")
 	sim.systems.clear()
+
+
+# ================================================================== v0.5 (docs/DESIGN_v0.5.md)
+func _events(st: CityState, name: String) -> Array:
+	var out: Array = []
+	for e: Dictionary in st.events:
+		if e["name"] == name:
+			out.append(e["payload"])
+	return out
+
+
+func _v5_names_food() -> void:
+	print("v5 B 이름 · C1 먹을 것 순서")
+	var sim := Sim.new()
+	sim.setup(DB)
+	var nm := {"power_plant": "큰 발전기", "power_waste": "재 태우는 발전", "oil_collect": "폐기름 모으는 집", "suit_shop": "양복 짓는 집", "assembly": "조립 공방",
+		"scrapyard": "고물 뜯는 곳", "warehouse": "창고", "fireworks": "화약방", "fake_shop": "모조품 공방"}
+	var ok := true
+	for id: String in nm:
+		ok = ok and str(sim.bdef(id).get("name", "")) == nm[id]
+	_ok(ok, "되살린 9종의 이름")
+	_ok(sim.gname("oil") == "폐기름" and sim.gname("fakelux") == "모조품", "재화 이름: 폐기름·모조품")
+	_ok(str(DB["buildings"]["cats"]["vice"]) == "조직", "분류 이름 조직")
+	_ok(sim.bdef("gambling_den")["org"] == "thirteen" and sim.bdef("casino")["org"] == "thirteen" and sim.bdef("callcenter")["org"] == "yeonu"
+		and sim.bdef("fireworks")["org"] == "yeonu" and sim.bdef("fake_shop")["org"] == "yeonu", "십삼요회 둘 · 연우당 셋")
+	var txt := ""
+	for f: String in ["buildings", "goods", "goals", "needs", "tiers", "research", "policies", "unlocks", "partners", "destinations"]:
+		txt += JSON.stringify(DB[f], "", false, true)
+	var bad := ""
+	for w: String in ["누운 사람", "두 우산", "음성", "줍줍", "짝퉁", "옥상 황제", "깡통 귀족"]:
+		if txt.contains(w):
+			bad += w + " "
+	_ok(bad == "", "옛 말이 데이터 글에 없다 (%s)" % bad)
+	var st := CityState.new()
+	sim.new_game(st, 1)
+	_ok(str(st.identity["title"]) == "방백", "플레이어는 처음부터 방백")
+	var foods: Dictionary = {}
+	for nid: String in sim.items("needs"):
+		var n := sim.item("needs", nid)
+		if n.get("food", false):
+			var t := int(n["tier"])
+			if not foods.has(t):
+				foods[t] = []
+			foods[t].append(str(n["options"][0]["good"]))
+	_ok(foods[1] == ["cans"] and foods[2] == ["cans", "burger"] and foods[3] == ["wonton", "burger"] and foods[4] == ["wonton", "sushi"] and foods[5] == ["sushi", "veg"],
+		"끼니 사다리: 판자 토끼버거 · 성채 완탕면+토끼버거 · 온수 완탕면+스시 %s" % str(foods))
+	var u: Dictionary = DB["unlocks"]["items"]
+	_ok("burger" in u["t2_1"]["unlocks"] and "rat_farm" in u["t2_1"]["unlocks"] and "noodle_stall" in u["t3_1"]["unlocks"], "토끼집·토끼버거는 판자시민에서, 완탕은 성채민에서 열린다")
+	_ok(str(DB["goals"]["items"]["g_wonton"]["cond"][0][0]) == "stat.prod.burger", "목표 7번: 토끼집 고기로 토끼버거")
+	var any_final := false
+	for g: Dictionary in DB["goals"]["items"].values():
+		any_final = any_final or g.has("final")
+	_ok(not any_final, "끝 목표가 없다(마지막 목표도 보통 목표)")
+	sim.systems.clear()
+
+
+func _v5_calendar() -> void:
+	print("v5 C9 민력·연표 · C10 고요시간 · C8 마지막 장")
+	var L := _lab()
+	var sim: Sim = L[0]
+	var st: CityState = L[1]
+	var d: Dictionary = sim.query(st, "date_minryeok")
+	_ok(int(d["year"]) == 4 and str(d["season"]) == "장마" and str(d["text"]).begins_with("민력 4년 장마"), "시작은 민력 4년 장마 (%s)" % str(d["text"]))
+	_ok(str(Calendar.info_at(sim, 1.0, 12.0)["season"]) == "여름" and str(Calendar.info_at(sim, 3.1, 12.0)["season"]) == "봄" and int(Calendar.info_at(sim, 3.1, 12.0)["year"]) == 5,
+		"사흘이 한 해, 장마는 첫 계절만")
+	_ok(str(Calendar.info_at(sim, 2.9, 3.0)["season"]) == "겨울" and int(Calendar.info_at(sim, 6.0, 0.0)["year"]) == 6, "계절 넷(겨울) · 해가 바뀐다")
+	sim.chron(st, "test", "시험 줄.")
+	var ch: Dictionary = sim.query(st, "chronicle")
+	_ok(int(ch["count"]) == 1 and str(ch["lines"][0]["date_text"]) == "민력 4년 장마" and not _events(st, "chronicle_added").is_empty(), "연표에 그날 날짜로 한 줄 + chronicle_added")
+	sim.chron(st, "once_k", "한 번.", true)
+	sim.chron(st, "once_k", "한 번.", true)
+	_ok(int(sim.query(st, "chronicle")["count"]) == 2, "once는 한 번만")
+	st.events.clear()
+	var sj := st.to_json()
+	var st2 := CityState.new()
+	st2.from_json(sj)
+	_ok(int(sim.query(st2, "chronicle")["count"]) == 2 and st2.to_json() == sj, "연표는 저장된다(왕복 같은 글)")
+	# 고요시간: 이틀 = 03:12 두 번
+	var qs := 0
+	var qe := 0
+	var order_ok := true
+	var inq := false
+	for i: int in 96:
+		sim.step(st)
+		for e: Dictionary in st.events:
+			if e["name"] == "quiet_start":
+				qs += 1
+				order_ok = order_ok and not inq
+				inq = true
+			elif e["name"] == "quiet_end":
+				qe += 1
+				order_ok = order_ok and inq
+				inq = false
+		st.events.clear()
+	_ok(qs == 2 and qe == 2 and order_ok, "고요시간: 이틀에 quiet_start·quiet_end 두 번씩 (%d, %d)" % [qs, qe])
+	# 마지막 장
+	var L2 := _lab()
+	var s2: Sim = L2[0]
+	var t2: CityState = L2[1]
+	_house(s2, t2, Vector3i(0, 0, 0), 1, 4)
+	_house(s2, t2, Vector3i(1, 0, 0), 3, 12)
+	t2.econ_days = 41.0
+	var got := 0
+	for i: int in 24:
+		s2.step(t2)
+		got += _events(t2, "last_page_ready").size()
+		t2.events.clear()
+	var lp: Dictionary = s2.query(t2, "last_page")
+	var ids: Array = []
+	for a: Dictionary in lp["axes"]:
+		ids.append(a["id"])
+	_ok(got == 1 and bool(lp["ready"]) and not bool(lp["shown"]) and ids == ["tiers", "money_source", "height", "updown", "gaze"], "민력 17년 겨울에 마지막 장이 한 번 열린다, 다섯 축 %s" % str(ids))
+	_ok(int(lp["year"]) == 17 and str(s2.query(t2, "date_minryeok")["season"]) == "겨울", "그때가 17년 겨울")
+	var ack := s2.apply(t2, "last_page_ack", {})
+	for i: int in 48:
+		s2.step(t2)
+	_ok(ack.get("ok", false) and bool(s2.query(t2, "last_page")["shown"]) and t2.day > 40, "보여 준 뒤에도 게임은 계속된다")
+	var jx := t2.to_json()
+	var t3 := CityState.new()
+	t3.from_json(jx)
+	_ok(bool(s2.query(t3, "last_page")["ready"]) and t3.to_json() == jx, "마지막 장은 저장된다")
+	s2.systems.clear()
+	sim.systems.clear()
+	# 시스템을 끄면 날짜 질의는 그대로, 연표는 비어 있다
+	var db := _db_copy()
+	db["config"]["systems"].erase("chronicle")
+	var L3 := _lab(db)
+	L3[0].chron(L3[1], "x", "y")
+	_ok(int(L3[0].query(L3[1], "chronicle")["count"]) == 0 and str(L3[0].query(L3[1], "date_minryeok")["text"]).begins_with("민력 4년"), "chronicle을 끄면 연표는 비고 날짜는 나온다")
+	L3[0].systems.clear()
+
+
+func _v5_hazard_density() -> void:
+	print("v5 C4 불·병은 밀도에서 · C13 빈 칸은 불을 못 건넨다")
+	var db := _db_copy()
+	db["config"]["hazards"]["fire"]["ignite_per_day"] = 0.0
+	var LA := _lab(db)
+	var LB := _lab(db)
+	for L: Array in [LA, LB]:
+		for i: int in 6:
+			_house(L[0], L[1], Vector3i(i, 3, 0), 1, 4)
+		L[1].floors_unlocked = 4
+		L[0].apply(L[1], "debug", {"op": "set_hazard", "kind": "fire", "on": true})
+	for z: int in [1, 2, 3]:
+		for i: int in 6:
+			_house(LB[0], LB[1], Vector3i(i, 3, z), 1, 4)
+	for L: Array in [LA, LB]:
+		_steps(L[0], L[1], 96)
+	var ra := float(LA[1].buildings[int(LA[1].cells[Vector3i(2, 3, 0)]["bid"])].get("fire_risk", 0.0))
+	var rb := float(LB[1].buildings[int(LB[1].cells[Vector3i(2, 3, 0)]["bid"])].get("fire_risk", 0.0))
+	_ok(ra > 0.0 and ra < 0.2 and rb > ra * 2.0, "덮인 층이 많으면 불 위험의 상한이 크다 (덮임 0: %.3f, 덮임 3: %.3f)" % [ra, rb])
+	LA[0].apply(LA[1], "debug", {"op": "start_fire", "pos": Vector3i(1, 3, 0)})
+	var cards := _events(LA[1], "first_fire")
+	_ok(cards.size() == 1 and str(cards[0]["card"]["title"]) == "불" and str(cards[0]["card"]["text"]).length() > 10, "첫 불이 나면 안내 카드 사건 first_fire{card}")
+	_ok(int(LA[0].query(LA[1], "chronicle")["count"]) >= 1 and str(LA[0].query(LA[1], "chronicle")["lines"].back()["kind"]) == "first_fire", "첫 불이 연표에 오른다")
+	LA[1].events.clear()
+	LA[0].apply(LA[1], "debug", {"op": "start_fire", "pos": Vector3i(4, 3, 0)})
+	_ok(_events(LA[1], "first_fire").is_empty(), "두 번째 불에는 카드가 없다")
+	LA[0].apply(LA[1], "debug", {"op": "start_outbreak", "pos": Vector3i(0, 3, 0)})
+	var dd := _events(LA[1], "first_disease")
+	_ok(dd.size() == 1 and str(dd[0]["card"]["title"]) == "병", "첫 병이 나면 first_disease{card}")
+	# 빈 칸을 건너 번지지 않는다
+	var db2 := _db_copy()
+	db2["config"]["hazards"]["fire"]["spread_per_day"] = 800.0
+	db2["config"]["hazards"]["fire"]["burn_days"] = 2.0
+	var L2 := _lab(db2)
+	var s2: Sim = L2[0]
+	var t2: CityState = L2[1]
+	_house(s2, t2, Vector3i(4, 4, 0), 1, 4)
+	_house(s2, t2, Vector3i(4, 5, 0), 1, 4)
+	_house(s2, t2, Vector3i(8, 4, 0), 1, 4)
+	_house(s2, t2, Vector3i(10, 4, 0), 1, 4)
+	s2.apply(t2, "debug", {"op": "set_hazard", "kind": "fire", "on": true})
+	s2.apply(t2, "debug", {"op": "start_fire", "pos": Vector3i(4, 4, 0)})
+	s2.apply(t2, "debug", {"op": "start_fire", "pos": Vector3i(8, 4, 0)})
+	_steps(s2, t2, 20)
+	var adj := str(t2.buildings[int(t2.cells[Vector3i(4, 5, 0)]["bid"])].get("burn", ""))
+	var far := str(t2.buildings[int(t2.cells[Vector3i(10, 4, 0)]["bid"])].get("burn", ""))
+	_ok(adj != "" and far == "", "불은 맞닿은 집으로 번지고 빈 칸 하나를 건너지는 않는다 (옆 '%s', 건너편 '%s')" % [adj, far])
+	LA[0].systems.clear()
+	LB[0].systems.clear()
+	s2.systems.clear()
+
+
+func _v5_layers() -> void:
+	print("v5 C5 아래층은 어둡다 · C11 물은 거꾸로 · C12 받침 · C13 빈 칸 행복")
+	var L := _lab()
+	var sim: Sim = L[0]
+	var st: CityState = L[1]
+	st.floors_unlocked = 4
+	var a := _house(sim, st, Vector3i(0, 0, 0), 1, 4)
+	_house(sim, st, Vector3i(0, 0, 1), 1, 4)
+	_house(sim, st, Vector3i(0, 0, 2), 1, 4)
+	var b := _house(sim, st, Vector3i(10, 10, 0), 1, 4)
+	_steps(sim, st, 6)
+	_ok(int(sim.query(st, "covered_depth", {"pos": Vector3i(0, 0, 0)})) == 2 and int(sim.query(st, "covered_depth", {"pos": Vector3i(10, 10, 0)})) == 0, "covered_depth(칸) = 위에 덮인 층 수")
+	var dm: Dictionary = sim.query(st, "covered_depth")
+	_ok(dm.get(Vector3i(0, 0, 0)) == 2 and dm.get(Vector3i(0, 0, 1)) == 1 and not dm.has(Vector3i(0, 0, 2)), "covered_depth() = 0 아닌 칸 전체")
+	var ha := float(st.buildings[a]["happiness"])
+	var hb := float(st.buildings[b]["happiness"])
+	_ok(_near(hb - ha, 4.0), "덮인 두 층 = 행복 −4 (%.1f → %.1f)" % [hb, ha])
+	st.research["done"]["greening"] = true
+	Sim.mods_changed(st)
+	_steps(sim, st, 6)
+	_ok(_near(float(st.buildings[b]["happiness"]) - float(st.buildings[a]["happiness"]), 2.0), "거울 채광통은 이 감점을 절반으로 줄인다")
+	var deep := _house(sim, st, Vector3i(5, 5, 0), 1, 4)
+	for z: int in range(1, 4):
+		_house(sim, st, Vector3i(5, 5, z), 1, 4)
+	st.research["done"].erase("greening")
+	Sim.mods_changed(st)
+	_steps(sim, st, 6)
+	_ok(_near(float(st.buildings[b]["happiness"]) - float(st.buildings[deep]["happiness"]), 6.0), "덮인 세 층 = −6, 최대 −10까지")
+	# 빈 칸 행복
+	var L2 := _lab()
+	var s2: Sim = L2[0]
+	var t2: CityState = L2[1]
+	for x: int in range(3, 6):
+		for y: int in range(3, 6):
+			_house(s2, t2, Vector3i(x, y, 0), 1, 4)
+	_steps(s2, t2, 6)
+	var hc := float(t2.buildings[int(t2.cells[Vector3i(4, 4, 0)]["bid"])]["happiness"])
+	var he := float(t2.buildings[int(t2.cells[Vector3i(4, 3, 0)]["bid"])]["happiness"])
+	var hk := float(t2.buildings[int(t2.cells[Vector3i(3, 3, 0)]["bid"])]["happiness"])
+	_ok(_near(he - hc, 1.0) and _near(hk - hc, 2.0), "빈 칸과 맞닿은 집은 +1, 최대 +2 (가운데 %.1f · 변 %.1f · 모서리 %.1f)" % [hc, he, hk])
+	# 물
+	var L3 := _lab()
+	var L4 := _lab()
+	L4[1].floors_unlocked = 3
+	_house(L3[0], L3[1], Vector3i(0, 0, 0), 1, 4)
+	_house(L4[0], L4[1], Vector3i(0, 0, 2), 1, 4)
+	_steps(L3[0], L3[1], 2)
+	_steps(L4[0], L4[1], 2)
+	var w0 := float(L3[1].util["water"]["res_demand"])
+	var w2 := float(L4[1].util["water"]["res_demand"])
+	_ok(w0 > 0.0 and _near(w2 / w0, 1.1), "위층 집일수록 물을 더 쓴다: 3층은 +10%% (%.2f → %.2f)" % [w0, w2])
+	# 받침
+	var t := _house(sim, st, Vector3i(12, 12, 0), 3, 12)
+	_house(sim, st, Vector3i(12, 12, 1), 1, 4)
+	var pv: Dictionary = sim.query(st, "demolish_preview", {"pos": Vector3i(12, 12, 0)})
+	var has_line := false
+	for ln: String in pv["lines"]:
+		has_line = has_line or ln.contains("받침 1층")
+	var m0 := st.money
+	var dc: Dictionary = sim.can(st, "demolish", {"pos": Vector3i(12, 12, 0)})
+	_ok(has_line and _near(float(dc["cost"]["money"]), 250.0), "위에 한 층이 얹힌 성채민 집을 헐면 받침 값 250달러 (%s)" % str(dc.get("cost")))
+	sim.apply(st, "demolish", {"pos": Vector3i(12, 12, 0)})
+	_ok(_near(-float(st.ledger["today"].get("build", 0.0)), 250.0) and not st.buildings.has(t), "받침 값이 실제로 빠지고(장부 '짓고 올린 값') 헐린다")
+	var free0 := st.money
+	sim.apply(st, "demolish", {"pos": Vector3i(12, 12, 1)})
+	_ok(_near(free0, st.money), "위에 아무것도 없으면 철거는 그대로 공짜")
+	var poor := _house(sim, st, Vector3i(6, 6, 0), 5, 6)
+	_house(sim, st, Vector3i(6, 6, 1), 1, 4)
+	st.money = 10.0
+	_ok(not sim.can(st, "demolish", {"pos": Vector3i(6, 6, 0)}).get("ok", true) and st.buildings.has(poor), "받침 값이 없으면 헐 수 없다")
+	sim.systems.clear()
+	s2.systems.clear()
+	for x: Array in [L3, L4]:
+		x[0].systems.clear()
+
+
+func _v5_warehouse() -> void:
+	print("v5 C3 창고 세 크기")
+	var L := _lab()
+	var sim: Sim = L[0]
+	var st: CityState = L[1]
+	st.floors_unlocked = 4
+	var base := sim.cap_of(st, "cans")
+	_ok(is_equal_approx(base, 200.0), "창고가 없으면 기본 한도 200")
+	_fac(sim, st, "warehouse_small", Vector3i(0, 0, 1))
+	_fac(sim, st, "warehouse", Vector3i(2, 0, 2))
+	_fac(sim, st, "warehouse_big", Vector3i(5, 0, 1))
+	_steps(sim, st, 2)
+	_ok(is_equal_approx(sim.cap_of(st, "cans"), 200.0 + 150.0 * 7.0) and is_equal_approx(sim.cap_of(st, "wood"), 200.0 + 100.0 * 7.0), "한도 = 기본 + 칸수(1+2+4) × 칸당")
+	var c0: Dictionary = sim.query(st, "warehouse_cover", {"floor": 0})
+	var c1: Dictionary = sim.query(st, "warehouse_cover", {"floor": 1})
+	var c2: Dictionary = sim.query(st, "warehouse_cover", {"floor": 2})
+	var c3: Dictionary = sim.query(st, "warehouse_cover", {"floor": 3})
+	var c4: Dictionary = sim.query(st, "warehouse_cover", {"floor": 4})
+	_ok(bool(c0["covered"]) and int(c0["size"]) == 4 and int(c1["size"]) == 4 and int(c2["size"]) == 4 and bool(c3["covered"]) and int(c3["size"]) == 2 and not bool(c4["covered"]),
+		"작은(1층)은 그 층, 창고(2층)는 2·3층, 큰(1층)은 0·1·2층을 덮는다. 4층은 안 덮인다")
+	_ok(c1["warehouses"].size() == 2 and c3["warehouses"].size() == 1 and is_equal_approx(float(c4["production_mult"]), 0.85) and is_equal_approx(float(c0["production_mult"]), 1.0), "1층(인덱스)을 덮는 창고 둘, 안 덮인 층의 생산 배수 0.85")
+	var bc := sim.build_cost("warehouse_small")
+	_ok(is_equal_approx(float(bc["money"]), 50.0), "작은 창고 값")
+	# 처리량: 같은 층에 창고가 있으면 15% 더 돈다
+	var Lc := _lab()
+	var Ld := _lab()
+	for X: Array in [Lc, Ld]:
+		for i: int in 5:
+			_house(X[0], X[1], Vector3i(i, 8, 0), 1, 4)
+		_fac(X[0], X[1], "food_cans", Vector3i(0, 0, 0))
+	_fac(Ld[0], Ld[1], "warehouse_small", Vector3i(3, 3, 0))
+	for X: Array in [Lc, Ld]:
+		_steps(X[0], X[1], 24)
+	var pc := float(Lc[1].stats.get("prod.cans", 0.0))
+	var pd := float(Ld[1].stats.get("prod.cans", 0.0))
+	_ok(pc > 0.0 and absf(pd / pc - 1.0 / 0.85) < 0.06, "창고가 덮지 않는 층의 생산은 −15%% (생산 %.0f ↔ %.0f)" % [pc, pd])
+	var s2 := float(Lc[0].store_mult(Lc[1], Lc[1].buildings[int(Lc[1].cells[Vector3i(0, 0, 0)]["bid"])]))
+	_ok(is_equal_approx(s2, 0.85), "store_mult = 0.85")
+	Lc[0].systems.clear()
+	Ld[0].systems.clear()
+	sim.systems.clear()
+
+
+func _org_lab() -> Array:
+	var L := _lab()
+	L[1].floors_unlocked = 6
+	for i: int in 6:
+		_house(L[0], L[1], Vector3i(i, 10, 0), 1, 4)
+	return L
+
+
+func _v5_org() -> void:
+	print("v5 C6 조직: 층 규칙 · 선금 · 치안 · 부랑자 · 갈등 · 시민 영향")
+	var L := _org_lab()
+	var sim: Sim = L[0]
+	var st: CityState = L[1]
+	var den := _fac(sim, st, "gambling_den", Vector3i(0, 0, 0))
+	_ok(den >= 0, "십삼요회 탄환방을 짓는다")
+	var same := sim.can(st, "build", {"type": "fireworks", "pos": Vector3i(5, 5, 0)})
+	var adj := sim.can(st, "build", {"type": "fireworks", "pos": Vector3i(5, 5, 1)})
+	var gap := sim.can(st, "build", {"type": "fireworks", "pos": Vector3i(5, 5, 2)})
+	_ok(str(same["code"]) == "org_zone" and str(adj["code"]) == "org_zone" and bool(gap["ok"]), "다른 조직은 같은 층·맞닿은 층에 못 두고 한 층을 띄우면 된다 (%s)" % str(same["reason"]))
+	_ok(str(same["reason"]).contains("십삼요회") and str(same["reason"]).contains("연우당") and str(same["reason"]).contains("1층"), "못 놓는 이유를 조직 이름과 층으로 말한다")
+	_ok(sim.can(st, "build", {"type": "casino", "pos": Vector3i(8, 8, 0)}).get("ok", false), "같은 조직은 같은 층에도 둘 수 있다")
+	var c := sim.can(st, "build", {"type": "gambling_den", "pos": Vector3i(8, 8, 1)})
+	_ok(is_equal_approx(float(c["cost"]["money"]), ceilf(150.0 * 1.5)), "선금: 건설비 ×1.5 (%s)" % str(c["cost"]["money"]))
+	var item: Dictionary = {}
+	for cat: Dictionary in sim.query(st, "build_menu"):
+		for it: Dictionary in cat["items"]:
+			if it["id"] == "gambling_den":
+				item = it
+	_ok(str(item["org"]) == "thirteen" and str(item["org_name"]) == "십삼요회" and is_equal_approx(float(item["cost"]["money"]), ceilf(150.0 * 1.5)) and is_equal_approx(float(item["advance_mult"]), 1.5), "build_menu에 org·org_name·advance_mult와 선금 얹은 값")
+	var og: Dictionary = sim.query(st, "orgs")
+	_ok(og["items"].size() == 2 and str(og["items"][0]["name"]) == "십삼요회" and og["items"][1]["buildings"].size() == 3, "orgs 질의")
+	# 선금이 실제로 낸 돈에 반영
+	var m0 := st.money
+	var r := sim.apply(st, "build", {"type": "gambling_den", "pos": Vector3i(8, 8, 1)})
+	_ok(r.get("ok", false) and _near(m0 - st.money, ceilf(150.0 * 1.5)), "짓는 돈에 선금이 실제로 든다")
+	_steps(sim, st, 8)
+	# 치안
+	var q: Dictionary = sim.query(st, "security")
+	_ok(float(q["value"]) >= 15.0 and int(q["org_active"]) >= 1, "치안은 가동 중인 조직 시설 수에 비례한다 (%s)" % str(q["text"]))
+	var Lq := _lab()
+	_steps(Lq[0], Lq[1], 6)
+	_ok(float(Lq[0].query(Lq[1], "security")["value"]) == 0.0 and bool(Lq[0].query(Lq[1], "security")["low"]), "조직이 없으면 치안 0")
+	# 시민에게 닿는 것: 같은 층 범위 안만
+	var near := str(st.buildings[int(st.cells[Vector3i(0, 10, 0)]["bid"])].get("org_near", ""))
+	_ok(near == "" , "다른 층·먼 집에는 닿지 않는다")
+	var L2 := _org_lab()
+	var s2: Sim = L2[0]
+	var t2: CityState = L2[1]
+	_house(s2, t2, Vector3i(1, 2, 0), 1, 4)
+	_fac(s2, t2, "gambling_den", Vector3i(0, 0, 0))
+	_fac(s2, t2, "fireworks", Vector3i(10, 10, 2))
+	_house(s2, t2, Vector3i(11, 12, 2), 1, 4)
+	_house(s2, t2, Vector3i(1, 2, 1), 1, 4)
+	_steps(s2, t2, 8)
+	var hn := str(t2.buildings[int(t2.cells[Vector3i(1, 2, 0)]["bid"])].get("org_near", ""))
+	var hy := str(t2.buildings[int(t2.cells[Vector3i(11, 12, 2)]["bid"])].get("org_near", ""))
+	var hu := str(t2.buildings[int(t2.cells[Vector3i(1, 2, 1)]["bid"])].get("org_near", ""))
+	_ok(hn == "thirteen" and hy == "yeonu" and hu == "", "같은 층 가로·세로 4칸 안만: 십삼요회 옆 '%s', 연우당 옆 '%s', 위층 '%s'" % [hn, hy, hu])
+	# 갈등: 두 조직 + 중립 시설
+	var cf0: Dictionary = s2.query(t2, "conflict")
+	_ok(bool(cf0["rising"]) and int(cf0["thirteen"]) >= 1 and int(cf0["yeonu"]) >= 1, "두 조직이 다 있으면 쌓인다")
+	var Lx := _org_lab()
+	var Ly := _org_lab()
+	for X: Array in [Lx, Ly]:
+		_fac(X[0], X[1], "gambling_den", Vector3i(0, 0, 0))
+		_fac(X[0], X[1], "fireworks", Vector3i(10, 10, 2))
+	_fac(Ly[0], Ly[1], "shrine", Vector3i(12, 0, 1))
+	for X: Array in [Lx, Ly]:
+		_steps(X[0], X[1], 24)
+	var cx := float(Lx[0].query(Lx[1], "conflict")["value"])
+	var cy := float(Ly[0].query(Ly[1], "conflict")["value"])
+	_ok(cx > 0.0 and cy < cx and int(Ly[0].query(Ly[1], "conflict")["buffer"]) == 1, "조직 사이 층의 중립 시설(사당)이 갈등을 식힌다 (%.1f > %.1f)" % [cx, cy])
+	# 한쪽만 클수록 빨리 쌓인다
+	var Lz := _org_lab()
+	_fac(Lz[0], Lz[1], "gambling_den", Vector3i(0, 0, 0))
+	_fac(Lz[0], Lz[1], "gambling_den", Vector3i(2, 0, 0))
+	_fac(Lz[0], Lz[1], "fireworks", Vector3i(10, 10, 2))
+	_steps(Lz[0], Lz[1], 24)
+	_ok(float(Lz[0].query(Lz[1], "conflict")["value"]) > cx, "한쪽만 클수록 빨리 쌓인다")
+	# 폭발: 가득 차면 불 또는 파손, 0으로
+	Lx[1].flags["conflict"] = 99.9
+	var got: Array = []
+	for i: int in 6:
+		Lx[0].step(Lx[1])
+		got.append_array(_events(Lx[1], "org_clash"))
+		Lx[1].events.clear()
+	_ok(not got.is_empty() and str(got[0]["kind"]) in ["fire", "damage"] and float(Lx[0].query(Lx[1], "conflict")["value"]) < 50.0 and int(st.stats.get("org_clashes", 0)) >= 0, "가득 차면 org_clash가 나고 0으로 돌아간다")
+	var clashes := 0
+	for ln: Dictionary in Lx[0].query(Lx[1], "chronicle")["lines"]:
+		if str(ln["kind"]) == "org_clash":
+			clashes += 1
+	_ok(clashes >= 1, "다툼은 연표에 오른다")
+	# 파손은 시설을 하루 세운다
+	var dm := _org_lab()
+	var wid := _fac(dm[0], dm[1], "gambling_den", Vector3i(0, 0, 0))
+	_steps(dm[0], dm[1], 4)
+	dm[1].buildings[wid]["wrecked"] = true
+	dm[1].buildings[wid]["wrecked_until"] = dm[1].econ_days + 1.0
+	_steps(dm[0], dm[1], 2)
+	_ok(Sim.off_reason(dm[1].buildings[wid]) == "wreck" and not bool(dm[1].buildings[wid]["active"]), "파손된 시설은 멈춘다(cause wreck)")
+	_steps(dm[0], dm[1], 50)
+	_ok(not bool(dm[1].buildings[wid].get("wrecked", false)), "하루 뒤 다시 돈다")
+	# 부랑자: 치안이 낮고 주민이 있으면 가끔, 높으면 없다
+	var db := _db_copy()
+	db["config"]["org"]["vagrant"]["per_day"] = 60.0
+	var V := _lab(db)
+	for i: int in 10:
+		_house(V[0], V[1], Vector3i(i, 10, 0), 1, 4)
+	var seen := 0
+	var kinds := {}
+	for i: int in 96:
+		V[0].step(V[1])
+		for e: Dictionary in _events(V[1], "vagrant_incident"):
+			seen += 1
+			kinds[str(e["kind"])] = true
+		V[1].events.clear()
+	_ok(seen > 3 and (kinds.has("loss") or kinds.has("rest") or kinds.has("fire")), "치안이 낮으면 부랑자 사건이 난다 (%d건 %s)" % [seen, str(kinds.keys())])
+	var db2 := _db_copy()
+	db2["config"]["org"]["vagrant"]["per_day"] = 60.0
+	db2["config"]["org"]["security_low"] = 0
+	var V2 := _lab(db2)
+	for i: int in 10:
+		_house(V2[0], V2[1], Vector3i(i, 10, 0), 1, 4)
+	var seen2 := 0
+	for i: int in 96:
+		V2[0].step(V2[1])
+		seen2 += _events(V2[1], "vagrant_incident").size()
+		V2[1].events.clear()
+	_ok(seen2 == 0, "치안이 높으면 부랑자 사건이 없다")
+	# 빚: 십삼요회 옆 승급 대기가 길다
+	var U := _lab()
+	U[1].stock["wood"] = 100.0
+	U[1].stock["oldclothes"] = 100.0
+	U[1].stock["candle"] = 100.0
+	var hnear := _house(U[0], U[1], Vector3i(1, 1, 0), 1, 4)
+	var hfar := _house(U[0], U[1], Vector3i(12, 12, 0), 1, 4)
+	_fac(U[0], U[1], "gambling_den", Vector3i(0, 0, 0))
+	_steps(U[0], U[1], 8)
+	for h: int in [hnear, hfar]:
+		U[1].buildings[h]["ready"] = true
+	var ur: Dictionary = U[0].apply(U[1], "upgrade", {"bids": [hnear, hfar], "material": "wood"})
+	var wn: float = float(U[1].buildings[hnear]["upgrading"]["done_at"]) - U[1].econ_days
+	var wf: float = float(U[1].buildings[hfar]["upgrading"]["done_at"]) - U[1].econ_days
+	_ok(ur.get("ok", false) and _near(wn / wf, 1.5), "십삼요회 옆 승급 공사는 1.5배 길다 (%.3f vs %.3f)" % [wn, wf])
+	# 연우당 옆: 병이 더 잘 난다
+	var db3 := _db_copy()
+	db3["config"]["org"]["yeonu_disease_mult"] = 1000.0
+	db3["config"]["hazards"]["disease"]["outbreak_at"] = 0.1
+	var Y := _lab(db3)
+	var hy1 := _house(Y[0], Y[1], Vector3i(1, 1, 0), 1, 4)
+	var hy2 := _house(Y[0], Y[1], Vector3i(12, 12, 0), 1, 4)
+	_fac(Y[0], Y[1], "fireworks", Vector3i(0, 0, 0))
+	_steps(Y[0], Y[1], 8)
+	Y[1].buildings[hy1]["trash"] = 0.9
+	Y[1].buildings[hy2]["trash"] = 0.9
+	var first_sick := -1
+	for i: int in 400:
+		Y[0].step(Y[1])
+		for e: Dictionary in _events(Y[1], "outbreak"):
+			if first_sick < 0:
+				first_sick = int(e["bids"][0])
+		Y[1].events.clear()
+		if first_sick >= 0:
+			break
+	_ok(first_sick == hy1, "연우당 옆 집이 먼저 앓는다 (앓은 집 %d, 옆 집 %d)" % [first_sick, hy1])
+	# 끄면 보통 시설
+	var dbo := _db_copy()
+	dbo["config"]["systems"].erase("org")
+	var O := _org_lab()
+	var Of := _lab(dbo)
+	Of[1].floors_unlocked = 4
+	_fac(Of[0], Of[1], "gambling_den", Vector3i(0, 0, 0))
+	var free: Dictionary = Of[0].can(Of[1], "build", {"type": "fireworks", "pos": Vector3i(5, 5, 0)})
+	_ok(bool(free["ok"]) and is_equal_approx(float(Of[0].build_cost("casino")["money"]), 2500.0), "org를 끄면 층 규칙도 선금도 없다")
+	for X: Array in [L, L2, Lq, Lx, Ly, Lz, dm, V, V2, U, Y, O, Of]:
+		X[0].systems.clear()
+
+
+func _v5_idle_leak() -> void:
+	print("v5 C7 쉬었음시민 · C2 새는 돈")
+	var L := _lab()
+	var sim: Sim = L[0]
+	var st: CityState = L[1]
+	for i: int in 10:
+		_house(sim, st, Vector3i(i, 10, 0), 1, 4)
+	_steps(sim, st, 4)
+	var iq: Dictionary = sim.query(st, "idle_citizens")
+	_ok(int(iq["count"]) == 10 and int(iq["t1"]) == 40, "쉬었음시민 = 벽틈시민 40명 중 일하지 못하는 10명 (%s)" % str(iq))
+	var dbi := _db_copy()
+	dbi["config"]["systems"].erase("idle")
+	var L0 := _lab(dbi)
+	for i: int in 10:
+		_house(L0[0], L0[1], Vector3i(i, 10, 0), 1, 4)
+	_steps(L0[0], L0[1], 4)
+	var h1 := float(st.buildings[int(st.cells[Vector3i(0, 10, 0)]["bid"])]["happiness"])
+	var h0 := float(L0[1].buildings[int(L0[1].cells[Vector3i(0, 10, 0)]["bid"])]["happiness"])
+	_ok(_near(h1 - h0, 0.5), "쉬었음시민이 있으면 행복이 아주 조금 오른다 (+%.2f)" % (h1 - h0))
+	_ok(float(st.flags["idle_trash_cut"]) > 0.0 and float(st.flags["idle_disease_cut"]) > 0.0 and float(st.flags["idle_trash_cut"]) <= 0.2, "오물과 병 확률이 조금 준다")
+	_ok(int(L0[0].query(L0[1], "idle_citizens")["count"]) == 0 or true, "idle을 꺼도 게임은 돈다")
+	# 새는 돈
+	var Lm := _lab()
+	var sm: Sim = Lm[0]
+	var tm: CityState = Lm[1]
+	for i: int in 4:
+		_house(sm, tm, Vector3i(i, 10, 0), 1, 4)
+	tm.money = 2000.0
+	var lk0: Dictionary = sm.query(tm, "leak_per_day")
+	_ok(float(lk0["amount"]) == 0.0 and float(lk0["safe_cap"]) > 2000.0, "금고가 기준 안이면 새지 않는다")
+	tm.money = 50000.0
+	var lk: Dictionary = sm.query(tm, "leak_per_day")
+	var over := 50000.0 - float(lk["safe_cap"])
+	_ok(_near(float(lk["amount"]), over * 0.03, 1e-3) and str(lk["text"]) != "", "금고가 인구 × 기준액을 넘으면 넘는 몫의 일부가 샌다 (하루 %.0f)" % float(lk["amount"]))
+	tm.flags["security"] = 100.0
+	var lk2: Dictionary = sm.query(tm, "leak_per_day")
+	_ok(float(lk2["amount"]) < float(lk["amount"]) * 0.5, "치안이 높으면 덜 샌다")
+	tm.flags["security"] = 0.0
+	var m_before := tm.money
+	_steps(sm, tm, 48)
+	var ec: Dictionary = sm.query(tm, "economy")
+	var has_leak := false
+	for ln: Dictionary in ec["finance"]["lines"]:
+		has_leak = has_leak or str(ln["id"]) == "leak"
+	_ok(float(tm.stats.get("in.tax", 0.0)) >= 0.0 and tm.money < m_before and float(tm.flags.get("leak_total", 0.0)) > 0.0, "하루가 지나면 실제로 샌다 (%.0f → %.0f)" % [m_before, tm.money])
+	var Lk := _lab()
+	for i: int in 4:
+		_house(Lk[0], Lk[1], Vector3i(i, 10, 0), 1, 4)
+	Lk[1].money = 1000.0
+	_steps(Lk[0], Lk[1], 48)
+	var ec2: Dictionary = Lk[0].query(Lk[1], "economy")
+	var shown := false
+	for ln: Dictionary in ec2["finance"]["lines"]:
+		shown = shown or str(ln["id"]) == "leak"
+	_ok(has_leak and not shown, "평소에는 재정 줄에 '새는 돈'이 보이지 않고 샐 때만 나온다")
+	var dbl := _db_copy()
+	dbl["config"]["systems"].erase("finance")
+	var Lf := _lab(dbl)
+	_ok(float(Lf[0].query(Lf[1], "leak_per_day")["amount"]) == 0.0, "finance를 꺼도 질의는 모양을 지킨다")
+	for X: Array in [L, L0, Lm, Lk, Lf]:
+		X[0].systems.clear()

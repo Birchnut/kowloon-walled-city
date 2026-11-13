@@ -83,6 +83,7 @@ func _check_floor(state: CityState) -> void:
 		state.emit("floor_unlocked", {"z": z + 1})
 		state.stats["floor_%d_day" % (z + 2)] = state.econ_days
 		sim.say(state, "%d층 받침이 올랐다. 그 위에도 지을 수 있다(아래가 비면 골조가 선다)." % (z + 2), "good")
+		sim.chron(state, "floor", "%d층 받침이 올랐다." % (z + 2))
 
 
 # ------------------------------------------------------------------ 자리·골조
@@ -152,7 +153,12 @@ func can(state: CityState, name: String, args: Dictionary) -> Variant:
 			var c := state.cell(args.get("pos", Vector3i(-1, -1, -1)))
 			if c.is_empty():
 				return {"ok": false, "reason": "철거할 건물이 없다.", "supports": 0, "cost": {}}
-			return {"ok": true, "reason": "", "supports": 0, "cost": {}}
+			var b: Dictionary = state.buildings.get(int(c["bid"]), {})
+			var dc := _demolish_cost(state, b)
+			if dc > state.money + 1e-9:
+				return {"ok": false, "reason": "받침 값 %s이(가) 모자란다(위에 %d개 층이 얹혀 있다)." % [Sim.won(dc), int(Cover.depth_of_b(state, b, sim.F))],
+					"code": "money", "supports": 0, "cost": {"money": dc, "goods": {}}}
+			return {"ok": true, "reason": "", "supports": 0, "cost": {"money": dc, "goods": {}}}
 		"pause":
 			var b: Dictionary = state.buildings.get(int(args.get("bid", -1)), {})
 			if b.get("kind", "") != "facility":
@@ -227,7 +233,7 @@ func _can_build(state: CityState, args: Dictionary) -> Dictionary:
 	var d := sim.bdef(type)
 	var pos: Variant = args.get("pos", null)
 	var rot := int(args.get("rot", 0)) % 2
-	var cost0: Dictionary = {"money": float(d.get("cost", {}).get("money", 0)), "goods": d.get("cost", {}).get("goods", {})}
+	var cost0: Dictionary = sim.build_cost(type)
 	var cells: Array = []
 	var fail := func(r: String, code: String, sup: Array = []) -> Dictionary:
 		return {"ok": false, "reason": r, "code": code, "supports": sup, "support_count": sup.size(), "support_cells": sup, "cells": cells, "cost": cost0}
@@ -263,9 +269,12 @@ func _can_build(state: CityState, args: Dictionary) -> Dictionary:
 	if d.get("needs_sky", false) or d.get("open_sky", false):
 		if not _sky_open(state, pos, k):
 			return fail.call("위가 뚫린 자리여야 한다(위에 건물이 있다).", "sky")
+	var oz := _org_conflict(state, type, cells)
+	if oz != "":
+		return fail.call(oz, "org_zone")
 	var sup := supports_for(state, cells)
-	var money := float(d.get("cost", {}).get("money", 0)) + _support_cost(sup.size())
-	var goods: Dictionary = d.get("cost", {}).get("goods", {})
+	var money := float(cost0["money"]) + _support_cost(sup.size())
+	var goods: Dictionary = cost0["goods"]
 	var cost := {"money": money, "goods": goods}
 	var base := {"supports": sup, "support_count": sup.size(), "support_cells": sup, "cells": cells, "cost": cost, "rot": rot,
 		"w": k.x, "h": k.y, "d": k.z, "build_days": snappedf(sim.build_days(type), 0.01)}
@@ -281,6 +290,58 @@ func _can_build(state: CityState, args: Dictionary) -> Dictionary:
 			return base
 	base.merge({"ok": true, "reason": "", "code": "ok"})
 	return base
+
+
+## 조직 층 규칙(v0.5): 십삼요회 시설과 연우당 시설은 같은 층에도, 맞닿은 층에도 둘 수 없다(사이에 한 층). 반환 ""이면 된다.
+func _org_conflict(state: CityState, type: String, cells: Array) -> String:
+	var org := str(sim.bdef(type).get("org", ""))
+	if org == "" or not sim.enabled.has("org"):
+		return ""
+	var zmin := 99
+	var zmax := -1
+	for p: Vector3i in cells:
+		zmin = mini(zmin, p.z)
+		zmax = maxi(zmax, p.z)
+	var cov := sim.cover(state)
+	var found: Array = []        # [층, 시설 id]
+	for bid: int in cov["org"]:
+		if str(cov["org"][bid]) == org:
+			continue
+		var b: Dictionary = state.buildings.get(bid, {})
+		found.append([b["pos"], str(b["type"]), Cover.dims(b).z])
+	for bid: int in cov["sites"]:
+		var s: Dictionary = state.buildings.get(bid, {})
+		var so := str(sim.bdef(str(s.get("type", ""))).get("org", ""))
+		if so != "" and so != org:
+			found.append([s["pos"], str(s["type"]), int(s.get("d", 1))])
+	for f: Array in found:
+		var z0: int = (f[0] as Vector3i).z
+		var z1: int = z0 + int(f[2]) - 1
+		if zmax >= z0 - 1 and zmin <= z1 + 1:
+			var names: Dictionary = sim.cfg("org.names", {})
+			var other := "yeonu" if org == "thirteen" else "thirteen"
+			return "%s 시설과 %s 시설은 같은 층에도, 맞닿은 층에도 둘 수 없다. %d층에 %s이(가) 있다. 사이에 한 층을 비워야 한다." % [
+				str(names.get(org, org)), str(names.get(other, other)), z0 + 1, sim.bdef(str(f[1])).get("name", f[1])]
+	return ""
+
+
+## 받침 값(v0.5): 위에 덮인 층이 있는 건물을 헐 때 드는 돈. 덮인 층 수 × layers.demolish_per_floor × 그 건물의 값. 위에 아무것도 없으면 0.
+func _demolish_cost(state: CityState, b: Dictionary) -> float:
+	if b.is_empty():
+		return 0.0
+	var per := float(sim.cfg("layers.demolish_per_floor", 0.5))
+	if per <= 0.0:
+		return 0.0
+	var depth := Cover.depth_of_b(state, b, sim.F)
+	if depth <= 0:
+		return 0.0
+	var base := 0.0
+	if b["kind"] == "house":
+		var tab: Array = sim.cfg("hazards.repair.house_money", [30, 120, 500, 1500, 3000])
+		base = float(tab[clampi(int(b.get("tier", 1)) - 1, 0, tab.size() - 1)])
+	else:
+		base = float(sim.bdef(str(b.get("type", ""))).get("cost", {}).get("money", 0))
+	return ceilf(base * per * float(depth))
 
 
 ## 이 칸들에 지으면 아래 하늘 시설이 그늘에 드나(경고 문장).
@@ -410,6 +471,12 @@ func _demolish(state: CityState, pos: Variant) -> Dictionary:
 	var bid := int(c["bid"])
 	var b: Dictionary = state.buildings[bid]
 	var cells := Cover.bcells(b)
+	var dcost := _demolish_cost(state, b)
+	if dcost > 0.0:
+		state.money -= dcost
+		state.book("build", -dcost)
+		state.stat_add("spent_demolish", dcost)
+		sim.say(state, "받침 값 %s을(를) 냈다(위에 %d개 층이 얹혀 있었다)." % [Sim.won(dcost), Cover.depth_of_b(state, b, sim.F)])
 	if b["kind"] == "house" and int(b["residents"]) > 0:
 		var t := int(b["tier"])
 		var w: Dictionary = state.waiting.get(t, {"count": 0, "days_left": 0.0})
@@ -474,7 +541,8 @@ func _demolish_preview(state: CityState, pos: Variant) -> Dictionary:
 			lines.append("%s %d명이 빈집을 찾는다(%d일 안에 못 찾으면 떠난다)." % [sim.tname(t), int(b["residents"]), int(sim.cfg("upgrade.waiting_days", 3))])
 		if t > 1:
 			lines.append("%s 계층 집과 그 자재(환불 없음)를 잃는다." % sim.tname(t))
-		lines.append("주거 철거는 돈이 들지 않는다.")
+		var hc := _demolish_cost(state, b)
+		lines.append("주거 철거는 돈이 들지 않는다." if hc <= 0.0 else "받침 %d층: 위에 층이 얹혀 있어 %s이(가) 든다." % [Cover.depth_of_b(state, b, sim.F), Sim.won(hc)])
 	else:
 		var d := sim.bdef(str(b["type"]))
 		title = "%s 철거" % d.get("name", b["type"])
@@ -491,6 +559,10 @@ func _demolish_preview(state: CityState, pos: Variant) -> Dictionary:
 			lines.append("회띠꾼 한 팀이 줄어든다(나가 있는 팀은 돌아와 짐을 푼 뒤 해산).")
 		if d.has("contract_slots"):
 			lines.append("계약 자리 %d개가 줄어든다." % int(d["contract_slots"]))
+	if b["kind"] != "house":
+		var fc := _demolish_cost(state, b)
+		if fc > 0.0:
+			lines.append("받침 %d층: 위에 층이 얹혀 있어 %s이(가) 더 든다." % [Cover.depth_of_b(state, b, sim.F), Sim.won(fc)])
 	var above := false
 	for p: Vector3i in Cover.bcells(b):
 		if state.cells.has(p + Vector3i(0, 0, 1)) or state.supports.has(p + Vector3i(0, 0, 1)):

@@ -151,13 +151,37 @@ static func dig(root: Variant, path: String, default: Variant) -> Variant:
 	return cur
 
 
-## 상품 하나의 저장 한도(창고 수 반영).
+## 상품 하나의 저장 한도(창고 칸수 합 반영: 작은 1칸 · 창고 2칸 · 큰 4칸).
 func cap_of(state: CityState, g: String) -> float:
 	var cat := str(good(g).get("cat", "consumer"))
 	var key := "material" if cat == "material" else "goods"
 	var base := float(cfg("storage.%s_base" % key, 200))
-	var per := float(cfg("storage.%s_per_warehouse" % key, 300))
-	return base + per * float(cover(state).get("warehouses", 0))
+	var per := float(cfg("storage.%s_per_cell" % key, 150))
+	return base + per * float(cover(state).get("wh_cells", 0))
+
+
+## 창고가 덮지 않는 층의 생산 시설은 느리게 돈다(v0.5, config storage.uncovered_mult). 창고 시설이 열리기 전에는 1.
+func store_mult(state: CityState, b: Dictionary) -> float:
+	var m := float(cfg("storage.uncovered_mult", 0.85))
+	if m >= 1.0:
+		return 1.0
+	if not is_unlocked(state, str(cfg("storage.uncovered_after", "warehouse_small"))) or not enabled.has("progression"):
+		return 1.0
+	return 1.0 if cover(state)["wh_floors"].has((b["pos"] as Vector3i).z) else m
+
+
+## 시설을 지을 때 내는 값(돈 + 상품). 조직 시설은 선금이 얹힌다(config org.advance_mult, 임시 ×1.5) — 돈에만.
+func build_cost(type: String) -> Dictionary:
+	var d := bdef(type)
+	var c: Dictionary = d.get("cost", {})
+	var money := float(c.get("money", 0))
+	if d.has("org"):
+		money = ceilf(money * advance_mult())
+	return {"money": money, "goods": c.get("goods", {})}
+
+
+func advance_mult() -> float:
+	return maxf(1.0, float(cfg("org.advance_mult", 1.5))) if enabled.has("org") else 1.0
 
 
 ## 시설의 인력 비율. workforce 시스템이 꺼져 있으면 1(노동 제약 없음). 일시정지·파산 정지면 0.
@@ -175,6 +199,10 @@ static func off_reason(b: Dictionary) -> String:
 		return "money"
 	if b.get("raided", false):
 		return "raid"
+	if b.get("wrecked", false):
+		return "wreck"
+	if b.get("resting", false):
+		return "rest"
 	var bn := str(b.get("burn", ""))
 	if bn == "burning":
 		return "fire"
@@ -259,6 +287,28 @@ func roll(state: CityState) -> float:
 
 func rand_seed(state: CityState) -> int:
 	return _next(state) & 0x7fffffff
+
+
+# ------------------------------------------------------------------ 연표(v0.5)
+## 연표에 한 줄을 쌓는다(저장됨, state.flags.chronicle). once = 같은 kind는 도시마다 한 번만. chronicle 시스템이 꺼져 있으면 아무것도 안 한다.
+func chron(state: CityState, kind: String, text: String, once: bool = false) -> void:
+	if not enabled.has("chronicle"):
+		return
+	var first: Dictionary = state.flags.get("chron_first", {})
+	if once:
+		if first.has(kind):
+			return
+		first[kind] = state.econ_days
+		state.flags["chron_first"] = first
+	var di := Calendar.info(self, state)
+	var lines: Array = state.flags.get("chronicle", [])
+	var line := {"day": state.day, "year": int(di["year"]), "season": str(di["season"]), "date_text": str(di["date_text"]), "text": kr(text), "kind": kind}
+	lines.append(line)
+	var mx := int(cfg("chronicle.max", 400))
+	if lines.size() > mx:
+		lines = lines.slice(lines.size() - mx)
+	state.flags["chronicle"] = lines
+	state.emit("chronicle_added", {"text": line["text"], "date_text": line["date_text"], "kind": kind})
 
 
 # ------------------------------------------------------------------ 글
