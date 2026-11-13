@@ -21,6 +21,11 @@ for f in "$OUT"/*; do
   case "$f" in *.import) ;; *) cp "$f" "$TMP/";; esac
 done
 touch "$TMP/.nojekyll"
+# 옛 모바일판(v0.3) 웹 빌드는 /mobile/ 아래에 그대로 둔다(브랜치 backup/gh-pages-v0.3 에서 꺼낸다).
+if git -C "$HERE" rev-parse -q --verify backup/gh-pages-v0.3 >/dev/null; then
+  mkdir -p "$TMP/mobile"
+  git -C "$HERE" archive backup/gh-pages-v0.3 | tar -x -C "$TMP/mobile"
+fi
 git -C "$TMP" init -q -b gh-pages
 git -C "$TMP" -c user.name="$(git -C "$HERE" config user.name || echo kowloon)" \
     -c user.email="$(git -C "$HERE" config user.email || echo kowloon@example.invalid)" \
