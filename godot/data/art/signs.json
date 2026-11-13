@@ -1,0 +1,32 @@
+{
+ "_comment": "세계 안 간판 글자(VIEW 소유). sign_script: mixed = hanja 표의 시설은 한자 간판, 나머지는 buildings.json의 한글 sign / hangul = 전부 한글(A28 되돌리기 스위치). UI 글자에는 쓰지 않는다. 글꼴 Galmuri에 吞이 없어 구룡완탕은 같은 뜻의 呑을 쓴다.",
+ "_status": "임시값(v0.5)",
+ "sign_script": "mixed",
+ "hanja": {
+  "market_mat": "市",
+  "market_alley": "市",
+  "market_hall": "市",
+  "market_mall": "市",
+  "mahjong": "麻雀",
+  "teahouse": "茶",
+  "gambling_den": "彈丸房",
+  "casino": "龍宮",
+  "dentist": "牙",
+  "bathhouse": "湯",
+  "study": "書",
+  "shrine": "祠",
+  "city_hall": "方廳",
+  "clinic": "醫",
+  "pharmacy": "藥",
+  "noodle_mill": "丸",
+  "noodle_stall": "九龍雲呑",
+  "sushi": "壽司",
+  "brewery": "酒",
+  "tailor": "衣",
+  "candle_shop": "燭",
+  "warehouse": "倉",
+  "trade_post": "會",
+  "fire_station": "水",
+  "neon_tower": "龍"
+ }
+}

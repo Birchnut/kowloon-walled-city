@@ -48,6 +48,8 @@ uniform float ground_fade = 1.0;
 uniform sampler2D cellstate : filter_nearest, repeat_disable;
 // 렌즈 색: RGB = 색, A = 세기(0이면 렌즈 대상 아님)
 uniform sampler2D lenstex : filter_nearest, repeat_disable;
+uniform sampler2D coverstate : filter_nearest, repeat_disable;  // R = 덮인 정도(0..1): 위에 층이 쌓일수록 어둡고 푸르스름하게
+uniform float cover_dark = 0.3;      // 최대 어두워짐(비율)
 uniform sampler2D hazstate : filter_nearest, repeat_disable;   // R = 불(0.5 타는 중, 1 탄 뒤) G = 병 B = 쓰레기 A = 수리 중
 uniform float doll = 0.0;            // 1 = 가까운 확대: 시설의 카메라 쪽 벽을 걷어 안을 보인다(인형의 집)
 uniform float doll_stub = 0.2;       // 걷은 벽이 남는 높이(층 단위)
@@ -152,6 +154,7 @@ void fragment() {
 	vec4 cs = vec4(1.0, 1.0, 1.0, 0.0);
 	vec4 ln = vec4(0.0);
 	vec4 hzs = vec4(0.0);
+	float cover = 0.0;
 	if (owner > 0.5) {
 		int idx = int(owner + 0.5) - 1;
 		int gx = int(grid_wh.x + 0.5);
@@ -159,6 +162,7 @@ void fragment() {
 		cs = texelFetch(cellstate, tc, 0);
 		ln = texelFetch(lenstex, tc, 0);
 		hzs = texelFetch(hazstate, tc, 0);
+		cover = texelFetch(coverstate, tc, 0).r;
 	}
 
 	// 지면: 부지에서 멀어지면 디더로 사라진다
@@ -336,6 +340,13 @@ void fragment() {
 	if (kind == 5 && cs.b < 0.5 && owner > 0.5) {
 		// 멈춘 시설의 안: 불 꺼지고 어둡다
 		col *= vec3(0.42, 0.42, 0.52);
+	}
+
+	// 덮인 아래층: 위에 층이 많이 얹힌 칸일수록 조금 어둡고 푸르스름하게(습한 느낌). 네온·불빛은 그대로
+	if (cover > 0.001 && kind != 2 && !is_emit) {
+		vec3 damp = vec3(0.86, 0.95, 1.08);
+		col = mix(col, col * damp, cover);
+		col *= 1.0 - cover_dark * cover;
 	}
 
 	// 렌즈: 주거를 색으로, 나머지는 회색으로 가라앉힌다

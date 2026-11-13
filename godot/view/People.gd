@@ -23,6 +23,8 @@ var _street: Array = []
 var _mmi: Array = []
 var _mats: Array = []
 var _cut := -1
+## 고요시간: 걷는 주민이 제자리에 멈춘다(새로 나오지도 않는다)
+var quiet := false
 var _zoom_i := 1
 var _tick := 0.0
 var _rs := 12345
@@ -519,6 +521,8 @@ func step(delta: float, t: float) -> void:
 			have[a["kind"]] = int(have.get(a["kind"], 0)) + 1
 		for kind in want:
 			var n: int = int(have.get(kind, 0))
+			if quiet and kind in ["walk", "gate"]:
+				continue
 			if n < int(want[kind]) and agents.size() < MAX_INST:
 				for i in mini(int(want[kind]) - n, 3):
 					if kind == "walk":
@@ -533,6 +537,9 @@ func step(delta: float, t: float) -> void:
 			_spawn_return(lv)
 	var keep: Array = []
 	for a in agents:
+		if quiet and str(a["kind"]) in ["walk", "gate"]:
+			keep.append(a)
+			continue
 		if _advance(a, delta):
 			keep.append(a)
 	agents = keep
@@ -609,7 +616,7 @@ func _render() -> void:
 			flip = 1.0 if sx < 0.0 else 0.0
 		elif sy > 0.0:
 			row = 2
-		var moving: bool = float(a["wait"]) <= 0.0 and (a["to"] as Vector3).distance_to(pos) > 0.01
+		var moving: bool = not (quiet and str(a["kind"]) in ["walk", "gate"]) and float(a["wait"]) <= 0.0 and (a["to"] as Vector3).distance_to(pos) > 0.01
 		var pose: String = str(a["pose"])
 		if not moving and pose == "walk":
 			pose = "stand"

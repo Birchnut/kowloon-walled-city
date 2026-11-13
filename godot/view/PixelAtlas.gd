@@ -1011,7 +1011,7 @@ func _paint_interiors() -> void:
 # ------------------------------------------------------------------ 간판 글자
 func _load_fonts() -> void:
 	_fonts.clear()
-	# 한글만(한자 글꼴은 v4에서 뺐다). 0 = 보통 간판(9px), 1 = 큰 간판(11px)
+	# 한글+한자(Galmuri에 들어 있다. 어느 글자를 쓸지는 ViewCfg.sign_text가 정한다). 0 = 보통 간판(9px), 1 = 큰 간판(11px)
 	for spec in [["res://assets/fonts/Galmuri9.ttf", 9], ["res://assets/fonts/Galmuri11.ttf", 11]]:
 		if ResourceLoader.exists(spec[0]):
 			var f: Variant = load(spec[0])
@@ -1026,10 +1026,15 @@ func sign_rect(text: String, vertical: bool, big: bool = false) -> Rect2i:
 		return _signs[key]
 	var glyphs: Array = []
 	var fi := 1 if big and _fonts.size() > 1 else 0
+	# 한자는 획이 많아 9px 글꼴로는 뭉개진다 → 한자가 든 간판은 11px 글꼴로 굽는다
+	if fi == 0 and _fonts.size() > 1:
+		for i in text.length():
+			var c0 := text.unicode_at(i)
+			if (c0 >= 0x4E00 and c0 <= 0x9FFF) or (c0 >= 0x3400 and c0 <= 0x4DBF) or (c0 >= 0xF900 and c0 <= 0xFAFF):
+				fi = 1
+				break
 	for i in text.length():
 		var cp := text.unicode_at(i)
-		if (cp >= 0x4E00 and cp <= 0x9FFF) or (cp >= 0x3400 and cp <= 0x4DBF) or (cp >= 0xF900 and cp <= 0xFAFF):
-			continue   # 한자는 그리지 않는다(v4: 간판은 한글)
 		var g: Variant = _glyph(cp, fi)
 		if g != null:
 			glyphs.append(g)
