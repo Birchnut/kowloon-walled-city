@@ -1,6 +1,6 @@
 class_name KeepWin
 extends PcWindow
-## 성채(F6) — 탭: 목표 · 정책 · 연구 · 기록 · 설정 · 디버그(config debug.enabled 일 때).
+## 성채(F6) — 탭: 목표 · 정책 · 연구 · 연표 · 마지막 장(펼쳐진 뒤) · 기록 · 설정 · 디버그(config debug.enabled 일 때).
 ##  목표: 지금 목표(방법 줄·가는 버튼) → 앞으로 → 끝낸 것.   정책: 칸 수, 켜고 끄기, 잠긴 이유, 단속 위험.
 ##  연구: 갈래별 마디(상태색·비용·날), 시작/그만두기(절반 환불 확인).   기록: log{n:60}.
 ##  설정: 창/전체 화면(F11) · UI 크기 100/125/150% · 시작 배속 · 저장(Ctrl+S) · 이어 하기 · 새 도시 · 오프닝 다시.
@@ -21,7 +21,7 @@ func _init() -> void:
 
 
 func _build(b: VBoxContainer) -> void:
-	var items := [["goals", "목표", "goal"], ["policies", "포고", "keep"], ["research", "방백의 서랍", "tier"], ["log", "기록", "economy"], ["settings", "설정", "gear"]]
+	var items := [["goals", "목표", "goal"], ["policies", "포고", "keep"], ["research", "방백의 서랍", "tier"], ["chronicle", "연표", "keep"], ["last", "마지막 장", "goal"], ["log", "기록", "economy"], ["settings", "설정", "gear"]]
 	if bool(Data.cfg("debug.enabled", false)):
 		items.append(["debug", "디버그", "warn"])
 	_tabs = PcWindow.tabs(b, items, func(id: String) -> void:
@@ -52,10 +52,16 @@ func _refresh() -> void:
 			d = [Q.dict("policies"), Q.dict("vice")]
 		"research":
 			d = Q.dict("research")
+		"chronicle":
+			d = Q.dict("chronicle")
+		"last":
+			d = [Q.dict("last_page"), Q.dict("chronicle")]
 		"log":
 			d = Q.raw("log", {"n": 60})
 		_:
 			d = [tab, Settings.ui_scale(), Settings.is_fullscreen(), Game.speed]
+	if _tabs.has("last"):
+		(_tabs["last"] as Control).visible = bool(Q.dict("last_page").get("ready", false))
 	var sig := JSON.stringify(d).md5_text() + tab
 	if sig == _sig:
 		return
@@ -68,6 +74,11 @@ func _refresh() -> void:
 			_policies(d[0], d[1])
 		"research":
 			_research(d)
+		"chronicle":
+			_chronicle(d)
+		"last":
+			set_subtitle("장부의 마지막 장")
+			LastPageView.build(_list, d[0], d[1], 1040.0)
 		"log":
 			_log(d)
 		"settings":
@@ -152,7 +163,7 @@ func _policies(p: Dictionary, vice: Dictionary) -> void:
 		hh.add_child(Picto.make("warn", UI.pcol("red_hi")))
 		hh.add_child(UI.label("바깥의 시선 %d / 100" % int(float(vice.get("heat", 0))), "LabelRed"))
 		hh.add_child(PcWindow.bar(float(vice.get("heat", 0)) / 100.0, "bad", 240, 10))
-		vv.add_child(_w("하루 +%s, 저절로 -%s. 높으면 두 우산 시설이 닫힌다." % [UI.dec(vice.get("gain_per_day", 0)), UI.dec(vice.get("decay_per_day", 0))], "LabelSmall", 1040))
+		vv.add_child(_w("하루 +%s, 저절로 -%s. 높으면 조직 시설이 닫힌다." % [UI.dec(vice.get("gain_per_day", 0)), UI.dec(vice.get("decay_per_day", 0))], "LabelSmall", 1040))
 	for it: Variant in UI.to_array(p.get("items", [])):
 		var d := UI.to_dict(it)
 		var row := UI.panel("PanelRow")
@@ -250,6 +261,28 @@ func _node(n: Dictionary) -> Control:
 	elif st == "done":
 		h.add_child(UI.label("끝", "LabelJadeSmall"))
 	return p
+
+
+# ------------------------------------------------------------------ 연표
+func _chronicle(d: Dictionary) -> void:
+	var lines := UI.to_array(d.get("lines", []))
+	set_subtitle("%d줄" % lines.size())
+	if lines.is_empty():
+		_list.add_child(UI.label("아직 적힌 줄이 없다.", "LabelDim"))
+		return
+	var last_date := ""
+	for i in range(lines.size() - 1, -1, -1):
+		var ln := UI.to_dict(lines[i])
+		var h := UI.hbox(14)
+		var dt := str(ln.get("date_text", ""))
+		var dl := UI.label(dt if dt != last_date else "", "LabelGoldSmall")
+		dl.custom_minimum_size.x = 190
+		h.add_child(dl)
+		last_date = dt
+		var t := UI.label(UI.no_hanja(str(ln.get("text", ""))), "LabelSmall", true)
+		t.custom_minimum_size.x = 820
+		h.add_child(t)
+		_list.add_child(h)
 
 
 # ------------------------------------------------------------------ 기록

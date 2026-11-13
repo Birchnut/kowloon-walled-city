@@ -219,7 +219,7 @@ static func metrics(sim: Sim, state: CityState) -> Dictionary:
 	var income := 0.0
 	var cost := 0.0
 	var lines: Array = []
-	const NAMES := {"tax": "물세·자리값", "vice": "층세", "export": "내보낸 값", "reward": "목표 보상", "upkeep": "유지비", "import": "들여온 값", "build": "짓고 올리고 고친 값", "fine": "벌금"}
+	const NAMES := {"tax": "물세·자리값", "vice": "층세", "export": "내보낸 값", "reward": "목표 보상", "upkeep": "유지비", "import": "들여온 값", "build": "짓고 올리고 고친 값", "fine": "벌금", "leak": "새는 돈"}
 	for k: String in NAMES:
 		var v := float(src.get(k, 0.0))
 		if v > 0.0:

@@ -89,7 +89,7 @@ func _ready() -> void:
 
 	windows = _layer()
 	add_child(windows)
-	for w: PcWindow in [MetricsWin.new(), EconomyWin.new(), TradeWin.new(), ExpeditionWin.new(), KeepWin.new()]:
+	for w: PcWindow in [MetricsWin.new(), EconomyWin.new(), TradeWin.new(), ExpeditionWin.new(), KeepWin.new(), LastPageWin.new()]:
 		_add_window(w)
 	upgrade = UpgradeWin.new()
 	_add_window(upgrade)
@@ -667,8 +667,16 @@ func _on_event(n: String, p: Dictionary) -> void:
 			var z := int(p.get("z", 0))
 			Sfx.play("floor")
 			toasts.card({"kicker": "새 층", "title": "%d층 받침이 올랐다" % (z + 1), "body": "왼쪽 아래 층 고르기나 PgUp으로 %d층을 보고 짓는다." % (z + 1), "tone": "jade", "picto": "floor"})
-		"hazard_on":
-			_hazard_intro(str(p.get("kind", "")), float(p.get("grace_days", 0.0)))
+		"first_fire":
+			_first_hazard_card("fire", UI.to_dict(p.get("card", {})))
+		"first_disease":
+			_first_hazard_card("disease", UI.to_dict(p.get("card", {})))
+		"chronicle_added":
+			# 연표에 새 줄: 종이 쪽지 한 번. 자기 카드가 따로 있는 갈래(목표·층·첫 불·첫 병·마지막 장)는 쪽지를 겹치지 않는다
+			if not str(p.get("kind", "")) in ["goal", "floor", "first_fire", "first_disease", "last_page"]:
+				toasts.push("연표 — %s. %s" % [str(p.get("date_text", "")), str(p.get("text", ""))], "dim", "keep")
+		"last_page_ready":
+			call_deferred("open_window", "last_page")
 		"fire_started":
 			Sfx.play("fire")
 			var pos: Variant = p.get("pos")
@@ -717,24 +725,23 @@ func _check_alerts() -> void:
 	_alert_ids = now
 
 
-## 불·병이 처음 켜질 때 한 번: 짧은 설명 카드(누를 때까지) + 렌즈 버튼.
-func _hazard_intro(kind: String, grace: float) -> void:
-	if bool(_hz_seen.get(kind, false)):
+## 첫 불·첫 병이 났을 때 한 번: 규칙이 주는 카드 글(누를 때까지) + 렌즈 버튼. 층이 열릴 때가 아니라 일이 났을 때다.
+func _first_hazard_card(kind: String, card: Dictionary) -> void:
+	if bool(_hz_seen.get("card_" + kind, false)):
 		return
-	_hz_seen[kind] = true
-	Sfx.play("hazard_on")
+	_hz_seen["card_" + kind] = true
+	var body := str(card.get("text", ""))
 	if kind == "fire":
-		toasts.card({"kicker": "새 위험 — 불", "title": "이제부터 불이 날 수 있다%s" % ((" (%s 뒤부터)" % UI.days(grace)) if grace > 0.0 else ""),
-			"body": "소방 범위 밖의 칸에 불이 나면 옆과 위로 번진다. 탄 집은 수리해야 쓴다. 불밥통 골목은 위아래 한 층까지 닿는다. 위 띠의 불 신호등과 '소방' 렌즈로 빈 곳을 본다.",
+		toasts.card({"kicker": "처음 겪는 일 — 불", "title": "성채에 불이 났다", "body": body,
 			"tone": "red", "picto": "fire", "life": 0.0, "buttons": [{"label": "불밥통 골목 짓기", "cb": func() -> void:
 				set_lens("fire")
 				jump({"screen": "build", "arg": "fire_bucket"})}, {"label": "소방 렌즈 보기", "cb": func() -> void: set_lens("fire")}, {"label": "알았다", "cb": Callable()}]})
-	elif kind == "disease":
-		toasts.card({"kicker": "새 위험 — 병", "title": "이제부터 병이 돌 수 있다%s" % ((" (%s 뒤부터)" % UI.days(grace)) if grace > 0.0 else ""),
-			"body": "집마다 오물이 나온다. 수거 범위 밖에 쌓이면 그 구역에 병이 돈다. 일손은 반으로 줄고 행복이 떨어진다. 밤배꾼(수거)과 봉합방으로 막는다. '오물'·'봉합방' 렌즈로 본다.",
+	else:
+		toasts.card({"kicker": "처음 겪는 일 — 병", "title": "성채에 병이 돌았다", "body": body,
 			"tone": "red", "picto": "disease", "life": 0.0, "buttons": [{"label": "밤배꾼 짓기", "cb": func() -> void:
 				set_lens("trash")
 				jump({"screen": "build", "arg": "trash_guild"})}, {"label": "오물 렌즈 보기", "cb": func() -> void: set_lens("trash")}, {"label": "알았다", "cb": Callable()}]})
+	Sfx.play("hazard_on")
 
 
 var _unlock_pending: Array = []

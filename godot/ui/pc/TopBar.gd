@@ -100,7 +100,10 @@ func _ready() -> void:
 	dh.add_child(_date)
 	_clock = UI.label("", "LabelBold")
 	dh.add_child(_clock)
-	TipLayer.set_tip(dbtn, func() -> String: return "%d일째 %s\n하루는 ×1에서 10분. 멈춘 채로도 짓고 볼 수 있다." % [int(_hud.get("day", 1)), UI.clock(float(_hud.get("hour", 0.0)))])
+	TipLayer.set_tip(dbtn, func() -> String:
+		var dd := UI.to_dict(_hud.get("date", {}))
+		return "%s %s\n게임 사흘이 한 해. 하루는 ×1에서 10분. 멈춘 채로도 짓고 볼 수 있다.\n누르면 네모청 › 연표." % [str(dd.get("date_text", "")), UI.clock(float(_hud.get("hour", 0.0)))])
+	dbtn.pressed.connect(func() -> void: jump.emit({"screen": "keep", "arg": "chronicle"}))
 	row.add_child(dbtn)
 	# ── 배속 ──
 	var sp := UI.hbox(2)
@@ -245,7 +248,8 @@ func refresh(h: Dictionary) -> void:
 		(e2["pic"] as Picto).color = c if st != "off" else UI.col("mute")
 		(e2["bar"] as ColorRect).color = c if st != "off" else Color(0, 0, 0, 0)
 		(e2["btn"] as Control).visible = not s.is_empty() or id in ["water", "food", "fun"]
-	_date.text = "%d일째" % int(h.get("day", 1))
+	var dt := UI.to_dict(h.get("date", {}))
+	_date.text = ("%s ·" % str(dt.get("date_text", ""))) if not dt.is_empty() else "%d일째" % int(h.get("day", 1))
 	_date.visible = compact < 2
 	_net.visible = compact < 2
 	if _row != null:
