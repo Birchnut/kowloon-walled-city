@@ -396,6 +396,12 @@ func _shot_cond(c: String) -> bool:
 			for e in world.enemies:
 				if absf(e.spin_v) > 4.0:
 					return true
+		"nameplate":
+			return hud.nameplate_t > 0.6 and hud.nameplate_t < 1.6
+		"hush":
+			return world.hushing and world.still_t > 2.0
+		"flood":
+			return world.floodlights and world.time - world.last_event_t > 1.0 and world.time - world.last_event_t < 2.0
 		"distract":
 			for e in world.enemies:
 				if not e.dead and e.kind == "guard" and e.state == "investigate" and e.st > 0.4:

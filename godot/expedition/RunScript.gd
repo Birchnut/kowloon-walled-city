@@ -40,9 +40,8 @@ func setup(n: String, world: RunWorld) -> void:
 			_teleport_room_center(1)
 			# 오른쪽 벽 쪽으로 몰아 둔다
 			var rr: Rect2 = w._room_rect(w.cur_room)
-			p.pos = Vector2(rr.end.x - 60, rr.get_center().y)
-			p.pos = w.cell_center(w._free_cell_near(w.to_cell(p.pos)))
-			var d3 := w._spawn_enemy("dog", p.pos + Vector2(20, 0), w.cur_room)
+			p.pos = Vector2(rr.end.x - 26, rr.get_center().y)
+			var d3 := w._spawn_enemy("dog", Vector2(rr.end.x - 10, rr.get_center().y), w.cur_room)
 			d3.aware = true
 			d3.set_state("recover", 2.0)
 			var g3 := w._spawn_enemy("guard", p.pos + Vector2(0, 26), w.cur_room)
@@ -61,6 +60,18 @@ func setup(n: String, world: RunWorld) -> void:
 			g2.data["look_base"] = PI
 			w.held = ["can", "can"]
 			p.pos += Vector2(-40, 0)
+		"flood", "hush":
+			_teleport_room_center(2)
+			var g4 := w._spawn_enemy("guard", p.pos + Vector2(70, -10), w.cur_room)
+			g4.face = Vector2.LEFT
+			g4.data["patrol"] = [p.pos + Vector2(70, -10), p.pos + Vector2(70, 40)]
+			if name == "flood":
+				w.noise_level = 2
+				w.noise = 100.0
+			else:
+				w.noise = 70.0
+				g4.dead = true
+				g4.state = "gone"
 		"search", "noise":
 			var pl := _nearest_pile_with_loot()
 			p.pos = (pl["pos"] as Vector2) + Vector2(-14, 2)
@@ -84,12 +95,15 @@ func setup(n: String, world: RunWorld) -> void:
 				p.pos = w.cell_center(wv["cells"][0])
 				w._room_step()
 				break
-		"boss", "bosswin":
+		"boss", "bosswin", "boss2":
 			var b: Actor = w.boss
 			var rr: Rect2 = w._room_rect(b.room)
 			p.pos = Vector2(rr.get_center().x, rr.end.y - 40)
 			w.visited[b.room] = true
 			w._room_step()
+			if name == "boss2":
+				b.hp = b.max_hp / 2
+				b.data["phase"] = 2
 			if name == "bosswin":
 				b.hp = 1
 				p.hp = p.max_hp
@@ -147,7 +161,15 @@ func _nearest_pile_with_loot() -> Dictionary:
 func fill(inp: RunInput, world: RunWorld, dt: float) -> void:
 	t += dt
 	var p: Actor = world.player
-	if name in ["boss", "bosswin"]:
+	if name in ["boss", "bosswin", "boss2"]:
+		return
+	if name == "hush":
+		inp.move = Vector2.ZERO
+		inp.interact = false
+		return
+	if name == "flood":
+		inp.move = Vector2.ZERO
+		inp.interact = t > 0.3
 		return
 	inp.move = Vector2.ZERO
 	inp.interact = false
