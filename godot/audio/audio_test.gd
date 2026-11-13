@@ -165,7 +165,7 @@ func _run() -> void:
 	print("만들기 합: 벽시계 %.0f ms (효과음 %.0f, 한 번짜리 %.0f, 악기 %.0f, 루프 %.0f) / CPU %.0f ms (효과음 %.0f, 한 번짜리 %.0f, 악기 %.0f, 루프 %.0f)" % [total_ms, sfx_us / 1000.0, shot_us / 1000.0, inst_us / 1000.0, loop_us / 1000.0, total_cpu, c_sfx, c_shot, c_inst, c_loop])
 	# CPU 시간을 못 읽는 곳(리눅스 밖)에서는 벽시계로 본다
 	var judge := total_cpu if cpu0 >= 0.0 else total_ms
-	_check(judge < 1500.0, "전체 만들기가 1.5 s 를 넘었다: %.0f ms" % judge)
+	_check(judge < 2300.0, "전체 만들기가 2.3 s 를 넘었다(v0.5: 고요 소리 3 + 배관 루프가 늘었다, 게임에서는 파일이 있는 소리는 안 만든다): %.0f ms" % judge)
 	_check((c_sfx if cpu0 >= 0.0 else sfx_us / 1000.0) < 600.0, "효과음 만들기가 0.6 s 를 넘었다")
 	# 5) 구절 생성기
 	for mood: String in MB.MOODS:
