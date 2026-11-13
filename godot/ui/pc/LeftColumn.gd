@@ -95,6 +95,18 @@ func _ready() -> void:
 	add_child(floors)
 
 
+## 창이 낮으면(1280×720 등) 방법 줄을 접어 층·렌즈가 잘리지 않게 한다 — 방법은 목표 카드에 마우스를 올리면 나온다.
+func _fit() -> void:
+	var tight := get_viewport_rect().size.y < 1000.0
+	_goal_tip.visible = _goal_tip.text != "" and not tight
+	TipLayer.set_tip(_goal_text, ("이렇게 한다\n" + _goal_tip.text) if tight and _goal_tip.text != "" else "")
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED and _goal_tip != null:
+		_fit()
+
+
 func refresh(h: Dictionary) -> void:
 	_refresh_goal(UI.to_dict(h.get("next_goal", {})))
 	_refresh_alerts(UI.to_array(h.get("alerts", [])), int(h.get("alerts_total", 0)))
@@ -123,7 +135,7 @@ func _refresh_goal(g: Dictionary) -> void:
 	TipLayer.set_tip(_goal_reward, "보상\n" + " · ".join(rw))
 	var tip := goal_tip(id, text)
 	_goal_tip.text = UI.keep(UI.no_hanja(str(tip.get("tip", ""))))
-	_goal_tip.visible = _goal_tip.text != ""
+	_fit()
 	PcWindow.clear(_goal_btns)
 	for b: Variant in UI.to_array(tip.get("go", [])).slice(0, 4):
 		var bd := UI.to_dict(b)
