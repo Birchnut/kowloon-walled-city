@@ -1113,7 +1113,7 @@ func _upgrades(state: CityState) -> void:
 			# (첫 옥상 황제는 예외 — 목표 22). 옥상 황제가 마지막 목표 + 6을 넘었으면 구청이 열릴 때까지 아예 보류.
 			var t4_after := _pop(state, 4) - float(b["residents"])
 			if _pop(state, 5) >= _final_t5() + 6.0 or (_pop(state, 5) > 0.0 and t4_after < _hall_t4() + 8.0):
-				_block("구청 조건(깡통 귀족)을 위해 옥상 황제 승급 보류")
+				_block("네모청 조건(온수민)을 위해 청공시민 승급 보류")
 				continue
 		var short := float(ln["need"]) > float(ln["have"]) or state.econ_days - float(lw.get(str(nt), -9.0)) < 0.5
 		if not short and int(hn.get(nt, 0)) >= int(c("pilot_houses", 3)) and float(hf.get(nt, 0)) < float(c("next_full_ratio", 0.7)) * float(hn.get(nt, 0)):
@@ -1200,7 +1200,7 @@ func _zone(state: CityState) -> void:
 	if vacant > int(c("zone_when_vacancy_below", 10)) and not t1_short:
 		return
 	if houses > 40 and float(l1["have"]) - float(l1["need"]) > float(c("t1_spare_stop", 60)) and not t1_short:
-		_block("굴러온 돌 일손이 남아 주거 확장 보류")
+		_block("벽틈시민 일손이 남아 주거 확장 보류")
 		return
 	if houses > 0 and _supply(state, "cans") < float(_dem.get("cans", 0.0)) and not t1_short:
 		_block("통조림이 모자라 주거 확장 보류")
