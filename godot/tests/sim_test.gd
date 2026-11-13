@@ -525,11 +525,11 @@ func _circular() -> void:
 	bad["unlocks"]["items"]["t2_1"]["unlocks"].erase("tailor")
 	bad["unlocks"]["items"]["t2_40"]["unlocks"].append("tailor")
 	var e := Validate.lock_check(bad)
-	_ok(not e.is_empty(), "봉제방을 월세 전사 40으로 미루면 → 월세 전사 기본 수요(옷) 순환 잠금 검출")
+	_ok(not e.is_empty(), "봉제방을 판자시민 40으로 미루면 → 판자시민 기본 수요(옷) 순환 잠금 검출")
 	var bad2 := _db_copy()
 	bad2["unlocks"]["items"]["t1_20"]["unlocks"].erase("candle_shop")
 	bad2["unlocks"]["items"]["t2_1"]["unlocks"].append("candle_shop")
-	_ok(not Validate.lock_check(bad2).is_empty(), "초 공방을 월세 전사 1로 미루면 → 굴러온 돌 승급 수요(등불) 순환 잠금 검출")
+	_ok(not Validate.lock_check(bad2).is_empty(), "초 공방을 판자시민 1로 미루면 → 벽틈시민 승급 수요(등불) 순환 잠금 검출")
 	var bad3 := _db_copy()
 	bad3["buildings"]["items"]["food_cans"]["recipe"]["in"] = {"fish": 5}
 	bad3["buildings"]["items"]["food_pilgrims"]["recipe"]["in"] = {"fish": 5}
@@ -868,7 +868,7 @@ func _hazards_fire() -> void:
 	var rc3 := s2.can(t2, "repair", {"bid": int(hb3["id"])})
 	var want3 := ceilf(float(s2.db["upgrade_costs"]["items"]["2to3"]["qty"]) * float(s2.cfg("hazards.repair.mat_frac", 0.5)))
 	_ok(_near(float(rc3.get("cost", {}).get("goods", {}).get("wood", 0.0)), want3) and float(rc3["cost"]["money"]) == float(s2.cfg("hazards.repair.house_money", [])[2]),
-		"박힌 돌 집 수리 = 목재 %d + %s (%s)" % [int(want3), Sim.won(float(rc3["cost"]["money"])), str(rc3.get("cost", {}))])
+		"성채민 집 수리 = 목재 %d + %s (%s)" % [int(want3), Sim.won(float(rc3["cost"]["money"])), str(rc3.get("cost", {}))])
 	_ok(float(t2.stats.get("left_fire", 0.0)) > 0.0, "범위 밖에서 다 탄 집의 주민 일부는 성채를 떠난다 (%d명)" % int(t2.stats.get("left_fire", 0.0)))
 	sim.systems.clear()
 	s2.systems.clear()
@@ -886,7 +886,7 @@ func _hazards_disease() -> void:
 	_fac(sim, st, "trash_guild", Vector3i(2, 12, 0))
 	_steps(sim, st, 2)
 	var cq: Dictionary = sim.query(st, "coverage", {"kind": "trash"})
-	_ok(float(cq["pct"]) > 0.0, "넝마주이 조합을 짓고 일손이 차면 그 층 주거가 덮인다 (%s)" % str(cq["text"]))
+	_ok(float(cq["pct"]) > 0.0, "밤배꾼을 짓고 일손이 차면 그 층 주거가 덮인다 (%s)" % str(cq["text"]))
 	var site_id := st.next_id
 	st.buildings[site_id] = {"id": site_id, "kind": "site", "type": "trash_guild", "pos": Vector3i(12, 12, 0)}
 	var cq2: Dictionary = sim.query(st, "coverage", {"kind": "trash"})
@@ -894,7 +894,7 @@ func _hazards_disease() -> void:
 	st.buildings.erase(site_id)
 	_steps(sim, st, 22)
 	var tr2 := float(st.buildings[int(st.cells[Vector3i(2, 10, 0)]["bid"])].get("trash", 0.0))
-	_ok(tr2 < 0.05, "넝마주이 조합 범위에 새로 들면 싹 치워진다 (%.2f)" % tr2)
+	_ok(tr2 < 0.05, "밤배꾼 범위에 새로 들면 싹 치워진다 (%.2f)" % tr2)
 	# 발병(디버그): 이웃까지
 	var hb: Dictionary = st.buildings[int(st.cells[Vector3i(8, 10, 0)]["bid"])]
 	var nb: Dictionary = st.buildings[int(st.cells[Vector3i(9, 10, 0)]["bid"])]
@@ -909,10 +909,10 @@ func _hazards_disease() -> void:
 	var left0 := float(st.stats.get("left_sick", 0.0))
 	_steps(sim, st, int((float(sim.cfg("hazards.disease.leave_after", 1.0)) + 0.8) / sim.step_days))
 	_ok(float(st.stats.get("left_sick", 0.0)) > left0, "의원이 없으면 오래 앓고 주민이 떠난다 (%d명)" % int(st.stats.get("left_sick", 0.0)))
-	st.waiting[2] = {"count": 4, "days_left": 999.0}   # 의원 일손(월세 전사 2명)
+	st.waiting[2] = {"count": 4, "days_left": 999.0}   # 의원 일손(판자시민 2명)
 	_fac(sim, st, "clinic", Vector3i(7, 12, 0))
 	_steps(sim, st, int(float(sim.cfg("hazards.disease.clinic_days", 0.6)) / sim.step_days) + 4)
-	_ok(not bool(hb["sick"]) and not bool(st.cells[Vector3i(8, 10, 0)]["sick"]), "무면허 의원 범위에 들면 곧 낫는다")
+	_ok(not bool(hb["sick"]) and not bool(st.cells[Vector3i(8, 10, 0)]["sick"]), "봉합방 범위에 들면 곧 낫는다")
 	_steps(sim, st, 48 * 3)
 	var tr3 := float(st.buildings[int(st.cells[Vector3i(2, 10, 0)]["bid"])].get("trash", 0.0))
 	var cap3 := float(sim.cfg("hazards.disease.covered_cap", 0.5))
@@ -987,7 +987,7 @@ func _policy_research() -> void:
 	sim.apply(st, "policy_set", {"id": "rations", "on": true})
 	_ok(not sim.can(st, "policy_set", {"id": "overtime", "on": true}).get("ok", true), "칸이 1개면 두 번째 정책은 거절")
 	sim.apply(st, "policy_set", {"id": "rations", "on": false})
-	# 연구: 공부방 + 작업 정리 → 생산 +10%
+	# 연구: 글방 + 작업 정리 → 생산 +10%
 	var L := _lab()
 	var s2: Sim = L[0]
 	var c2: CityState = L[1]
@@ -1004,7 +1004,7 @@ func _policy_research() -> void:
 	var base := float(c2.stats.get("prod.candle", 0.0)) - p0
 	c2.money = 100000.0
 	var rs := s2.apply(c2, "research_start", {"id": "workflow"})
-	_ok(rs.get("ok", false), "연구 시작(공부방 있음) %s" % rs.get("reason", ""))
+	_ok(rs.get("ok", false), "연구 시작(글방 있음) %s" % rs.get("reason", ""))
 	_ok(not s2.can(c2, "research_start", {"id": "handcart"}).get("ok", true), "한 번에 하나")
 	_steps(s2, c2, 52)
 	_ok(c2.research["done"].has("workflow"), "1경제일 뒤 연구 완료")
@@ -1035,7 +1035,7 @@ func _raid() -> void:
 		if st.buildings[b].get("raided", false):
 			closed += 1
 	_ok(closed == 1, "하나만 닫힘 (%d)" % closed)
-	_ok(st.heat < 50.0 and float(st.stats.get("fines", 0.0)) > 0.0, "위험이 내려가고 벌금 (위험 %.1f, 벌금 ₩%d)" % [st.heat, int(st.stats.get("fines", 0.0))])
+	_ok(st.heat < 50.0 and float(st.stats.get("fines", 0.0)) > 0.0, "위험이 내려가고 벌금 (위험 %.1f, 벌금 %d달러)" % [st.heat, int(st.stats.get("fines", 0.0))])
 	var rb := -1
 	for b: int in ids:
 		if st.buildings[b].get("raided", false):

@@ -1,6 +1,6 @@
 [
  {
-  "say": "D 직접 줍기(통합 v4): stage_a 에서 이어서(줍줍 본부·쉬는 팀 있음). F4 → 고물 야적장 [직접 줍기] → 줍기 화면(도시 ×1, 도시 소리 끔) → Enter → 진짜 키·마우스로 움직이고 휘두르고 배낭(Tab)·멈춤(Esc) → F2(줍기의 자동 플레이)로 끝까지 → 결과 → Enter(도시로) → 결과 카드·창고·팀·던전 재고 확인. tools/shot.sh \"\" out 3000 1920x1080 skiptut load=<stage_a.json> script=res://tools/fixtures/pc_direct_run.json out=out"
+  "say": "D 직접 줍기(통합 v4): stage_a 에서 이어서(회띠꾼 막·쉬는 팀 있음). F4 → 송전탑 밑 고철 더미 [직접 줍기] → 줍기 화면(도시 ×1, 도시 소리 끔) → Enter → 진짜 키·마우스로 움직이고 휘두르고 배낭(Tab)·멈춤(Esc) → F2(줍기의 자동 플레이)로 끝까지 → 결과 → Enter(도시로) → 결과 카드·창고·팀·던전 재고 확인. tools/shot.sh \"\" out 3000 1920x1080 skiptut load=<stage_a.json> script=res://tools/fixtures/pc_direct_run.json out=out"
  },
  {
   "wait": 1.0

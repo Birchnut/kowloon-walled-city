@@ -118,9 +118,9 @@ static func daily(sim: Sim, state: CityState, d: int) -> Dictionary:
 		"mats": [int(state.stock.get("wood", 0)), int(state.stock.get("metal", 0)), int(state.stock.get("concrete", 0)), int(state.stock.get("parts", 0))]}
 
 
-const MILESTONES := [["first_upgrade_t2_day", "첫 승급(월세 전사)"], ["floor_2_day", "2층"], ["first_fire_day", "첫 불"], ["first_upgrade_t3_day", "첫 박힌 돌"],
-	["floor_3_day", "3층"], ["first_outbreak_day", "첫 병"], ["first_upgrade_t4_day", "첫 깡통 귀족"], ["goal_g_tower_day", "네온 용탑"],
-	["first_upgrade_t5_day", "첫 옥상 황제"], ["goal_g_hall_day", "무허가 구청"], ["goal_g_final_day", "마지막 목표"]]
+const MILESTONES := [["first_upgrade_t2_day", "첫 승급(판자시민)"], ["floor_2_day", "2층"], ["first_fire_day", "첫 불"], ["first_upgrade_t3_day", "첫 성채민"],
+	["floor_3_day", "3층"], ["first_outbreak_day", "첫 병"], ["first_upgrade_t4_day", "첫 온수민"], ["goal_g_tower_day", "네온 용탑"],
+	["first_upgrade_t5_day", "첫 청공시민"], ["goal_g_hall_day", "네모청"], ["goal_g_final_day", "마지막 목표"]]
 
 
 ## 요약 행(make_summary.py가 읽는다).
@@ -209,7 +209,7 @@ static func report(r: Dictionary) -> String:
 		Sim.won(float(s["spent_upgrade"])), Sim.won(float(s["spent_repair"])), Sim.won(float(s["spent_research"])), float(s["step_ms"])])
 	L.append("")
 	L.append("## 일별")
-	L.append("| 일 | 굴러온 돌 | 월세 전사 | 박힌 돌 | 깡통 귀족 | 옥상 황제 | 일손 여유 T1..T5 | 주거(충족/전체) | 탐/병 | 행복 | 금고 | 순/일 | 물 | 전기 | 층 | 목표 | 목·철·콘·부품 |")
+	L.append("| 일 | 벽틈시민 | 판자시민 | 성채민 | 온수민 | 청공시민 | 일손 여유 T1..T5 | 주거(충족/전체) | 탐/병 | 행복 | 금고 | 순/일 | 물 | 전기 | 층 | 목표 | 목·철·콘·부품 |")
 	L.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
 	for row: Dictionary in rows:
 		var p: Array = row["pop"]
@@ -243,7 +243,7 @@ static func report(r: Dictionary) -> String:
 		if float(g["stock"]) > 0.0 or float(g["cons"]) > 0.0 or float(g["prod"]) > 0.0:
 			L.append("| %s | %.0f | %.0f | %.1f | %.1f | %.1f | %.1f |" % [g["name"], g["stock"], g["cap"], g["prod"], g["cons"], g["imp"], g["exp"]])
 	L.append("")
-	L.append("## 장부(최근 평균, ₩/경제일)")
+	L.append("## 장부(최근 평균, 달러/경제일)")
 	for l: Dictionary in eco["finance"]["lines"]:
 		L.append("- %s %.1f" % [l["name"], l["amount"]])
 	L.append("")
