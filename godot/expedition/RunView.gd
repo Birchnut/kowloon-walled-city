@@ -175,7 +175,7 @@ func _consume_events() -> void:
 				texts.append({"p": e["pos"], "text": e["text"], "col": cs.get(e.get("col", "white"), Color.WHITE), "life": 1.0 if not e.get("big", false) else 0.8, "big": e.get("big", false)})
 			"ring":
 				rings.append({"p": e["pos"], "r": e["r"], "life": 0.6})
-				texts.append({"p": (e["pos"] as Vector2) + Vector2(0, -10), "text": "깡!", "col": Color(1, 0.9, 0.4), "life": 0.7})
+				texts.append({"p": (e["pos"] as Vector2) + Vector2(0, -10), "text": "깡", "col": Color(1, 0.9, 0.4), "life": 0.7})
 			"bonk":
 				stars.append({"p": e["pos"], "life": 0.9})
 				shake = maxf(shake, 2.0)
@@ -196,7 +196,7 @@ func _consume_events() -> void:
 				for k in 14:
 					parts.append({"p": (e["pos"] as Vector2) + Vector2(0, -14), "v": Vector2.from_angle(randf() * TAU) * randf_range(50, 130), "life": randf_range(0.2, 0.45), "max": 0.45, "col": [Color(1, 0.75, 0.2), Color(1, 0.95, 0.6), Color(1, 0.45, 0.15)][k % 3], "size": 2.0, "drag": 5.0})
 				parts.append({"p": (e["pos"] as Vector2) + Vector2(0, -14), "v": Vector2.ZERO, "life": 0.12, "max": 0.12, "col": Color.WHITE, "size": 16.0, "star": true})
-				texts.append({"p": (e["pos"] as Vector2) + Vector2(randf_range(-8, 8), -40), "text": "쾅!", "col": Color(1, 0.8, 0.3), "life": 0.6, "big": true})
+				texts.append({"p": (e["pos"] as Vector2) + Vector2(randf_range(-8, 8), -40), "text": "쾅", "col": Color(1, 0.8, 0.3), "life": 0.6, "big": true})
 				shake = maxf(shake, 4.0)
 				if hud != null:
 					hud.boss_flash = 0.25
@@ -705,7 +705,7 @@ func _draw_air() -> void:
 			ci.draw_arc(b.pos + Vector2(0, -12), 16.0, -PI / 2, -PI / 2 + TAU * left, 32, YEL, 2.0)
 			if randf() < 0.5:
 				parts.append({"p": b.pos + Vector2(randf_range(-6, 6), -12), "v": Vector2(randf_range(-30, 30), randf_range(-60, -20)), "life": 0.25, "max": 0.25, "col": Color(1, 0.8, 0.3), "size": 1.0})
-			_label(ci, b.pos + Vector2(0, -40), "약점!", YEL)
+			_label(ci, b.pos + Vector2(0, -40), "약점", YEL)
 			_arrow_down(ci, b.pos + Vector2(0, -32 + sin(t * 10) * 2), YEL)
 		if b.state == "stomp_tele":
 			_bang(ci, b.pos + Vector2(0, -44 - lift * 0.3), RED)

@@ -393,7 +393,7 @@ func _interact(dt: float, mv: Vector2) -> void:
 			if best["heal"]:
 				best["heal"] = false
 				_pop_item(_mk_item("heal", best["pos"]))
-				_ev("text", {"pos": best["pos"], "text": "반창고!", "col": "pink"})
+				_ev("text", {"pos": best["pos"], "text": "반창고", "col": "pink"})
 			else:
 				_ev("text", {"pos": best["pos"], "text": "허탕", "col": "grey"})
 				_ev("sfx", {"id": "tick"})
@@ -504,7 +504,7 @@ func _hurt_enemy(e: Actor, dmg: int, dir: Vector2, src: String) -> void:
 	var sneak := e.kind == "guard" and not e.aware and src == "swing"
 	if sneak:
 		dmg *= 2
-		_ev("text", {"pos": e.pos + Vector2(0, -22), "text": "기습!", "col": "yellow"})
+		_ev("text", {"pos": e.pos + Vector2(0, -22), "text": "기습", "col": "yellow"})
 	e.hp -= dmg
 	e.flash = 0.12
 	var mass := {"rat": 0.6, "dog": 1.0, "guard": 2.2, "rival": 1.4}.get(e.kind, 1.0) as float
@@ -595,7 +595,7 @@ func _hurt_boss(dmg: int) -> void:
 	_ev("shake", {"a": 3.0})
 	if boss.hp <= boss.max_hp / 2 and int(boss.data["phase"]) == 1:
 		boss.data["phase"] = 2
-		_ev("banner", {"text": str(RunCfg.skin().get("lines", {}).get("phase2", "두목이 열 받았다"))})
+		_ev("banner", {"text": str(RunCfg.skin().get("lines", {}).get("phase2", "두목이 달아올랐다"))})
 		_ev("sfx", {"id": "alarm"})
 		for k in 3:
 			var r := _spawn_enemy("rat", boss.home + Vector2(rng.randf_range(-60, 60), -20), boss.room)
@@ -608,7 +608,7 @@ func _hurt_boss(dmg: int) -> void:
 		kills["boss"] = 1
 		hitstop = 0.25
 		_ev("boss_dead", {"pos": boss.pos})
-		_ev("banner", {"text": str(RunCfg.skin().get("lines", {}).get("dead", "두목, 퇴근."))})
+		_ev("banner", {"text": str(RunCfg.skin().get("lines", {}).get("dead", "두목이 쓰러졌다."))})
 		_ev("shake", {"a": 9.0})
 		_ev("sfx", {"id": "stomp"})
 		var bigd: Dictionary = dun.get("big", {})
@@ -739,7 +739,7 @@ func _ai_dog(e: Actor, dt: float) -> void:
 			if _can_see_player(e, RunCfg.f("dog_aggro", 130)):
 				e.aware = true
 				e.set_state("circle", rng.randf_range(RunCfg.f("dog_circle_min"), RunCfg.f("dog_circle_max")) * 0.6)
-				_ev("text", {"pos": e.pos + Vector2(0, -18), "text": "멍!", "col": "white"})
+				_ev("text", {"pos": e.pos + Vector2(0, -18), "text": "멍", "col": "white"})
 				_ev("sfx", {"id": "bark"})
 		"investigate":
 			_steer(e, e.target, RunCfg.f("dog_speed", 92) * 0.8, dt, false)
@@ -931,7 +931,7 @@ func _ai_rival(e: Actor, dt: float) -> void:
 	var spd := RunCfg.f("rival_speed", 58)
 	if e.data.get("hostile", false) and e.state in ["loot", "search", "leave"]:
 		e.set_state("chase")
-		_ev("text", {"pos": e.pos + Vector2(0, -24), "text": "이 양반이?", "col": "red"})
+		_ev("text", {"pos": e.pos + Vector2(0, -24), "text": "뭐냐", "col": "red"})
 	match e.state:
 		"loot":
 			var bag: Array = e.data["bag"]
@@ -1157,7 +1157,7 @@ func _boss_pick(ph: int, dist: float) -> void:
 			if pick == "chain":
 				b.data["chain"] = RunCfg.i("boss_chain_n", 3) - 1
 				b.data["chained"] = true
-				_ev("banner", {"text": "큰형: 쾅쾅쾅"})
+				_ev("banner", {"text": "고철 압축기: 쾅쾅쾅"})
 			b.set_state("stomp_tele", RunCfg.f("boss_stomp_tele2" if ph == 2 else "boss_stomp_tele", 0.8))
 			b.vel = Vector2.ZERO
 			_ev("sfx", {"id": "hydraulic"})
@@ -1237,7 +1237,7 @@ func _throws_step(dt: float) -> void:
 				if not e.dead and e.pos.distance_to(np) < e.radius + 4:
 					_hurt_enemy(e, 1, (t["to"] - t["from"]).normalized(), "throw")
 					e.set_state("stun", RunCfg.f("throw_stun", 1.2))
-					_ev("text", {"pos": e.pos + Vector2(0, -20), "text": "깡!", "col": "yellow"})
+					_ev("text", {"pos": e.pos + Vector2(0, -20), "text": "깡", "col": "yellow"})
 					t["to"] = np
 					u = 1.0
 					break
@@ -1630,7 +1630,7 @@ func _prompt_step() -> void:
 		prompt = "뒤지는 중…"
 		return
 	if not item_under.is_empty():
-		prompt = "배낭이 찼다 — Tab 열고 칸을 눌러 바꿔 담기" if not pack_open else "바꿀 칸을 누르세요 (1~6)"
+		prompt = "배낭이 찼다 — Tab 열고 칸을 눌러 바꿔 담기" if not pack_open else "바꿀 칸을 누른다(1~6)"
 		return
 	for pl in piles:
 		if not (pl["bundles"].is_empty() and pl["rummaged"]) and player.pos.distance_to(pl["pos"]) < 24:

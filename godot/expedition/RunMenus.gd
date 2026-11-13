@@ -18,19 +18,19 @@ var line := ""
 
 const LINES := {
 	"exit": [
-		"살아서 나왔다. 그게 이 동네의 수익률이다.",
-		"배낭은 무겁고 발걸음은 가볍다. 반대가 아니라 다행이다.",
-		"아무도 쫓아오지 않았다. 아마도.",
+		"살아서 나왔다.",
+		"배낭은 무겁고 발걸음은 가볍다.",
+		"아무도 쫓아오지 않았다.",
 	],
 	"boss": [
-		"큰형은 오늘부로 정년퇴직했다. 퇴직금은 우리가 챙겼다.",
-		"압축기를 압축했다. 관리사무소에 보고할 생각은 없다.",
-		"두목 방까지 갔다 온 사람은 말이 짧아진다. 할 말이 없어서다.",
+		"두목은 쓰러졌고 방은 조용하다.",
+		"두목이 지키던 짐을 들고 나왔다.",
+		"두목 방까지 갔다 온 사람은 말이 짧아진다.",
 	],
 	"down": [
-		"눈을 떠 보니 리어카 위였다. 누가 끌었는지는 묻지 않기로 했다.",
-		"절반은 잃었다. 나머지 절반은 운이다.",
-		"고물 야적장 1, 우리 0. 재경기는 내일.",
+		"눈을 떠 보니 수레 위였다. 누가 끌었는지는 모른다.",
+		"절반은 잃었다.",
+		"오늘은 졌다. 내일 다시 간다.",
 	],
 }
 
@@ -128,7 +128,7 @@ func _draw_start(vs: Vector2) -> void:
 	var cx := vs.x / 2
 	_tc(Vector2(cx, vs.y * 0.13), "직접 줍기", Color(0.95, 0.75, 0.45), fs(1.4))
 	var sk: Dictionary = RunCfg.file("run_skins").get("items", {}).get(RunCfg.skin_for(str(data.get("dest", "scrap_yard"))), {})
-	_tc(Vector2(cx, vs.y * 0.13 + fs(3.2)), str(sk.get("name", "고물 야적장")), Color(1, 0.95, 0.85), fs(3.0), true)
+	_tc(Vector2(cx, vs.y * 0.13 + fs(3.2)), str(sk.get("name", "송전탑 밑 고철 더미")), Color(1, 0.95, 0.85), fs(3.0), true)
 	_tc(Vector2(cx, vs.y * 0.13 + fs(4.8)), str(sk.get("desc", "")), Color(0.8, 0.78, 0.72), fs())
 	var r := Rect2(cx - 200 * s, vs.y * 0.33, 400 * s, 118 * s)
 	_panel(r)
@@ -178,7 +178,7 @@ func _draw_pause(vs: Vector2) -> void:
 	var r := Rect2(vs.x / 2 - 90 * s, vs.y / 2 - 70 * s, 180 * s, 140 * s)
 	_panel(r)
 	_tc(Vector2(vs.x / 2, r.position.y + 22 * s), "멈춤", Color(1, 0.9, 0.7), fs(1.8), true)
-	_tc(Vector2(vs.x / 2, r.position.y + 36 * s), "도시는 계속 돈다. 아마도.", Color(0.7, 0.68, 0.62), fs(0.9))
+	_tc(Vector2(vs.x / 2, r.position.y + 36 * s), "도시는 계속 돈다.", Color(0.7, 0.68, 0.62), fs(0.9))
 	_button(Vector2(vs.x / 2, r.position.y + 56 * s), "계속 (Esc)", "resume", 140 * s)
 	if not city_mode:
 		_button(Vector2(vs.x / 2, r.position.y + 78 * s), "처음부터 (R)", "restart", 140 * s)
@@ -189,7 +189,7 @@ func _draw_pause(vs: Vector2) -> void:
 func _draw_result(vs: Vector2) -> void:
 	draw_rect(Rect2(Vector2.ZERO, vs), Color(0.04, 0.035, 0.05, 0.92))
 	var oc := str(data.get("outcome", "exit"))
-	var title: String = {"exit": "무사히 빠져나왔다", "boss": "큰형을 눕히고 나왔다", "down": "실려 나왔다"}.get(oc, oc)
+	var title: String = {"exit": "무사히 빠져나왔다", "boss": "두목을 쓰러뜨리고 나왔다", "down": "실려 나왔다"}.get(oc, oc)
 	var tcol: Color = {"exit": Color(0.6, 1, 0.65), "boss": Color(1, 0.85, 0.35), "down": Color(1, 0.45, 0.4)}.get(oc, Color.WHITE)
 	_tc(Vector2(vs.x / 2, vs.y * 0.12), title, tcol, fs(2.6), true)
 	_tc(Vector2(vs.x / 2, vs.y * 0.12 + fs(2.2)), line, Color(0.85, 0.82, 0.75), fs(1.1))

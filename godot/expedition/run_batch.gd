@@ -207,7 +207,7 @@ static func report(all: Dictionary, runs: int, seed0: int, dt: float, sets: Stri
 	L.append("")
 	L.append("## 쓰러뜨린 것(쓰러진 판의 마지막 타격)")
 	L.append("")
-	L.append("| 성격 | 쥐 | 들개 | 경비원 | 고물상 | 두목 | 무너진 더미 | 누전 |")
+	L.append("| 성격 | 쥐 | 띠개 | 경비원 | 고물상 | 두목 | 무너진 더미 | 누전 |")
 	L.append("|---|---|---|---|---|---|---|---|")
 	for prof in all:
 		var c2 := {}

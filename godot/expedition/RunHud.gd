@@ -209,7 +209,7 @@ func _pack_strip(vs: Vector2) -> void:
 		if not world.item_under.is_empty():
 			var ug: String = world.item_under["good"]
 			var us: int = world.bundle_stars(ug)
-			msg = "발밑: %s (가치 %s) — 바꿀 칸을 누르세요" % [RunCfg.good_name(ug), "●".repeat(us) + "○".repeat(5 - us)]
+			msg = "발밑: %s (가치 %s) — 바꿀 칸을 누른다" % [RunCfg.good_name(ug), "●".repeat(us) + "○".repeat(5 - us)]
 		_text_c(Vector2(vs.x / 2, y0 - 12 * s), msg, Color(0.9, 0.88, 0.82), fs())
 	for k in n:
 		var r := Rect2(x0 + k * (cs + gap), y0, cs, cs)
