@@ -54,7 +54,7 @@ static func cond_text(sim: Sim, cond: Variant) -> String:
 				elif k.begins_with("happy_held."):
 					parts.append("행복도 %s 이상을 %s일 유지" % [k.substr(11), _n(c[2])])
 				elif k == "floors":
-					parts.append("%d층이 열림" % int(c[2]))
+					parts.append("%d층 받침이 오름" % int(c[2]))
 				else:
 					parts.append("%s %s %s" % [k, c[1], c[2]])
 	return " + ".join(parts) if not parts.is_empty() else "처음부터"
@@ -98,7 +98,7 @@ static func _hud(sim: Sim, state: CityState) -> Dictionary:
 		goal = {"text": "%s → %s" % [cond_text(sim, nx.get("cond", [])), ", ".join(names) if not names.is_empty() else str(nx.get("grade_name", ""))],
 			"progress": snappedf(_progress(sim, state, nx), 0.01)}
 	var h := {"day": state.day, "hour": state.hour, "money": state.money, "net_per_day": 0.0, "pop_total": state.population(), "pop": pop,
-		"happiness": snappedf(state.happiness, 0.1), "title": state.identity.get("title", "무단 점유 대표"), "grade_name": state.identity.get("grade_name", "공터"),
+		"happiness": snappedf(state.happiness, 0.1), "title": state.identity.get("title", "방백"), "grade_name": state.identity.get("grade_name", "공터"),
 		"floors_unlocked": state.floors_unlocked,
 		"floor_progress": _floor_progress(sim, state, z, need),
 		"water": {"supply": 0.0, "demand": 0.0}, "power": {"supply": 0.0, "demand": 0.0}, "labor": [], "alerts": [],
@@ -145,11 +145,11 @@ static func _floor_progress(sim: Sim, state: CityState, z: int, need: int) -> Di
 	var used := Cover.used_cells_fast(sim, state, z)
 	var text := ""
 	if state.floors_unlocked >= sim.F:
-		text = "모든 층이 열렸다"
+		text = "받침이 모두 올랐다"
 	elif used >= need:
-		text = "%d층이 곧 열린다" % (z + 2)
+		text = "%d층 받침이 곧 오른다" % (z + 2)
 	else:
-		text = "%d층이 열리려면 %d층에 쓰이는 칸 %d개 더(빈집 제외)" % [z + 2, z + 1, need - used]
+		text = "%d층 받침까지 %d층에 쓰이는 칸 %d개 더(빈집 제외)" % [z + 2, z + 1, need - used]
 	return {"z": z, "used": used, "need": need, "text": text}
 
 
@@ -180,7 +180,7 @@ static func _effect_text(sim: Sim, d: Dictionary) -> String:
 	if d.has("contract_slots"):
 		parts.append("계약 자리 +%d" % int(d["contract_slots"]))
 	if d.has("vice"):
-		parts.append("음성 수입 %s/일" % Sim.won(float(d["vice"].get("income", 0))))
+		parts.append("층세 %s/일" % Sim.won(float(d["vice"].get("income", 0))))
 	if "noise" in d.get("tags", []):
 		parts.append("시끄럽다(옆 칸 주거 행복 −)")
 	if d.get("open_sky", false) or d.get("needs_sky", false):
@@ -191,7 +191,7 @@ static func _effect_text(sim: Sim, d: Dictionary) -> String:
 
 
 const CAUSE_TEXT := {"": "가동 중", "staff": "인력 부족", "input": "원료 부족", "water": "물 부족", "power": "전기 부족",
-	"money": "돈이 없어 멈춤", "storage": "창고가 가득", "paused": "일시 정지", "raid": "단속으로 폐쇄", "sky": "위가 막혀 해가 안 듦",
+	"money": "돈이 없어 멈춤", "storage": "창고가 가득", "paused": "일시 정지", "raid": "바깥의 시선으로 폐쇄", "sky": "위가 막혀 해가 안 듦",
 	"fire": "불이 났다", "burnt": "타 버림 — 수리 필요", "repair": "수리 중"}
 
 
@@ -244,7 +244,7 @@ static func _build_menu(sim: Sim, state: CityState) -> Array:
 			hint = _lock_hint(sim, id)
 		elif d.has("blueprint") and not state.flags.get("blueprints", {}).has(str(d["blueprint"])):
 			locked = true
-			hint = "도면 필요(탐험)"
+			hint = "도면 필요(회색 띠)"
 		var cost: Dictionary = d.get("cost", {})
 		var aff := state.money + 1e-9 >= float(cost.get("money", 0))
 		for g: String in cost.get("goods", {}):
@@ -307,7 +307,7 @@ static func _info(sim: Sim, state: CityState, args: Dictionary) -> Dictionary:
 	if d.has("vice"):
 		# 단속 위험: 기본값 + "지금"(가동률 × 정책 heat.gain 반영 — vice 질의의 heat_per_day와 같은 값)
 		var hn := snappedf(float(d["vice"].get("heat", 0.0)) * float(b.get("eff", 0.0)) * maxf(0.0, sim.mod(state, "heat.gain")), 0.1)
-		io.append("음성 수입 %s/일 (지금 %s) · 단속 위험 +%s/일 (지금 +%s)" % [Sim.won(float(d["vice"].get("income", 0))), Sim.won(float(b.get("vice_rate", 0.0))), _n(d["vice"].get("heat", 0)), _n(hn)])
+		io.append("층세 %s/일 (지금 %s) · 바깥의 시선 +%s/일 (지금 +%s)" % [Sim.won(float(d["vice"].get("income", 0))), Sim.won(float(b.get("vice_rate", 0.0))), _n(d["vice"].get("heat", 0)), _n(hn)])
 	var cause := str(b.get("cause", ""))
 	var ct: String = CAUSE_TEXT.get(cause, cause)
 	var served := int(sim.cover(state).get("served", {}).get(bid, 0))

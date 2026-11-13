@@ -1202,7 +1202,7 @@
    "floor": "carpet"
   },
   "dentist": {
-   "sign": "치과",
+   "sign": "치공",
    "wall": "smooth",
    "window": "wide",
    "sign_style": "neon",
@@ -1212,7 +1212,7 @@
    "floor": "checker"
   },
   "bathhouse": {
-   "sign": "목욕탕",
+   "sign": "김탕",
    "wall": "mosaic",
    "window": "slit",
    "sign_style": "neon",
@@ -1228,7 +1228,7 @@
    "floor": "tile"
   },
   "study_hall": {
-   "sign": "공부방",
+   "sign": "글방",
    "wall": "smooth",
    "window": "wide",
    "sign_style": "paint",
@@ -1331,7 +1331,7 @@
    "floor": "wood"
   },
   "expedition_post": {
-   "sign": "줍줍",
+   "sign": "회띠",
    "wall": "sheet",
    "window": "shutter",
    "sign_color": "green",

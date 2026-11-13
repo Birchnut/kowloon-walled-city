@@ -82,7 +82,7 @@ func _check_floor(state: CityState) -> void:
 		state.floors_unlocked += 1
 		state.emit("floor_unlocked", {"z": z + 1})
 		state.stats["floor_%d_day" % (z + 2)] = state.econ_days
-		sim.say(state, "%d층이 열렸다. 이제 그 위에도 지을 수 있다(아래가 비면 골조가 선다)." % (z + 2), "good")
+		sim.say(state, "%d층 받침이 올랐다. 그 위에도 지을 수 있다(아래가 비면 골조가 선다)." % (z + 2), "good")
 
 
 # ------------------------------------------------------------------ 자리·골조
@@ -95,7 +95,7 @@ func _free_reason(state: CityState, p: Vector3i) -> String:
 	if not _inside(p):
 		return "부지 밖이다."
 	if p.z >= state.floors_unlocked:
-		return "%d층은 아직 열리지 않았다(아래층 칸의 80%%가 쓰이면 열린다)." % (p.z + 1)
+		return "%d층 받침은 아직 오르지 않았다(아래층 칸의 여덟 할이 쓰이면 오른다)." % (p.z + 1)
 	if state.cells.has(p):
 		return "이미 건물이 있다."
 	return ""
@@ -240,7 +240,7 @@ func _can_build(state: CityState, args: Dictionary) -> Dictionary:
 	if not sim.is_unlocked(state, type):
 		return fail.call("아직 지을 수 없다 — %s" % _lock_hint(type), "locked")
 	if d.has("blueprint") and not state.flags.get("blueprints", {}).has(str(d["blueprint"])):
-		return fail.call("도면이 있어야 짓는다(탐험에서 찾는다).", "locked")
+		return fail.call("도면이 있어야 짓는다(회색 띠에서 찾는다).", "locked")
 	var multi: bool = cells.size() > 1
 	if not _inside(pos):
 		return fail.call("부지 밖이다.", "bounds")
@@ -488,7 +488,7 @@ func _demolish_preview(state: CityState, pos: Variant) -> Dictionary:
 		if d.get("landmark", false):
 			lines.append("명소다. 다시 세우려면 처음부터 비용이 든다.")
 		if d.has("teams"):
-			lines.append("탐험대 한 팀이 줄어든다(나가 있는 팀은 돌아와 짐을 푼 뒤 해산).")
+			lines.append("회띠꾼 한 팀이 줄어든다(나가 있는 팀은 돌아와 짐을 푼 뒤 해산).")
 		if d.has("contract_slots"):
 			lines.append("계약 자리 %d개가 줄어든다." % int(d["contract_slots"]))
 	var above := false

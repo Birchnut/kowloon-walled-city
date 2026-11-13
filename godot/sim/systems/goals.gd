@@ -65,7 +65,7 @@ func _check(state: CityState) -> void:
 			sim.say(state, "목표 달성: %s%s" % [g.get("text", id), (" — " + ", ".join(lines)) if not lines.is_empty() else ""], "good")
 			state.stats["goal_%s_day" % id] = state.econ_days
 			if g.get("final", false):
-				sim.say(state, "구룡성채가 섰다. 이제부터는 목표 없이, 마음대로 쌓아 올리자.", "good")
+				sim.say(state, "구룡성채가 섰다. 이제부터 목표는 없다. 마음대로 쌓아 올린다.", "good")
 
 
 ## 보상을 주고 문구를 돌려준다.
@@ -109,7 +109,7 @@ func _reward_text(state: CityState, g: Dictionary) -> Array:
 			out.append("열림: " + ", ".join(names))
 		for f: String in u.get("features", []):
 			if f.begins_with("policy_slot"):
-				out.append("정책 칸 +1")
+				out.append("포고 칸 +1")
 		if u.has("grade_name"):
 			out.append("성채 등급: %s%s" % [u["grade_name"], (" · 호칭 " + str(u["title"])) if u.has("title") else ""])
 	return out
@@ -152,4 +152,4 @@ func augment(state: CityState, name: String, _args: Dictionary, out: Variant) ->
 		var m := Metrics.compute(sim, state)
 		out["next_goal"] = {"id": id, "text": str(g.get("text", id)), "progress": snappedf(_progress(g, m), 0.01), "rewards": _reward_text(state, g)}
 		return
-	out["next_goal"] = {"id": "", "text": "구룡성채 완성 — 이제 자유롭게 성채를 가꾸자", "progress": 1.0, "rewards": []}
+	out["next_goal"] = {"id": "", "text": "구룡성채가 섰다. 이제 자유롭게 성채를 가꾼다.", "progress": 1.0, "rewards": []}

@@ -48,7 +48,7 @@ func can(state: CityState, name: String, args: Dictionary) -> Variant:
 			if r.is_empty():
 				return {"ok": false, "reason": "모르는 연구다.", "code": "unknown"}
 			if _study_count(state, false) == 0:
-				return {"ok": false, "reason": "공부방이 있어야 연구할 수 있다.", "code": "study"}
+				return {"ok": false, "reason": "글방이 있어야 연구할 수 있다.", "code": "study"}
 			if _done(state).has(id):
 				return {"ok": false, "reason": "이미 끝낸 연구다.", "code": "done"}
 			if not _active(state).is_empty():
@@ -79,7 +79,7 @@ func apply(state: CityState, name: String, args: Dictionary) -> Variant:
 			state.stat_add("research_spent", cost)
 			var days := float(r.get("days", 1.0))
 			state.research["active"] = {"id": id, "left": days, "done_at": state.econ_days + days}
-			sim.say(state, "공부방에서 '%s' 연구를 시작했다(%s, %.1f일)." % [r.get("name", id), Sim.won(cost), days])
+			sim.say(state, "글방에서 '%s' 연구를 시작했다(%s, %.1f일)." % [r.get("name", id), Sim.won(cost), days])
 			return {"ok": true, "reason": "", "id": id}
 		"research_cancel":
 			var a := _active(state)
@@ -152,11 +152,11 @@ func query(state: CityState, name: String, _args: Dictionary) -> Variant:
 	var studies := _study_count(state, false)
 	var hint := ""
 	if studies == 0:
-		hint = "공부방을 지으면 연구할 수 있다."
+		hint = "글방을 지으면 연구할 수 있다."
 	elif not a.is_empty() and _study_count(state, true) == 0:
-		hint = "족보 공부방이 멈춰 연구도 멈췄다(박힌 돌 일손 필요)."
+		hint = "글방이 멈춰 연구도 멈췄다(성채민 일손이 필요하다)."
 	elif a.is_empty():
-		hint = "연구를 하나 고르자. 한 번에 하나만 한다."
+		hint = "연구를 하나 고른다. 한 번에 하나만 한다."
 	return {"can": studies > 0 and a.is_empty(), "hint": hint, "active": act, "nodes": nodes, "done": _done(state).size(), "total": nodes.size()}
 
 

@@ -67,7 +67,7 @@ func _compute(state: CityState) -> Dictionary:
 		if gap > 0:
 			short.append("%s %d명" % [sim.tname(int(t)), gap])
 	if not short.is_empty():
-		r["labor"] = _al("labor", "일손이 모자란다: %s" % ", ".join(short), "bad", "economy", "labor")
+		r["labor"] = _al("labor", "일손이 모자란다 — %s" % ", ".join(short), "bad", "economy", "labor")
 	# 주거
 	var bad := 0
 	var warn := 0
@@ -89,7 +89,7 @@ func _compute(state: CityState) -> Dictionary:
 		if float(w.get("days_left", 9.0)) < 1.0:
 			soon += int(w.get("count", 0))
 	if soon > 0:
-		r["leaving"] = _al("leaving", "빈집을 못 찾은 주민 %d명이 곧 떠난다 — 주거를 칠하자" % soon, "bad", "build", "house")
+		r["leaving"] = _al("leaving", "빈집을 못 찾은 주민 %d명이 곧 떠난다 — 주거를 칠해야 한다" % soon, "bad", "build", "house")
 	elif wait > 0:
 		r["waiting"] = _al("waiting", "빈집을 기다리는 주민 %d명" % wait, "warn", "build", "house")
 	# 하루 안에 바닥나는 상품(소비가 있는 상품만)
@@ -136,7 +136,7 @@ func _compute(state: CityState) -> Dictionary:
 		var used := Cover.used_cells_fast(sim, state, z)
 		var left := need - used
 		if left > 0 and left <= int(sim.cfg("alerts.floor_cells", 12)):
-			r["floor"] = _al("floor", "%d층이 열리기까지 %d층에 %d칸" % [z + 2, z + 1, left], "good", "build", "house")
+			r["floor"] = _al("floor", "%d층 받침까지 %d층에 %d칸" % [z + 2, z + 1, left], "good", "build", "house")
 	# 불·병(hazards)
 	if sim.enabled.has("hazards"):
 		var hz: Dictionary = sim.query(state, "hazards")
@@ -157,14 +157,14 @@ func _compute(state: CityState) -> Dictionary:
 			r["sick"] = _al("sick", "주거 %d채가 앓는다 — 일손 절반, 오래 가면 떠난다" % (d["sick"] as Array).size(), "bad", "focus", "%d,%d,%d" % [p2.x, p2.y, p2.z])
 		if bool(d["on"]) and (float(d["trash_covered_pct"]) < 0.9 or float(d["covered_pct"]) < 0.8):
 			var low_t := float(d["trash_covered_pct"]) < 0.9
-			r["trash_cover"] = _al("trash_cover", ("쓰레기 수거가 주거의 %d%%만 덮는다 — 넝마주이 조합을 더" % int(roundf(float(d["trash_covered_pct"]) * 100.0))) if low_t \
-				else ("의원이 주거의 %d%%만 덮는다 — 무면허 의원을 더" % int(roundf(float(d["covered_pct"]) * 100.0))), "warn", "lens", "trash" if low_t else "clinic")
+			r["trash_cover"] = _al("trash_cover", ("오물 수거가 주거의 %d%%만 덮는다 — 밤배꾼을 더" % int(roundf(float(d["trash_covered_pct"]) * 100.0))) if low_t \
+				else ("봉합방이 주거의 %d%%만 덮는다 — 봉합방을 더" % int(roundf(float(d["covered_pct"]) * 100.0))), "warn", "lens", "trash" if low_t else "clinic")
 	# 단속 위험
 	if state.heat >= float(sim.cfg("heat.warn", 50)):
-		r["heat"] = _al("heat", "단속 위험 %d — 80이면 음성 시설 하나가 닫힌다" % int(state.heat), "warn", "keep", "policies")
+		r["heat"] = _al("heat", "바깥의 시선 %d — 80이면 두 우산 시설 하나가 닫힌다" % int(state.heat), "warn", "keep", "policies")
 	for b: Dictionary in sim.cover(state)["facs"]:
 		if b.get("raid_until", -1.0) != null and float(b.get("raid_until", -1.0)) > state.econ_days:
-			r["raid"] = _al("raid", Sim.kr("%s이(가) 단속으로 닫혀 있다" % sim.bdef(str(b["type"])).get("name", "")), "bad", "inspect", int(b["id"]))
+			r["raid"] = _al("raid", Sim.kr("%s이(가) 바깥의 시선으로 닫혀 있다" % sim.bdef(str(b["type"])).get("name", "")), "bad", "inspect", int(b["id"]))
 			break
 	return r
 
@@ -178,7 +178,7 @@ func augment(state: CityState, name: String, _args: Dictionary, out: Variant) ->
 		mine[id] = {"id": a["id"], "text": a["text"], "tone": a["tone"], "jump": a["jump"]}
 	var done := int(out.get("teams_done", 0))
 	if done > 0:
-		mine["exp_done"] = _al("exp_done", "탐험대 %d팀이 돌아왔다 — 짐을 받자" % done, "good", "expedition", "")
+		mine["exp_done"] = _al("exp_done", "회띠꾼 %d팀이 돌아왔다 — 짐을 받아야 한다" % done, "good", "expedition", "")
 	var all: Array = mine.values()
 	for a: Dictionary in out.get("alerts", []):
 		if not mine.has(str(a.get("id", ""))):

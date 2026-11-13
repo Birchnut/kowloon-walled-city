@@ -65,9 +65,9 @@ static func _good_row(sim: Sim, state: CityState, g: String, d: float, group: St
 	var hint := ""
 	match s:
 		"bad":
-			hint = "%s이(가) 바닥났다 — %s" % [name, "%s을(를) 더 짓자" % sim.bdef(prod).get("name", prod) if prod != "" else "무역관에서 수입 계약을 맺자"]
+			hint = "%s이(가) 바닥났다 — %s" % [name, "%s을(를) 더 짓는다" % sim.bdef(prod).get("name", prod) if prod != "" else "회상회에서 들여오는 계약을 맺는다"]
 		"warn":
-			hint = "%s일 안에 바닥난다 — %s" % [str(days), "%s을(를) 하나 더" % sim.bdef(prod).get("name", prod) if prod != "" else "수입을 늘리자"]
+			hint = "%s일 안에 바닥난다 — %s" % [str(days), "%s을(를) 하나 더 짓는다" % sim.bdef(prod).get("name", prod) if prod != "" else "들여오는 양을 늘린다"]
 		_:
 			hint = "넉넉하다" if net >= 0.0 else "재고로 버틴다(%s일)" % str(days)
 	var jump := {"screen": "build", "arg": prod} if prod != "" and s != "ok" else {"screen": "economy", "arg": g}
@@ -158,7 +158,7 @@ static func metrics(sim: Sim, state: CityState) -> Dictionary:
 			st = "off"
 		rows.append({"id": u, "group": "utility", "name": TAB[u], "supply": snappedf(s, 0.1), "demand": snappedf(d, 0.1), "unit": "/일" if u == "water" else "부하", "stock": null,
 			"ratio": snappedf(minf(9.99, r), 0.01), "state": st, "days_left": null,
-			"hint": "넉넉하다" if st == "ok" or st == "off" else Sim.kr("%s이(가) %d 모자란다 — %s" % [TAB[u], int(ceilf(d - s)), "물탱크를 하나 더" if u == "water" else "발전기를 하나 더"]),
+			"hint": "넉넉하다" if st == "ok" or st == "off" else Sim.kr("%s이(가) %d 모자란다 — %s" % [TAB[u], int(ceilf(d - s)), "우물 펌프를 하나 더" if u == "water" else "발전기를 하나 더"]),
 			"jump": {"screen": "build", "arg": u}})
 	var dem := good_demand(sim, state)
 	var food: Array = []
@@ -219,7 +219,7 @@ static func metrics(sim: Sim, state: CityState) -> Dictionary:
 	var income := 0.0
 	var cost := 0.0
 	var lines: Array = []
-	const NAMES := {"tax": "세수", "vice": "음성 수입", "export": "수출", "reward": "목표 보상", "upkeep": "유지비", "import": "수입", "build": "건설·승급·수리", "fine": "벌금"}
+	const NAMES := {"tax": "물세·자리값", "vice": "층세", "export": "내보낸 값", "reward": "목표 보상", "upkeep": "유지비", "import": "들여온 값", "build": "짓고 올리고 고친 값", "fine": "벌금"}
 	for k: String in NAMES:
 		var v := float(src.get(k, 0.0))
 		if v > 0.0:
@@ -268,6 +268,6 @@ static func signals(sim: Sim, state: CityState, m: Dictionary = {}) -> Array:
 		if int(l["spare"]) < 0:
 			short.append("%s %d명" % [l["name"], -int(l["spare"])])
 	out.append({"id": "labor", "name": "일손", "state": "ok" if short.is_empty() else "bad",
-		"text": "일손이 맞는다" if short.is_empty() else "모자란다: " + ", ".join(short) + " — 그 계층 집을 더 짓거나 덜 올리자",
+		"text": "일손이 맞는다" if short.is_empty() else "모자란다: " + ", ".join(short) + " — 그 계층 집을 더 짓거나 승급을 늦춘다",
 		"jump": {"screen": "metrics", "arg": "labor"}})
 	return out

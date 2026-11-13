@@ -54,7 +54,7 @@ var clock_offset: int = 0
 var flags: Dictionary = {}
 var logbook: Array = []
 var stats: Dictionary = {}
-var identity: Dictionary = {"title": "무단 점유 대표", "grade_name": "공터"}
+var identity: Dictionary = {"title": "방백", "grade_name": "공터"}
 var last_saved_unix: int = 0
 
 # ── 저장 안 함 ──

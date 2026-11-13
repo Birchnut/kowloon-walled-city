@@ -39,13 +39,13 @@ func can(state: CityState, name: String, args: Dictionary) -> Variant:
 	var id := str(args.get("id", ""))
 	var p := sim.item("policies", id)
 	if p.is_empty():
-		return {"ok": false, "reason": "모르는 정책이다.", "code": "unknown"}
+		return {"ok": false, "reason": "모르는 포고다.", "code": "unknown"}
 	if not bool(args.get("on", true)):
 		return {"ok": true, "reason": "", "code": "ok"}
 	if state.policies.get(id, false):
 		return {"ok": false, "reason": "이미 켜져 있다.", "code": "on"}
 	if _on_count(state) >= slots(state):
-		return {"ok": false, "reason": "정책 칸이 없다(지금 %d칸 — 성채가 자라면 늘어난다)." % slots(state), "code": "slots"}
+		return {"ok": false, "reason": "포고 칸이 없다(지금 %d칸 — 성채가 자라면 늘어난다)." % slots(state), "code": "slots"}
 	var g := str(p.get("group", ""))
 	if g != "":
 		for o: String in state.policies:
@@ -62,10 +62,10 @@ func apply(state: CityState, name: String, args: Dictionary) -> Variant:
 	var p := sim.item("policies", id)
 	if on:
 		state.policies[id] = true
-		sim.say(state, "정책을 켰다: %s." % p.get("name", id))
+		sim.say(state, "포고를 냈다: %s." % p.get("name", id))
 	else:
 		state.policies.erase(id)
-		sim.say(state, "정책을 껐다: %s." % p.get("name", id))
+		sim.say(state, "포고를 거뒀다: %s." % p.get("name", id))
 	Sim.mods_changed(state)
 	return {"ok": true, "reason": "", "on": on}
 
@@ -82,7 +82,7 @@ func tick(state: CityState, dt: float) -> void:
 		if state.money + 1e-9 < c:
 			state.policies.erase(id)
 			Sim.mods_changed(state)
-			sim.say(state, "돈이 없어 정책 '%s'이(가) 꺼졌다." % sim.item("policies", id).get("name", id), "warn")
+			sim.say(state, "돈이 없어 포고 '%s'이(가) 거둬졌다." % sim.item("policies", id).get("name", id), "warn")
 			continue
 		state.money -= c
 		state.book("upkeep", -c)
@@ -108,5 +108,5 @@ func query(state: CityState, name: String, _args: Dictionary) -> Variant:
 		var locked := max_s == 0
 		var cost := _cost_per_day(state, p)
 		items.append({"id": id, "name": p.get("name", id), "desc": desc(p), "on": on, "locked": locked,
-			"lock_hint": "월세 전사 40명이 되면 정책 칸이 열린다" if locked else "", "upkeep": snappedf(cost, 0.1), "group": p.get("group", "")})
+			"lock_hint": "판자시민 40명이 되면 포고 칸이 열린다" if locked else "", "upkeep": snappedf(cost, 0.1), "group": p.get("group", "")})
 	return {"slots": {"used": _on_count(state), "max": max_s}, "items": items}

@@ -1083,7 +1083,7 @@ func _sources(state: CityState, g: String) -> Array:
 	for oid: String in sim.items("partners"):
 		var o := sim.item("partners", oid)
 		if str(o.get("good", "")) == g and str(o.get("dir", "")) == "import" and state.partners.has(str(o.get("partner", ""))):
-			out.append({"screen": "trade", "arg": oid, "label": "%s에서 수입" % ps.get(o["partner"], {}).get("name", o["partner"])})
+			out.append({"screen": "trade", "arg": oid, "label": "%s에서 들여오기" % ps.get(o["partner"], {}).get("name", o["partner"])})
 	return out
 
 

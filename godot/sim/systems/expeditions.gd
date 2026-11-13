@@ -13,7 +13,7 @@ extends SimSystem
 ##  수정치: exp.yield(주력·덤 배수), exp.time(걸리는 날 배수), exp.cost(출발 비용 배수).
 ## 끄면: 탐험이 없다(질의는 빈 모양).
 
-const STATE_NAME := {"idle": "쉬는 중", "out": "탐험 중", "done": "돌아옴", "run": "직접 줍는 중"}
+const STATE_NAME := {"idle": "쉬는 중", "out": "나가 있는 중", "done": "돌아옴", "run": "직접 줍는 중"}
 
 
 func _d() -> Dictionary:
@@ -90,7 +90,7 @@ func _update(state: CityState) -> void:
 		if t["state"] == "out" and state.econ_days + 1e-9 >= float(t["completes_at"]):
 			t["state"] = "done"
 			state.emit("expedition_done", {"team": int(t["id"])})
-			sim.say(state, "탐험대 %d이(가) %s에서 돌아왔다. 짐을 풀어야 한다." % [int(t["id"]), _dname(str(t["dest"]))], "good")
+			sim.say(state, "회띠꾼 %d팀이 %s에서 돌아왔다. 짐을 풀어야 한다." % [int(t["id"]), _dname(str(t["dest"]))], "good")
 			state.stat_add("exp_returns", 1.0)
 
 
@@ -227,11 +227,11 @@ func can(state: CityState, name: String, args: Dictionary) -> Variant:
 			_update(state)
 			var t := _team(state, int(args.get("team", -1)))
 			if t.is_empty():
-				return {"ok": false, "reason": "그런 탐험대가 없다(줍줍 본부를 지으면 팀이 생긴다).", "code": "team"}
+				return {"ok": false, "reason": "그런 팀이 없다(회띠꾼 막을 지으면 팀이 생긴다).", "code": "team"}
 			if t.get("retired", false):
 				return {"ok": false, "reason": "거점이 헐린 팀이다.", "code": "team"}
 			if t["state"] == "out" or t["state"] == "run":
-				return {"ok": false, "reason": "이미 탐험 중이다.", "code": "busy"}
+				return {"ok": false, "reason": "이미 나가 있다.", "code": "busy"}
 			if t["state"] == "done":
 				return {"ok": false, "reason": "먼저 짐을 받아야 한다(수령).", "code": "claim"}
 			var id := str(args.get("dest", ""))
@@ -267,7 +267,7 @@ func can(state: CityState, name: String, args: Dictionary) -> Variant:
 			if not (state.flags.get("run", {}) as Dictionary).is_empty():
 				return {"ok": false, "reason": "이미 직접 줍는 중이다.", "code": "busy"}
 			if _idle_team(state).is_empty():
-				return {"ok": false, "reason": "쉬는 탐험대가 없다(줍줍 본부의 팀이 모두 나가 있거나 본부가 없다).", "code": "busy"}
+				return {"ok": false, "reason": "쉬는 팀이 없다(회띠꾼 막의 팀이 모두 나가 있거나 막이 없다).", "code": "busy"}
 			var c := _can_dest(state, str(args.get("dest", "")))
 			if not c["ok"]:
 				return c
@@ -284,7 +284,7 @@ func _can_dest(state: CityState, id: String) -> Dictionary:
 	if d.is_empty():
 		return {"ok": false, "reason": "모르는 목적지다.", "code": "dest"}
 	if not bool(state.dests.get(id, {}).get("known", false)):
-		return {"ok": false, "reason": "아직 모르는 곳이다 — %s." % str(d.get("reveal_hint", "탐험으로 알게 된다")), "code": "unknown"}
+		return {"ok": false, "reason": "아직 모르는 곳이다 — %s." % str(d.get("reveal_hint", "회색 띠에 다녀오면 알게 된다")), "code": "unknown"}
 	var cost := _cost(state, d)
 	if state.money + 1e-9 < cost:
 		return {"ok": false, "reason": Sim.kr("출발 비용 %s이(가) 모자란다." % Sim.won(cost)), "code": "money"}
@@ -394,7 +394,7 @@ func _send(state: CityState, args: Dictionary) -> Dictionary:
 	state.stat_add("exp_sent", 1.0)
 	state.stat_add("exp_sent_" + str(d.get("band", "near")), 1.0)
 	state.stat_add("exp_team_days", days)
-	sim.say(state, "탐험대 %d이(가) %s(으)로 떠났다(%s)." % [int(t["id"]), _dname(id), Queries.day_text(days)])
+	sim.say(state, "회띠꾼 %d팀이 %s(으)로 떠났다(%s)." % [int(t["id"]), _dname(id), Queries.day_text(days)])
 	return {"ok": true, "reason": "", "team": int(t["id"]), "completes_at": t["completes_at"], "days": days, "seconds": int(roundf(days * _sec_per_day()))}
 
 
@@ -413,7 +413,7 @@ func _claim(state: CityState, args: Dictionary) -> Dictionary:
 			if ft != "":
 				find_text.append(ft)
 		state.emit("expedition_claimed", {"team": int(t["id"]), "rewards": _reward_lines(rw)})
-		sim.say(state, "탐험대 %d의 짐: %s." % [int(t["id"]), _reward_text(rw) if not rw.is_empty() else "빈손"], "good")
+		sim.say(state, "회띠꾼 %d팀의 짐: %s." % [int(t["id"]), _reward_text(rw) if not rw.is_empty() else "빈손"], "good")
 		t["state"] = "idle"
 		t["reward"] = {}
 		t["finds"] = []
@@ -525,7 +525,7 @@ func _run_begin(state: CityState, args: Dictionary) -> Dictionary:
 	var st := {}
 	for g: String in state.dests[id].get("stock", {}):
 		st[g] = int(floorf(float(state.dests[id]["stock"][g]) + 1e-6))
-	sim.say(state, "탐험대 %d이(가) %s에 직접 들어갔다." % [int(t["id"]), _dname(id)])
+	sim.say(state, "회띠꾼 %d팀이 %s에 직접 들어갔다." % [int(t["id"]), _dname(id)])
 	var rc := _run_conf(d)
 	return {"ok": true, "reason": "", "stock": st, "danger": int(rc.get("danger", d.get("danger", 1))), "seed": seed,
 		"carry": int(rc.get("carry", 40)), "carry_cap": int(rc.get("carry", 40)), "team": int(t["id"])}
@@ -643,7 +643,7 @@ func _apply_find(state: CityState, f: Dictionary) -> String:
 				return ""
 			state.partners[id] = true
 			var nm := str(sim.db.get("partners", {}).get("partners", {}).get(id, {}).get("name", id))
-			return "새 거래처: %s — 교역 화면에서 계약을 맺을 수 있다." % nm
+			return "새 거래처: %s. 회상회에서 계약을 맺을 수 있다." % nm
 		"blueprint":
 			var bp: Dictionary = state.flags.get("blueprints", {})
 			if bp.has(id):
@@ -685,7 +685,7 @@ func query(state: CityState, name: String, _args: Dictionary) -> Variant:
 		var left := 0.0
 		if t["state"] == "out":
 			left = clampf(float(t["completes_at"]) - state.econ_days, 0.0, total)
-		teams.append({"id": int(t["id"]), "name": "탐험대 %d" % int(t["id"]), "state": t["state"], "state_name": STATE_NAME.get(t["state"], ""),
+		teams.append({"id": int(t["id"]), "name": "회띠꾼 %d팀" % int(t["id"]), "state": t["state"], "state_name": STATE_NAME.get(t["state"], ""),
 			"dest": t["dest"], "dest_name": _dname(str(t["dest"])) if str(t["dest"]) != "" else "",
 			"days_left": snappedf(left, 0.001), "total_days": snappedf(total, 0.001),
 			"seconds_left": int(roundf(left * spd)), "total_seconds": int(roundf(total * spd)),
@@ -729,7 +729,7 @@ func query(state: CityState, name: String, _args: Dictionary) -> Variant:
 			"days": snappedf(days, 0.001), "total_days": snappedf(days, 0.001), "seconds": int(roundf(days * spd)),
 			"primary": {"good": pg, "name": sim.gname(pg) if pg != "" else "고른 자재", "min": int(roundf(float(pr.get("min", 0)) * k)), "max": int(roundf(float(pr.get("max", 0)) * k))},
 			"picks": picks, "bonus_text": "덤: " + ", ".join(bon) if not bon.is_empty() else "", "cost": {"money": _cost(state, d)},
-			"known": known, "locked_hint": "" if known else str(d.get("reveal_hint", "탐험으로 알게 된다")),
+			"known": known, "locked_hint": "" if known else str(d.get("reveal_hint", "회색 띠에 다녀오면 알게 된다")),
 			"visits": int(st.get("visits", 0)), "new": bool(st.get("new", false)),
 			"stock_pct": snappedf(pct, 0.01),
 			"stock_text": "털 것이 %d%% 남았다" % int(roundf(pct * 100.0)),

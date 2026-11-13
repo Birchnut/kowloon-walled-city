@@ -40,7 +40,7 @@ func can(state: CityState, name: String, args: Dictionary) -> Variant:
 			if si < 0 or si >= sizes.size():
 				return {"ok": false, "reason": "수량 단계가 틀렸다."}
 			if state.contracts.size() >= slots(state):
-				return {"ok": false, "reason": "계약 자리가 없다(지금 %d자리 — 뒷문 무역관을 지으면 2자리씩 생긴다)." % slots(state)}
+				return {"ok": false, "reason": "계약 자리가 없다(지금 %d자리 — 회상회를 지으면 2자리씩 생긴다)." % slots(state)}
 			return {"ok": true, "reason": ""}
 		"contract_set", "contract_cancel":
 			if _find(state, int(args.get("id", -1))).is_empty():
@@ -165,7 +165,7 @@ func query(state: CityState, name: String, _args: Dictionary) -> Variant:
 				"per_day_money": snappedf(sign * float(s["qty"]) * float(s["price"]) * 24.0 / float(s["interval_h"]), 0.1)})
 		var known := state.partners.has(str(o["partner"]))
 		offers.append({"id": oid, "partner": o["partner"], "partner_name": _pname(o["partner"]), "good": o["good"], "good_name": sim.gname(o["good"]),
-			"dir": o["dir"], "sizes": sizes, "known": known, "lock_hint": "" if known else str(ps.get(o["partner"], {}).get("reveal_hint", "탐험으로 발견"))})
+			"dir": o["dir"], "sizes": sizes, "known": known, "lock_hint": "" if known else str(ps.get(o["partner"], {}).get("reveal_hint", "회색 띠에서 만난다"))})
 	return {"slots": {"used": state.contracts.size(), "max": slots(state)}, "active": active, "offers": offers, "no_post": slots(state) == 0}
 
 

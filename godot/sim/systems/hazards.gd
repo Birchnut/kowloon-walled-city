@@ -56,9 +56,9 @@ func _switch(state: CityState) -> void:
 			state.emit("hazard_on", {"kind": kind, "grace_days": grace})
 			state.stats["hazard_%s_on_day" % kind] = state.econ_days
 			if kind == "fire":
-				sim.say(state, "2층이 열렸다. 판자와 전선이 겹겹이 쌓이면 불이 난다 — %s 뒤부터. 양동이 소방대 범위(위아래 한 층까지)로 쓰이는 칸을 덮자." % Queries.day_text(grace), "warn")
+				sim.say(state, "2층 받침이 올랐다. 판자와 전깃줄이 겹겹이 쌓여 %s 뒤부터 불이 난다. 불밥통 골목 범위(위아래 한 층까지)로 쓰이는 칸을 덮어야 한다." % Queries.day_text(grace), "warn")
 			else:
-				sim.say(state, "3층이 열렸다. 사람이 쌓이면 쓰레기도 쌓이고, 쓰레기는 병을 부른다 — %s 뒤부터. 넝마주이 조합과 무면허 의원을 세우자." % Queries.day_text(grace), "warn")
+				sim.say(state, "3층 받침이 올랐다. 사람이 쌓이면 오물도 쌓이고 오물은 병을 부른다. %s 뒤부터다. 밤배꾼과 봉합방을 세워야 한다." % Queries.day_text(grace), "warn")
 		elif not want and bool(h["on"]):
 			h["on"] = false
 
@@ -213,7 +213,7 @@ func _ignite(state: CityState, cov: Dictionary, b: Dictionary, spread: bool) -> 
 	if spread:
 		sim.say(state, "불이 %s(으)로 번졌다(%d층). 소방 범위 밖이다." % [nm, pos.z + 1], "bad")
 	elif c:
-		sim.say(state, "%s에서 불이 났다(%d층). 양동이 줄이 벌써 서 있다." % [nm, pos.z + 1], "warn")
+		sim.say(state, "%s에서 불이 났다(%d층). 불밥통 앞에 줄이 벌써 서 있다." % [nm, pos.z + 1], "warn")
 	else:
 		sim.say(state, "%s에서 불이 났다(%d층). 소방 범위 밖이라 아무도 오지 않는다." % [nm, pos.z + 1], "bad")
 
@@ -473,8 +473,8 @@ func _outbreak(state: CityState, cov: Dictionary, b: Dictionary, room: int) -> v
 	if not state.stats.has("first_outbreak_day"):
 		state.stats["first_outbreak_day"] = state.econ_days
 	state.emit("outbreak", {"bids": bids, "pos": o})
-	sim.say(state, "%d층 쓰레기 더미 옆에서 병이 돈다. 주거 %d채가 앓는다%s." % [o.z + 1, bids.size(),
-		"" if _covered(state, cov, "clinic", int(b["id"])) else " — 의원 범위 밖이라 오래 간다"], "bad")
+	sim.say(state, "%d층 오물 더미 옆에서 병이 돈다. 주거 %d채가 앓는다%s." % [o.z + 1, bids.size(),
+		"" if _covered(state, cov, "clinic", int(b["id"])) else " — 봉합방 범위 밖이라 오래 간다"], "bad")
 
 
 func _sick_tick(state: CityState, cov: Dictionary, b: Dictionary, dt: float) -> void:
@@ -625,7 +625,7 @@ func _hazards_q_raw(state: CityState) -> Dictionary:
 	var d: Dictionary = hz["disease"]
 	var fgrace := maxf(0.0, float(f["since"]) - state.econ_days) if bool(f["on"]) else 0.0
 	var dgrace := maxf(0.0, float(d["since"]) - state.econ_days) if bool(d["on"]) else 0.0
-	var ft := "2층이 열리면 불이 나기 시작한다."
+	var ft := "2층 받침이 오르면 불이 나기 시작한다."
 	if bool(f["on"]):
 		ft = "소방 범위가 쓰이는 칸의 %d%%를 덮는다." % int(roundf(fpct * 100.0))
 		if fgrace > 0.0:
@@ -633,10 +633,10 @@ func _hazards_q_raw(state: CityState) -> Dictionary:
 		if not burning.is_empty():
 			ft += " 지금 %d곳이 탄다." % burning.size()
 		if not burnt.is_empty():
-			ft += " 탄 건물 %d — 수리하자." % burnt.size()
-	var dt := "3층이 열리면 쓰레기와 병이 생긴다."
+			ft += " 탄 건물 %d. 수리해야 한다." % burnt.size()
+	var dt := "3층 받침이 오르면 오물과 병이 생긴다."
 	if bool(d["on"]):
-		dt = "넝마주이 조합이 주거의 %d%%, 의원이 %d%%를 덮는다." % [int(roundf(tpct * 100.0)), int(roundf(cpct * 100.0))]
+		dt = "밤배꾼이 주거의 %d%%, 봉합방이 %d%%를 덮는다." % [int(roundf(tpct * 100.0)), int(roundf(cpct * 100.0))]
 		if dgrace > 0.0:
 			dt = "%s 뒤부터 병이 돈다. " % Queries.day_text(dgrace) + dt
 		if not sick.is_empty():
@@ -659,7 +659,7 @@ func _coverage_q(state: CityState, kind: String) -> Dictionary:
 	if kind in TAGS:
 		var tag: String = TAGS[kind]
 		test = func(b: Dictionary) -> bool: return _covered(state, cov, tag, int(b["id"]))
-		label = {"fire": "소방", "trash": "쓰레기 수거", "clinic": "의원"}[kind]
+		label = {"fire": "소방", "trash": "오물 수거", "clinic": "봉합방"}[kind]
 	elif kind == "market":
 		test = func(b: Dictionary) -> bool:
 			for fb: int in cov["markets"].get(int(b["id"]), []):
@@ -709,7 +709,7 @@ func _coverage_q(state: CityState, kind: String) -> Dictionary:
 			why += " — %d곳 공사 중" % n_site
 		if n_off > 0:
 			var oc := Sim.off_reason(_first_off(state, tag2))
-			why += " — %d곳 멈춤(%s)" % [n_off, {"paused": "멈춰 둠", "money": "돈 없음", "raid": "단속", "fire": "불", "burnt": "탐", "repair": "수리 중", "sky": "하늘 막힘"}.get(oc, "일손 부족")]
+			why += " — %d곳 멈춤(%s)" % [n_off, {"paused": "멈춰 둠", "money": "돈 없음", "raid": "바깥의 시선", "fire": "불", "burnt": "탐", "repair": "수리 중", "sky": "하늘 막힘"}.get(oc, "일손 부족")]
 	return {"covered": covered, "uncovered": uncovered, "pct": snappedf(pct, 0.01),
 		"text": "%s 범위: 쓰이는 칸 %d%% (밖 %d칸)%s" % [label, int(roundf(pct * 100.0)), uncovered.size(), why]}
 

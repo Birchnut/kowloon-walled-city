@@ -85,7 +85,7 @@ func on_day_end(state: CityState, ended: int) -> void:
 	state.ledger["today"] = {}
 
 
-const LINE_NAME := {"tax": "세수", "upkeep": "유지비", "import": "수입(교역)", "export": "수출(교역)", "build": "건설·승급", "vice": "음성 수입", "reward": "목표 보상", "fine": "벌금·뒷돈"}
+const LINE_NAME := {"tax": "물세·자리값", "upkeep": "유지비", "import": "들여온 값", "export": "내보낸 값", "build": "짓고 올린 값", "vice": "층세", "reward": "목표 보상", "fine": "벌금·뒷돈"}
 
 
 func augment(state: CityState, name: String, _args: Dictionary, out: Variant) -> void:
