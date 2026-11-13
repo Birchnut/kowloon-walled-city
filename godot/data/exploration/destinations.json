@@ -414,7 +414,7 @@
   }
  },
  "run": {
-  "carry": 40,
+  "carry": 80,
   "boss": {
    "parts": 1
   },
