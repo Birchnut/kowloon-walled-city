@@ -3,13 +3,13 @@
  "default": "scrap_yard",
  "items": {
   "scrap_yard": {
-   "name": "고물 야적장", "desc": "쌓인 차체, 녹슨 담, 그리고 압축기 \"큰형\". 주로 나오는 것: 철제 · 고물 · 전자 폐품",
+   "name": "송전탑 밑 고철 더미", "desc": "쌓인 차체, 녹슨 담, 그리고 고철 압축기. 주로 나오는 것: 철제 · 고물 · 전자 폐품",
    "dests": ["junk_yard", "scrap_yard", "junkyard"],
-   "boss": {"name": "압축기 큰형", "sub": "고물 야적장 관리 책임자(자칭) · 근속 31년 · 휴가 0일", "look": "press", "special": "chain"},
-   "lines": {"dead": "큰형, 퇴근.", "phase2": "큰형이 열 받았다"}
+   "boss": {"name": "고철 압축기", "sub": "송전탑 밑에서 돌아가는 압축기다. 멈춘 적이 없다", "look": "press", "special": "chain"},
+   "lines": {"dead": "고철 압축기가 멎었다.", "phase2": "고철 압축기가 달아올랐다"}
   },
   "landfill": {
-   "name": "쓰레기 매립지", "desc": "햇볕 쨍쨍한 쓰레기 산, 갈매기, 그리고 들개들. 주로 나오는 것: 목재 · 통조림 · 고물",
+   "name": "검은 내 둔덕", "desc": "검은 내가 올라오는 둔덕, 갈매기, 그리고 띠개들. 주로 나오는 것: 목재 · 맹관 · 고물",
    "dests": ["landfill", "garbage_dump"],
    "ground": ["d8c98e", "bfae74", "eadcab"],
    "fence": "5b7b3a", "fence2": "3d5a2a",
@@ -18,8 +18,8 @@
    "swap": {"g": ["d", 0.75]},
    "seagulls": true,
    "goods_w": {"wood": 2.0, "canned": 2.5, "scrap": 1.2, "metal": 0.6, "elec": 0.6},
-   "boss": {"name": "들개 왕", "sub": "매립지 서열 1위 · 목걸이 없음 · 주인 없음", "look": "dogking", "special": "howl"},
-   "lines": {"dead": "들개 왕, 낮잠 시간.", "phase2": "들개 왕이 이빨을 드러냈다"}
+   "boss": {"name": "띠개 우두머리", "sub": "둔덕의 띠개 가운데 서열 첫째다. 목걸이도 주인도 없다", "look": "dogking", "special": "howl"},
+   "lines": {"dead": "띠개 우두머리가 쓰러졌다.", "phase2": "띠개 우두머리가 이빨을 드러냈다"}
   }
  }
 }

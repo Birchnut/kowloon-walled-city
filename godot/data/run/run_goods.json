@@ -50,8 +50,8 @@
    "city_id": "concrete"
   },
   "canned": {
-   "name": "통조림",
-   "short": "캔",
+   "name": "맹관",
+   "short": "맹관",
    "bundle": 2,
    "cap": 4,
    "value": 2.0,
@@ -88,13 +88,13 @@
  },
  "big": {
   "name": "큰 짐",
-  "desc": "압축기가 끝까지 안 내놓던 것. 배낭 밖에 멘다.",
+  "desc": "고철 압축기가 끝까지 내놓지 않던 것이다. 배낭 밖에 멘다.",
   "goods": {
    "parts": 3,
    "elec": 4
   },
   "finds": [
-   "도면: 압축기 큰형의 설계도"
+   "도면: 고철 압축기의 설계도"
   ]
  },
  "sample_begin": {

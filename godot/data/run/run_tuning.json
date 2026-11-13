@@ -131,7 +131,7 @@
  "noise_events": [
   {
    "id": "dogs",
-   "banner": "들개 떼가 냄새를 맡았다",
+   "banner": "띠개 떼가 냄새를 맡았다",
    "spawn": {
     "dog": 3
    },
@@ -139,7 +139,7 @@
   },
   {
    "id": "patrol",
-   "banner": "경비 순찰 — 사이렌을 울리며 온다",
+   "banner": "검문소 순찰이 사이렌을 울리며 온다",
    "spawn": {
     "guard": 2
    },
@@ -147,13 +147,13 @@
   },
   {
    "id": "flood",
-   "banner": "투광등이 켜졌다 — 경비원 시야가 넓어진다",
+   "banner": "투광등이 켜졌다. 경비의 시야가 넓어진다",
    "flood": true,
    "sfx": "flood"
   },
   {
    "id": "rats",
-   "banner": "쥐들이 이사 온다",
+   "banner": "쥐가 몰려든다",
    "spawn": {
     "rat": 5
    },
