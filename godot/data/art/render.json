@@ -24,7 +24,7 @@
   },
   "cover": {
     "_comment": "덮인 아래층 그림(v0.5). 위에 층이 full_depth개 이상 쌓인 칸은 max_dark만큼 어둡고 푸르스름. source: local = 셀에서 직접 센다 / sim = 규칙의 covered_depth 질의. 임시값(v0.5)",
-    "source": "local",
+    "source": "sim",
     "full_depth": 3,
     "max_dark": 0.3
   },

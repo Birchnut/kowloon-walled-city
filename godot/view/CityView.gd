@@ -864,6 +864,7 @@ func _on_event(ev: String, payload: Dictionary) -> void:
 
 
 var _cells_dirty := false
+var _cover_sim: Dictionary = {}   # 규칙의 covered_depth 질의 결과(0 아닌 칸만)
 
 
 ## 고요시간 켜기/끄기. 규칙 쪽 사건(quiet_start/quiet_end)이 부르고, 시험에서는 직접 부를 수 있다.
@@ -1978,9 +1979,7 @@ func _make_cell_tex() -> void:
 ## 아니면 지금 있는 셀로 직접 센다. 바꿔 끼울 곳은 이 함수 하나다.
 func _covered_depth(p: Vector3i, cols: Dictionary) -> int:
 	if str(cfg.r("cover.source", "local")) == "sim":
-		var q: Variant = Game.query("covered_depth", {"pos": p, "cell": p})
-		if q is int or q is float:
-			return int(q)
+		return int(_cover_sim.get(p, 0))
 	var zs: Variant = cols.get(Vector2i(p.x, p.y), null)
 	if zs == null:
 		return 0
@@ -2017,6 +2016,11 @@ func _update_cell_tex() -> void:
 	_haz_img.fill(Color(0, 0, 0, 0))
 	_cover_img.fill(Color(0, 0, 0, 0))
 	var cover_cols := _cover_columns(st)
+	_cover_sim = {}
+	if str(cfg.r("cover.source", "local")) == "sim":
+		var allq: Variant = Game.query("covered_depth", {})
+		if allq is Dictionary:
+			_cover_sim = allq
 	var cover_full := maxf(float(cfg.r("cover.full_depth", 4)), 1.0)
 	var bs := _buildings()
 	var lstr := float(cfg.vis("lens.strength", 0.62))
