@@ -34,6 +34,10 @@ static func tex(key: String) -> Texture2D:
 		"exit_entrance": img = _exit_hole()
 		"exit_mid": img = _manhole()
 		"exit_boss": img = _gate()
+		"boss_dog": img = _boss_dog(false)
+		"boss_dog_stuck": img = _boss_dog(true)
+		"gull0": img = _gull(0)
+		"gull1": img = _gull(1)
 		"boss_head": img = _boss_head(false)
 		"boss_head_stuck": img = _boss_head(true)
 		"cube": img = _cube()
@@ -122,6 +126,12 @@ static func _outlined(img: Image) -> Image:
 	img.convert(Image.FORMAT_RGBA8)
 	var w := img.get_width()
 	var h := img.get_height()
+	# 밝고 또렷하게: 채도·명도를 조금 올린다(밝은 바닥 위에서 몸이 튀어 보이게)
+	for y in h:
+		for x in w:
+			var c0 := img.get_pixel(x, y)
+			if c0.a > 0.5:
+				img.set_pixel(x, y, Color.from_hsv(c0.h, minf(1.0, c0.s * 1.25), minf(1.0, c0.v * 1.12 + 0.03), c0.a))
 	var o := img.duplicate() as Image
 	for y in h:
 		for x in w:
@@ -400,7 +410,7 @@ static func _press_cell(img: Image, tiles: PackedByteArray, w: int, h: int, tx: 
 # ------------------------------------------------------------------ 생물
 static func _rat(frame: int) -> Image:
 	var img := _new(12, 8)
-	var body := Color("75685e")
+	var body := Color("958373")
 	_ellipse(img, 6, 4.5, 4.2, 2.6, body)
 	_ellipse(img, 6.5, 3.8, 3.0, 1.4, body.lightened(0.12))
 	_rect(img, 9, 3, 2, 2, body)          # 머리
@@ -419,8 +429,8 @@ static func _rat(frame: int) -> Image:
 
 static func _dog(frame: int) -> Image:
 	var img := _new(20, 13)
-	var fur := Color("9a6a3a")
-	var dark := Color("6a4626")
+	var fur := Color("d08a40")
+	var dark := Color("8a5226")
 	var body_y := 6.0
 	var head := Vector2(16, 4)
 	if frame == 2:   # 으르렁: 몸 낮추고 머리 앞으로
@@ -642,6 +652,42 @@ static func _boss_head(stuck: bool) -> Image:
 	else:
 		_rect(img, 16, 19, 12, 6, Color("30343a"))
 	return _outline(img)
+
+
+## 들개 왕: 큰 개 머리(왕관 대신 병뚜껑 목걸이). 덮친 뒤엔 혀를 빼고 어지러워한다(약점 = 코).
+static func _boss_dog(stuck: bool) -> Image:
+	var img := _new(44, 38)
+	var fur := Color("c47a36")
+	var dark := Color("8a4e22")
+	_ellipse(img, 22, 22, 19, 14, fur)
+	_ellipse(img, 22, 18, 15, 9, fur.lightened(0.12))
+	_rect(img, 4, 2, 9, 12, dark)       # 귀
+	_rect(img, 31, 2, 9, 12, dark)
+	_ellipse(img, 22, 27, 9, 6, Color("e8c8a0"))   # 주둥이
+	_ellipse(img, 22, 23, 4, 3, Color("ff9030") if stuck else Color("1a1210"))   # 코(끼면 빛나는 약점)
+	if stuck:
+		_rect(img, 13, 14, 5, 1, Color("1a1210"))   # 어지러운 눈 ×
+		_rect(img, 26, 14, 5, 1, Color("1a1210"))
+		_rect(img, 20, 31, 4, 6, Color("e0607a"))   # 혀
+	else:
+		_rect(img, 13, 12, 4, 4, Color("ff3020"))
+		_rect(img, 27, 12, 4, 4, Color("ff3020"))
+		_rect(img, 16, 31, 12, 2, Color("f8f8f0"))   # 이빨
+	for k in 5:
+		_ellipse(img, 10 + k * 6, 35, 2.2, 2.2, [Color("e74c3c"), Color("f1c40f"), Color("3498db")][k % 3])   # 병뚜껑 목걸이
+	return _outline(img)
+
+
+static func _gull(frame: int) -> Image:
+	var img := _new(11, 5)
+	if frame == 0:
+		_rect(img, 0, 0, 4, 1, Color("f4f6f6")); _rect(img, 7, 0, 4, 1, Color("f4f6f6"))
+		_rect(img, 3, 1, 5, 2, Color("ffffff"))
+	else:
+		_rect(img, 0, 2, 4, 1, Color("f4f6f6")); _rect(img, 7, 2, 4, 1, Color("f4f6f6"))
+		_rect(img, 3, 1, 5, 2, Color("ffffff"))
+	_px(img, 8, 1, Color("f39c12"))
+	return _outline(img, Color("5d6d7e"))
 
 
 static func _shadow(rx: int, ry: int) -> Image:

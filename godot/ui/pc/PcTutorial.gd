@@ -163,7 +163,11 @@ func _process(delta: float) -> void:
 	_box.reset_size()
 	var x := floorf(br.get_center().x - _box.size.x * 0.5)
 	_box.position = Vector2(clampf(x, LeftColumn.W + 20, vs.x - _box.size.x - 20), br.position.y - _box.size.y - 16)
-	var tr: Rect2 = ui.target_rect(str(s.get("target", ""))) if ui != null else Rect2()
+	var tgt := str(s.get("target", ""))
+	var tr: Rect2 = ui.target_rect(tgt) if ui != null else Rect2()
+	# 창이 떠 있으면 창 밑에 깔린 대상의 테두리는 그리지 않는다(창 위에 금테가 떠 보였다 — 통합 때 고침)
+	if ui != null and ui.any_window() and not tgt.begins_with("win:"):
+		tr = Rect2()
 	if tr != _hl_rect or true:
 		_hl_rect = tr
 		_hl.queue_redraw()

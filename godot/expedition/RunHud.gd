@@ -20,6 +20,8 @@ var ticker_t := 0.0
 var muted := false
 var slot_rects: Array = []
 var noise_shown := 0.0
+var boss_flash := 0.0
+var nameplate_t := 0.0
 
 
 func _ready() -> void:
@@ -49,6 +51,9 @@ func on_event(e: Dictionary) -> void:
 		"banner":
 			banner = e["text"]
 			banner_t = 2.2
+		"boss_intro":
+			nameplate_t = 2.4
+			banner_t = 0.0
 		"room":
 			room_title = "깊이 %d · %s" % [e["depth"], e["name"]]
 			room_t = 2.5
@@ -59,6 +64,8 @@ func tick(dt: float) -> void:
 	banner_t = maxf(0.0, banner_t - dt)
 	room_t = maxf(0.0, room_t - dt)
 	hurt_t = maxf(0.0, hurt_t - dt)
+	boss_flash = maxf(0.0, boss_flash - dt)
+	nameplate_t = maxf(0.0, nameplate_t - dt)
 	if world != null:
 		noise_shown = lerpf(noise_shown, world.noise, 1.0 - exp(-dt * 10.0))
 	queue_redraw()
@@ -80,7 +87,7 @@ func _draw() -> void:
 	var pad := 6 * s
 	for k in 6:
 		var bw0 := (6 - k) * 14.0 * s
-		var a0 := 0.06
+		var a0 := 0.025
 		draw_rect(Rect2(0, 0, vs.x, bw0), Color(0, 0, 0, a0))
 		draw_rect(Rect2(0, vs.y - bw0, vs.x, bw0), Color(0, 0, 0, a0))
 		draw_rect(Rect2(0, 0, bw0, vs.y), Color(0, 0, 0, a0))
@@ -121,8 +128,12 @@ func _draw() -> void:
 	draw_rect(Rect2(bx, ny + 2 * s, nw * u, 5 * s), ncol)
 	for k in range(1, 4):
 		draw_rect(Rect2(bx + nw * k / 4.0, ny + 2 * s, s, 5 * s), Color(0, 0, 0, 0.4))
-	if world.noise_level > 0:
+	if world.noise_level >= world.events_total():
+		_text(Vector2(bx + nw + 5 * s, ny + fs()), "더 갈 데 없음", Color(1, 0.45, 0.35), fs())
+	elif world.noise_level > 0:
 		_text(Vector2(bx + nw + 5 * s, ny + fs()), "%d단계" % world.noise_level, Color(1, 0.45, 0.35), fs())
+	if world.hushing:
+		_text(Vector2(bx + nw * 0.35, ny - 2 * s), "숨죽임…", Color(0.7, 0.85, 1.0), fs(0.8))
 	var hy := ny + 12 * s
 	_text(Vector2(pad, hy + fs()), "손", Color(0.85, 0.82, 0.78), fs())
 	for k in RunCfg.i("throw_carry_max", 3):
@@ -150,9 +161,21 @@ func _draw() -> void:
 	if b != null and not b.dead and b.state != "dormant":
 		var bw2 := 160 * s
 		var bxx := vs.x / 2 - bw2 / 2
-		_text_c(Vector2(vs.x / 2, pad + fs()), "압축기 \"큰형\"", Color(1, 0.85, 0.5), fs())
+		_text_c(Vector2(vs.x / 2, pad + fs()), str(RunCfg.skin().get("boss", {}).get("name", "두목")), Color(1, 0.85, 0.5), fs())
 		draw_rect(Rect2(bxx - s, pad + 11 * s, bw2 + 2 * s, 6 * s), Color(0.08, 0.06, 0.08))
-		draw_rect(Rect2(bxx, pad + 12 * s, bw2 * float(b.hp) / b.max_hp, 4 * s), Color(0.9, 0.3, 0.2))
+		draw_rect(Rect2(bxx, pad + 12 * s, bw2 * float(b.hp) / b.max_hp, 4 * s), Color(0.9, 0.3, 0.2).lerp(Color.WHITE, boss_flash * 3.0))
+		if int(b.data.get("phase", 1)) == 2:
+			draw_rect(Rect2(bxx + bw2 / 2.0 - s, pad + 10 * s, 2 * s, 8 * s), Color(1, 0.85, 0.4))
+	if nameplate_t > 0.0:
+		# 두목 이름판: 위아래 띠 + 큰 이름 + 한 줄
+		var na := minf(1.0, nameplate_t * 2.0) * minf(1.0, (2.4 - nameplate_t) * 4.0)
+		var ny0 := vs.y * 0.62
+		draw_rect(Rect2(0, ny0 - fs(3.2), vs.x, fs(4.6)), Color(0.05, 0.03, 0.04, 0.75 * na))
+		draw_rect(Rect2(0, ny0 - fs(3.2), vs.x, 2 * s), Color(0.95, 0.75, 0.2, na))
+		draw_rect(Rect2(0, ny0 + fs(1.4) - 2 * s, vs.x, 2 * s), Color(0.95, 0.75, 0.2, na))
+		var bsk: Dictionary = RunCfg.skin().get("boss", {})
+		_text_c(Vector2(vs.x / 2, ny0 - fs(0.6)), str(bsk.get("name", "두목")), Color(1, 0.9, 0.6, na), fs(3.0), true)
+		_text_c(Vector2(vs.x / 2, ny0 + fs(0.9)), str(bsk.get("sub", "")), Color(0.85, 0.8, 0.75, na), fs(1.0))
 	if banner_t > 0.0:
 		var a := minf(1.0, banner_t * 2.0)
 		var by := vs.y * 0.24
@@ -182,9 +205,11 @@ func _pack_strip(vs: Vector2) -> void:
 	if open:
 		draw_rect(Rect2(0, 0, vs.x, vs.y), Color(0, 0, 0, 0.45))
 		_text_c(Vector2(vs.x / 2, y0 - 26 * s), "배낭", Color(1, 0.9, 0.7), fs(1.6), true)
-		var msg := "칸을 누르면 내려놓는다  ·  1~6  ·  Tab 닫기"
+		var msg := "왼쪽 클릭·1~6 칸째 내려놓기  ·  오른쪽 클릭·Shift+숫자 한 묶음만  ·  Tab 닫기"
 		if not world.item_under.is_empty():
-			msg = "발밑: %s — 바꿀 칸을 누르세요" % RunCfg.good_name(world.item_under["good"])
+			var ug: String = world.item_under["good"]
+			var us: int = world.bundle_stars(ug)
+			msg = "발밑: %s (가치 %s) — 바꿀 칸을 누르세요" % [RunCfg.good_name(ug), "●".repeat(us) + "○".repeat(5 - us)]
 		_text_c(Vector2(vs.x / 2, y0 - 12 * s), msg, Color(0.9, 0.88, 0.82), fs())
 	for k in n:
 		var r := Rect2(x0 + k * (cs + gap), y0, cs, cs)
@@ -201,8 +226,19 @@ func _pack_strip(vs: Vector2) -> void:
 			var cap := int(RunCfg.good(sl["good"]).get("cap", 3))
 			for bb in cap:
 				draw_rect(Rect2(r.position.x + 3 * s + bb * 4 * s, r.end.y - 4 * s, 3 * s, 2 * s), RunCfg.good_color(sl["good"]) if bb < int(sl["bundles"]) else Color(0.25, 0.22, 0.22))
+			if (world.wanted as Array).has(sl["good"]):
+				_text(r.position + Vector2(r.size.x - 8 * s, fs(0.8)), "★", Color(1, 0.85, 0.3), fs(0.8))
 			if open:
 				_text_c(Vector2(r.get_center().x, r.end.y + 9 * s), "%s %d" % [RunCfg.good(sl["good"]).get("short", ""), sl["units"]], Color(0.9, 0.88, 0.82), fs())
+				var stars: int = world.bundle_stars(sl["good"])
+				_text_c(Vector2(r.get_center().x, r.end.y + 19 * s), "가치 " + "●".repeat(stars) + "○".repeat(5 - stars), Color(1, 0.85, 0.4), fs(0.8))
+	# 도시에 모자란 것
+	if not (world.wanted as Array).is_empty():
+		var names: Array = []
+		for g in world.wanted:
+			names.append(RunCfg.good_name(g))
+		var wy := y0 - 4 * s if not open else y0 + cs + 30 * s
+		_text_c(Vector2(vs.x / 2, wy), "★ 지금 도시에 모자란 것: " + " · ".join(PackedStringArray(names)), Color(1, 0.85, 0.4, 0.9), fs(0.9))
 	# 큰 짐 칸
 	var br := Rect2(x0 + n * (cs + gap) + 6 * s, y0, cs, cs)
 	draw_rect(br, Color(0.12, 0.1, 0.05, 0.85))

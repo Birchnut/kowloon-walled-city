@@ -268,6 +268,13 @@ func set_compact(level: int) -> void:
 		return
 	compact = level
 	refresh(_hud)
+	# 칩 글자가 짧아져도 버튼이 옛 폭에 남아 배속 버튼을 밀어냈다(통합 때 고침) — 다시 맞춘다
+	for t: Variant in _tiers:
+		var e: Dictionary = _tiers[t]
+		var c: Control = (e["btn"] as Control).get_child(0) if (e["btn"] as Control).get_child_count() > 0 else null
+		if c != null:
+			c.size = Vector2.ZERO
+		_fit_flat(e["btn"])
 
 
 func signal_rect(id: String) -> Rect2:

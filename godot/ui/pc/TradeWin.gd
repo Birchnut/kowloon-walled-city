@@ -52,11 +52,11 @@ func _refresh() -> void:
 		var p := UI.panel("PanelGold")
 		var v := UI.vbox(6)
 		p.add_child(v)
-		v.add_child(UI.label("교역소가 없다", "LabelBold"))
-		var l := UI.label("교역소를 지으면 계약 자리가 생긴다.", "LabelSmall", true)
+		v.add_child(UI.label("뒷문 무역관이 없다", "LabelBold"))
+		var l := UI.label("기반(K)의 뒷문 무역관을 지으면 계약 자리가 생긴다(월세 전사 40명이 되면 열린다).", "LabelSmall", true)
 		l.custom_minimum_size.x = 540
 		v.add_child(l)
-		var b := PcButton.make("짓기 — 기반", "infra", "", "ButtonJade")
+		var b := PcButton.make("뒷문 무역관 짓기", "infra", "K", "ButtonJade")
 		b.pressed.connect(func() -> void:
 			close()
 			ui.jump({"screen": "build", "arg": "trade_post"}))

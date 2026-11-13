@@ -14,8 +14,8 @@ const PITCH_X := 30
 const PITCH_Y := 20
 const MARGIN := 2
 
-enum { VOID, FLOOR, WALL, CAR, BOX, TIRE, PRESS, JUNK, WIRE, HALL, GRAVEL, OIL, DOOR, RUBBLE }
-const SOLID := [VOID, WALL, CAR, BOX, TIRE, PRESS, JUNK]
+enum { VOID, FLOOR, WALL, CAR, BOX, TIRE, PRESS, JUNK, WIRE, HALL, GRAVEL, OIL, DOOR, RUBBLE, BUS, BOOTH, SOFT }
+const SOLID := [VOID, WALL, CAR, BOX, TIRE, PRESS, JUNK, BUS, BOOTH]
 
 var rng := RandomNumberGenerator.new()
 var w := 0
@@ -43,6 +43,7 @@ func generate(seed_value: int, stock: Dictionary, danger: int) -> Dictionary:
 	_build_tiles()
 	_carve_links()
 	_reachability()
+	_soft_ground()
 	_reserve_big()
 	_populate(danger)
 	return {
@@ -200,6 +201,8 @@ func _build_tiles() -> void:
 					"K": code = PRESS
 					"j": code = JUNK
 					"w": code = WIRE
+					"U": code = BUS
+					"H": code = BOOTH
 				set_t(c, code)
 				match ch:
 					"P": _obj("pile", c, r)
@@ -340,6 +343,27 @@ func _reachability() -> void:
 	objects = keep
 
 
+## 스킨이 물렁한 땅을 쓰면(매립지) 바닥 일부를 덩어리째 물렁하게.
+func _soft_ground() -> void:
+	var soft: Dictionary = RunCfg.skin().get("soft", {})
+	if soft.is_empty():
+		return
+	var ratio := float(soft.get("ratio", 0.2))
+	for r in rooms:
+		if r["kind"] != "normal":
+			continue
+		var o: Vector2i = r["origin"]
+		var blobs := int(ratio * 10.0)
+		for b in blobs:
+			var c := o + Vector2i(rng.randi_range(3, RW - 4), rng.randi_range(3, RH - 4))
+			var rad := rng.randf_range(1.5, 3.2)
+			for y in range(-4, 5):
+				for x in range(-5, 6):
+					var q := c + Vector2i(x, y)
+					if Vector2(x, y * 1.3).length() < rad and get_t(q) in [FLOOR, GRAVEL]:
+						set_t(q, SOFT)
+
+
 # ------------------------------------------------------------------ 채우기
 func _reserve_big() -> void:
 	var big: Dictionary = RunCfg.file("run_goods").get("big", {}).get("goods", {})
@@ -382,10 +406,14 @@ func _populate(danger: int) -> void:
 		_shuffle(markers)
 		var cost := {"m_rat": 1.0, "m_dog": 2.0, "m_guard": 3.5, "m_rival": 1.0}
 		var placed := 0
+		var swap: Dictionary = RunCfg.skin().get("swap", {})
 		for m in markers:
 			var t: String = m["type"]
 			if t == "m_exit":
 				continue
+			var key := {"m_guard": "g", "m_dog": "d", "m_rat": "r"}.get(t, "") as String
+			if swap.has(key) and rng.randf() < float(swap[key][1]):
+				t = {"g": "m_guard", "d": "m_dog", "r": "m_rat"}[str(swap[key][0])]
 			if t == "m_rival":
 				if rival_used or rng.randf() < 0.4 or r["kind"] != "normal":
 					continue
@@ -473,7 +501,7 @@ func _roll_good(goods: Dictionary, depth: int, max_depth: int) -> String:
 	var any := false
 	for g in ids:
 		var gd: Dictionary = goods[g]
-		var wgt := lerpf(float(gd["w_shallow"]), float(gd["w_deep"]), t)
+		var wgt := lerpf(float(gd["w_shallow"]), float(gd["w_deep"]), t) * float((RunCfg.skin().get("goods_w", {}) as Dictionary).get(g, 1.0))
 		if depth < int(gd["min_depth"]) or int(stock_left.get(g, 0)) <= 0:
 			wgt = 0.0
 		if wgt > 0.0:

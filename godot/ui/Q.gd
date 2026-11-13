@@ -16,7 +16,7 @@ static func list(q_name: String, args: Dictionary = {}) -> Array:
 
 static func raw(q_name: String, args: Dictionary = {}) -> Variant:
 	var v: Variant = Game.query(q_name, args)
-	return V4Shim.query(q_name, args, v)   # V4Shim: 통합 때 이 줄을 `return v` 로
+	return v
 
 
 ## 항상 {ok, reason} 을 돌려준다.
@@ -38,7 +38,7 @@ static func vcall(method: String, args: Array = [], fallback: Variant = null) ->
 	if v == null:
 		return fallback
 	if not v.has_method(method):
-		return V4Shim.view_call(v, method, args, fallback)   # V4Shim: 통합 때 `return fallback` 으로
+		return fallback
 	var n := v.get_method_argument_count(method)
 	if n >= 0 and args.size() > n:
 		args = args.slice(0, n)
@@ -63,7 +63,6 @@ static func can_full(cmd_name: String, args: Dictionary = {}) -> Dictionary:
 	var d: Dictionary = (v as Dictionary).duplicate() if v is Dictionary else {}
 	d["ok"] = bool(d.get("ok", false))
 	d["reason"] = str(d.get("reason", ""))
-	d = V4Shim.can(cmd_name, args, d)   # V4Shim: 통합 때 이 줄을 지운다
 	return d
 
 

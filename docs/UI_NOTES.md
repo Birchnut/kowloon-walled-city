@@ -1,3 +1,7 @@
+# UI 노트 — 통합(v4, `integ4`) 덧붙임
+
+V4Shim 은 지웠다(§5 의 S1~S13 전부 진짜로). 통합 때 바뀐 결정·파일은 `docs/INTEG_NOTES.md` v4 절 §3(I1~I14). 새 파일: `ui/pc/RunPanel.gd`(직접 줍기 진입·id 맞추기). 단축키 추가: K(기반)·L(명소). 설정에 소리 막대. 하네스: `save`·`perf=1`. 대본: `tools/fixtures/pc_{first_session,first_upgrade,fire_lesson,disease_lesson,direct_run,jumps}.json`. 뷰(`godot/view/**`)는 고치지 않았다 — VIEW_NOTES 그대로.
+
 # UI 노트 v4 (PC판 v0.4, 브랜치 `ui4`)
 
 모바일 세로판(v0.3)의 화면은 이 브랜치에서 지웠다(`backup/v0.3-mobile`에 있다). 이제 `godot/ui/pc/**` 가 PC 화면 전부다.

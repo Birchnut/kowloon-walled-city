@@ -9,6 +9,14 @@ const MAX := 4
 const LIFE := 4.0
 
 var top: float = 60.0
+## 창이 떠 있으면 카드·토스트를 오른쪽 기둥 위로 비킨다(창 제목·자재 카드를 가리지 않게 — 통합 때 고침).
+var side: bool = false:
+	set(v):
+		if v != side:
+			side = v
+			if _card != null:
+				_card.visible = not side      # 소식 카드는 창이 닫힐 때까지 기다린다(시간도 멈춤)
+			_relayout()
 var _items: Array = []         # [{node, born, life}]
 var _cards: Array = []         # 기다리는 카드 opts
 var _card: Control = null
@@ -121,6 +129,7 @@ func _next_card() -> void:
 			_next_card())
 	TipLayer.set_tip(p, "누르면 넘긴다")
 	add_child(p)
+	p.visible = not side
 	_card = p
 	_card_t = 0.0
 	_card_life = float(o.get("life", 3.5))
@@ -139,7 +148,7 @@ func _process(delta: float) -> void:
 			changed = true
 		elif age > float(it["life"]) - 0.5:
 			n.modulate.a = (float(it["life"]) - age) / 0.5
-	if _card != null:
+	if _card != null and not side:
 		_card_t += delta
 		if _card_life > 0.0 and _card_t >= _card_life:
 			_next_card()
@@ -150,15 +159,21 @@ func _process(delta: float) -> void:
 func _relayout() -> void:
 	var w := get_viewport_rect().size.x
 	var y := top
-	if _card != null:
+	if _card != null and _card.visible:
 		_card.reset_size()
-		_card.position = Vector2(floorf((w - _card.size.x) * 0.5), y)
+		_card.position = Vector2(_x(w, _card.size.x), y)
 		y += _card.size.y + 8
 	for it: Dictionary in _items:
 		var n: Control = it["node"]
 		n.reset_size()
-		n.position = Vector2(floorf((w - n.size.x) * 0.5), y)
+		n.position = Vector2(_x(w, n.size.x), y)
 		y += n.size.y + 4
+
+
+func _x(w: float, cw: float) -> float:
+	if side:
+		return floorf(maxf(w - cw - 10.0, 0.0))
+	return floorf((w - cw) * 0.5)
 
 
 func card_rect() -> Rect2:

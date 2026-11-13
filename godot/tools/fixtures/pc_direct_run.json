@@ -1,0 +1,221 @@
+[
+ {
+  "say": "D 직접 줍기(통합 v4): stage_a 에서 이어서(줍줍 본부·쉬는 팀 있음). F4 → 고물 야적장 [직접 줍기] → 줍기 화면(도시 ×1, 도시 소리 끔) → Enter → 진짜 키·마우스로 움직이고 휘두르고 배낭(Tab)·멈춤(Esc) → F2(줍기의 자동 플레이)로 끝까지 → 결과 → Enter(도시로) → 결과 카드·창고·팀·던전 재고 확인. tools/shot.sh \"\" out 3000 1920x1080 skiptut load=<stage_a.json> script=res://tools/fixtures/pc_direct_run.json out=out"
+ },
+ {
+  "wait": 1.0
+ },
+ {
+  "q": "expeditions",
+  "keys": [
+   "teams",
+   "dests.0.stock_pct",
+   "run"
+  ]
+ },
+ {
+  "q": "hud",
+  "keys": [
+   "money",
+   "speed",
+   "paused"
+  ]
+ },
+ {
+  "key": "2"
+ },
+ {
+  "key": "F4"
+ },
+ {
+  "wait": 1.0
+ },
+ {
+  "hover": "직접 줍기"
+ },
+ {
+  "shot": "d01_expedition_window"
+ },
+ {
+  "press": "직접 줍기"
+ },
+ {
+  "wait": 1.5
+ },
+ {
+  "expr": "ui.run_open()"
+ },
+ {
+  "q": "hud",
+  "keys": [
+   "speed",
+   "paused"
+  ]
+ },
+ {
+  "q": "expeditions",
+  "keys": [
+   "teams.0.state",
+   "teams.0.state_name",
+   "run"
+  ]
+ },
+ {
+  "shot": "d02_run_start_screen"
+ },
+ {
+  "key": "Enter"
+ },
+ {
+  "wait": 1.0
+ },
+ {
+  "shot": "d03_run_in"
+ },
+ {
+  "move": [
+   1300,
+   540
+  ]
+ },
+ {
+  "hold": "D",
+  "secs": 1.2
+ },
+ {
+  "hold": "W",
+  "secs": 0.6
+ },
+ {
+  "click": [
+   1300,
+   500
+  ]
+ },
+ {
+  "wait": 0.3
+ },
+ {
+  "click": [
+   1300,
+   500
+  ]
+ },
+ {
+  "key": "Space"
+ },
+ {
+  "wait": 0.5
+ },
+ {
+  "shot": "d04_run_moved"
+ },
+ {
+  "key": "Tab"
+ },
+ {
+  "wait": 0.6
+ },
+ {
+  "shot": "d05_run_pack"
+ },
+ {
+  "key": "Tab"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "wait": 0.6
+ },
+ {
+  "shot": "d06_run_pause"
+ },
+ {
+  "expr": "game.paused"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "say": "F2 = 줍기의 자동 플레이로 끝까지(사람 손 대신)"
+ },
+ {
+  "key": "F2"
+ },
+ {
+  "expr": "ui.runs.run.set('speed', 4.0)"
+ },
+ {
+  "say": "자동 플레이를 줍기 쪽 ×4 로(촬영 시간 줄이기 — 도시는 ×1 그대로)"
+ },
+ {
+  "until": {
+   "q": "expeditions",
+   "key": "teams.0.state",
+   "eq": "idle"
+  },
+  "max": 150
+ },
+ {
+  "wait": 1.5
+ },
+ {
+  "expr": "ui.runs.run.mode"
+ },
+ {
+  "shot": "d07_run_result"
+ },
+ {
+  "q": "expeditions",
+  "keys": [
+   "teams.0.state",
+   "run",
+   "dests.0.stock_pct"
+  ]
+ },
+ {
+  "key": "Enter"
+ },
+ {
+  "wait": 1.0
+ },
+ {
+  "expr": "ui.run_open()"
+ },
+ {
+  "shot": "d08_back_in_city"
+ },
+ {
+  "q": "hud",
+  "keys": [
+   "speed",
+   "paused",
+   "money"
+  ]
+ },
+ {
+  "q": "expeditions",
+  "keys": [
+   "teams.0.state",
+   "run",
+   "dests.0.stock_pct",
+   "dests.0.stock_text"
+  ]
+ },
+ {
+  "key": "F4"
+ },
+ {
+  "wait": 1.0
+ },
+ {
+  "shot": "d09_expedition_after"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "quit": 1
+ }
+]

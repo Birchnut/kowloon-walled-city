@@ -1,0 +1,25 @@
+{
+ "_comment": "던전 겉모습·규칙 차이(스킨). dests = 도시 목적지 id 가운데 이 스킨을 쓰는 것(통합 때 여기서 맞춘다). ground/fence/heap = 바닥·담·안쪽 벽 색, soft = 물렁한 땅 비율과 속도 배율, swap = 표지 바꾸기(g→d 확률), boss = 두목 이름·모양·고유 기술, goods_w = 물건 가중치 배율",
+ "default": "scrap_yard",
+ "items": {
+  "scrap_yard": {
+   "name": "고물 야적장", "desc": "쌓인 차체, 녹슨 담, 그리고 압축기 \"큰형\". 주로 나오는 것: 철제 · 고물 · 전자 폐품",
+   "dests": ["scrap_yard", "junkyard"],
+   "boss": {"name": "압축기 큰형", "sub": "고물 야적장 관리 책임자(자칭) · 근속 31년 · 휴가 0일", "look": "press", "special": "chain"},
+   "lines": {"dead": "큰형, 퇴근.", "phase2": "큰형이 열 받았다"}
+  },
+  "landfill": {
+   "name": "쓰레기 매립지", "desc": "햇볕 쨍쨍한 쓰레기 산, 갈매기, 그리고 들개들. 주로 나오는 것: 목재 · 통조림 · 고물",
+   "dests": ["landfill", "garbage_dump"],
+   "ground": ["d8c98e", "bfae74", "eadcab"],
+   "fence": "5b7b3a", "fence2": "3d5a2a",
+   "heap": ["4f6a2e", "6a5a3a", "2f3f2a", "8a7a4a"],
+   "soft": {"ratio": 0.22, "speed": 0.7},
+   "swap": {"g": ["d", 0.75]},
+   "seagulls": true,
+   "goods_w": {"wood": 2.0, "canned": 2.5, "scrap": 1.2, "metal": 0.6, "elec": 0.6},
+   "boss": {"name": "들개 왕", "sub": "매립지 서열 1위 · 목걸이 없음 · 주인 없음", "look": "dogking", "special": "howl"},
+   "lines": {"dead": "들개 왕, 낮잠 시간.", "phase2": "들개 왕이 이빨을 드러냈다"}
+  }
+ }
+}
