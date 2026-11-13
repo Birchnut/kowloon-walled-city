@@ -224,8 +224,14 @@ func house_look(key: String) -> Dictionary:
 	return out
 
 
-## 간판 글자: 시뮬 데이터(buildings.json의 sign)가 있으면 그것, 없으면 visuals 레시피의 sign. 없으면 "".
+## 간판 글자(세계 안): art/signs.json의 sign_script가 "mixed"면 시설별 한자 간판(hanja 표)이 먼저,
+## 없는 시설은 시뮬 데이터(buildings.json의 sign) → visuals 레시피의 sign 순. "hangul"이면 한자를 쓰지 않는다.
 func sign_text(type: String) -> String:
+	var sg: Variant = Data.file("signs")
+	if sg is Dictionary and str((sg as Dictionary).get("sign_script", "hangul")) == "mixed":
+		var hj: Variant = (sg as Dictionary).get("hanja", {})
+		if hj is Dictionary and (hj as Dictionary).has(type):
+			return str((hj as Dictionary)[type])
 	var s := str(Data.item("buildings", type).get("sign", ""))
 	if s == "":
 		s = str(recipe("facility", type).get("sign", ""))

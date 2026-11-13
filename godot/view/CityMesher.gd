@@ -123,20 +123,14 @@ func cat_of(c: Dictionary) -> String:
 	return cat
 
 
-## 간판 글자(짧은 한글): 셀 → 건물 → buildings.json. 한자는 걸러 낸다.
+## 간판 글자(짧게): 셀 sign → 한자 섞기 표/건물 sign(cfg.sign_text). 최대 5자.
 func sign_of(c: Dictionary) -> String:
 	var t := str(c.get("sign", ""))
 	if t == "":
-		t = str(bld(c).get("sign", ""))
+		t = cfg.sign_text(str(c.get("type", "")))
 	if t == "":
-		t = str(Data.item("buildings", str(c.get("type", ""))).get("sign", ""))
-	var out := ""
-	for i in t.length():
-		var cp := t.unicode_at(i)
-		if (cp >= 0x4E00 and cp <= 0x9FFF) or (cp >= 0x3400 and cp <= 0x4DBF) or (cp >= 0xF900 and cp <= 0xFAFF):
-			continue
-		out += t[i]
-	return out.substr(0, 5)
+		t = str(bld(c).get("sign", ""))
+	return t.substr(0, 5)
 
 
 func bld(c: Dictionary) -> Dictionary:

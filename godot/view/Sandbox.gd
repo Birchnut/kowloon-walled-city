@@ -45,6 +45,8 @@ func _ready() -> void:
 		view._yaw = 45.0 + 90.0 * float(view.angle)
 		view._yaw_from = view._yaw
 		view._yaw_to = view._yaw
+	if _args.has("quiet"):
+		view.debug_quiet(true)
 	if _args.has("zoom"):
 		view.set_zoom(int(_args["zoom"]))
 	if _args.has("cut"):

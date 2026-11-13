@@ -49,6 +49,11 @@ var _lens_img: Image
 var _lens_tex: ImageTexture
 var _haz_img: Image                # 칸마다 (불: 0/0.5 타는 중/1 탄 뒤, 병, 쓰레기, 수리 중)
 var _haz_tex: ImageTexture
+var _cover_img: Image             # 칸마다 R = 덮인 정도(0..1) — 위에 쌓인 층 수 / cover.full_depth
+var _cover_tex: ImageTexture
+## 고요시간(규칙 쪽 사건 quiet_start / quiet_end): 화면이 살짝 어두워졌다 돌아온다. 실제 시간 기준(배속과 무관)
+var _quiet := false
+var _quiet_dim := 0.0
 var lens := ""
 var _sigs: Dictionary = {}          # bid -> 외형 서명(바뀌면 그 층만 다시 짓는다)
 
@@ -849,12 +854,34 @@ func _on_event(ev: String, payload: Dictionary) -> void:
 			_last_power = on
 			mesher.power_on = CityMesher.city_power(Game.state, cfg) or on
 			_cells_dirty = true
+		"quiet_start":
+			debug_quiet(true)
+		"quiet_end":
+			debug_quiet(false)
 		"expedition_done", "expedition_claimed":
 			if people != null and people.has_method("expedition"):
 				people.call("expedition", ev == "expedition_claimed")
 
 
 var _cells_dirty := false
+
+
+## 고요시간 켜기/끄기. 규칙 쪽 사건(quiet_start/quiet_end)이 부르고, 시험에서는 직접 부를 수 있다.
+func debug_quiet(on: bool) -> void:
+	_quiet = on
+	if people != null:
+		people.set("quiet", on)
+
+
+func _update_quiet(delta: float) -> void:
+	var target_dim := float(cfg.r("quiet.dim", 0.14)) if _quiet else 0.0
+	if not is_equal_approx(_quiet_dim, target_dim):
+		# 들어갈 때 약 1.5초, 나올 때 약 2.5초(실제 시간)
+		var secs := float(cfg.r("quiet.fade_in_s", 1.5)) if _quiet else float(cfg.r("quiet.fade_out_s", 2.5))
+		var full := maxf(float(cfg.r("quiet.dim", 0.14)), 0.001)
+		_quiet_dim = move_toward(_quiet_dim, target_dim, delta / maxf(secs, 0.05) * full)
+		if _screen_mat != null:
+			_screen_mat.set_shader_parameter("dim", _quiet_dim)
 
 
 func _mark_dirty(pos: Vector3i) -> void:
@@ -1199,6 +1226,7 @@ func _pt(key: String, t0: int) -> int:
 func _process(delta: float) -> void:
 	var _p0 := Time.get_ticks_usec()
 	_t += delta
+	_update_quiet(delta)
 	var cam_dirty := false
 	if not _insets_cur.is_equal_approx(_insets):
 		var nv := _insets_cur.lerp(_insets, minf(delta * 12.0, 1.0))
@@ -1938,7 +1966,40 @@ func _make_cell_tex() -> void:
 	_haz_tex = ImageTexture.create_from_image(_haz_img)
 	_mat.set_shader_parameter("cellstate", _cell_tex)
 	_mat.set_shader_parameter("lenstex", _lens_tex)
+	_cover_img = Image.create(w, h, false, Image.FORMAT_RGBA8)
+	_cover_img.fill(Color(0, 0, 0, 0))
+	_cover_tex = ImageTexture.create_from_image(_cover_img)
 	_mat.set_shader_parameter("hazstate", _haz_tex)
+	_mat.set_shader_parameter("coverstate", _cover_tex)
+	_mat.set_shader_parameter("cover_dark", float(cfg.r("cover.max_dark", 0.3)))
+
+
+## 칸마다 "위에 쌓인 층 수". 규칙 쪽이 covered_depth 질의를 내주면(render.json cover.source = "sim") 그것을 쓰고,
+## 아니면 지금 있는 셀로 직접 센다. 바꿔 끼울 곳은 이 함수 하나다.
+func _covered_depth(p: Vector3i, cols: Dictionary) -> int:
+	if str(cfg.r("cover.source", "local")) == "sim":
+		var q: Variant = Game.query("covered_depth", {"pos": p, "cell": p})
+		if q is int or q is float:
+			return int(q)
+	var zs: Variant = cols.get(Vector2i(p.x, p.y), null)
+	if zs == null:
+		return 0
+	var n := 0
+	for z in zs:
+		if int(z) > p.z:
+			n += 1
+	return n
+
+
+func _cover_columns(st: CityState) -> Dictionary:
+	var cols: Dictionary = {}
+	for p in st.cells:
+		if p is Vector3i:
+			var k := Vector2i(p.x, p.y)
+			if not cols.has(k):
+				cols[k] = []
+			(cols[k] as Array).append(p.z)
+	return cols
 
 
 ## buildings → 칸마다 (불 켜진 비율, 전기, 가동, 점유) + 렌즈 색 + 재난 상태. 칸 수만큼만 돈다(가볍다).
@@ -1954,6 +2015,9 @@ func _update_cell_tex() -> void:
 	_cell_img.fill(Color(1, 1, 1, 0))
 	_lens_img.fill(Color(0, 0, 0, 0))
 	_haz_img.fill(Color(0, 0, 0, 0))
+	_cover_img.fill(Color(0, 0, 0, 0))
+	var cover_cols := _cover_columns(st)
+	var cover_full := maxf(float(cfg.r("cover.full_depth", 4)), 1.0)
 	var bs := _buildings()
 	var lstr := float(cfg.vis("lens.strength", 0.62))
 	var lens_mode := lens
@@ -1992,6 +2056,9 @@ func _update_cell_tex() -> void:
 		var rp: Variant = b.get("repair", null)
 		hz.a = 1.0 if (rp is Dictionary and burn == "burnt" and bool((rp as Dictionary).get("active", true))) else 0.0
 		_haz_img.set_pixel(p.x, ty, hz)
+		var cd := _covered_depth(p, cover_cols)
+		if cd > 0:
+			_cover_img.set_pixel(p.x, ty, Color(clampf(float(cd) / cover_full, 0.0, 1.0), 0, 0, 1))
 		if lens_mode == "coverage":
 			var cv := int(cov.get(p, 0))
 			if cv > 0:
@@ -2012,6 +2079,7 @@ func _update_cell_tex() -> void:
 	_cell_tex.update(_cell_img)
 	_lens_tex.update(_lens_img)
 	_haz_tex.update(_haz_img)
+	_cover_tex.update(_cover_img)
 
 
 var _range_tint := false

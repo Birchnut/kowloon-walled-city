@@ -22,6 +22,18 @@
     "interior_levels": 2,
     "smooth_zoom": true
   },
+  "cover": {
+    "_comment": "덮인 아래층 그림(v0.5). 위에 층이 full_depth개 이상 쌓인 칸은 max_dark만큼 어둡고 푸르스름. source: local = 셀에서 직접 센다 / sim = 규칙의 covered_depth 질의. 임시값(v0.5)",
+    "source": "local",
+    "full_depth": 3,
+    "max_dark": 0.3
+  },
+  "quiet": {
+    "_comment": "고요시간(quiet_start/quiet_end). dim = 화면이 어두워지는 정도, fade = 실제 초. 임시값(v0.5)",
+    "dim": 0.14,
+    "fade_in_s": 1.5,
+    "fade_out_s": 2.5
+  },
   "outline": {
     "enabled": true,
     "strength": 0.22,

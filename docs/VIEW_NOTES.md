@@ -339,3 +339,9 @@ T1은 언제나 `common_1`. 없는 조합은 같은 자재의 가까운 계층 �
 | 4. 밤 창의 실내 실루엣(커튼·사람 그림자) + 네온 반사 웅덩이 | 밤 화면의 생활감 | 셰이더 반나절 |
 | 5. 표시 아이콘을 칸이 아닌 건물 단위로 묶고 줌별 크기 | 아이콘 소음 해결 | 반나절 |
 | 6. 팔레트 양자화(48–64색) 시험 | 픽셀아트 통일감 | 반나절(옵션은 이미 있음) |
+
+## 10. v0.5 그림 층 추가 (view 에이전트)
+
+- **간판 한자 섞기.** `data/art/signs.json`: `sign_script`("mixed"|"hangul" — A28을 되돌리는 스위치)와 `hanja`(시설 id → 한자 간판). 표에 없는 시설은 buildings.json의 한글 sign. 읽는 곳은 `ViewCfg.sign_text(type)` 한 곳(`CityMesher.sign_of`도 이것을 거친다). 55개 중 25개가 한자. 글꼴은 Galmuri에 이미 한자가 있어 새 글꼴은 받지 않았다. 吞만 없어 구룡완탕은 같은 뜻의 呑. 한자가 든 간판은 9px 대신 11px 글꼴로 굽는다(획이 많아 뭉개짐). 확대 ×3 이상에서 읽히고, ×1~×1.5에서는 뭉개진다.
+- **덮인 아래층.** `coverstate` 텍스처(칸당 R = 위에 쌓인 층 수 / `cover.full_depth`)를 셰이더가 읽어 최대 `cover.max_dark`(0.3)만큼 어둡고 푸르스름하게. 층 보기(cut)에서도 상태 전체 기준이라 차이가 보인다. 층 수는 `CityView._covered_depth(p, cols)` 한 함수가 센다 — 규칙이 `covered_depth` 질의를 내주면 `render.json`의 `cover.source`를 "sim"으로.
+- **고요시간.** `Game.event` `quiet_start`/`quiet_end` → `CityView.debug_quiet(on)`(시험용으로 직접 불러도 된다. Sandbox 인자 `quiet=1`). 걷는 주민(walk·gate)은 제자리 정지·새로 안 나옴, 화면은 `screen.gdshader`의 `dim`으로 실제 시간 1.5초에 걸쳐 어두워지고 끝나면 2.5초에 걸쳐 돌아온다(`quiet.*`).
