@@ -12,7 +12,9 @@ func on_new_game(state: CityState) -> void:
 
 func tick(state: CityState, dt: float) -> void:
 	_happy(state)
-	if sim.every(state, 4, dt):     # 해금 판정은 2경제시간마다(Metrics 계산이 큰 도시에서 무겁다) + 명령 직후
+	# 해금 판정은 2경제시간마다(Metrics 계산이 큰 도시에서 무겁다) + 명령 직후 + 층이 열린 다음 스텝(통합 보고: 3층 카드가 잠긴 시설을 짓게 했다)
+	if sim.every(state, 4, dt) or int(state.flags.get("prog_floors", 1)) != state.floors_unlocked:
+		state.flags["prog_floors"] = state.floors_unlocked
 		_check(state)
 
 

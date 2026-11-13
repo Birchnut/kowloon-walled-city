@@ -752,16 +752,29 @@ func _run_commands() -> void:
 	_ok(str(sim.query(st, "expeditions")["teams"][0]["state"]) == "run", "팀이 직접 줍는 중")
 	var stock: Dictionary = b["stock"]
 	var g: String = stock.keys()[0]
-	var over := sim.apply(st, "run_result", {"dest": dest, "loot": {g: int(stock[g]) + 1}, "outcome": "exit", "finds": []})
-	_ok(not over.get("ok", true) and str(over.get("code", "")) in ["stock", "carry"], "던전 재고보다 많이 들고 나오면 거절(%s)" % over.get("code", ""))
-	var big := sim.apply(st, "run_result", {"dest": dest, "loot": {g: int(b["carry"]) + 1}, "outcome": "exit", "finds": []})
-	_ok(not big.get("ok", true), "배낭 한도를 넘으면 거절")
-	var n := mini(int(stock[g]), 10)
+	var h0 := float(st.stock.get(g, 0.0))
+	var over := sim.apply(st, "run_result", {"dest": dest, "loot": {g: int(b["carry_cap"]) + 5}, "outcome": "exit", "finds": ["압축기 큰형의 설계도를 주웠다"]})
+	var got_over := float(st.stock.get(g, 0.0)) - h0
+	_ok(over.get("ok", false) and got_over <= minf(float(stock[g]), float(b["carry_cap"])) + 1e-6 and not (over.get("lost", []) as Array).is_empty(),
+		"재고·배낭 한도를 넘으면 거절하지 않고 잘라 받는다(+%d, 잘림 %s)" % [int(got_over), str(over.get("lost", []))])
+	_ok(str(sim.query(st, "expeditions")["teams"][0]["state"]) == "idle", "잘린 결과도 팀을 풀어 준다")
+	var w: Variant = sim.query(st, "run_wanted", {})
+	_ok(w is Array, "run_wanted → 상품 id 배열 %s" % str(w))
+	sim.apply(st, "run_begin", {"dest": dest})
+	var dst0 := float(st.dests[dest]["stock"][g])
+	var n := mini(int(floorf(dst0 + 1e-6)), 10)
 	var have0 := float(st.stock.get(g, 0.0))
-	var res := sim.apply(st, "run_result", {"dest": dest, "loot": {g: n}, "outcome": "down", "finds": []})
-	_ok(res.get("ok", false) and _near(float(st.stock.get(g, 0.0)) - have0, floorf(n * 0.5)) and (res["lost"] as Array).size() == (1 if n - n / 2 > 0 else 0), "쓰러지면 절반만 (+%d, 잃음 %s)" % [int(float(st.stock.get(g, 0.0)) - have0), str(res.get("lost", []))])
-	_ok(float(st.dests[dest]["stock"][g]) <= float(stock[g]) - n + 1e-6, "던전 재고에서 빠진다")
+	var res := sim.apply(st, "run_result", {"dest": dest, "loot": {g: n}, "outcome": "down", "finds": [], "lost": {g: 3}})
+	_ok(res.get("ok", false) and _near(float(st.stock.get(g, 0.0)) - have0, float(n)) and (res["lost"] as Array).size() == 1, "loot는 들고 나온 그대로(쓰러짐의 절반은 미니게임이 이미 뺐다) (+%d, 잃음 %s)" % [int(float(st.stock.get(g, 0.0)) - have0), str(res.get("lost", []))])
+	_ok(int(b.get("carry_cap", 0)) >= 72, "배낭 한도 = 6칸 × 12 + 큰 짐(%d)" % int(b.get("carry_cap", 0)))
+	_ok(float(st.dests[dest]["stock"][g]) <= dst0 - n + 1e-6, "던전 재고에서 빠진다")
 	_ok(str(sim.query(st, "expeditions")["teams"][0]["state"]) == "idle", "팀이 돌아온다")
+	var b2 := sim.apply(st, "run_begin", {"dest": dest})
+	var c0 := float(st.stock.get("cans", 0.0))
+	var e0 := float(st.stock.get("elec_scrap", 0.0))
+	var r2 := sim.apply(st, "run_result", {"dest": dest, "loot": {"canned": 1, "elec": 1}, "outcome": "exit", "finds": []})
+	_ok(b2.get("ok", false) and r2.get("ok", false) and _near(float(st.stock.get("cans", 0.0)) - c0, 1.0) and _near(float(st.stock.get("elec_scrap", 0.0)) - e0, 1.0),
+		"시제품 id(canned·elec)도 받는다 %s" % str(r2.get("reason", "")))
 	var before := float(st.dests[dest]["stock"][g])
 	_steps(sim, st, 24)
 	_ok(float(st.dests[dest]["stock"][g]) > before, "던전 재고는 게임 시간으로 다시 찬다")
@@ -847,6 +860,16 @@ func _hazards_fire() -> void:
 		most = maxi(most, n)
 	_ok(int(t2.stats.get("fires", 0)) > 1 and most <= 3 + 64 / 150, "범위 밖 불은 이웃으로 번지되 동시에 타는 곳은 상한까지 (불 %d번, 최대 동시 %d)" % [int(t2.stats.get("fires", 0)), most])
 	var arrived := float(t2.stats.get("arrived", 0.0))
+	# 승급한 집의 수리: 그 계층으로 올릴 때 쓴 자재(집의 계열)의 mat_frac + 계층별 돈
+	var hb3: Dictionary = t2.buildings[int(t2.cells[Vector3i(0, 0, 0)]["bid"])]
+	hb3["tier"] = 3
+	hb3["material"] = "wood"
+	hb3["burn"] = "burnt"
+	var rc3 := s2.can(t2, "repair", {"bid": int(hb3["id"])})
+	var want3 := ceilf(float(s2.db["upgrade_costs"]["items"]["2to3"]["qty"]) * float(s2.cfg("hazards.repair.mat_frac", 0.5)))
+	_ok(_near(float(rc3.get("cost", {}).get("goods", {}).get("wood", 0.0)), want3) and float(rc3["cost"]["money"]) == float(s2.cfg("hazards.repair.house_money", [])[2]),
+		"박힌 돌 집 수리 = 목재 %d + %s (%s)" % [int(want3), Sim.won(float(rc3["cost"]["money"])), str(rc3.get("cost", {}))])
+	_ok(float(t2.stats.get("left_fire", 0.0)) > 0.0, "범위 밖에서 다 탄 집의 주민 일부는 성채를 떠난다 (%d명)" % int(t2.stats.get("left_fire", 0.0)))
 	sim.systems.clear()
 	s2.systems.clear()
 
@@ -861,9 +884,17 @@ func _hazards_disease() -> void:
 	var tr := float(st.buildings[int(st.cells[Vector3i(0, 10, 0)]["bid"])].get("trash", 0.0))
 	_ok(tr > 0.2 and float(st.cells[Vector3i(0, 10, 0)].get("trash", 0.0)) > 0.1, "수거 범위 밖 주거에 쓰레기가 쌓인다 (%.2f)" % tr)
 	_fac(sim, st, "trash_guild", Vector3i(2, 12, 0))
-	_steps(sim, st, 24)
+	_steps(sim, st, 2)
+	var cq: Dictionary = sim.query(st, "coverage", {"kind": "trash"})
+	_ok(float(cq["pct"]) > 0.0, "넝마주이 조합을 짓고 일손이 차면 그 층 주거가 덮인다 (%s)" % str(cq["text"]))
+	var site_id := st.next_id
+	st.buildings[site_id] = {"id": site_id, "kind": "site", "type": "trash_guild", "pos": Vector3i(12, 12, 0)}
+	var cq2: Dictionary = sim.query(st, "coverage", {"kind": "trash"})
+	_ok(float(cq2["pct"]) >= 1.0 or str(cq2["text"]).contains("공사 중"), "공사 중인 조합이 있으면 범위 글이 그렇게 말한다 (%s)" % str(cq2["text"]))
+	st.buildings.erase(site_id)
+	_steps(sim, st, 22)
 	var tr2 := float(st.buildings[int(st.cells[Vector3i(2, 10, 0)]["bid"])].get("trash", 0.0))
-	_ok(tr2 < 0.05, "넝마주이 조합 범위 안이면 치워진다 (%.2f)" % tr2)
+	_ok(tr2 < 0.05, "넝마주이 조합 범위에 새로 들면 싹 치워진다 (%.2f)" % tr2)
 	# 발병(디버그): 이웃까지
 	var hb: Dictionary = st.buildings[int(st.cells[Vector3i(8, 10, 0)]["bid"])]
 	var nb: Dictionary = st.buildings[int(st.cells[Vector3i(9, 10, 0)]["bid"])]
@@ -882,6 +913,10 @@ func _hazards_disease() -> void:
 	_fac(sim, st, "clinic", Vector3i(7, 12, 0))
 	_steps(sim, st, int(float(sim.cfg("hazards.disease.clinic_days", 0.6)) / sim.step_days) + 4)
 	_ok(not bool(hb["sick"]) and not bool(st.cells[Vector3i(8, 10, 0)]["sick"]), "무면허 의원 범위에 들면 곧 낫는다")
+	_steps(sim, st, 48 * 3)
+	var tr3 := float(st.buildings[int(st.cells[Vector3i(2, 10, 0)]["bid"])].get("trash", 0.0))
+	var cap3 := float(sim.cfg("hazards.disease.covered_cap", 0.5))
+	_ok(tr3 > 0.02 and tr3 <= cap3 + 1e-6, "범위 안에서도 다 못 치운 쓰레기가 천천히 쌓이되 covered_cap(%.2f)에서 멈춘다 (3일 뒤 %.2f)" % [cap3, tr3])
 	sim.systems.clear()
 
 

@@ -402,6 +402,9 @@ func _explore(state: CityState) -> void:
 	if not sim.enabled.has("expeditions"):
 		return
 	var need_q := _count(state, "expedition_base") < int(c("teams", 3))
+	if bool(c("direct_runs", false)):
+		var run: Dictionary = state.flags["bot"].get("run", {})
+		need_q = need_q or run.is_empty() or state.econ_days + 1e-9 >= float(run["until"])
 	for t: Dictionary in state.teams:
 		if t["state"] == "idle" or t["state"] == "done" or (t["state"] == "out" and state.econ_days + 1e-9 >= float(t.get("completes_at", 0.0))):
 			need_q = true
@@ -417,6 +420,9 @@ func _explore(state: CityState) -> void:
 		if t["state"] == "done":
 			cmd(state, "expedition_claim", {"team": int(t["id"])})
 	q = sim.query(state, "expeditions")
+	if bool(c("direct_runs", false)):
+		_direct_run(state, q)
+		q = sim.query(state, "expeditions")
 	for t: Dictionary in q["teams"]:
 		if t["state"] != "idle" or t.get("retired", false):
 			continue
@@ -434,6 +440,76 @@ func _explore(state: CityState) -> void:
 		if not r.get("ok", false):
 			_block("탐험 못 보냄: %s" % r.get("reason", ""))
 		q = sim.query(state, "expeditions")
+
+
+## 직접 줍기(사람이 미니게임을 하는 것처럼): 한 번에 한 판, 끝나면 바로 다음 판.
+## 결과·길이·짐은 data/sim/bots.json run_profile(미니게임 묶음 결과 simulation/reports/run_batch.md의 average 성격)에서 뽑는다.
+## 짐 구성: 견본(고물 야적장)의 철제 몫 = 그 던전의 주력(고르는 곳이면 필요한 자재), 나머지 두 자재는 다른 계열 몫. 재고·배낭 한도로 자른다.
+func _direct_run(state: CityState, q: Dictionary) -> void:
+	var mem: Dictionary = state.flags["bot"]
+	var run: Dictionary = mem.get("run", {})
+	if not run.is_empty():
+		if state.econ_days + 1e-9 < float(run["until"]):
+			return
+		var loot: Dictionary = run["loot"]
+		var r := cmd(state, "run_result", {"dest": run["dest"], "loot": loot, "outcome": run["outcome"], "finds": []})
+		var tries := 0
+		while not r.get("ok", false) and tries < 3:     # 재고가 그새 줄었으면 반씩 줄여 다시
+			tries += 1
+			for g: String in loot.keys():
+				loot[g] = int(loot[g]) / 2
+			r = cmd(state, "run_result", {"dest": run["dest"], "loot": loot, "outcome": run["outcome"], "finds": []})
+		if not r.get("ok", false):
+			r = cmd(state, "run_result", {"dest": run["dest"], "loot": {}, "outcome": run["outcome"], "finds": []})
+		if r.get("ok", false):
+			acts.append([state.econ_days, "run_result"])
+			state.stat_add("bot_run_units", float(run.get("units", 0)))
+		mem["run"] = {}
+		q = sim.query(state, "expeditions")
+	var dest := _choose_dest(state, q)
+	if dest.is_empty():
+		return
+	var b := cmd(state, "run_begin", {"dest": dest["id"]})
+	if not b.get("ok", false):
+		return
+	var prof: Dictionary = c("run_profile", {})
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(b.get("seed", 1))
+	var x := rng.randf()
+	var outcome := "down"
+	var acc := 0.0
+	for o: String in ["boss", "exit", "down"]:
+		acc += float(prof.get("p_" + o, 0.33))
+		if x < acc:
+			outcome = o
+			break
+	var total := float(prof.get("carry_" + outcome, 40.0)) * rng.randf_range(0.75, 1.25)
+	var mix: Dictionary = prof.get("mix", {})
+	var mix_sum := 0.0
+	for g: String in mix:
+		mix_sum += float(mix[g])
+	var main := str(dest["primary"]["good"])
+	if main == "" or main == "고른 자재":
+		main = _family_need(state, dest)
+	var stock: Dictionary = b["stock"]
+	var loot := {}
+	var n_all := 0
+	for g0: String in mix:
+		var g := g0
+		if g0 == "metal":
+			g = main if main in ["wood", "metal", "concrete", "elec_scrap", "scrap"] else "metal"
+		elif g0 == main:
+			g = "metal" if main in ["wood", "concrete"] else g0
+		var f := total * float(mix[g0]) / maxf(1.0, mix_sum)
+		var n := int(floorf(f)) + (1 if rng.randf() < f - floorf(f) else 0)
+		n = mini(n, int(stock.get(g, 0)) - int(loot.get(g, 0)))
+		n = mini(n, int(b.get("carry_cap", 80)) - n_all)
+		if n > 0:
+			loot[g] = float(int(loot.get(g, 0)) + n)
+			n_all += n
+	var mins := rng.randf_range(float(prof.get("min_minutes", 2.3)), float(prof.get("max_minutes", 3.9)))
+	mem["run"] = {"dest": str(dest["id"]), "until": state.econ_days + mins / float(prof.get("minutes_per_day", 10.0)), "loot": loot, "outcome": outcome, "units": float(n_all)}
+	state.stat_add("bot_runs", 1.0)
 
 
 func _meal_rich(state: CityState) -> bool:
@@ -504,7 +580,7 @@ func _choose_dest(state: CityState, q: Dictionary) -> Dictionary:
 	var best_v := -1.0
 	var taken := {}
 	for t: Dictionary in q["teams"]:
-		if t["state"] == "out":
+		if t["state"] == "out" or t["state"] == "run":
 			taken[str(t["dest"])] = true
 	for d: Dictionary in q["dests"]:
 		if not d["known"] or float(d["cost"]["money"]) > state.money - _save - 60.0:
@@ -520,8 +596,8 @@ func _choose_dest(state: CityState, q: Dictionary) -> Dictionary:
 			v += _value(state, "parts") * 2.5
 		elif str(d["band"]) == "mid":
 			v += _value(state, "elec_scrap") * 10.0
-		elif str(d["id"]) == "junk_yard":
-			v += _value(state, "elec_scrap") * 3.0
+		else:
+			v += _value(state, "elec_scrap") * 1.5
 		v = v / days
 		if int(d["visits"]) == 0 and str(d["band"]) != "near":
 			v += 30.0     # 처음 가 보는 곳: 거래처·새 던전 발견
@@ -543,9 +619,11 @@ func _repair(state: CityState) -> void:
 			var r := cmd(state, "repair", {"bid": int(b["id"])})
 			if not r.get("ok", false):
 				_block("수리 못 함: %s" % r.get("reason", ""))
-				if str(r.get("code", "")) == "goods":
+				if str(r.get("code", "")) == "money":
+					break
+				if r.get("cost", {}).get("goods", {}).has("scrap") and float(state.stock.get("scrap", 0.0)) < float(r["cost"]["goods"]["scrap"]):
 					_buy_extra(state, "scrap")
-				break
+				continue      # 자재가 모자란 집은 건너뛰고 다른 탄 건물(시설·낮은 계층 집)을 고친다
 			n += 1
 			if n >= int(c("repairs_per_act", 6)):
 				break
@@ -561,8 +639,9 @@ func _utilities(state: CityState) -> void:
 	# 모자라는 만큼 한 손길에 여러 개(큰 도시는 하루에 수백씩 는다). 돈이 넉넉하면 자리 적게 먹는 외부 연결부터.
 	var order: Array = c("water_order", ["water_plant", "water_tank", "rain_catcher", "water_pipe"]).duplicate()
 	if state.money > float(c("ext_money", 6000)):
-		order.erase("water_pipe")
-		order.insert(1, "water_pipe")
+		if order.has("water_pipe"):
+			order.erase("water_pipe")
+			order.insert(mini(1, order.size()), "water_pipe")
 	for _i: int in 4:
 		if sw >= proj_w:
 			break
@@ -584,8 +663,9 @@ func _utilities(state: CityState) -> void:
 	var sp := float(p.get("supply", 0.0)) + _site_supply(state, "power")
 	var porder: Array = c("power_order", ["power_waste", "power_plant", "gen_small", "power_tap"]).duplicate()
 	if state.money > float(c("ext_money", 6000)):
-		porder.erase("power_tap")
-		porder.insert(2, "power_tap")
+		if porder.has("power_tap"):
+			porder.erase("power_tap")
+			porder.insert(mini(2, porder.size()), "power_tap")
 	for _i: int in 4:
 		if pdem <= 0.0 or sp >= pdem * 1.15 + 2.0:
 			break
@@ -1027,6 +1107,14 @@ func _upgrades(state: CityState) -> void:
 			continue
 		var ln: Dictionary = state.labor.get(nt, {"have": 0, "need": 0.0})
 		var lw: Dictionary = state.flags["bot"].get("labor_want", {})
+		# 마지막 목표를 보고 움직인다: 옥상 황제가 목표 수(60)를 넘었는데 구청이 아직 안 열렸으면(깡통 귀족 100이 조건) 깡통 귀족을 남긴다
+		if nt == 5 and not sim.is_unlocked(state, "city_hall"):
+			# 마지막 목표를 보고 움직인다: 구청(깡통 귀족 60 + 용탑)이 잠겨 있으면 깡통 귀족을 그 아래로 깎아 먹지 않는다
+			# (첫 옥상 황제는 예외 — 목표 22). 옥상 황제가 마지막 목표 + 6을 넘었으면 구청이 열릴 때까지 아예 보류.
+			var t4_after := _pop(state, 4) - float(b["residents"])
+			if _pop(state, 5) >= _final_t5() + 6.0 or (_pop(state, 5) > 0.0 and t4_after < _hall_t4() + 8.0):
+				_block("구청 조건(깡통 귀족)을 위해 옥상 황제 승급 보류")
+				continue
 		var short := float(ln["need"]) > float(ln["have"]) or state.econ_days - float(lw.get(str(nt), -9.0)) < 0.5
 		if not short and int(hn.get(nt, 0)) >= int(c("pilot_houses", 3)) and float(hf.get(nt, 0)) < float(c("next_full_ratio", 0.7)) * float(hn.get(nt, 0)):
 			_block("%s 주거가 아직 안 차서 승급 보류" % sim.tname(nt))
@@ -1067,6 +1155,26 @@ func _upgrades(state: CityState) -> void:
 			done += 1
 		else:
 			_block(str(r.get("reason", "")))
+
+
+## 구청 해금의 깡통 귀족 수(unlocks.json에서 city_hall을 여는 조건).
+func _hall_t4() -> float:
+	for u: Dictionary in sim.items("unlocks").values():
+		if "city_hall" in u.get("unlocks", []):
+			for cnd: Array in u.get("cond", []):
+				if str(cnd[0]) == "pop.t4":
+					return float(cnd[2])
+	return 60.0
+
+
+## 마지막 목표의 옥상 황제 수(goals.json의 final 목표 조건에서 읽는다).
+func _final_t5() -> float:
+	for g: Dictionary in sim.items("goals").values():
+		if g.get("final", false):
+			for cnd: Array in g.get("cond", []):
+				if str(cnd[0]) == "pop.t5":
+					return float(cnd[2])
+	return 60.0
 
 
 ## 명소(용탑·구청)가 열렸는데 아직 없으면 그 자재를 남겨 둔다.

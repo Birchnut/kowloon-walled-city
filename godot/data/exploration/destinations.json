@@ -28,20 +28,20 @@
    "desc": "녹슨 프레임과 패널이 쌓인 야적장. 들개가 주인 행세를 한다.",
    "primary": {
     "good": "metal",
-    "min": 20,
-    "max": 20
+    "min": 10,
+    "max": 11
    },
    "bonus": [
     {
      "good": "scrap",
-     "min": 5,
-     "max": 10,
+     "min": 2,
+     "max": 5,
      "chance": 1.0
     },
     {
      "good": "elec_scrap",
-     "min": 2,
-     "max": 4,
+     "min": 1,
+     "max": 2,
      "chance": 1.0
     }
    ],
@@ -50,9 +50,13 @@
     "back_docks"
    ],
    "stock": {
-    "metal": 100,
-    "scrap": 40,
-    "elec_scrap": 30
+    "wood": 8,
+    "metal": 60,
+    "concrete": 8,
+    "scrap": 30,
+    "elec_scrap": 10,
+    "cans": 8,
+    "parts": 3
    },
    "regen": 0.8,
    "danger": 1,
@@ -72,14 +76,20 @@
    "desc": "문짝과 장롱이 묻힌 매립지. 파면 나온다. 냄새도 나온다.",
    "primary": {
     "good": "wood",
-    "min": 20,
-    "max": 20
+    "min": 10,
+    "max": 11
    },
    "bonus": [
     {
      "good": "scrap",
-     "min": 5,
-     "max": 10,
+     "min": 2,
+     "max": 5,
+     "chance": 1.0
+    },
+    {
+     "good": "elec_scrap",
+     "min": 1,
+     "max": 2,
      "chance": 1.0
     }
    ],
@@ -88,8 +98,13 @@
     "back_docks"
    ],
    "stock": {
-    "wood": 100,
-    "scrap": 40
+    "wood": 60,
+    "metal": 8,
+    "concrete": 8,
+    "scrap": 30,
+    "elec_scrap": 10,
+    "cans": 8,
+    "parts": 3
    },
    "regen": 0.8,
    "danger": 1,
@@ -109,14 +124,20 @@
    "desc": "헐다 만 아파트. 쓸 만한 블록을 추린다. 남은 벽이 언제 무너질지는 모른다.",
    "primary": {
     "good": "concrete",
-    "min": 20,
-    "max": 20
+    "min": 10,
+    "max": 11
    },
    "bonus": [
     {
      "good": "scrap",
-     "min": 5,
-     "max": 10,
+     "min": 2,
+     "max": 5,
+     "chance": 1.0
+    },
+    {
+     "good": "elec_scrap",
+     "min": 1,
+     "max": 2,
      "chance": 1.0
     }
    ],
@@ -125,8 +146,13 @@
     "back_docks"
    ],
    "stock": {
-    "concrete": 100,
-    "scrap": 40
+    "wood": 8,
+    "metal": 8,
+    "concrete": 60,
+    "scrap": 30,
+    "elec_scrap": 10,
+    "cans": 8,
+    "parts": 3
    },
    "regen": 0.8,
    "danger": 1,
@@ -152,20 +178,20 @@
    ],
    "primary": {
     "good": "",
-    "min": 65,
-    "max": 70
+    "min": 34,
+    "max": 37
    },
    "bonus": [
     {
      "good": "elec_scrap",
-     "min": 8,
-     "max": 14,
+     "min": 4,
+     "max": 6,
      "chance": 1.0
     },
     {
      "good": "scrap",
-     "min": 10,
-     "max": 20,
+     "min": 5,
+     "max": 10,
      "chance": 1.0
     },
     {
@@ -187,11 +213,13 @@
     "ghost_town"
    ],
    "stock": {
-    "wood": 350,
-    "metal": 350,
-    "concrete": 350,
-    "elec_scrap": 80,
-    "scrap": 80
+    "wood": 220,
+    "metal": 220,
+    "concrete": 220,
+    "elec_scrap": 50,
+    "scrap": 60,
+    "cans": 10,
+    "parts": 6
    },
    "regen": 0.8,
    "danger": 2,
@@ -212,14 +240,14 @@
    "desc": "밤에만 열리는 부두. 고물과 전자 폐품, 그리고 암시장 사람들.",
    "primary": {
     "good": "elec_scrap",
-    "min": 25,
-    "max": 30
+    "min": 14,
+    "max": 16
    },
    "bonus": [
     {
      "good": "scrap",
-     "min": 20,
-     "max": 30,
+     "min": 10,
+     "max": 15,
      "chance": 1.0
     },
     {
@@ -240,8 +268,13 @@
     "old_plant"
    ],
    "stock": {
-    "elec_scrap": 150,
-    "scrap": 120
+    "elec_scrap": 100,
+    "scrap": 80,
+    "wood": 10,
+    "metal": 10,
+    "concrete": 10,
+    "cans": 10,
+    "parts": 6
    },
    "regen": 0.8,
    "danger": 2,
@@ -261,14 +294,14 @@
    "reveal_hint": "폐공장을 다녀오거나 연구 '약도 그리기'",
    "desc": "아무도 처리하지 않는 처리장. 쓸 만한 자재를 골라 뜯고 설비 부품을 챙긴다. 두목은 덩치 큰 집게차.",
    "picks": [
-    "metal",
     "wood",
+    "metal",
     "concrete"
    ],
    "primary": {
     "good": "",
-    "min": 180,
-    "max": 190
+    "min": 115,
+    "max": 125
    },
    "bonus": [
     {
@@ -279,24 +312,25 @@
     },
     {
      "good": "scrap",
-     "min": 20,
-     "max": 30,
+     "min": 10,
+     "max": 15,
      "chance": 1.0
     },
     {
      "good": "elec_scrap",
-     "min": 4,
-     "max": 8,
+     "min": 3,
+     "max": 5,
      "chance": 1.0
     }
    ],
    "stock": {
-    "metal": 950,
-    "parts": 20,
-    "scrap": 100,
-    "elec_scrap": 30,
-    "wood": 950,
-    "concrete": 950
+    "wood": 600,
+    "metal": 600,
+    "concrete": 600,
+    "parts": 15,
+    "scrap": 70,
+    "elec_scrap": 25,
+    "cans": 10
    },
    "regen": 0.8,
    "danger": 3,
@@ -317,13 +351,13 @@
    "desc": "짓다 만 고층 단지. 목재·콘크리트를 골라 온다.",
    "picks": [
     "wood",
-    "concrete",
-    "metal"
+    "metal",
+    "concrete"
    ],
    "primary": {
     "good": "",
-    "min": 180,
-    "max": 190
+    "min": 115,
+    "max": 125
    },
    "bonus": [
     {
@@ -334,17 +368,25 @@
     },
     {
      "good": "scrap",
-     "min": 20,
-     "max": 30,
+     "min": 10,
+     "max": 15,
+     "chance": 1.0
+    },
+    {
+     "good": "elec_scrap",
+     "min": 3,
+     "max": 5,
      "chance": 1.0
     }
    ],
    "stock": {
-    "wood": 950,
-    "concrete": 950,
-    "metal": 950,
-    "parts": 20,
-    "scrap": 100
+    "wood": 600,
+    "metal": 600,
+    "concrete": 600,
+    "parts": 15,
+    "scrap": 70,
+    "elec_scrap": 25,
+    "cans": 10
    },
    "regen": 0.8,
    "danger": 3,
@@ -371,20 +413,14 @@
    "bonus": [
     {
      "good": "scrap",
-     "min": 30,
-     "max": 50,
-     "chance": 1.0
-    },
-    {
-     "good": "metal",
      "min": 20,
      "max": 30,
      "chance": 1.0
     },
     {
      "good": "elec_scrap",
-     "min": 6,
-     "max": 10,
+     "min": 4,
+     "max": 6,
      "chance": 1.0
     }
    ],
@@ -397,27 +433,23 @@
    ],
    "stock": {
     "parts": 20,
-    "scrap": 150,
-    "metal": 90,
-    "elec_scrap": 30
+    "scrap": 100,
+    "elec_scrap": 25,
+    "wood": 15,
+    "metal": 15,
+    "concrete": 15,
+    "cans": 5
    },
    "regen": 0.8,
    "danger": 4,
    "cost": {
     "money": 80
-   },
-   "run": {
-    "boss": {
-     "parts": 2
-    }
    }
   }
  },
  "run": {
   "carry": 80,
-  "boss": {
-   "parts": 1
-  },
-  "_status": "직접 줍기(약속만): 배낭 칸 수, 두목 덤. 목적지 run{}이 덮어쓴다"
+  "boss": {},
+  "_status": "실험값(라운드 2): carry = 배낭 6칸 × 한 칸 최대 12 + 큰 짐 7 ≈ 80(직접 줍기 시제품 run_goods 기준). 두목 덤은 미니게임의 큰 짐이 loot에 이미 들어 있어 도시가 더 얹지 않는다. stock은 직접 줍기가 꺼낼 수 있는 것 전부(자동 파견은 primary·bonus만 꺼낸다)."
  }
 }
