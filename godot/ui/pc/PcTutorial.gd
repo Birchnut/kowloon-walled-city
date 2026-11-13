@@ -25,6 +25,7 @@ var _cam_armed := false
 
 
 func _init() -> void:
+	theme = PcTheme.paper_theme()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	visible = false
@@ -47,7 +48,7 @@ func _ready() -> void:
 	_box.add_child(v)
 	var h := UI.hbox(8)
 	v.add_child(h)
-	h.add_child(Picto.make("pop", UI.col("gold_hi")))
+	h.add_child(Picto.make("pop", UI.pcol("gold_hi")))
 	_who = UI.label(_speaker, "LabelGoldSmall")
 	h.add_child(_who)
 	_count = UI.label("", "LabelMute")
@@ -178,7 +179,7 @@ func _draw_hl() -> void:
 		return
 	var a := 0.55 + 0.45 * sin(_t * 5.0)
 	var r := _hl_rect.grow(6)
-	var c := Color(UI.col("gold_hi"), a)
+	var c := Color(UI.pcol("gold_hi"), a)
 	_hl.draw_rect(r, c, false, 3.0)
 	_hl.draw_rect(r.grow(4), Color(c, a * 0.35), false, 2.0)
 

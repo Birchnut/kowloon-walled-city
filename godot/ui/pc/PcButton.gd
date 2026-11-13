@@ -161,5 +161,7 @@ func _place() -> void:
 		_pic.color = get_theme_color(col_name)
 	_pic.modulate.a = 0.45 if disabled else 1.0
 	_key.modulate.a = 0.5 if disabled else 1.0
+	var kc := get_theme_color(col_name)
+	_key.add_theme_color_override("font_color", Color(kc.r, kc.g, kc.b, 0.78))
 	if _badge != null and _badge.visible:
 		_badge.position = Vector2(size.x - _badge.size.x + 4, -8)

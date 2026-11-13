@@ -33,6 +33,7 @@ static func set_tip(c: Control, content: Variant) -> void:
 
 
 func _init() -> void:
+	theme = PcTheme.paper_theme()
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	z_index = 50
@@ -50,7 +51,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	var mp := get_global_mouse_position()
 	if _cursor.visible:
-		_cursor_lab.add_theme_color_override("font_color", UI.tone_col(cursor_tone) if cursor_tone != "" else UI.col("paper"))
+		_cursor_lab.add_theme_color_override("font_color", UI.ptone(cursor_tone) if cursor_tone != "" else UI.pcol("paper"))
 		_cursor.position = _clamp(mp + Vector2(22, 22), _cursor.size)
 	var h := get_viewport().gui_get_hovered_control()
 	# 마우스가 그대로인데 밑의 것이 사라지거나(눌러 넘긴 카드) 옮겨지면 툴팁이 남았다 — 영역 밖이면 없앤다
@@ -122,11 +123,11 @@ static func text_block(s: String, width: float = 440.0) -> Control:
 	for ln: String in lines:
 		var l: Label
 		if first:
-			l = UI.label(ln, "LabelGold")
+			l = UI.label(ln, "LabelBold")
 			first = false
 		else:
 			l = UI.label(ln, "LabelSmall", true)
-			l.custom_minimum_size.x = minf(width, maxf(160.0, ln.length() * 20.0))
+			l.custom_minimum_size.x = minf(width, maxf(160.0, ln.length() * 18.0))
 		v.add_child(l)
 	return v
 

@@ -293,7 +293,7 @@ static func item_tip(it: Dictionary, uiroot: Node) -> Control:
 		g.add_child(UI.label(k, "LabelDim"))
 		var l := UI.label(val, "LabelSmall")
 		if tone != "":
-			l.add_theme_color_override("font_color", UI.tone_col(tone))
+			l.add_theme_color_override("font_color", UI.ptone(tone))
 		g.add_child(l)
 	var bb: BuildBar = uiroot.build if uiroot != null and uiroot.get("build") != null else null
 	add.call("비용", bb.cost_text(it) if bb != null else UI.won(UI.to_dict(it.get("cost", {})).get("money", 0)), "" if bool(it.get("affordable", true)) else "bad")

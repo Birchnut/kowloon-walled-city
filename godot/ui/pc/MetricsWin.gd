@@ -49,6 +49,7 @@ func _build(b: VBoxContainer) -> void:
 	lv.size_flags_stretch_ratio = 2.0
 	h.add_child(lv)
 	lv.add_child(_header_row())
+	lv.add_child(HSeparator.new())
 	_table = PcWindow.scroll_list(lv)
 	var rs := ScrollContainer.new()
 	rs.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -68,12 +69,12 @@ func _header_row() -> Control:
 	var r := UI.hbox(8)
 	var c := _cols()
 	for i in [0, 1, 2, 3, 6, 4, 5]:
-		var l := UI.label(["", "항목", "공급", "수요", "", "남은 날", "재고"][i], "LabelMute")
+		var l := UI.label(["", "품목", "들어옴", "나감", "", "남은 날", "재고"][i], "LabelMute")
 		l.custom_minimum_size.x = c[i]
 		if i in [2, 3, 5, 6]:
 			l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		r.add_child(l)
-	var last := UI.label("무엇을 하면 되나", "LabelMute")
+	var last := UI.label("장부지기의 말", "LabelMute")
 	last.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	r.add_child(last)
 	return r
@@ -102,7 +103,7 @@ func _refresh() -> void:
 		elif st == "warn":
 			nwarn += 1
 	_summary.text = "위험 %d · 주의 %d · 전부 %d줄" % [nbad, nwarn, rows.size()]
-	_summary.add_theme_color_override("font_color", UI.col("red_hi") if nbad > 0 else (UI.col("gold") if nwarn > 0 else UI.col("jade_hi")))
+	_summary.add_theme_color_override("font_color", UI.pcol("red_hi") if nbad > 0 else (UI.pcol("gold") if nwarn > 0 else UI.pcol("jade_hi")))
 	set_subtitle("빨강 %d · 노랑 %d" % [nbad, nwarn] if nbad + nwarn > 0 else "모두 괜찮다")
 	_build_table(rows)
 	_build_side()
@@ -127,14 +128,22 @@ func _build_table(rows: Array) -> void:
 		# 나쁜 것 먼저
 		list.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _rank(str(a.get("state", ""))) < _rank(str(b.get("state", ""))))
 		var gh := UI.hbox(6)
-		_table.add_child(gh)
-		gh.add_child(Picto.make(g[2], UI.col("gold")))
+		var gm := UI.margin(0, 8, 0, 2)
+		gm.add_child(gh)
+		_table.add_child(gm)
+		gh.add_child(Picto.make(g[2], UI.pcol("red")))
 		gh.add_child(UI.label(g[1], "LabelGold"))
-		_row_nodes[g[0]] = gh
+		_row_nodes[g[0]] = gm
 		for rd2: Dictionary in list:
 			var row := _row(rd2)
-			_table.add_child(row)
-			_row_nodes[str(rd2.get("id", ""))] = row
+			var wrap := VBoxContainer.new()
+			wrap.add_theme_constant_override("separation", 0)
+			wrap.add_child(row)
+			var ln := HSeparator.new()
+			ln.add_theme_constant_override("separation", 1)
+			wrap.add_child(ln)
+			_table.add_child(wrap)
+			_row_nodes[str(rd2.get("id", ""))] = wrap
 	if _table.get_child_count() == 0:
 		_table.add_child(UI.label("문제가 없다." if _filter == "bad" else "아직 보여 줄 것이 없다.", "LabelDim"))
 
@@ -149,20 +158,20 @@ func _row(r: Dictionary) -> Control:
 	b.theme_type_variation = "ButtonFlat"
 	b.focus_mode = Control.FOCUS_NONE
 	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	b.custom_minimum_size = Vector2(0, 34)
+	b.custom_minimum_size = Vector2(0, 36)
 	var h := UI.hbox(8)
 	h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	h.offset_left = 4
 	b.add_child(h)
 	var c := _cols()
-	var dot := Picto.make("dot" if st != "off" else "minus", UI.state_col(st))
+	var dot := Picto.make("dot" if st != "off" else "minus", UI.pstate(st))
 	dot.custom_minimum_size.x = c[0]
 	h.add_child(dot)
 	var nm := UI.label(str(r.get("name", "")), "LabelBody" if st == "bad" else "LabelSmall")
 	nm.custom_minimum_size.x = c[1]
 	nm.clip_text = true
 	if st == "bad":
-		nm.add_theme_color_override("font_color", UI.col("red_hi"))
+		nm.add_theme_color_override("font_color", UI.pcol("red_hi"))
 	h.add_child(nm)
 	var unit := str(r.get("unit", ""))
 	for v: Variant in [r.get("supply", 0), r.get("demand", 0)]:
@@ -187,14 +196,15 @@ func _row(r: Dictionary) -> Control:
 	dll.custom_minimum_size.x = c[5]
 	dll.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	if (dl is float or dl is int) and float(dl) < 1.0:
-		dll.add_theme_color_override("font_color", UI.col("red_hi"))
+		dll.add_theme_color_override("font_color", UI.pcol("red_hi"))
 	h.add_child(dll)
 	var hint := UI.label(str(r.get("hint", "")), "LabelSmall" if st in ["bad", "warn"] else "LabelDim")
 	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hint.clip_text = true
+	hint.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	h.add_child(hint)
 	var j: Variant = r.get("jump", {})
-	var go := Picto.make("right", UI.col("dim"))
+	var go := Picto.make("right", UI.pcol("mute"))
 	h.add_child(go)
 	b.pressed.connect(func() -> void:
 		if ui != null:
@@ -237,13 +247,13 @@ func _build_side() -> void:
 
 
 func _box(title: String, pic: String) -> VBoxContainer:
-	var p := UI.panel("PanelDeep")
-	_side.add_child(p)
+	if _side.get_child_count() > 0:
+		_side.add_child(HSeparator.new())
 	var v := UI.vbox(4)
-	p.add_child(v)
+	_side.add_child(v)
 	var h := UI.hbox(6)
 	v.add_child(h)
-	h.add_child(Picto.make(pic, UI.col("gold")))
+	h.add_child(Picto.make(pic, UI.pcol("red")))
 	h.add_child(UI.label(title, "LabelGold"))
 	return v
 
@@ -262,7 +272,7 @@ func _sec_labor() -> Control:
 		if have <= 0.0 and need <= 0.0:
 			continue
 		var nm := UI.label(str(ld.get("name", "")), "LabelSmall")
-		nm.add_theme_color_override("font_color", UI.tier_col(int(ld.get("tier", 0))))
+		nm.add_theme_color_override("font_color", UI.ptier(int(ld.get("tier", 0))))
 		nm.custom_minimum_size.x = 120
 		g.add_child(nm)
 		g.add_child(UI.label("%s / %s" % [UI.num(have), UI.num(need)], "LabelSmall"))
@@ -270,11 +280,11 @@ func _sec_labor() -> Control:
 		g.add_child(PcWindow.bar(have / maxf(need, 1.0), st, 110, 10))
 		var spare := float(ld.get("spare", have - need))
 		var sl := UI.label(("+" if spare >= 0 else "") + UI.num(spare), "LabelSmall")
-		sl.add_theme_color_override("font_color", UI.state_col("ok" if spare >= 0 else "bad"))
+		sl.add_theme_color_override("font_color", UI.pstate("ok" if spare >= 0 else "bad"))
 		g.add_child(sl)
 	if g.get_child_count() <= 4:
 		v.add_child(UI.label("아직 일하는 사람이 없다.", "LabelDim"))
-	return v.get_parent() as Control
+	return v
 
 
 func _sec_tiers() -> Control:
@@ -291,7 +301,7 @@ func _sec_tiers() -> Control:
 			continue
 		any = true
 		var nm := UI.label(str(td.get("name", "")), "LabelSmall")
-		nm.add_theme_color_override("font_color", UI.tier_col(int(td.get("tier", 0))))
+		nm.add_theme_color_override("font_color", UI.ptier(int(td.get("tier", 0))))
 		nm.custom_minimum_size.x = 110
 		g.add_child(nm)
 		g.add_child(UI.label(UI.big(td.get("pop", 0)), "LabelSmall"))
@@ -310,7 +320,7 @@ func _sec_tiers() -> Control:
 		g.add_child(UI.label(UI.num(td.get("arriving", 0)), "LabelSmall"))
 	if not any:
 		v.add_child(UI.label("아직 집이 없다. H로 칠한다.", "LabelDim"))
-	return v.get_parent() as Control
+	return v
 
 
 func _sec_finance() -> Control:
@@ -323,7 +333,7 @@ func _sec_finance() -> Control:
 		h.add_child(c)
 		c.add_child(UI.label(it[0], "LabelMute"))
 		var l := UI.label(UI.won_signed(it[1]) if it[0] != "나감" else UI.won(absf(float(it[1]))), "LabelBold")
-		l.add_theme_color_override("font_color", UI.tone_col(it[2]))
+		l.add_theme_color_override("font_color", UI.ptone(it[2]))
 		c.add_child(l)
 	var g := GridContainer.new()
 	g.columns = 2
@@ -336,13 +346,13 @@ func _sec_finance() -> Control:
 		nl.custom_minimum_size.x = 200
 		g.add_child(nl)
 		var al := UI.label(UI.won_signed(ld.get("amount", 0)), "LabelSmall")
-		al.add_theme_color_override("font_color", UI.col("jade_hi") if float(ld.get("amount", 0)) >= 0 else UI.col("red_hi"))
+		al.add_theme_color_override("font_color", UI.pcol("jade_hi") if float(ld.get("amount", 0)) >= 0 else UI.pcol("red_hi"))
 		g.add_child(al)
 	var more := PcButton.make("돈 자세히", "economy", "F2", "ButtonFlat")
 	more.min_h = 28
 	more.pressed.connect(func() -> void: ui.open_window("economy", "finance"))
 	v.add_child(more)
-	return v.get_parent() as Control
+	return v
 
 
 func _sec_hazards() -> Control:
@@ -353,7 +363,7 @@ func _sec_hazards() -> Control:
 		var h := UI.hbox(8)
 		v.add_child(h)
 		var pic := "fire" if str(hd.get("id", "")) == "fire" else "disease"
-		h.add_child(Picto.make(pic, UI.col("red_hi") if on else UI.col("mute"), 2, UI.col("gold_hi")))
+		h.add_child(Picto.make(pic, UI.pcol("red_hi") if on else UI.pcol("mute"), 2, UI.pcol("gold_hi")))
 		var nm := UI.label(str(hd.get("name", "")), "LabelBold")
 		nm.custom_minimum_size.x = 50
 		h.add_child(nm)
@@ -363,7 +373,7 @@ func _sec_hazards() -> Control:
 			h.add_child(PcWindow.bar(cov, "ok" if cov >= 0.9 else ("warn" if cov >= 0.6 else "bad"), 90, 10))
 			var act := int(hd.get("active", 0))
 			var al := UI.label(("지금 %d곳" % act) if act > 0 else "조용함", "LabelSmall")
-			al.add_theme_color_override("font_color", UI.col("red_hi") if act > 0 else UI.col("jade_hi"))
+			al.add_theme_color_override("font_color", UI.pcol("red_hi") if act > 0 else UI.pcol("jade_hi"))
 			h.add_child(al)
 		else:
 			h.add_child(UI.label("꺼짐", "LabelDim"))
@@ -379,4 +389,4 @@ func _sec_hazards() -> Control:
 		v.add_child(tl)
 	if v.get_child_count() <= 1:
 		v.add_child(UI.label("아직 위험이 없다.", "LabelDim"))
-	return v.get_parent() as Control
+	return v

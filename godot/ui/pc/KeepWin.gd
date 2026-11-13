@@ -149,7 +149,7 @@ func _policies(p: Dictionary, vice: Dictionary) -> void:
 		vp.add_child(vv)
 		var hh := UI.hbox(8)
 		vv.add_child(hh)
-		hh.add_child(Picto.make("warn", UI.col("red_hi")))
+		hh.add_child(Picto.make("warn", UI.pcol("red_hi")))
 		hh.add_child(UI.label("바깥의 시선 %d / 100" % int(float(vice.get("heat", 0))), "LabelRed"))
 		hh.add_child(PcWindow.bar(float(vice.get("heat", 0)) / 100.0, "bad", 240, 10))
 		vv.add_child(_w("하루 +%s, 저절로 -%s. 높으면 두 우산 시설이 닫힌다." % [UI.dec(vice.get("gain_per_day", 0)), UI.dec(vice.get("decay_per_day", 0))], "LabelSmall", 1040))
@@ -265,7 +265,7 @@ func _log(d: Variant) -> void:
 			continue
 		var l := _w(t, "LabelSmall")
 		if tone != "":
-			l.add_theme_color_override("font_color", UI.tone_col(tone))
+			l.add_theme_color_override("font_color", UI.ptone(tone))
 		_list.add_child(l)
 
 

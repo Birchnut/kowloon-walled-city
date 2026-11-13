@@ -6,6 +6,11 @@ extends PanelContainer
 signal pressed
 
 var _hover := false
+## 바탕 모양 이름(기본 = 밑줄 줄, 알림은 "PanelNote" 쪽지).
+var base := "PanelRow":
+	set(v):
+		base = v
+		theme_type_variation = v
 
 
 func _init() -> void:
@@ -14,10 +19,10 @@ func _init() -> void:
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	mouse_entered.connect(func() -> void:
 		_hover = true
-		theme_type_variation = "PanelRowHi")
+		theme_type_variation = base + "Hi")
 	mouse_exited.connect(func() -> void:
 		_hover = false
-		theme_type_variation = "PanelRow")
+		theme_type_variation = base)
 
 
 func _gui_input(ev: InputEvent) -> void:

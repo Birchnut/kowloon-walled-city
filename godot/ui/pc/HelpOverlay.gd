@@ -31,6 +31,7 @@ const KEYS := [
 
 
 func _init() -> void:
+	theme = PcTheme.paper_theme()
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	visible = false
@@ -52,7 +53,7 @@ func _ready() -> void:
 	p.add_child(v)
 	var h := UI.hbox(10)
 	v.add_child(h)
-	h.add_child(Picto.make("help", UI.col("gold"), 3))
+	h.add_child(Picto.make("help", UI.pcol("gold"), 3))
 	h.add_child(UI.label("조작", "LabelHead"))
 	var sp := UI.label("F1 · Esc · 아무 곳이나 눌러 닫기", "LabelDim")
 	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -69,7 +70,7 @@ func _ready() -> void:
 		g.add_theme_constant_override("h_separation", 18)
 		cv.add_child(g)
 		for row: Array in part[1]:
-			var k := UI.label(row[0], "LabelKey")
+			var k := UI.label(row[0], "LabelBold")
 			k.custom_minimum_size.x = 200
 			g.add_child(k)
 			g.add_child(UI.label(row[1], "LabelSmall"))

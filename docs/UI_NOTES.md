@@ -285,3 +285,26 @@ P9. **승급 창의 모자람 줄**: 고른 자재가 모자라면 "목재 20 �
 - 들여다보기 시트(50%)를 열면 도시가 위 띠로 밀려 작게 보인다. 고른 집은 select 로 표시되나 줌이 낮으면 찾기 어렵다(뷰 focus_on 이 있으면 좋겠다).
 - (폴리시) 소식 카드는 하나씩·2초·요약 합침. 토스트는 카드 아래로 비킨다. 그래도 등급 + 목표가 같은 순간이면 두 장이 이어진다(4~5초, 화면 가운데는 비어 있다).
 - 소리 없음.
+
+# UI 노트 v0.5 — 시안 '다: 먹띠와 장부' (브랜치 `wip/v05-ui`)
+
+겉만 바꿨다. 배치·단축키·동작은 그대로. 새 창·새 판은 아래 열 줄만 알면 된다.
+
+## 새 창·판을 만드는 법 (열 줄)
+1. 색 두 벌이다. 먹빛 판(늘 켜진 계기, 기본 테마) = `PcTheme.get_theme()`, 종이(읽을 것) = `PcTheme.paper_theme()`. 같은 변형 이름(`LabelSmall`·`PanelBar`·`Button`…)을 두 벌이 다르게 칠한다.
+2. 새 창: `extends PcWindow` → `_init()`에서 `super._init()`, `win_id`·`title_text`·`want_size` 지정 → `_build(body)`에서 채운다. 종이 테마·제목 줄·닫기·끌기가 이미 붙어 있다. `UIRoot` 의 창 목록에 한 줄 더하면 끝.
+3. 먹빛 판: `PcTheme.ink_panel(parent)` 를 만들어 `UI.vbox/hbox` 로 채운다. 반투명 먹빛 + 가는 선.
+4. 종이 판(창이 아닌 곳의 안내 카드·확인창·쪽지): `PcTheme.paper_panel(parent)` / `PcTheme.paper_note(tilt)` / 아무 Control 에 `PcTheme.paper(node)`. 그 아래 전부 종이 색이 된다.
+5. 글자: 제목 `LabelHead`(Hahmlet 34) · 강한 글자·숫자 `LabelBold`/`LabelNum`(Hahmlet) · 본문 `LabelSmall`(Noto Sans KR 18) · 보조 `LabelDim`/`LabelMute` · 머리글 `LabelGold`/`LabelGoldSmall`(종이에서는 붉은 먹). 픽셀 글꼴은 UI 에서 쓰지 않는다.
+6. 단추: `PcButton.make(글, 그림, 키, 변형)` — `Button`(보통) · `ButtonToggle`(켜짐 = 밝은 판, 종이에서는 먹빛 판) · `ButtonGold`(주 단추) · `ButtonJade`/`ButtonRed` · `ButtonFlat`.
+7. 줄: 누르는 줄 `ClickRow`(종이에서 밑줄 줄). 알림 쪽지는 `row.base = "PanelNote"` 로 그림자 있는 쪽지 모양.
+8. 코드로 색을 읽을 때: 먹빛 위 `UI.col/state_col/tone_col/tier_col`, 종이 위 `UI.pcol/pstate/ptone/ptier`. 창 파일은 전부 `p…` 쪽이다. 섞어 쓰면 종이 위에 밝은 글자가 올라가 안 보인다.
+9. 막대: `PcWindow.bar(비율, 상태, 폭)` 또는 `RatioBarPc` — 높이 6px 가는 막대, 바탕은 테마에서 읽는다.
+10. 그림문자: `Picto.make("water", 색)` — 24칸 선 그림(굵기 1.6). 새 모양은 `Picto.P` 에 획 문자열을 더한다(`M x y L x y`·`C`·`O`·`F`·`A`). 이모지 금지.
+
+## 바뀐 것
+- 글꼴: Hahmlet(제목·숫자) + Noto Sans KR(본문), 가변 글꼴. `godot/assets/fonts/CREDITS.md`. Galmuri·둥근모는 UI 에서 뺐다(파일은 남김).
+- `PcTheme.gd` 전면: 먹빛 rgba(20,17,13,.86)·글자 #F2EAD8 / 종이 #F3EDDF·글자 #201C16·줄 #D6CCB6·붉은 먹 #A3301E·좋음 #2E6A4C·주의 #85570A. 모서리 3~4px, 1px 선, 그림자.
+- 종이: 장부·돈·회상회·회색 띠·네모청·승급 창, 알림 쪽지(살짝 기움), 소식 카드·토스트, 안내 카드, 확인창, 도움말, 툴팁, 살피기 창(Inspector).
+- 먹빛: 위 띠, 목표, 층·렌즈, 짓기 띠, 창 단추.
+- 장부 창: 품목 | 들어옴 | 나감 | 재고 | 막대 | 남은 날 | 장부지기의 말, 오른쪽에 일손·계층·돈·위험(상자 대신 가는 줄로 나눔).
