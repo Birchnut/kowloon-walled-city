@@ -1,0 +1,22 @@
+# 구룡성채 — 작업 규칙 (새 세션이 먼저 읽는 파일)
+
+Jin(오너, 비개발자)의 게임. Godot 4.7 / GDScript / PC 1920×1080. 지금 판: v0.4 PC판 (`main`).
+**먼저 `docs/HANDOFF.md`를 읽는다.** 거기에 지금 상태·다음 일·읽을 문서 순서가 있다.
+
+## Jin이 정한 일하는 방식 (지킨다)
+- 말투: Jin은 반말, 답도 반말. 쉬운 말로, 개발 용어는 풀어서.
+- 역할: 지시를 받아 적는 사람이 아니라 기획자·총괄 디렉터. 반론하고 먼저 제안한다. 실제 작업은 하위 에이전트에게 나눠 시킨다(모든 일에 가장 비싼 모델을 쓸 필요 없다 — 사용량 한도에 걸린 적이 있다).
+- 정해지지 않은 설계는 혼자 정하지 않는다 → 번호 선택지(1/2/3)로 묻는다. 자율 작업 중 어쩔 수 없이 정한 것은 전부 이유와 함께 보고하고 승인받는다(`docs/ASSUMPTIONS_AND_EXPERIMENTS.md`에 번호로 적는다).
+- 숫자(경제·비용·속도)는 감으로 정하지 않는다 → 봇 시뮬레이션으로 맞춘다(`simulation/`).
+- 맡긴 일을 하는 동안 승인 창이 뜨는 동작을 피한다(웹 페이지 가져오기 등). 위험해 보이는 곳은 접속하지 않는다.
+- 백업: 자주 커밋하고 GitHub에 올린다. 큰 방향 전환 전에는 `backup/*` 브랜치를 남긴다.
+- 게임 안 글자에 한자를 쓰지 않는다(Jin, 2026-11-11). 설정집 원문에 한자가 병기돼 있어도 게임에는 한글만 — 바꾸려면 Jin에게 묻는다.
+
+## 구조 (어기지 않는다)
+- `godot/sim/` 규칙(순수 계산, 데이터 주도) · `godot/view/` 그림 · `godot/ui/pc/` 화면 · `godot/expedition/` 직접 줍기 · `godot/audio/` 소리.
+- UI와 그림은 `Game` 오토로드(`cmd`/`can`/`query`/`event`)로만 규칙과 만난다. 계약은 `docs/ARCHITECTURE.md`의 "v4 (PC판) 계약 변경".
+- 수치·이름·콘텐츠는 `godot/data/**/*.json`. 코드에 박지 않는다.
+
+## 확인하는 법
+- `godot/tests/sim_test.sh`(규칙) · `godot/tests/run_test.sh`(직접 줍기) · `tools/shot.sh`(화면을 PNG로, 입력 대본) · `simulation/run_all.sh`(봇) · `tools/deploy_pages.sh push`(웹 빌드 → gh-pages).
+- Godot 실행 파일은 저장소에 없다(`tools/godot/`는 .gitignore). 새 환경에서는 Godot 4.7.2 리눅스 헤드리스 + 내보내기 템플릿을 받아 `tools/godot/godot`에 둔다.
