@@ -10,7 +10,8 @@ Jin(오너, 비개발자)의 게임. Godot 4.7 / GDScript / PC 1920×1080. 지�
 - 숫자(경제·비용·속도)는 감으로 정하지 않는다 → 봇 시뮬레이션으로 맞춘다(`simulation/`).
 - 맡긴 일을 하는 동안 승인 창이 뜨는 동작을 피한다(웹 페이지 가져오기 등). 위험해 보이는 곳은 접속하지 않는다.
 - 백업: 자주 커밋하고 GitHub에 올린다. 큰 방향 전환 전에는 `backup/*` 브랜치를 남긴다.
-- 게임 안 글자에 한자를 쓰지 않는다(Jin, 2026-11-11). 설정집 원문에 한자가 병기돼 있어도 게임에는 한글만 — 바꾸려면 Jin에게 묻는다.
+- 한자: **유저 인터페이스(UI·UX — 패널·버튼·툴팁·현황판·알림 글자)에는 한자를 쓰지 않는다.** 게임 세계 안의 디자인(간판·네온·벽 글씨·그림)과 명칭 자체에는 한자가 들어가도 된다(Jin, 2026-11-13 정정). UI에 이름을 띄울 때는 한글로만(예: 벽틈시민, 병기 없이).
+- 글의 결: 설정집의 건조한 사료체를 따른다(Jin, 2026-11-13). v0.4의 농담 이름(패가망신 클럽 등)은 설정집 이름으로 바꾼다.
 
 ## 구조 (어기지 않는다)
 - `godot/sim/` 규칙(순수 계산, 데이터 주도) · `godot/view/` 그림 · `godot/ui/pc/` 화면 · `godot/expedition/` 직접 줍기 · `godot/audio/` 소리.
@@ -19,4 +20,4 @@ Jin(오너, 비개발자)의 게임. Godot 4.7 / GDScript / PC 1920×1080. 지�
 
 ## 확인하는 법
 - `godot/tests/sim_test.sh`(규칙) · `godot/tests/run_test.sh`(직접 줍기) · `tools/shot.sh`(화면을 PNG로, 입력 대본) · `simulation/run_all.sh`(봇) · `tools/deploy_pages.sh push`(웹 빌드 → gh-pages).
-- Godot 실행 파일은 저장소에 없다(`tools/godot/`는 .gitignore). 새 환경에서는 Godot 4.7.2 리눅스 헤드리스 + 내보내기 템플릿을 받아 `tools/godot/godot`에 둔다.
+- Godot 실행 파일은 저장소에 없다(`tools/godot/`는 .gitignore). 새 환경에서는 Godot 4.7.2(stable) 리눅스 실행 파일과 내보내기 템플릿을 GitHub의 godotengine/godot 릴리스에서 받아 `tools/godot/godot`에 둔다. 새로 받은 저장소는 `--import`를 두 번 돌려야 오류 없이 뜬다(첫 번째는 클래스 등록 전이라 오류 줄이 나온다 — 확인함).
