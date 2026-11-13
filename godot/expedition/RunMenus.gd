@@ -162,9 +162,13 @@ func _draw_start(vs: Vector2) -> void:
 	var ctl := ["WASD 이동 · 마우스 조준", "왼쪽 클릭 쇠파이프 · 오른쪽 클릭 던지기", "Space 구르기(무적) · E 꾹 뒤지기/나가기", "Tab 배낭 · Esc 멈춤 · M 소리 · F2 자동"]
 	for k in ctl.size():
 		_tl(Vector2(x0 + 200 * s, y + 58 * s + k * 11 * s), ctl[k], Color(0.8, 0.78, 0.72), fs(0.9))
-	_button(Vector2(cx - 130 * s, r.end.y + 26 * s), "들어가기 (Enter)", "enter", 110 * s)
-	_button(Vector2(cx, r.end.y + 26 * s), "다른 지도 (R)", "reroll", 110 * s)
-	_button(Vector2(cx + 130 * s, r.end.y + 26 * s), "다른 던전 (D)", "skin", 110 * s)
+	if city_mode:
+		# 도시에서 보낸 판: 던전·지도는 도시가 정했다 — 고르는 버튼은 연습판에만
+		_button(Vector2(cx, r.end.y + 26 * s), "들어가기 (Enter)", "enter", 110 * s)
+	else:
+		_button(Vector2(cx - 130 * s, r.end.y + 26 * s), "들어가기 (Enter)", "enter", 110 * s)
+		_button(Vector2(cx, r.end.y + 26 * s), "다른 지도 (R)", "reroll", 110 * s)
+		_button(Vector2(cx + 130 * s, r.end.y + 26 * s), "다른 던전 (D)", "skin", 110 * s)
 	if str(data.get("source", "")) == "sample":
 		_tc(Vector2(cx, vs.y - 10 * s), "도시와 아직 연결 안 됨 — 견본 재고로 연습 중", Color(0.5, 0.48, 0.45), fs(0.8))
 
@@ -176,7 +180,8 @@ func _draw_pause(vs: Vector2) -> void:
 	_tc(Vector2(vs.x / 2, r.position.y + 22 * s), "멈춤", Color(1, 0.9, 0.7), fs(1.8), true)
 	_tc(Vector2(vs.x / 2, r.position.y + 36 * s), "도시는 계속 돈다. 아마도.", Color(0.7, 0.68, 0.62), fs(0.9))
 	_button(Vector2(vs.x / 2, r.position.y + 56 * s), "계속 (Esc)", "resume", 140 * s)
-	_button(Vector2(vs.x / 2, r.position.y + 78 * s), "처음부터 (R)", "restart", 140 * s)
+	if not city_mode:
+		_button(Vector2(vs.x / 2, r.position.y + 78 * s), "처음부터 (R)", "restart", 140 * s)
 	_button(Vector2(vs.x / 2, r.position.y + 100 * s), "소리 끄기/켜기 (M)", "mute", 140 * s)
 	_button(Vector2(vs.x / 2, r.position.y + 122 * s), "포기하고 나가기 (Q)", "giveup", 140 * s)
 

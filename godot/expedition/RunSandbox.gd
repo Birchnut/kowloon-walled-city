@@ -169,6 +169,9 @@ func _start_run() -> void:
 
 
 func _on_action(id: String) -> void:
+	# 도시에서 보낸 판은 지도·던전을 바꾸거나 처음부터 다시 할 수 없다(도시가 팀·재고를 이미 내줬다) — 연습판에서만.
+	if not standalone and id in ["reroll", "skin", "restart", "again"]:
+		return
 	match id:
 		"enter":
 			_start_run()
