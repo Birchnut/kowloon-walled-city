@@ -141,7 +141,12 @@ func _layout() -> void:
 	if top == null or not is_inside_tree():
 		return
 	var vs := get_viewport_rect().size
-	top.set_compact(0 if vs.x >= 1800.0 else (1 if vs.x >= 1450.0 else 2))
+	# 폭 기준 + 실제로 넘치면 한 단계 더(후반 큰 숫자 — 인구 1,224·₩20,169/일 — 에서 1920 폭인데 배속 버튼이 밀려났다)
+	var cl := 0 if vs.x >= 1800.0 else (1 if vs.x >= 1450.0 else 2)
+	top.set_compact(cl)
+	while cl < 2 and top.get_combined_minimum_size().x > vs.x:
+		cl += 1
+		top.set_compact(cl)
 	top.position = Vector2.ZERO
 	top.size = Vector2(vs.x, 0)
 	top.reset_size()
@@ -233,6 +238,8 @@ func _bind_view(v: Node) -> void:
 func _refresh_hud() -> void:
 	hud = Q.dict("hud")
 	top.refresh(hud)
+	if top.compact < 2 and top.get_combined_minimum_size().x > get_viewport_rect().size.x:
+		_layout.call_deferred()
 	left.refresh(hud)
 	if lens != "":
 		_apply_lens_cells()
