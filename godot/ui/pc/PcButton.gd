@@ -40,6 +40,10 @@ var min_w: float = 0.0
 var min_h: float = 40.0
 var label_variation: String = ""
 var center: bool = true
+## 누를 때 소리(Sfx 이름). 창 안 탭은 "tab", 소리 없이는 "".
+var sfx_name: String = "click"
+## 마우스를 올릴 때 아주 작은 소리(Sfx "hover") — 짓기 카드에만 켠다.
+var hover_sfx: bool = false
 
 
 static func make(txt: String = "", pic: String = "", key: String = "", variation: String = "") -> PcButton:
@@ -56,7 +60,12 @@ func _init() -> void:
 	focus_mode = Control.FOCUS_NONE
 	action_mode = BaseButton.ACTION_MODE_BUTTON_RELEASE
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	pressed.connect(func() -> void: Sfx.play("click"))
+	pressed.connect(func() -> void:
+		if sfx_name != "":
+			Sfx.play(sfx_name))
+	mouse_entered.connect(func() -> void:
+		if hover_sfx and not disabled:
+			Sfx.play("hover"))
 
 
 func _ready() -> void:

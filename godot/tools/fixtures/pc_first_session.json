@@ -1,68 +1,587 @@
 [
-  {"say": "PC 첫 접속: 새 도시, 오프닝을 진짜 마우스·키보드로. 좌표 대신 이름표(분류·카드·대상)로 누른다. tools/shot.sh \"\" out 1400 1920x1080 script=res://tools/fixtures/pc_first_session.json out=out"},
-  {"wait": 1.0},
-  {"shot": "p01_start"},
-  {"say": "카메라: 휠·오른쪽 끌기·Q/E"},
-  {"wheel": 1, "at": [1100, 520]},
-  {"drag": [[1200, 560], [1080, 600]], "button": "right", "steps": 6},
-  {"key": "Q"},
-  {"wait": 0.6},
-  {"key": "E"},
-  {"wheel": -1, "at": [1100, 520]},
-  {"wait": 2.0},
-  {"say": "판잣집 8채: H → 네모로 끌기"},
-  {"key": "H"},
-  {"move_cell": [2, 2, 0]},
-  {"paint": [[2, 2, 0], [5, 3, 0]], "steps": 5},
-  {"wait": 0.5},
-  {"q": "economy", "keys": ["tiers.0.houses"]},
-  {"shot": "p02_painted"},
-  {"key": "Esc"},
-  {"wait": 0.8},
-  {"say": "1층 필수: 시장(돌려서) · 물 둘 · 먹을 것 · 놀 것 — 짓기 막대 분류 탭 → 카드 → 칸 → 클릭"},
-  {"place": "분류:market", "cell": [2, 5, 0], "rotate": 1, "shot_before": "p03_ghost_market"},
-  {"wait": 0.6},
-  {"place": "분류:water", "cell": [7, 2, 0]},
-  {"place": "rain_catcher", "cell": [8, 2, 0]},
-  {"wait": 0.6},
-  {"place": "분류:food", "cell": [7, 4, 0]},
-  {"wait": 0.6},
-  {"place": "분류:service", "cell": [5, 6, 0], "shot_before": "p04_ghost_service"},
-  {"wait": 0.4},
-  {"key": "Esc"},
-  {"wait": 1.0},
-  {"say": "살피기: 집을 누른다"},
-  {"click_top": [3, 2, 0]},
-  {"wait": 1.0},
-  {"shot": "p05_inspect"},
-  {"say": "배속: 3 = ×4"},
-  {"key": "3"},
-  {"wait": 1.0},
-  {"say": "현황판: Tab"},
-  {"key": "Tab"},
-  {"wait": 1.2},
-  {"shot": "p06_metrics"},
-  {"key": "Tab"},
-  {"wait": 0.6},
-  {"press": "시작한다"},
-  {"wait": 0.5},
-  {"q": "hud", "keys": ["tutorial", "pop_total", "money", "speed"]},
-  {"say": "주민이 차서 승급이 될 때까지 빠르게(×16 — 디버그 배속, 진짜 UI 길 아님)"},
-  {"speed": 16},
-  {"until": {"q": "upgradable", "key": "0.count", "ge": 1}, "max": 120},
-  {"speed": 1},
-  {"say": "승급: Esc(고른 집 풀기) → U(일괄) → 자재 카드 → Enter"},
-  {"key": "Esc"},
-  {"key": "U"},
-  {"wait": 1.0},
-  {"shot": "p07_upgrade"},
-  {"press": "철제", "region": [0, 150, 1920, 700]},
-  {"wait": 0.6},
-  {"key": "Enter"},
-  {"wait": 1.0},
-  {"q": "hud", "keys": ["pop", "money"]},
-  {"q": "upgradable", "keys": ["0.count"]},
-  {"q": "economy", "keys": ["tiers.0.houses", "tiers.1.houses"]},
-  {"shot": "p08_after_upgrade"},
-  {"quit": 1}
+ {
+  "say": "PC 첫 접속 A (통합 v4): 새 도시 → 오프닝(진짜 마우스·키보드) → 판잣집 8 → 시장(R)·캔 은행·수도국·마작방 → 살피기 → ×4 → 현황판 → 굴러온 돌 20 → 줍줍 본부(목표 버튼) → 파견 → 받기 → 헌 옷·초 → 첫 승급(자재 고르기). 끝에 stage_a.json 저장. tools/shot.sh \"\" out 2600 1920x1080 script=res://tools/fixtures/pc_first_session.json out=out trace=1"
+ },
+ {
+  "wait": 1.0
+ },
+ {
+  "shot": "a01_start"
+ },
+ {
+  "say": "카메라: 휠·오른쪽 끌기·Q/E (오프닝 1)"
+ },
+ {
+  "wheel": 1,
+  "at": [
+   1100,
+   520
+  ]
+ },
+ {
+  "drag": [
+   [
+    1200,
+    560
+   ],
+   [
+    1080,
+    600
+   ]
+  ],
+  "button": "right",
+  "steps": 6
+ },
+ {
+  "key": "Q"
+ },
+ {
+  "wait": 0.6
+ },
+ {
+  "key": "E"
+ },
+ {
+  "wheel": -1,
+  "at": [
+   1100,
+   520
+  ]
+ },
+ {
+  "wait": 2.0
+ },
+ {
+  "say": "판잣집 8채: H → 네모로 끌기 (오프닝 2)"
+ },
+ {
+  "key": "H"
+ },
+ {
+  "move_cell": [
+   6,
+   6,
+   0
+  ]
+ },
+ {
+  "paint": [
+   [
+    6,
+    6,
+    0
+   ],
+   [
+    9,
+    7,
+    0
+   ]
+  ],
+  "steps": 5
+ },
+ {
+  "wait": 0.5
+ },
+ {
+  "q": "economy",
+  "keys": [
+   "tiers.0.houses"
+  ]
+ },
+ {
+  "shot": "a02_painted"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "wait": 0.8
+ },
+ {
+  "say": "시장(돌려서) → 먹을 것 → 물 → 놀 것 (오프닝 3~6) — 짓기 막대 분류 탭 → 카드 → 칸 → 클릭"
+ },
+ {
+  "place": "market_mat",
+  "cell": [
+   6,
+   5,
+   0
+  ],
+  "rotate": 1,
+  "shot_before": "a03_ghost_market"
+ },
+ {
+  "wait": 0.6
+ },
+ {
+  "place": "food_cans",
+  "cell": [
+   10,
+   6,
+   0
+  ]
+ },
+ {
+  "wait": 0.6
+ },
+ {
+  "place": "rain_catcher",
+  "cell": [
+   8,
+   5,
+   0
+  ]
+ },
+ {
+  "wait": 0.6
+ },
+ {
+  "place": "mahjong",
+  "cell": [
+   5,
+   6,
+   0
+  ],
+  "shot_before": "a04_ghost_service"
+ },
+ {
+  "wait": 0.4
+ },
+ {
+  "say": "거절 이유가 보이는지: 집 위에 시장을 놓아 본다(누르지 않음)"
+ },
+ {
+  "place": "mahjong",
+  "cell": [
+   7,
+   6,
+   0
+  ],
+  "commit": false
+ },
+ {
+  "shot": "a05_refusal"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "wait": 1.0
+ },
+ {
+  "say": "살피기: 집을 누른다 (오프닝 7)"
+ },
+ {
+  "click_top": [
+   7,
+   7,
+   0
+  ]
+ },
+ {
+  "wait": 1.0
+ },
+ {
+  "shot": "a06_inspect_house"
+ },
+ {
+  "say": "배속: 3 = ×4 (오프닝 8)"
+ },
+ {
+  "key": "3"
+ },
+ {
+  "wait": 1.0
+ },
+ {
+  "say": "현황판: Tab (오프닝 9)"
+ },
+ {
+  "key": "Tab"
+ },
+ {
+  "wait": 1.2
+ },
+ {
+  "shot": "a07_metrics"
+ },
+ {
+  "key": "Tab"
+ },
+ {
+  "wait": 0.6
+ },
+ {
+  "press": "시작한다"
+ },
+ {
+  "wait": 0.5
+ },
+ {
+  "q": "hud",
+  "keys": [
+   "tutorial",
+   "pop",
+   "money",
+   "speed",
+   "next_goal.text"
+  ]
+ },
+ {
+  "say": "공사가 끝나고 사람이 드는 것을 ×4 로 본다(진짜 길)"
+ },
+ {
+  "until": {
+   "q": "hud",
+   "key": "pop.t1",
+   "ge": 8
+  },
+  "max": 90
+ },
+ {
+  "shot": "a08_moving_in"
+ },
+ {
+  "click_top": [
+   7,
+   7,
+   0
+  ]
+ },
+ {
+  "wait": 1.0
+ },
+ {
+  "shot": "a09_inspect_after"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "say": "굴러온 돌 20: 기다린다(×4). 너무 길면 시간 초과로 기록"
+ },
+ {
+  "until": {
+   "q": "hud",
+   "key": "pop.t1",
+   "ge": 20
+  },
+  "max": 120
+ },
+ {
+  "wait": 1.0
+ },
+ {
+  "shot": "a10_goal_card"
+ },
+ {
+  "q": "hud",
+  "keys": [
+   "next_goal.id",
+   "next_goal.text",
+   "money"
+  ]
+ },
+ {
+  "say": "목표 줄의 버튼으로 줍줍 본부 배치(진짜 길: 왼쪽 위 목표 → '줍줍 본부')"
+ },
+ {
+  "until": {
+   "q": "hud",
+   "key": "next_goal.id",
+   "eq": "g_exp"
+  },
+  "max": 60
+ },
+ {
+  "wait": 1.0
+ },
+ {
+  "press": "줍줍 본부",
+  "region": [
+   0,
+   60,
+   400,
+   420
+  ]
+ },
+ {
+  "wait": 0.4
+ },
+ {
+  "move_cell": [
+   12,
+   6,
+   0
+  ]
+ },
+ {
+  "wait": 0.3
+ },
+ {
+  "click_cell": [
+   12,
+   6,
+   0
+  ]
+ },
+ {
+  "wait": 0.4
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "q": "info",
+  "args": {
+   "pos": [
+    12,
+    6,
+    0
+   ]
+  },
+  "keys": [
+   "kind",
+   "title",
+   "build_left_text",
+   "build_progress"
+  ]
+ },
+ {
+  "until": {
+   "q": "expeditions",
+   "key": "slots.have",
+   "ge": 1
+  },
+  "max": 40
+ },
+ {
+  "say": "탐험: F4 → 고물 야적장 → 보내기"
+ },
+ {
+  "key": "F4"
+ },
+ {
+  "wait": 1.0
+ },
+ {
+  "press": "고물 야적장",
+  "region": [
+   400,
+   110,
+   1720,
+   1000
+  ]
+ },
+ {
+  "wait": 0.6
+ },
+ {
+  "shot": "a11_expedition"
+ },
+ {
+  "press": "보내기",
+  "region": [
+   400,
+   110,
+   1720,
+   1000
+  ]
+ },
+ {
+  "wait": 0.6
+ },
+ {
+  "shot": "a12_sent"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "q": "expeditions",
+  "keys": [
+   "teams.0.state",
+   "teams.0.days_left"
+  ]
+ },
+ {
+  "say": "돌아올 때까지(0.3일 = ×4 에서 45초)"
+ },
+ {
+  "until": {
+   "q": "hud",
+   "key": "teams_done",
+   "ge": 1
+  },
+  "max": 90
+ },
+ {
+  "wait": 0.5
+ },
+ {
+  "shot": "a13_team_back"
+ },
+ {
+  "key": "F4"
+ },
+ {
+  "wait": 0.8
+ },
+ {
+  "press": "받기",
+  "region": [
+   400,
+   110,
+   1720,
+   1000
+  ]
+ },
+ {
+  "wait": 0.6
+ },
+ {
+  "shot": "a14_claimed"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "q": "hud",
+  "keys": [
+   "next_goal.id",
+   "next_goal.text"
+  ]
+ },
+ {
+  "say": "첫 승급 준비: 헌 옷(수거함 정리단) · 초(기름 수거단 → 초 공방) — 생활품 분류 N"
+ },
+ {
+  "say": "물이 모자란다(위 띠 물 신호등 빨강 · 알림 '물이 모자란다') → 수도국 하나 더(C)"
+ },
+ {
+  "place": "rain_catcher",
+  "cell": [
+   9,
+   5,
+   0
+  ]
+ },
+ {
+  "place": "clothes_bin",
+  "cell": [
+   4,
+   8,
+   0
+  ]
+ },
+ {
+  "place": "oil_collect",
+  "cell": [
+   6,
+   8,
+   0
+  ]
+ },
+ {
+  "place": "candle_shop",
+  "cell": [
+   8,
+   8,
+   0
+  ]
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "wait": 0.5
+ },
+ {
+  "shot": "a15_goods_built"
+ },
+ {
+  "until": {
+   "q": "upgradable",
+   "key": "0.count",
+   "ge": 1
+  },
+  "max": 150
+ },
+ {
+  "say": "승급: Esc(고른 집 풀기) → U(일괄) → 철제(야적장에서 받아 온 것) → Enter"
+ },
+ {
+  "key": "Esc"
+ },
+ {
+  "key": "U"
+ },
+ {
+  "wait": 1.0
+ },
+ {
+  "shot": "a16_upgrade_window"
+ },
+ {
+  "press": "철제",
+  "region": [
+   0,
+   150,
+   1920,
+   700
+  ]
+ },
+ {
+  "wait": 0.6
+ },
+ {
+  "shot": "a17_upgrade_metal"
+ },
+ {
+  "key": "Enter"
+ },
+ {
+  "wait": 1.0
+ },
+ {
+  "q": "hud",
+  "keys": [
+   "pop",
+   "money"
+  ]
+ },
+ {
+  "q": "economy",
+  "keys": [
+   "tiers.0.houses",
+   "tiers.1.houses"
+  ]
+ },
+ {
+  "until": {
+   "q": "hud",
+   "key": "pop.t2",
+   "ge": 1
+  },
+  "max": 60
+ },
+ {
+  "shot": "a18_after_upgrade"
+ },
+ {
+  "q": "hud",
+  "keys": [
+   "next_goal.id",
+   "next_goal.text",
+   "pop",
+   "money",
+   "day"
+  ]
+ },
+ {
+  "save": "stage_a.json"
+ },
+ {
+  "quit": 1
+ }
 ]

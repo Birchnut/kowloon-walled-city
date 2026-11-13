@@ -38,6 +38,8 @@ const EVENT_SFX := {
 }
 
 var auto_event_sfx := true
+## 직접 줍기(미니게임)가 화면을 덮는 동안: 도시의 효과음·배경·음악 버스를 끈다(설정 파일에는 쓰지 않는다).
+var city_duck := false
 var vol: Dictionary = DEFAULT_VOL.duplicate()
 var master_muted := false
 var sfx_muted := false
@@ -199,6 +201,14 @@ func mute(on: bool) -> void:
 	_save_cfg()
 
 
+## 직접 줍기 동안 도시 소리를 끈다/되살린다. 저장하지 않는다. 되살릴 때 주 버스도 다시 맞춘다
+## (미니게임이 M 으로 주 버스를 직접 끄고 나올 수 있어서).
+func set_city_duck(on: bool) -> void:
+	city_duck = on
+	_bus_last.clear()
+	_apply_volumes()
+
+
 func set_sfx_muted(on: bool) -> void:
 	sfx_muted = on
 	_apply_volumes()
@@ -229,6 +239,8 @@ func _apply_volumes() -> void:
 			continue
 		var v := float(vol.get(k, 1.0))
 		var off := v <= 0.001
+		if city_duck and k != "master":
+			off = true
 		if k == "master":
 			off = off or master_muted
 		elif k == "sfx":

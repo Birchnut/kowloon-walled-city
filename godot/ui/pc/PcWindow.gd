@@ -153,6 +153,7 @@ static func tabs(parent: Control, items: Array, cb: Callable) -> Dictionary:
 		var b := PcButton.make(str(it[1]), str(it[2]) if it.size() > 2 else "", "", "ButtonToggle")
 		b.toggle_mode = true
 		b.min_h = 38
+		b.sfx_name = "tab"
 		var id: String = it[0]
 		b.pressed.connect(func() -> void: cb.call(id))
 		row.add_child(b)

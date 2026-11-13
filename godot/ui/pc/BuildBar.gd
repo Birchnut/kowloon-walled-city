@@ -8,8 +8,9 @@ extends PanelContainer
 signal tool_pressed(id: String)
 signal item_pressed(item: Dictionary)
 
-const CAT_KEYS := ["Z", "C", "V", "B", "N", "M", ",", ".", "/"]
-const CAT_KEYCODES := [KEY_Z, KEY_C, KEY_V, KEY_B, KEY_N, KEY_M, KEY_COMMA, KEY_PERIOD, KEY_SLASH]
+## 분류 열한 개(v4: 방재 safety 추가) — 아래 줄 아홉 + K·L(기반·명소). WASD·Q·E 는 뷰, R·H·X·G·U 는 UI 가 쓴다.
+const CAT_KEYS := ["Z", "C", "V", "B", "N", "M", ",", ".", "/", "K", "L"]
+const CAT_KEYCODES := [KEY_Z, KEY_C, KEY_V, KEY_B, KEY_N, KEY_M, KEY_COMMA, KEY_PERIOD, KEY_SLASH, KEY_K, KEY_L]
 
 var ui: Node = null
 var _tools: Dictionary = {}
@@ -125,6 +126,7 @@ func _rebuild_cats() -> void:
 		var b := PcButton.make(str(cd.get("cat_name", cid)), UI.cat_picto(cid), key, "ButtonToggle")
 		b.toggle_mode = true
 		b.min_h = 40
+		b.sfx_name = "tab"
 		b.set_pressed_no_signal(cid == cat)
 		b.modulate = Color(1, 1, 1, 1.0 if open_n > 0 else 0.5)
 		var cc := cid
@@ -231,8 +233,10 @@ func _card(it: Dictionary, cid: String) -> Control:
 	elif locked:
 		cost.add_theme_color_override("font_color", UI.col("mute"))
 	v.add_child(cost)
+	b.mouse_entered.connect(func() -> void: Sfx.play("hover"))
 	b.pressed.connect(func() -> void:
 		b.set_pressed_no_signal(false)
+		Sfx.play("click")
 		item_pressed.emit(it))
 	var itc := it
 	TipLayer.set_tip(b, func() -> Control: return item_tip(itc, ui))

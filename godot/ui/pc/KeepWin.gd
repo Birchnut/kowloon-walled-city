@@ -4,7 +4,7 @@ extends PcWindow
 ##  목표: 지금 목표(방법 줄·가는 버튼) → 앞으로 → 끝낸 것.   정책: 칸 수, 켜고 끄기, 잠긴 이유, 단속 위험.
 ##  연구: 갈래별 마디(상태색·비용·날), 시작/그만두기(절반 환불 확인).   기록: log{n:60}.
 ##  설정: 창/전체 화면(F11) · UI 크기 100/125/150% · 시작 배속 · 저장(Ctrl+S) · 이어 하기 · 새 도시 · 오프닝 다시.
-##  디버그: 돈·자재·하루·전부 해금·불·병·층 채우기·불병 견본(V4Shim).
+##  디버그: 돈·자재·하루·전부 해금·불·병·층 채우기.
 
 var tab := "goals"
 var _tabs: Dictionary = {}
@@ -332,12 +332,43 @@ func _settings() -> void:
 		close()
 		ui.tutorial.start(0))
 	nh.add_child(tb)
-	g.add_child(UI.label("소리", "LabelDim"))
-	var mb := PcButton.make("효과음 끔" if not Sfx.muted else "효과음 켬", "", "", "Button")
-	mb.pressed.connect(func() -> void:
-		Sfx.muted = not Sfx.muted
-		_sig = "")
-	g.add_child(mb)
+	# 소리: 버스 넷의 크기(바로 user://audio.cfg 에 저장 — AudioDirector) + 끄고 켜기
+	for row: Array in [["master", "전체 소리"], ["sfx", "효과음"], ["ambience", "도시 소리"], ["music", "음악"]]:
+		g.add_child(UI.label(row[1], "LabelDim"))
+		var sh2 := UI.hbox(8)
+		g.add_child(sh2)
+		var sl := HSlider.new()
+		sl.min_value = 0.0
+		sl.max_value = 1.0
+		sl.step = 0.05
+		sl.custom_minimum_size = Vector2(320, 28)
+		sl.focus_mode = Control.FOCUS_NONE
+		sl.value = Sfx.get_volume(row[0])
+		var vl := UI.label("%d%%" % int(round(sl.value * 100.0)), "LabelSmall")
+		vl.custom_minimum_size.x = 60
+		var bus: String = row[0]
+		sl.value_changed.connect(func(v: float) -> void:
+			Sfx.set_volume(bus, v)
+			vl.text = "%d%%" % int(round(v * 100.0)))
+		sl.drag_ended.connect(func(_ch: bool) -> void: Sfx.play("click"))
+		sh2.add_child(sl)
+		sh2.add_child(vl)
+	g.add_child(UI.label("켜고 끄기", "LabelDim"))
+	var th := UI.hbox(6)
+	g.add_child(th)
+	var toggles: Array = [
+		["전체 끔", func() -> bool: return Sfx.is_muted(), func(on: bool) -> void: Sfx.mute(on)],
+		["효과음 끔", func() -> bool: return Sfx.muted, func(on: bool) -> void: Sfx.muted = on],
+		["도시 소리 끔", func() -> bool: return not Sfx.ambience_enabled(), func(on: bool) -> void: Sfx.set_ambience_enabled(not on)],
+		["음악 끔", func() -> bool: return not Sfx.music_enabled(), func(on: bool) -> void: Sfx.set_music_enabled(not on)]]
+	for t: Array in toggles:
+		var tb2 := PcButton.make(t[0], "", "", "ButtonToggle")
+		tb2.toggle_mode = true
+		var getter: Callable = t[1]
+		var setter: Callable = t[2]
+		tb2.set_pressed_no_signal(bool(getter.call()))
+		tb2.toggled.connect(func(on: bool) -> void: setter.call(on))
+		th.add_child(tb2)
 
 
 # ------------------------------------------------------------------ 디버그
@@ -349,13 +380,13 @@ func _debug() -> void:
 	var ops: Array = [["₩+1,000", {"op": "add_money", "n": 1000}], ["₩+10,000", {"op": "add_money", "n": 10000}],
 		["세 자재 +20", "mats"], ["고물 +50", {"op": "add_stock", "good": "scrap", "n": 50}], ["설비 부품 +5", {"op": "add_stock", "good": "parts", "n": 5}],
 		["하루 건너뛰기", {"op": "skip_days", "n": 1}], ["전부 해금", {"op": "unlock_all"}], ["거래처 공개", {"op": "reveal_partners"}],
-		["불 내기(가운데 집)", "fire"], ["병 퍼뜨리기", "outbreak"], ["지금 층 채우기", "fill"], ["불·병 견본(심) 켜고 끄기", "shim_hz"]]
+		["불 내기(고른 건물·없으면 아무 집)", "fire"], ["병 퍼뜨리기(고른 집·없으면 아무 집)", "outbreak"], ["불 켜기(유예 없이)", {"op": "set_hazard", "kind": "fire", "on": true}], ["병 켜기(유예 없이)", {"op": "set_hazard", "kind": "disease", "on": true}], ["층 채우기(다음 층 열릴 만큼)", "fill"]]
 	for o: Array in ops:
 		var b := PcButton.make(o[0], "", "", "Button")
 		var a: Variant = o[1]
 		b.pressed.connect(func() -> void: _dbg(a))
 		f.add_child(b)
-	_list.add_child(_w("불·병·층 채우기는 v4 시뮬의 debug 명령(start_fire / start_outbreak / fill_floor)을 부른다. 이 클론의 v3 시뮬에 없으면 이유가 토스트로 나온다. '견본(심)'은 V4Shim 만 바꾼다.", "LabelDim"))
+	_list.add_child(_w("불·병·층 채우기는 시뮬의 debug 명령(start_fire / start_outbreak / set_hazard / fill_floor)을 부른다. 불·병 내기는 살피기로 고른 건물에 — 고른 것이 없으면 주민 있는 집 하나에. ", "LabelDim"))
 
 
 func _dbg(a: Variant) -> void:
@@ -368,18 +399,25 @@ func _dbg(a: Variant) -> void:
 				for g: String in ["wood", "metal", "concrete"]:
 					r = ui.cmd("debug", {"op": "add_stock", "good": g, "n": 20})
 			"fire", "outbreak":
+				# 고른 건물이 있으면 그 칸, 없으면 시뮬이 주민 있는 집 하나를 고른다(SIM 감독 확인 8)
 				var pos: Variant = ui.inspector.selected_pos
-				if not (pos is Vector3i):
-					var g2 := UI.to_dict(ui.hud.get("grid", {}))
-					pos = Vector3i(int(g2.get("w", 12)) / 2, int(g2.get("h", 12)) / 2, 0)
-				r = ui.cmd("debug", {"op": "start_fire" if str(a) == "fire" else "start_outbreak", "pos": pos})
+				var dargs := {"op": "start_fire" if str(a) == "fire" else "start_outbreak"}
+				if pos is Vector3i:
+					dargs["pos"] = pos
+				r = ui.cmd("debug", dargs)
 			"fill":
 				var v := Q.view()
 				var z := maxi(0, int(v.get("floor_cut")) if v != null and v.get("floor_cut") != null else 0)
-				r = ui.cmd("debug", {"op": "fill_floor", "z": z, "count": 9999})
-			"shim_hz":
-				V4Shim.sample_hazards = not V4Shim.sample_hazards
-				r = {"ok": true}
+				if v == null or int(v.get("floor_cut")) < 0:
+					z = maxi(0, int(ui.hud.get("floors_unlocked", 1)) - 1)    # '전체'를 보고 있으면 가장 위의 열린 층
+				# 다음 층이 열릴 만큼만(80% + 몇 칸) 채워 시설 자리를 남긴다 — 디버그 지름길
+				var g := UI.to_dict(ui.hud.get("grid", {}))
+				var area := int(g.get("w", 16)) * int(g.get("h", 16))
+				var used := 0
+				for c: Variant in Game.state.cells:
+					if (c as Vector3i).z == z:
+						used += 1
+				r = ui.cmd("debug", {"op": "fill_floor", "z": z, "count": maxi(0, int(ceil(area * 0.8)) + 6 - used)})
 	if not bool(r.get("ok", false)):
 		ui.toast("디버그: " + str(r.get("reason", "안 됨")), "warn")
 	else:

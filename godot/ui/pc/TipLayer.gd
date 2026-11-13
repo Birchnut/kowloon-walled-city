@@ -53,6 +53,9 @@ func _process(delta: float) -> void:
 		_cursor_lab.add_theme_color_override("font_color", UI.tone_col(cursor_tone) if cursor_tone != "" else UI.col("paper"))
 		_cursor.position = _clamp(mp + Vector2(22, 22), _cursor.size)
 	var h := get_viewport().gui_get_hovered_control()
+	# 마우스가 그대로인데 밑의 것이 사라지거나(눌러 넘긴 카드) 옮겨지면 툴팁이 남았다 — 영역 밖이면 없앤다
+	if h != null and (not is_instance_valid(h) or not h.get_global_rect().has_point(mp)):
+		h = null
 	var owner := _find_owner(h)
 	if owner != _hover:
 		_hover = owner
