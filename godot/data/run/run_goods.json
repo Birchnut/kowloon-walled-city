@@ -1,5 +1,5 @@
 {
- "_comment": "직접 줍기에서 나오는 물건. id는 도시의 goods id(canned만 도시에 아직 없음 — 통합 때 확인). bundle = 묶음 하나의 수량, cap = 한 칸에 겹칠 수 있는 묶음 수, value = 봇이 버릴 것 고를 때 쓰는 대략 값, w_shallow/w_deep = 얕은 방/깊은 방 출현 가중치, min_depth = 이 깊이부터 나온다.",
+ "_comment": "직접 줍기에서 나오는 물건. id는 도시의 goods id(canned만 도시에 아직 없음 — 통합 때 확인). bundle = 묶음 하나의 수량, cap = 한 칸에 겹칠 수 있는 묶음 수, value = 봇이 버릴 것 고를 때 쓰는 대략 값, w_shallow/w_deep = 얕은 방/깊은 방 출현 가중치, min_depth = 이 깊이부터 나온다. city_id = 도시(SIM v4) goods id — 통합 때 여기 한 곳만 맞춘다(통조림·전자 폐품 id는 추정값).",
  "items": {
   "scrap": {
    "name": "고물",
@@ -10,7 +10,8 @@
    "w_shallow": 5,
    "w_deep": 2,
    "min_depth": 0,
-   "color": "#a08a6a"
+   "color": "#a08a6a",
+   "city_id": "scrap"
   },
   "metal": {
    "name": "철제",
@@ -21,7 +22,8 @@
    "w_shallow": 3,
    "w_deep": 4,
    "min_depth": 0,
-   "color": "#8fa3b8"
+   "color": "#8fa3b8",
+   "city_id": "metal"
   },
   "wood": {
    "name": "목재",
@@ -32,7 +34,8 @@
    "w_shallow": 2,
    "w_deep": 1,
    "min_depth": 0,
-   "color": "#b9824a"
+   "color": "#b9824a",
+   "city_id": "wood"
   },
   "concrete": {
    "name": "콘크리트",
@@ -43,7 +46,8 @@
    "w_shallow": 2,
    "w_deep": 1,
    "min_depth": 0,
-   "color": "#b4b0a4"
+   "color": "#b4b0a4",
+   "city_id": "concrete"
   },
   "canned": {
    "name": "통조림",
@@ -54,7 +58,8 @@
    "w_shallow": 1,
    "w_deep": 1,
    "min_depth": 0,
-   "color": "#d8574a"
+   "color": "#d8574a",
+   "city_id": "canned"
   },
   "elec": {
    "name": "전자 폐품",
@@ -65,7 +70,8 @@
    "w_shallow": 1,
    "w_deep": 3,
    "min_depth": 1,
-   "color": "#5fc48a"
+   "color": "#5fc48a",
+   "city_id": "ewaste"
   },
   "parts": {
    "name": "설비 부품",
@@ -76,7 +82,8 @@
    "w_shallow": 0,
    "w_deep": 2,
    "min_depth": 3,
-   "color": "#f0c040"
+   "color": "#f0c040",
+   "city_id": "parts"
   }
  },
  "big": {
@@ -102,5 +109,9 @@
    "canned": 10
   },
   "danger": 2
- }
+ },
+ "sample_wanted": [
+  "metal",
+  "elec"
+ ]
 }

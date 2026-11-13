@@ -1,7 +1,7 @@
 extends RefCounted
 ## 화면 확인용 입력 대본(script=이름). 장면을 차려 놓고(적 배치·순간 이동) 정해진 입력을 넣는다.
 ## 사람이 하는 것과 같은 RunInput만 쓴다. 차림은 확인용이라 규칙 밖의 일(순간 이동)을 한다.
-## 이름: rat dog guard throw search pack noise junk wire boss bosswin exit down
+## 이름: rat dog guard slap throw search pack noise junk wire boss bosswin exit down
 
 const RunWorld = preload("res://expedition/RunWorld.gd")
 const RunInput = preload("res://expedition/RunInput.gd")
@@ -36,6 +36,21 @@ func setup(n: String, world: RunWorld) -> void:
 			g.data["patrol"] = [p.pos + Vector2(90, 0), p.pos + Vector2(90, 40)]
 			g.set_state("look", 99.0)
 			g.data["look_base"] = PI
+		"slap":
+			_teleport_room_center(1)
+			# 오른쪽 벽 쪽으로 몰아 둔다
+			var rr: Rect2 = w._room_rect(w.cur_room)
+			p.pos = Vector2(rr.end.x - 26, rr.get_center().y)
+			var d3 := w._spawn_enemy("dog", Vector2(rr.end.x - 10, rr.get_center().y), w.cur_room)
+			d3.aware = true
+			d3.set_state("recover", 2.0)
+			var g3 := w._spawn_enemy("guard", p.pos + Vector2(0, 26), w.cur_room)
+			g3.aware = true
+			g3.set_state("recover", 2.0)
+			for k in 3:
+				var r3 := w._spawn_enemy("rat", p.pos + Vector2(-20 - k * 6, -14 + k * 8), w.cur_room)
+				r3.aware = true
+				r3.set_state("recover", 3.0)
 		"throw":
 			_teleport_room_center(1)
 			var g2 := w._spawn_enemy("guard", p.pos + Vector2(80, 0), w.cur_room)
@@ -45,6 +60,18 @@ func setup(n: String, world: RunWorld) -> void:
 			g2.data["look_base"] = PI
 			w.held = ["can", "can"]
 			p.pos += Vector2(-40, 0)
+		"flood", "hush":
+			_teleport_room_center(2)
+			var g4 := w._spawn_enemy("guard", p.pos + Vector2(70, -10), w.cur_room)
+			g4.face = Vector2.LEFT
+			g4.data["patrol"] = [p.pos + Vector2(70, -10), p.pos + Vector2(70, 40)]
+			if name == "flood":
+				w.noise_level = 2
+				w.noise = 100.0
+			else:
+				w.noise = 70.0
+				g4.dead = true
+				g4.state = "gone"
 		"search", "noise":
 			var pl := _nearest_pile_with_loot()
 			p.pos = (pl["pos"] as Vector2) + Vector2(-14, 2)
@@ -68,12 +95,15 @@ func setup(n: String, world: RunWorld) -> void:
 				p.pos = w.cell_center(wv["cells"][0])
 				w._room_step()
 				break
-		"boss", "bosswin":
+		"boss", "bosswin", "boss2":
 			var b: Actor = w.boss
 			var rr: Rect2 = w._room_rect(b.room)
 			p.pos = Vector2(rr.get_center().x, rr.end.y - 40)
 			w.visited[b.room] = true
 			w._room_step()
+			if name == "boss2":
+				b.hp = b.max_hp / 2
+				b.data["phase"] = 2
 			if name == "bosswin":
 				b.hp = 1
 				p.hp = p.max_hp
@@ -131,7 +161,15 @@ func _nearest_pile_with_loot() -> Dictionary:
 func fill(inp: RunInput, world: RunWorld, dt: float) -> void:
 	t += dt
 	var p: Actor = world.player
-	if name in ["boss", "bosswin"]:
+	if name in ["boss", "bosswin", "boss2"]:
+		return
+	if name == "hush":
+		inp.move = Vector2.ZERO
+		inp.interact = false
+		return
+	if name == "flood":
+		inp.move = Vector2.ZERO
+		inp.interact = t > 0.3
 		return
 	inp.move = Vector2.ZERO
 	inp.interact = false
@@ -166,6 +204,18 @@ func fill(inp: RunInput, world: RunWorld, dt: float) -> void:
 						elif e.state == "recover":
 							inp.move = (e.pos - p.pos).normalized()
 							inp.attack = p.pos.distance_to(e.pos) < 28
+		"slap":
+			var tgt2: Actor = null
+			var bd2 := 999.0
+			for e: Actor in world.enemies:
+				if not e.dead and e.state != "gone" and e.pos.distance_to(p.pos) < bd2:
+					bd2 = e.pos.distance_to(p.pos)
+					tgt2 = e
+			if tgt2 != null:
+				inp.aim = tgt2.pos
+				if bd2 > 22:
+					inp.move = (tgt2.pos - p.pos).normalized()
+				inp.attack = bd2 < 30
 		"throw":
 			var g: Actor = null
 			for e: Actor in world.enemies:
@@ -173,8 +223,11 @@ func fill(inp: RunInput, world: RunWorld, dt: float) -> void:
 					g = e
 			if g == null:
 				return
+			if t < 0.6:
+				inp.throw_hold = t > 0.1
 			if t > 0.6 and not mem.has("thrown"):
 				mem["thrown"] = true
+				inp.throw_hold = false
 				inp.aim = g.pos + Vector2(40, -60)
 				inp.throw = true
 			elif mem.has("thrown") and t > 2.0:

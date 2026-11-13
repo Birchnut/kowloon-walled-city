@@ -12,7 +12,7 @@ const MAX_TIME := 900.0
 
 
 func _initialize() -> void:
-	var args := {"runs": "200", "profile": "all", "seed": "1", "dt": "0.0333", "out": "", "set": "", "quiet": "0"}
+	var args := {"runs": "200", "profile": "all", "seed": "1", "dt": "0.0333", "out": "", "set": "", "quiet": "0", "dest": "scrap_yard"}
 	for a in OS.get_cmdline_user_args():
 		var kv := a.split("=", true, 1)
 		if kv.size() == 2:
@@ -32,7 +32,7 @@ func _initialize() -> void:
 	for prof in profiles:
 		var rs: Array = []
 		for k in runs:
-			var r := run_one(prof, seed0 + k, dt)
+			var r := run_one(prof, seed0 + k, dt, str(args["dest"]))
 			rs.append(r)
 			if args["quiet"] != "1" and (k % 25 == 24 or k == runs - 1):
 				print("%s %d/%d  (%.1fs)" % [prof, k + 1, runs, (Time.get_ticks_msec() - t0) / 1000.0])
@@ -50,11 +50,11 @@ func _initialize() -> void:
 	quit()
 
 
-static func run_one(prof: String, seed_value: int, dt: float) -> Dictionary:
+static func run_one(prof: String, seed_value: int, dt: float, dest: String = "scrap_yard") -> Dictionary:
 	var sample: Dictionary = RunCfg.file("run_goods").get("sample_begin", {})
 	var w := RunWorld.new()
 	w.fx = false
-	w.setup("scrap_yard", {"stock": (sample["stock"] as Dictionary).duplicate(), "danger": int(sample.get("danger", 2)), "seed": seed_value})
+	w.setup(dest, {"stock": (sample["stock"] as Dictionary).duplicate(), "danger": int(sample.get("danger", 2)), "seed": seed_value})
 	var bot := AutoPlayer.new()
 	bot.setup(prof, seed_value)
 	while not w.finished and w.time < MAX_TIME:
@@ -104,6 +104,7 @@ static func report(all: Dictionary, runs: int, seed0: int, dt: float, sets: Stri
 	var L: Array[String] = []
 	L.append("# 직접 줍기 자동 플레이 묶음 결과")
 	L.append("")
+	L.append("- 던전: %s" % RunCfg.skin().get("name", ""))
 	L.append("- 판 수: 성격마다 %d판 (지도 번호 %d~%d), 시간 간격 %.4f초, 견본 재고(run_goods.json sample_begin)" % [runs, seed0, seed0 + runs - 1, dt])
 	if sets != "":
 		L.append("- 수치 덮어쓰기: `%s`" % sets)

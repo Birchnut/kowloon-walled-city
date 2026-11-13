@@ -36,6 +36,7 @@ static func begin(dest: String, seed_override: int = -1) -> Dictionary:
 				return r
 			out = r.duplicate()
 			out["source"] = "city"
+			out["stock"] = from_city(out.get("stock", {}))
 	var st: Dictionary = {}
 	for gid in (out.get("stock", {}) as Dictionary):
 		st[gid] = int(out["stock"][gid])
@@ -48,8 +49,28 @@ static func begin(dest: String, seed_override: int = -1) -> Dictionary:
 	return out
 
 
+## 줍기 id → 도시 id (run_goods.json 의 city_id). 통합 때 여기만 맞춘다.
+static func to_city(loot: Dictionary) -> Dictionary:
+	var out := {}
+	for g in loot:
+		var cid := str(RunCfg.good(g).get("city_id", g))
+		out[cid] = int(out.get(cid, 0)) + int(loot[g])
+	return out
+
+
+static func from_city(stock: Dictionary) -> Dictionary:
+	var back := {}
+	for g in RunCfg.goods():
+		back[str(RunCfg.good(g).get("city_id", g))] = g
+	var out := {}
+	for cid in stock:
+		var g: String = back.get(cid, cid)
+		out[g] = int(out.get(g, 0)) + int(stock[cid])
+	return out
+
+
 static func result(r: Dictionary) -> Dictionary:
-	var args := {"dest": r.get("dest", ""), "loot": r.get("loot", {}), "outcome": r.get("outcome", "exit"), "finds": r.get("finds", [])}
+	var args := {"dest": r.get("dest", ""), "loot": to_city(r.get("loot", {})), "outcome": r.get("outcome", "exit"), "finds": r.get("finds", [])}
 	last_sent = args
 	var g := _game()
 	if use_city and g != null and g.has_method("cmd"):
@@ -77,3 +98,19 @@ static func ticker() -> Array:
 		"봉제방 재봉틀 4대 가동 중",
 		"관리사무소: 복도에 짐 두지 마세요(무시됨)",
 	]
+
+
+## 지금 도시에 모자란 물건(줍기 id). 도시가 query("run_wanted")를 주면 그것(도시 id → 줍기 id), 아니면 견본.
+static func wanted() -> Array:
+	var g := _game()
+	if use_city and g != null and g.has_method("query"):
+		var q: Variant = g.query("run_wanted", {})
+		if q is Array and not (q as Array).is_empty():
+			var back := {}
+			for gid in RunCfg.goods():
+				back[str(RunCfg.good(gid).get("city_id", gid))] = gid
+			var out: Array = []
+			for cid in q:
+				out.append(back.get(str(cid), str(cid)))
+			return out
+	return RunCfg.file("run_goods").get("sample_wanted", ["metal", "elec"])
