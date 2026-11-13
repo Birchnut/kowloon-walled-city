@@ -726,11 +726,15 @@ func _hazard_intro(kind: String, grace: float) -> void:
 	if kind == "fire":
 		toasts.card({"kicker": "새 위험 — 불", "title": "이제부터 불이 날 수 있다%s" % ((" (%s 뒤부터)" % UI.days(grace)) if grace > 0.0 else ""),
 			"body": "소방대 범위 밖의 칸에 불이 나면 옆·위로 번진다. 탄 집은 수리해야 쓴다. 소방대(양동이)는 위아래 한 층까지 닿는다. 위 띠의 불 신호등과 '소방' 렌즈로 빈 곳을 본다.",
-			"tone": "red", "picto": "fire", "life": 0.0, "buttons": [{"label": "소방 렌즈 보기", "cb": func() -> void: set_lens("fire")}, {"label": "알았다", "cb": Callable()}]})
+			"tone": "red", "picto": "fire", "life": 0.0, "buttons": [{"label": "소방대 짓기", "cb": func() -> void:
+				set_lens("fire")
+				jump({"screen": "build", "arg": "fire_bucket"})}, {"label": "소방 렌즈 보기", "cb": func() -> void: set_lens("fire")}, {"label": "알았다", "cb": Callable()}]})
 	elif kind == "disease":
 		toasts.card({"kicker": "새 위험 — 병", "title": "이제부터 병이 돌 수 있다%s" % ((" (%s 뒤부터)" % UI.days(grace)) if grace > 0.0 else ""),
 			"body": "집마다 쓰레기가 나온다. 수거 범위 밖에 쌓이면 그 구역에 병이 돈다 — 일손 반, 행복 하락. 넝마주이 조합(수거)과 의원으로 막는다. '수거'·'의원' 렌즈로 본다.",
-			"tone": "red", "picto": "disease", "life": 0.0, "buttons": [{"label": "수거 렌즈 보기", "cb": func() -> void: set_lens("trash")}, {"label": "알았다", "cb": Callable()}]})
+			"tone": "red", "picto": "disease", "life": 0.0, "buttons": [{"label": "조합 짓기", "cb": func() -> void:
+				set_lens("trash")
+				jump({"screen": "build", "arg": "trash_guild"})}, {"label": "수거 렌즈 보기", "cb": func() -> void: set_lens("trash")}, {"label": "알았다", "cb": Callable()}]})
 
 
 var _unlock_pending: Array = []
