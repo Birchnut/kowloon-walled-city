@@ -14,7 +14,7 @@
     "expedition_base"
    ],
    "grade_name": "공터",
-   "title": "무단 점유 대표"
+   "title": "방백"
   },
   "t1_20": {
    "order": 1,
@@ -35,7 +35,7 @@
     "scrapyard"
    ],
    "grade_name": "판자촌",
-   "title": "자칭 반장"
+   "title": "방백"
   },
   "t1_60": {
    "order": 2,
@@ -71,7 +71,7 @@
     "gambling_den"
    ],
    "grade_name": "골목",
-   "title": "비공식 통장"
+   "title": "방백"
   },
   "floor2": {
    "order": 4,
@@ -155,7 +155,7 @@
     "water_pipe"
    ],
    "grade_name": "성채",
-   "title": "무허가 구청장"
+   "title": "방백"
   },
   "lux_bath": {
    "order": 9,
@@ -232,7 +232,7 @@
     "roof_garden"
    ],
    "grade_name": "구룡",
-   "title": "세금 안 내는 시장님"
+   "title": "방백"
   },
   "lux_top": {
    "order": 13,
@@ -304,7 +304,7 @@
    ],
    "unlocks": [],
    "grade_name": "구룡성채",
-   "title": "지도에 없는 곳의 따거",
+   "title": "방백",
    "final": true
   }
  }

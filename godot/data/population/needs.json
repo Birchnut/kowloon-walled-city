@@ -17,7 +17,7 @@
    "tier": 1,
    "role": "basic",
    "share": 2,
-   "name": "끼니(통조림)",
+   "name": "끼니(맹관죽)",
    "amount": 0.3,
    "food": true,
    "options": [
@@ -51,7 +51,7 @@
   "t1_light": {
    "tier": 1,
    "role": "advance",
-   "name": "등불",
+   "name": "깡통 양초",
    "amount": 0.04,
    "options": [
     {
@@ -62,7 +62,7 @@
   "t1_booze": {
    "tier": 1,
    "role": "luxury",
-   "name": "밀주",
+   "name": "빵술",
    "amount": 0.05,
    "options": [
     {
@@ -95,7 +95,7 @@
    "tier": 2,
    "role": "basic",
    "share": 2,
-   "name": "끼니(통조림)",
+   "name": "끼니(맹관죽)",
    "amount": 0.2,
    "food": true,
    "options": [
@@ -121,7 +121,7 @@
    "tier": 2,
    "role": "basic",
    "share": 1,
-   "name": "옷",
+   "name": "기운 옷",
    "amount": 0.05,
    "options": [
     {
@@ -133,7 +133,7 @@
    "tier": 2,
    "role": "basic",
    "share": 1,
-   "name": "등불 또는 전기",
+   "name": "깡통 양초 또는 전기",
    "amount": 0.05,
    "options": [
     {
@@ -175,7 +175,7 @@
   "t2_booze": {
    "tier": 2,
    "role": "advance",
-   "name": "밀주",
+   "name": "빵술",
    "amount": 0.06,
    "options": [
     {
@@ -206,7 +206,7 @@
   "t2_bath": {
    "tier": 2,
    "role": "luxury",
-   "name": "목욕탕",
+   "name": "공동 김탕",
    "options": [
     {
      "service": "bath"
@@ -241,7 +241,7 @@
    "tier": 3,
    "role": "basic",
    "share": 2,
-   "name": "쥐고기 버거",
+   "name": "토끼버거",
    "amount": 0.15,
    "food": true,
    "options": [
@@ -254,7 +254,7 @@
    "tier": 3,
    "role": "basic",
    "share": 1,
-   "name": "옷",
+   "name": "기운 옷",
    "amount": 0.06,
    "options": [
     {
@@ -307,7 +307,7 @@
    "tier": 3,
    "role": "basic",
    "share": 1,
-   "name": "밀주",
+   "name": "빵술",
    "amount": 0.06,
    "options": [
     {
@@ -329,7 +329,7 @@
   "t3_study": {
    "tier": 3,
    "role": "advance",
-   "name": "공부방",
+   "name": "글방",
    "options": [
     {
      "service": "study"
@@ -339,7 +339,7 @@
   "t3_bath": {
    "tier": 3,
    "role": "luxury",
-   "name": "목욕탕",
+   "name": "공동 김탕",
    "options": [
     {
      "service": "bath"
@@ -349,7 +349,7 @@
   "t3_dentist": {
    "tier": 3,
    "role": "luxury",
-   "name": "치과",
+   "name": "치공",
    "options": [
     {
      "service": "dentist"
@@ -359,7 +359,7 @@
   "t3_pharmacy": {
    "tier": 3,
    "role": "luxury",
-   "name": "약국",
+   "name": "약방",
    "options": [
     {
      "service": "pharmacy"
@@ -381,7 +381,7 @@
    "tier": 4,
    "role": "basic",
    "share": 1,
-   "name": "쥐고기 버거",
+   "name": "토끼버거",
    "amount": 0.1,
    "food": true,
    "options": [
@@ -456,7 +456,7 @@
   "t4_liquor": {
    "tier": 4,
    "role": "advance",
-   "name": "양주",
+   "name": "꼬냑",
    "amount": 0.02,
    "options": [
     {
@@ -478,7 +478,7 @@
   "t4_salon": {
    "tier": 4,
    "role": "luxury",
-   "name": "미용실",
+   "name": "계단 이발",
    "options": [
     {
      "service": "salon"
@@ -488,7 +488,7 @@
   "t4_pharmacy": {
    "tier": 4,
    "role": "luxury",
-   "name": "약국",
+   "name": "약방",
    "options": [
     {
      "service": "pharmacy"
@@ -498,7 +498,7 @@
   "t4_roof": {
    "tier": 4,
    "role": "luxury",
-   "name": "하늘 공원",
+   "name": "소리터",
    "options": [
     {
      "service": "roof"
@@ -533,7 +533,7 @@
    "tier": 5,
    "role": "basic",
    "share": 1,
-   "name": "신선 채소",
+   "name": "텃밭 채소",
    "amount": 0.1,
    "food": true,
    "options": [
@@ -569,7 +569,7 @@
    "tier": 5,
    "role": "basic",
    "share": 1,
-   "name": "양주",
+   "name": "꼬냑",
    "amount": 0.03,
    "options": [
     {
@@ -591,7 +591,7 @@
   "t5_casino": {
    "tier": 5,
    "role": "luxury",
-   "name": "카지노",
+   "name": "용궁",
    "options": [
     {
      "service": "casino"
@@ -611,7 +611,7 @@
   "t5_salon": {
    "tier": 5,
    "role": "luxury",
-   "name": "미용실",
+   "name": "계단 이발",
    "options": [
     {
      "service": "salon"
