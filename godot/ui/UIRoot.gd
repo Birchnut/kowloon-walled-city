@@ -306,7 +306,7 @@ func set_lens(id: String) -> void:
 	else:
 		Q.vcall("set_lens", ["coverage"])
 		_apply_lens_cells()
-		var cv := Q.dict("coverage", {"kind": id})
+		var cv := Q.dict("coverage", {"kind": id}) if id != "warehouse" else {}
 		if str(cv.get("text", "")) != "":
 			toast("%s — 범위 안 %s" % [_lens_name(id), str(cv.get("text", ""))], "dim", "eye")
 	tutorial.on_signal("lens")
