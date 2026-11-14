@@ -334,3 +334,9 @@ A19. **라디오 선율·음악 구절은 소리음계 + 씨앗**으로만 — �
 - 설정 창·규칙·그림은 건드리지 않았다(소리를 부르는 한 줄도 더하지 않음 — 전부 AudioDirector 안).
 - 샌드박스(`AudioSandbox`)에 고요시간·확대 막대는 안 붙였다(`Sfx.director.quiet_start()` 와 `set_state_override({zoom_out, zoom_i})` 로 시험 가능).
 - 가게 안 라디오·지역별 음악(아래층 Oriented 등)·장소 위치 소리는 안 했다.
+
+## 웹에서 소리가 전혀 안 나던 문제 (2026-11-14 고침)
+- 증상: 웹 빌드(v0.4·v0.5 모두)에서 음악·효과음·배경이 전부 무음. 표본은 재생되는데 출력이 0.
+- 원인: 실행 중 `AudioServer.add_bus()`로 버스를 만들면 Godot 4.7.2 웹의 표본 재생 쪽 버스 순서가 뒤섞여, 주 버스가 출력에서 떨어지고 버스끼리 고리가 된다(브라우저 안 연결 기록으로 확인).
+- 고침: 버스를 `godot/default_bus_layout.tres`에 미리 적어 둔다(`godot/tools/make_bus_layout.gd`가 만든다). `AudioDirector._ensure_buses()`는 이미 있으면 만들지 않는다. **버스를 더할 때는 코드가 아니라 이 파일을 다시 만든다.**
+- 확인: `tools/checks/web_audio_probe.py <웹 빌드 폴더> <포트>` — 브라우저에서 출력 크기를 잰다(고치기 전 0, 고친 뒤 0.03 안팎).
